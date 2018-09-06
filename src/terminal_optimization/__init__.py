@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-from pkg_resources import get_distribution, DistributionNotFound
 
-try:
-    # Change here if project is renamed and does not equal the package name
-    dist_name = __name__
-    __version__ = get_distribution(dist_name).version
-except DistributionNotFound:
-    __version__ = 'unknown'
-finally:
-    del get_distribution, DistributionNotFound
+"""Top-level package for Terminal Optimization."""
+
+__author__ = """Mark van Koningsveld"""
+__email__ = 'm.vankoningsveld@tudelft.nl'
+__version__ = '0.1.0'
