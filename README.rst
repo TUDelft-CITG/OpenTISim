@@ -3,13 +3,24 @@ terminal_optimization
 =====================
 
 
-Add a short description here!
+Investment analysis package for port infrastructure
 
 
 Description
 ===========
 
-A longer description of your project goes here...
+Investment analysis package for port infrastructure
+
+
+Installations
+=============
+
+git clone https://github.com/TUDelft-CITG/Terminal-Optimization
+cd terminal_optimization
+pip install -U pip
+pip install -U setuptools
+pip install sphinx
+pip install -e .
 
 
 Note
@@ -17,3 +28,4 @@ Note
 
 This project has been set up using PyScaffold 3.1. For details and usage
 information on PyScaffold see https://pyscaffold.org/.
+
