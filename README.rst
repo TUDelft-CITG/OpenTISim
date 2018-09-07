@@ -17,7 +17,7 @@ Installations
 
 git clone https://github.com/TUDelft-CITG/Terminal-Optimization
 
-cd terminal_optimization
+cd Terminal_Optimization
 
 pip install -U pip
 
