@@ -38,3 +38,5 @@ class continuous_properties_mixin(object):
         self.eff_fact           = eff_fact 
         self.rated_capacity     = 0.70 * self.peak_capacity      #Source: Nemag
         self.effective_capacity = eff_fact * self.peak_capacity     #Source: TATA steel
+        
+test_variable = 100
