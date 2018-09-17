@@ -179,9 +179,9 @@ class bulk_commodities(commodity_properties_mixin):
 
 
 # create commodity objects **will ultimately be placed in notebook**
-maize   = bulk_commodities(**maize_data)
-soybean = bulk_commodities(**soybean_data)
-wheat   = bulk_commodities(**wheat_data)
+maize       = bulk_commodities(**maize_data)
+soybean     = bulk_commodities(**soybean_data)
+wheat       = bulk_commodities(**wheat_data)
 
 
 # # Vessel classes
@@ -234,6 +234,9 @@ class vessel(vessel_properties_mixin):
             self.calls = maize.handymax_calls + soybean.handymax_calls + wheat.handymax_calls
         if self.vessel_type == 'Panamax':
             self.calls = maize.panamax_calls + soybean.panamax_calls + wheat.panamax_calls
+            
+    def berth_time_calc(self, unloading_rate):
+        self.berth_time = self.call_size / unloading_rate + self.mooring_time
 
 
 # In[8]:

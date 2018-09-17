@@ -6,19 +6,9 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 
-# # Import notebook
-
-# ### Imported classes from notebook
-# - parameters
-# - maize
-# - soybean
-# - wheat
-# - handysize
-# - handymax
-# - panamax
+# # Import from notebook
 
 # ### Import general port parameters
 # This imports the 'General Port parameters' from the notebook so that they can be used for calculations within this package
@@ -64,13 +54,6 @@ def import_notebook_classes():
     return
 
 
-# In[4]:
-
-
-def test_calc():
-    return commodities.demand * 2
-
-
 # # Terminal Infrastructure classes
 
 # ### Quay wall
@@ -78,9 +61,10 @@ def test_calc():
 # In[5]:
 
 
-# create quay wall class **will ultimately be placed in package**
+# create quay wall class
 class quay_wall_properties_mixin(object):
-    def __init__(self, ownership, lifespan, mobilisation_min, mobilisation_perc, maintenance_perc, insurance_perc, length, depth, *args, **kwargs):
+    def __init__(self, ownership, lifespan, mobilisation_min, mobilisation_perc, maintenance_perc, insurance_perc, 
+                 length, depth, freeboard, Gijt_constant, Gijt_coefficient, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership            = ownership
@@ -91,22 +75,26 @@ class quay_wall_properties_mixin(object):
         self.insurance_perc       = insurance_perc
         self.length               = length
         self.depth                = depth
+        self.freeboard            = freeboard
+        self.Gijt_constant        = Gijt_constant
+        self.Gijt_coefficient     = Gijt_coefficient
 
 # Initial data set, data from Excel_input.xlsx
 quay_data = {"ownership": 'Port authority', "lifespan": 50, "mobilisation_min": 2500000,
-             "mobilisation_perc": 0.02, "maintenance_perc": 0.01, "insurance_perc": 0.01,"length": 400, "depth": 14} 
+             "mobilisation_perc": 0.02, "maintenance_perc": 0.01, "insurance_perc": 0.01,"length": 400, "depth": 14,
+             "freeboard": 4, "Gijt_constant": 757.20, "Gijt_coefficient": 1.2878} 
 
 
 # In[6]:
 
 
-# define quay wall class functions **will ultimately be placed in package**
+# define quay wall class functions
 class quay_wall_class(quay_wall_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
     def unit_rate_calc(self):
-        self.unit_rate = 757.20 * (self.depth+5)**1.2878 # van Gijt (2010)
+        self.unit_rate = int(self.Gijt_constant * (self.depth*2 + self.freeboard)**self.Gijt_coefficient) # van Gijt (2010)
     
     def original_value_calc(self):
         self.original_value = int(self.length * self.unit_rate)
@@ -124,7 +112,7 @@ class quay_wall_class(quay_wall_properties_mixin):
 # In[7]:
 
 
-# create objects **will ultimately be placed in notebook**
+# create objects
 quay = quay_wall_class(**quay_data)
 
 
@@ -155,63 +143,85 @@ class berth_class(berth_properties_mixin):
         
     def LOA_calc(self):
         if panamax.calls[timestep] != 0:
-            self.max_LOA = panamax.LOA
+            return panamax.LOA
         elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
-            self.max_LOA = handymax.LOA
+            return handymax.LOA
         else:
-            self.max_LOA = handysize.LOA
+            return handysize.LOA
 
     def vessel_depth_calc(self):
         if panamax.calls[timestep] != 0:
-            self.max_draft = panamax.draft
+            return panamax.draft
         elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
-            self.max_draft = handymax.draft
+            return handymax.draft
         else:
-            self.max_draft = handysize.draft
+            return handysize.draft
 
-    def length_calc(self):
-        if self.quantity == 1:
-            self.length = self.max_LOA + 15 + 15
+    def length_calc(self, max_LOA, i):      
+        if i == 0:
+            return max_LOA + 15 + 15 
         else:
-            self.length = self.max_LOA + 15
+            return max_LOA + 15
 
-    def depth_calc(self):
-        self.depth = self.depth = self.max_draft + 1
+    def depth_calc(self, max_draft):
+        return max_draft + 1
         
     def cranes_calc(self):
         if self.crane_config == 'maximum': 
             if panamax.calls[timestep] != 0:
-                self.crane_quantity = panamax.max_cranes
+                return panamax.max_cranes
             elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
-                self.crane_quantity = handymax.max_cranes
+                return handymax.max_cranes
             else:
-                self.crane_quantity = handysize.max_cranes
+                return handysize.max_cranes
         
-    def unloading_rate_calc(self):
+    def eff_unloading_rate_calc(self, n_cranes):
         if self.crane_type == 'Gantry cranes':
-            self.unloading_rate = gantry_cranes.effective_capacity * self.crane_quantity
+            return gantry_cranes.effective_capacity * n_cranes
         if self.crane_type == 'Harbour cranes':
-            self.unloading_rate = harbour_cranes.effective_capacity * self.crane_quantity
+            return harbour_cranes.effective_capacity * n_cranes
         if self.crane_type == 'Mobile cranes':
-            self.unloading_rate = mobile_cranes.effective_capacity * self.crane_quantity
+            return mobile_cranes.effective_capacity * n_cranes
         if self.crane_type == 'Screw unloaders':
-            self.unloading_rate = screw_unloaders.effective_capacity * self.crane_quantity
+            return screw_unloaders.effective_capacity * n_cranes
+        
+    def peak_unloading_rate_calc(self, n_cranes):
+        if self.crane_type == 'Gantry cranes':
+            return gantry_cranes.peak_capacity * n_cranes
+        if self.crane_type == 'Harbour cranes':
+            return harbour_cranes.peak_capacity * n_cranes
+        if self.crane_type == 'Mobile cranes':
+            return mobile_cranes.peak_capacity * n_cranes
+        if self.crane_type == 'Screw unloaders':
+            return screw_unloaders.peak_capacity * n_cranes
     
-    def occupancy_calc(self,n_berths):
-        self.cranes_calc()
-        self.unloading_rate_calc()
-        handysize.berth_time_calc(self.unloading_rate)
-        handymax.berth_time_calc(self.unloading_rate)
-        panamax.berth_time_calc(self.unloading_rate)
-        berth_time = (handysize.berth_time * handysize.calls[timestep] +                      handymax.berth_time  * handymax.calls[timestep] +                      panamax.berth_time   * panamax.calls[timestep]) / n_berths       
-        self.occupancy = berth_time / (operational_hours)    
+    def occupancy_calc(self, quantity):
+        n_cranes       = self.cranes_calc()
+        unloading_rate = self.eff_unloading_rate_calc(n_cranes)
+        handysize.berth_time_calc(unloading_rate)
+        handymax.berth_time_calc(unloading_rate)
+        panamax.berth_time_calc(unloading_rate)
+        berth_time = (handysize.berth_time * handysize.calls[timestep] +                      handymax.berth_time  * handymax.calls[timestep] +                      panamax.berth_time   * panamax.calls[timestep]) / quantity       
+        return berth_time / (operational_hours)    
         
     @classmethod
-    def assign_quantity(cls, quantity):
-        cls.number_of_berths = quantity
+    def quantity_calc(cls, quantity):
+        cls.quantity = quantity
+    
+    @classmethod
+    def remaining_calcs(clc):
+        max_LOA   = berths[0].LOA_calc()                                                # Maximum vessel LOA
+        max_draft = berths[0].vessel_depth_calc()                                       # Maximum vessel draft
+        n_cranes  = berths[0].cranes_calc()                                             # Number of cranes per vessel
+        
+        for i in range (berths[0].quantity):
+            berths[i].length             = berths[i].length_calc(max_LOA, i)            # assign length of each berth
+            berths[i].depth              = berths[i].depth_calc(max_draft)              # assign depth of each berth
+            berths[i].eff_unloading_rate = berths[i].eff_unloading_rate_calc(n_cranes)  # effective unloading rate of each berth
+            berths[i].eff_unloading_rate = berths[i].peak_unloading_rate_calc(n_cranes) # peak unloading rate of each berth
 
 
-# In[10]:
+# In[56]:
 
 
 berth1 = berth_class(**berth_data)
@@ -220,22 +230,6 @@ berth3 = berth_class(**berth_data)
 berth4 = berth_class(**berth_data)
 berth5 = berth_class(**berth_data)
 berths = [berth1, berth2, berth3, berth4, berth5]
-
-
-# In[11]:
-
-
-def n_berths(allowable_berth_occupancy):
-    
-    #allowable_berth_occupancy = 0.40
-    
-    for i in range(len(berths)):
-        n = i+1
-        x = berth1.occupancy_calc(i)
-
-        if x < allowable_berth_occupancy:
-            berth_class.assign_quantity(i)
-            break
 
 
 # ## Cranes (cyclic)
@@ -909,27 +903,3 @@ demurrage = demurrage_class()
 # ## NPV calc
 
 # # Apply triggers
-
-# In[49]:
-
-
-import terminal_optimization.trigger_package as package
-
-
-# ### Berths
-
-# In[50]:
-
-
-def berth_trigger():
-    
-    allowable_berth_occupancy = 0.40
-
-    for i in range(1,1+len(berths)):
-        berths[0].occupancy_calc(i)
-        print(i)
-        if berths[0].occupancy < allowable_berth_occupancy:
-            print ('if registered')
-            berth_class.assign_quantity(i)
-            break
-
