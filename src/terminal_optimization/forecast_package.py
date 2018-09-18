@@ -27,7 +27,7 @@ import pandas as pd
 
 # # Trend Generator
 
-# In[1]:
+# In[2]:
 
 
 # create trend estimating class **will ultimately be placed in package**

@@ -123,16 +123,15 @@ quay = quay_wall_class(**quay_data)
 
 # create berth class
 class berth_properties_mixin(object):
-    def __init__(self, crane_type, crane_config, *args, **kwargs):
+    def __init__(self, crane_config, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.crane_type   = crane_type
         self.crane_config = crane_config
         
 # Initial data set, data from Excel_input.xlsx
-berth_data = {"crane_type": 'Gantry cranes', "crane_config": 'maximum'}
+berth_data = {"crane_config": 'maximum'}
 
 
-# In[9]:
+# In[16]:
 
 
 # define berth functions 
@@ -169,35 +168,35 @@ class berth_class(berth_properties_mixin):
     def cranes_calc(self):
         if self.crane_config == 'maximum': 
             if panamax.calls[timestep] != 0:
-                return panamax.max_cranes
+                self.n_cranes = panamax.max_cranes
             elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
-                return handymax.max_cranes
+                self.n_cranes = handymax.max_cranes
             else:
-                return handysize.max_cranes
+                self.n_cranes = handysize.max_cranes
         
-    def eff_unloading_rate_calc(self, n_cranes):
+    def eff_unloading_rate_calc(self):
         if self.crane_type == 'Gantry cranes':
-            return gantry_cranes.effective_capacity * n_cranes
+            return gantry_cranes[0].effective_capacity * self.n_cranes
         if self.crane_type == 'Harbour cranes':
-            return harbour_cranes.effective_capacity * n_cranes
+            return harbour_cranes[0].effective_capacity * self.n_cranes
         if self.crane_type == 'Mobile cranes':
-            return mobile_cranes.effective_capacity * n_cranes
+            return mobile_cranes[0].effective_capacity * self.n_cranes
         if self.crane_type == 'Screw unloaders':
-            return screw_unloaders.effective_capacity * n_cranes
+            return screw_unloaders[0].effective_capacity * self.n_cranes
         
-    def peak_unloading_rate_calc(self, n_cranes):
+    def peak_unloading_rate_calc(self):
         if self.crane_type == 'Gantry cranes':
-            return gantry_cranes.peak_capacity * n_cranes
+            return gantry_cranes[0].peak_capacity * self.n_cranes
         if self.crane_type == 'Harbour cranes':
-            return harbour_cranes.peak_capacity * n_cranes
+            return harbour_cranes[0].peak_capacity * self.n_cranes
         if self.crane_type == 'Mobile cranes':
-            return mobile_cranes.peak_capacity * n_cranes
+            return mobile_cranes[0].peak_capacity * self.n_cranes
         if self.crane_type == 'Screw unloaders':
-            return screw_unloaders.peak_capacity * n_cranes
+            return screw_unloaders[0].peak_capacity * self.n_cranes
     
     def occupancy_calc(self, quantity):
-        n_cranes       = self.cranes_calc()
-        unloading_rate = self.eff_unloading_rate_calc(n_cranes)
+        self.cranes_calc()
+        unloading_rate = self.eff_unloading_rate_calc()
         handysize.berth_time_calc(unloading_rate)
         handymax.berth_time_calc(unloading_rate)
         panamax.berth_time_calc(unloading_rate)
@@ -215,10 +214,11 @@ class berth_class(berth_properties_mixin):
         n_cranes  = berths[0].cranes_calc()                 # Number of cranes per vessel
         
         for i in range (berths[0].quantity):
+            berths[i].cranes_calc()
             berths[i].length             = berths[i].length_calc(max_LOA, i)            # assign length of each berth
             berths[i].depth              = berths[i].depth_calc(max_draft)              # assign depth of each berth
-            berths[i].eff_unloading_rate = berths[i].eff_unloading_rate_calc(n_cranes)  # effective unloading rate of each berth
-            berths[i].eff_unloading_rate = berths[i].peak_unloading_rate_calc(n_cranes) # peak unloading rate of each berth
+            berths[i].eff_unloading_rate = berths[i].eff_unloading_rate_calc()  # effective unloading rate of each berth
+            berths[i].eff_unloading_rate = berths[i].peak_unloading_rate_calc() # peak unloading rate of each berth
 
 
 # In[4]:
@@ -229,9 +229,6 @@ berths = []
 for i in range (5):
     berths.append(berth_class(**berth_data))
     berths[i].index = i
-    
-#berth = berth_class(**berth_data)
-#berths = [5 * berth]
 
 
 # ## Cranes (cyclic)
@@ -262,7 +259,7 @@ class cyclic_properties_mixin(object):
         self.effective_capacity   = int(eff_fact * self.peak_capacity)     #Source: TATA steel
 
 # Initial data set, data from Excel_input.xlsx
-gantry_data        = {"ownership": 'Terminal operator', "lifespan": 40, "unit_rate": 19500000,"mobilisation_perc": 0.15, 
+gantry_crane_data        = {"ownership": 'Terminal operator', "lifespan": 40, "unit_rate": 19500000,"mobilisation_perc": 0.15, 
                       "maintenance_perc": 0.02, "insurance_perc": 0.01,"consumption": 0, "crew": 3, 
                       "unloader_type": 'Gantry crane', "lifting_capacity": 70, "hourly_cycles": 60, "eff_fact": 0.55,
                       "utilisation": 0.80}
@@ -316,22 +313,38 @@ class cyclic_unloader(cyclic_properties_mixin):
         
     def shifts_calc(self):
         self.shifts = int(np.ceil(self.quantity * operational_hours * self.crew / labour.shift_length))
+        
+    @classmethod
+    def quantity_calc(cls, quantity):
+        cls.quantity = quantity
 
 
 # In[14]:
 
 
 # create objects **will ultimately be placed in notebook**
-gantry_cranes   = cyclic_unloader(**gantry_data)
+gantry_cranes   = cyclic_unloader(**gantry_crane_data)
 harbour_cranes  = cyclic_unloader(**harbour_crane_data)  
 mobile_cranes   = cyclic_unloader(**mobile_crane_data) 
 
 
-# In[3]:
+# In[5]:
 
 
-x = 5*[1]
-x
+# create crane objects
+gantry_cranes  = []
+harbour_cranes = []
+mobile_cranes  = []
+
+for i in range (10):
+    gantry_cranes.append(cyclic_unloader(**gantry_crane_data))
+    gantry_cranes[i].index = i
+
+    harbour_cranes.append(cyclic_unloader(**harbour_crane_data))
+    harbour_cranes[i].index = i
+    
+    mobile_cranes.append(cyclic_unloader(**mobile_crane_data))
+    mobile_cranes[i].index = i    
 
 
 # ## Cranes (continuous)
@@ -354,7 +367,8 @@ class continuous_properties_mixin(object):
         self.crew                 = crew
         self.unloader_type        = unloader_type
         self.peak_capacity        = peak_capacity
-        self.eff_fact             = eff_fact 
+        self.eff_fact             = eff_fact
+        self.effective_capacity   = eff_fact * peak_capacity
         self.utilisation          = utilisation
 
 # Initial data set, data from Excel_input.xlsx
@@ -393,13 +407,23 @@ class continuous_unloader(continuous_properties_mixin):
         
     def shifts_calc(self):
         self.shifts = int(np.ceil(self.quantity * operational_hours * self.crew / labour.shift_length))
+        
+    @classmethod
+    def quantity_calc(cls, quantity):
+        cls.quantity = quantity
 
 
-# In[17]:
+# In[7]:
 
 
-# create objects **will ultimately be placed in notebook**
-screw_unloaders = continuous_unloader(**continuous_screw_data)
+# create screw unloader objects 
+screw_unloaders  = []
+
+for i in range (10):
+    screw_unloaders.append(continuous_unloader(**continuous_screw_data))
+    screw_unloaders[i].index = i
+    
+cranes = [gantry_cranes, harbour_cranes, mobile_cranes, screw_unloaders]
 
 
 # ## Conveyors
