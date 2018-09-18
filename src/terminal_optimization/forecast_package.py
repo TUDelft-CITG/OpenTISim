@@ -27,7 +27,7 @@ import pandas as pd
 
 # # Trend Generator
 
-# In[2]:
+# In[1]:
 
 
 # create trend estimating class **will ultimately be placed in package**
@@ -144,8 +144,8 @@ class bulk_commodities(commodity_properties_mixin):
         self.forecast_stop   = t[len(t)-1]
         
     def modal_split(self):
-        #fname = 'Excel_input.xlsx'
-        fname = 'C:\\Checkouts\\Terminal_optimization\\notebooks\\Excel_input.xlsx'
+        fname = 'Excel_input.xlsx'
+        #fname = 'C:\\Checkouts\\Terminal_optimization\\notebooks\\Excel_input.xlsx'
         modal_split = pd.read_excel(fname, 'Vessel distribution')
         if self.commodity_name == "Maize":
             self.handysize_demand = modal_split["Handysize maize"]    * self.demand

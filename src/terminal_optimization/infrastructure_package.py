@@ -112,7 +112,7 @@ class quay_wall_class(quay_wall_properties_mixin):
 # In[7]:
 
 
-# create objects
+# create quay object
 quay = quay_wall_class(**quay_data)
 
 
@@ -210,9 +210,9 @@ class berth_class(berth_properties_mixin):
     
     @classmethod
     def remaining_calcs(clc):
-        max_LOA   = berths[0].LOA_calc()                                                # Maximum vessel LOA
-        max_draft = berths[0].vessel_depth_calc()                                       # Maximum vessel draft
-        n_cranes  = berths[0].cranes_calc()                                             # Number of cranes per vessel
+        max_LOA   = berths[0].LOA_calc()                    # Maximum vessel LOA
+        max_draft = berths[0].vessel_depth_calc()           # Maximum vessel draft
+        n_cranes  = berths[0].cranes_calc()                 # Number of cranes per vessel
         
         for i in range (berths[0].quantity):
             berths[i].length             = berths[i].length_calc(max_LOA, i)            # assign length of each berth
@@ -221,15 +221,17 @@ class berth_class(berth_properties_mixin):
             berths[i].eff_unloading_rate = berths[i].peak_unloading_rate_calc(n_cranes) # peak unloading rate of each berth
 
 
-# In[56]:
+# In[4]:
 
 
-berth1 = berth_class(**berth_data)
-berth2 = berth_class(**berth_data)
-berth3 = berth_class(**berth_data)
-berth4 = berth_class(**berth_data)
-berth5 = berth_class(**berth_data)
-berths = [berth1, berth2, berth3, berth4, berth5]
+# create berth objects
+berths = []
+for i in range (5):
+    berths.append(berth_class(**berth_data))
+    berths[i].index = i
+    
+#berth = berth_class(**berth_data)
+#berths = [5 * berth]
 
 
 # ## Cranes (cyclic)
@@ -323,6 +325,13 @@ class cyclic_unloader(cyclic_properties_mixin):
 gantry_cranes   = cyclic_unloader(**gantry_data)
 harbour_cranes  = cyclic_unloader(**harbour_crane_data)  
 mobile_cranes   = cyclic_unloader(**mobile_crane_data) 
+
+
+# In[3]:
+
+
+x = 5*[1]
+x
 
 
 # ## Cranes (continuous)

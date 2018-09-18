@@ -8,9 +8,7 @@ import numpy as np
 import pandas as pd
 
 
-# # Import from notebook
-
-# ### Import general port parameters
+# # Import general port parameters
 # This imports the 'General Port parameters' from the notebook so that they can be used for calculations within this package
 
 # In[4]:
@@ -31,113 +29,110 @@ def import_notebook_parameters():
     return
 
 
-# ### Create notebook affiliated classes
-# This creates the classes that are linked to data located within the notebook
-# - Commodity characteristics at current timestep
-
-# In[ ]:
-
-
-def import_notebook_classes():
-    
-    global commodities
-    
-    class commodity_class():
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.maize_demand   = maize.demand[timestep]
-            self.soybean_demand = soybean.demand[timestep]
-            self.wheat_demand   = wheat.demand[timestep]
-            self.demand         = self.maize_demand + self.soybean_demand + self.wheat_demand
-    commodities = commodity_class()
-
-
-# # Export to infrastructure package
-
-# In[7]:
-
-
-import terminal_optimization.infrastructure_package as infra
-
-def export_infrastructure_package():
-    infra.parameters = parameters
-    infra.maize      = maize
-    infra.soybean    = soybean
-    infra.wheat      = wheat
-    infra.handysize  = handysize
-    infra.handymax   = handymax
-    infra.panamax    = panamax
-    infra.import_notebook_parameters()
-    infra.import_notebook_classes()
-
-
 # # Investment triggers
 
 # ### Quay wall
 # Quay length is calculated as the sum of the berth lengths
 
+# In[23]:
+
+
+def initial_quay_setup(quay, initial_quay_length):
+   
+    quay.length = initial_quay_length
+    
+    return quay
+
+
 # In[ ]:
 
 
-def quay_wall_length_calc():
-    global quay
-    quay = infra.quay
+def blabla_initial_quay_setup(quay, initial_quay_length, berths):
     
-    n_berths = berths[0].quantity
-    berth_lengths = []
+    number_of_berths = berths[0].quantity
+    berth_lengths    = []
     
-    for i in range (n_berths):
+    for i in range (number_of_berths):
         berth_lengths.append(berths[i].length)
     
     quay.length = np.sum(berth_lengths)
+    
+    return quay
+
+
+# In[ ]:
+
+
+def quay_expansion(quay, berths):
+    
+    original_quay_length = quay.length
+    
+    number_of_berths = berths[0].quantity
+    berth_lengths    = []
+    
+    for i in range (number_of_berths):
+        berth_lengths.append(berths[i].length)
+    
+    quay.length = np.sum(berth_lengths)
+    
+    new_quay_length = quay.length
+    quay_added = new_quay_length - original_quay_length
+    
+    return [quay, quay_added]
 
 
 # ### Berths
 # The number of berths is initially set to one after which the berth occupancy is calculated. If the berth occupancy is higher than the allowable threshold, an extra berth is added
 
-# In[11]:
+# In[ ]:
 
 
-def number_of_berths_calc():
-    global berths
-    berths = infra.berths
+def initial_berth_setup(berths, initial_number_of_berths):
     
-    # Investment trigger 
-    allowable_berth_occupancy = 0.40
+    berths[0].quantity_calc(initial_number_of_berths)
+    berths[0].remaining_calcs()
+    
+    return berths
 
-    for i in range(1,1+len(berths)):
-        berths[0].occupancy_calc(i)
-        if berths[0].occupancy < allowable_berth_occupancy:
+
+# In[13]:
+
+
+def berth_invest_decision(berths):
+    
+    global allowable_berth_occupancy
+    allowable_berth_occupancy = 0.04
+        
+    # Investment trigger 
+    number_of_berths = berths[0].quantity
+    
+    if number_of_berths == 0:
+        return 'Invest in berths'
+    
+    occupancy = berths[0].occupancy_calc(number_of_berths)
+    if occupancy < allowable_berth_occupancy:
+        return 'Do not invest in berths'
+    else:
+        return 'Invest in berths'
+
+
+# In[18]:
+
+
+def berth_expansion(berths):
+    
+    original_number_of_berths = berths[0].quantity
+    
+    for i in range (max(original_number_of_berths,1), len(berths)+1): # increase nr of berths untill occupancy is satisfactory        number_of_berths = i+1
+        occupancy = berths[0].occupancy_calc(i)
+        if occupancy < allowable_berth_occupancy:
             berths[0].quantity_calc(i)
+            new_number_of_berths = i
             break
     
-    # Execute remaining berth calcs
-    berths[0].remaining_calcs()
-
-
-# In[17]:
-
-
-def berth_invest_decision():
-    global berths
-    berths = infra.berths
+    berths[0].remaining_calcs()                                        # assign length and depth to each berth
     
-    # Investment trigger 
-    allowable_berth_occupancy = 0.04
-    current_quantity  = 1
-    occupancy         = berths[0].occupancy_calc(current_quantity)
+    berths_added = new_number_of_berths - original_number_of_berths    # register how many berths were added
     
-    if occupancy < allowable_berth_occupancy:
-        return False
-    else:
-        return True
-
-
-# In[15]:
-
-
-if 5 < 10:
-    print ('True!!!')
-else:
-    print ('False!!!')  
+    return [berths, berths_added]
 
