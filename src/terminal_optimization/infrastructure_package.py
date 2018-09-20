@@ -522,7 +522,7 @@ silo_data      = {"ownership": 'Terminal operator', "delivery_time": 1, "lifespa
                   "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.02, "crew": 0.00002, 
                   "insurance_perc": 0.01, "storage_type": 'Silos', "utilisation": 0.80}
 warehouse_data = {"ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 30, "unit_rate": 140,
-                  "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.01, "crew": 0.00002 
+                  "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.01, "crew": 0.00002, 
                   "insurance_perc": 0.01, "storage_type": 'Warehouse', "utilisation": 0.80}
 
 
