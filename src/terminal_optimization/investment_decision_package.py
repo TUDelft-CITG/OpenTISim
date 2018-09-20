@@ -17,11 +17,13 @@ import pandas as pd
 def import_notebook_parameters():
     
     global year
+    global simulation_window
     global start_year
     global timestep
     global operational_hours
     
     year              = parameters.year
+    simulation_window = parameters.simulation_window
     start_year        = parameters.start_year
     timestep          = parameters.timestep
     operational_hours = parameters.operational_hours
@@ -43,35 +45,46 @@ initial_quay_length = 0
 # In[5]:
 
 
-def initial_quay_setup(quay):
+def initial_quay_setup(quays):
    
-    quay.online_length = initial_quay_length
+    quays[0].online_length_calc(initial_quay_length)
+    quays[0].pending_length_calc(0)
     
-    return quay
+    if initial_quay_length != 0:
+        quays[0].quantity_calc(1)
+    else:
+        quays[0].quantity_calc(0)
+    
+    return quays
 
 
 # In[ ]:
 
 
-def quay_online_transition(quay):
+def quay_online_transition(quays):
     
-    online  = quay.online_length
-    pending = quay.pending_length
+    online  = quays[0].online_length
+    pending = quays[0].pending_length
     
-    for i in range (online, online + pending):
-        if berths[i].online_date == year:
-            berths[i].online_quantity_calc(online+1)
-            berths[i].pending_quantity_calc(pending-1)
+    if quays[0].pending_length != 0:
+        index = quays[0].quantity
+        if quays[index].online_date == year:
+                quays[index].online_length_calc(quays[index].online_length + quays[index].pending_length)
+                quays[index].pending_length_calc(0)
             
-    return berths
+    return quays
 
 
 # In[ ]:
 
 
-def quay_invest_decision(berth_invest_decision):
-    if berth_invest_decision == 'Invest in berths':
-        return 'Invest in quay'
+def quay_invest_decision(berths, quays):
+    if berths[0].pending_quantity != 0:
+        berth_index = (berths[0].online_quantity + berths[0].pending_quantity) - 1
+        if berths[berth_index].online_date == year + quays[0].delivery_time:
+            return 'Invest in quay'
+        else:
+            return 'Do not invest in quay'
     else:
         return 'Do not invest in quay'
 
@@ -79,20 +92,22 @@ def quay_invest_decision(berth_invest_decision):
 # In[ ]:
 
 
-def quay_expansion(quay, berths):
+def quay_expansion(quays, berths):
     
     number_of_berths = berths[0].pending_quantity
     berth_lengths    = []
     
-    for i in range (number_of_berths):
+    for i in range (berths[0].online_quantity, berths[0].online_quantity + berths[0].pending_quantity):
         berth_lengths.append(berths[i].length)
     
-    quay.pending_length = np.sum(berth_lengths)
+    quays[quays[0].quantity].purchase_date = year
+    quays[quays[0].quantity].online_date = year + quays[0].delivery_time
+    quays[0].pending_length_calc(np.sum(berth_lengths))
+    quays[0].quantity_calc(quays[0].quantity + 1)
     
-    quay.length
-    quay_added = new_quay_length - original_quay_length
+    quays[0].delta = quays[0].pending_length
     
-    return [quay, quay_added]
+    return quays
 
 
 # ### Berths
@@ -170,12 +185,12 @@ def berth_expansion(berths):
             berths[i].pending_quantity_calc(i+1)
             new_number_of_berths = i+1
             break
-    print ('new', new_number_of_berths)
-    print ('old', original_number_of_berths)
     
     berths_added = new_number_of_berths - original_number_of_berths    # register how many berths were added
     
-    return [berths, berths_added]
+    berths[0].delta = berths_added
+    
+    return berths
 
 
 # ### Crane investment decision
@@ -195,14 +210,18 @@ initial_screw_unloaders = 0
 
 def initial_crane_setup(cranes):
     
-    cranes[0][0].quantity_calc(initial_gantry_cranes, 'Gantry crane')
-    cranes[1][0].quantity_calc(initial_harbour_cranes, 'Harbour crane')
-    cranes[2][0].quantity_calc(initial_mobile_cranes, 'Mobile crane')
-    cranes[3][0].quantity_calc(initial_screw_unloaders, 'Screw unloader')
+    online = [initial_gantry_cranes, initial_harbour_cranes, initial_mobile_cranes, initial_screw_unloaders]
+    pending = [0,0,0,0]
     
     for i in range (4):
-        if not "quantity" in dir(cranes[i][0]):
-            cranes[i][0].quantity = 0
+        if online[i] != 0:
+            for j in range (len(cranes[i])):
+                cranes[i][j].online_quantity  = online[i]
+                cranes[i][j].pending_quantity = pending[i]
+        else:
+            for j in range (len(cranes[i])):
+                cranes[i][j].online_quantity  = 0
+                cranes[i][j].pending_quantity = 0
     
     return cranes
 
@@ -210,9 +229,36 @@ def initial_crane_setup(cranes):
 # In[ ]:
 
 
-def crane_invest_decision(berth_invest_decision):
-    if berth_invest_decision == 'Invest in berths':
-        return 'Invest in cranes'
+def crane_online_transition(cranes):
+    
+    online  = []
+    pending = []
+    
+    for i in range (4):
+        online.append(cranes[i][0].online_quantity)
+        pending.append(cranes[i][0].pending_quantity)
+    
+    for i in range (4):
+        coming_online = []
+        for j in range(online[i], online[i] + pending[i]):
+            if cranes[i][j].online_date == year:
+                coming_online.append(1)
+            cranes[i][0].online_quantity_calc(online[i] + np.sum(coming_online))
+            cranes[i][0].pending_quantity_calc(pending[i] - np.sum(coming_online))
+            
+    return cranes
+
+
+# In[ ]:
+
+
+def crane_invest_decision(cranes, berths):
+    if berths[0].pending_quantity != 0:
+        berth_index = (berths[0].online_quantity + berths[0].pending_quantity) - 1
+        if berths[berth_index].online_date == year + cranes[0][0].delivery_time + 1:
+            return 'Invest in cranes'
+        else:
+            return 'Do not invest in cranes'
     else:
         return 'Do not invest in cranes'
 
@@ -220,49 +266,47 @@ def crane_invest_decision(berth_invest_decision):
 # In[2]:
 
 
-def crane_expansion(cranes, berths, berths_added):
+def crane_expansion(cranes, berths):
     
     # Determine original number of cranes
-    original_number_of_cranes = [cranes[0][0].quantity, cranes[1][0].quantity, cranes[2][0].quantity, cranes[3][0].quantity]
- 
+    online  = []
+    pending = []
+    
+    for i in range (4):
+        online.append(cranes[i][0].online_quantity)
+        pending.append(cranes[i][0].pending_quantity)
+    
+    # Required cranes at the berths that are due to come online 
+    berth_index = (berths[0].online_quantity + berths[0].pending_quantity) - 1
     gantry_cranes_added   = []
     harbour_cranes_added  = []
     mobile_cranes_added   = []
     screw_unloaders_added = []
     
-    # Required cranes at each berth
-    for i in range (berths[0].quantity - berths_added, berths[0].quantity):            
-        if berths[i].crane_type == 'Gantry cranes':
-            gantry_cranes_added.append(berths[i].n_cranes)
-        if berths[i].crane_type == 'Harbour cranes':
-            harbour_cranes_added.append(berths[i].n_cranes)
-        if berths[i].crane_type == 'Mobile cranes':
-            mobile_cranes_added.append(berths[i].n_cranes)            
-        if berths[i].crane_type == 'Screw unloaders':
-            screw_unloaders_added.append(berths[i].n_cranes)
+    if berths[berth_index].crane_type == 'Gantry cranes':
+        gantry_cranes_added.append(berths[berth_index].n_cranes)
+    if berths[berth_index].crane_type == 'Harbour cranes':
+        harbour_cranes_added.append(berths[berth_index].n_cranes)
+    if berths[berth_index].crane_type == 'Mobile cranes':
+        mobile_cranes_added.append(berths[berth_index].n_cranes)            
+    if berths[berth_index].crane_type == 'Screw unloaders':
+        screw_unloaders_added.append(berths[berth_index].n_cranes)
     
-    # Number of cranes that have been added
-    gantry_cranes_added   = int(np.sum(gantry_cranes_added))                            
-    harbour_cranes_added  = int(np.sum(harbour_cranes_added))
-    mobile_cranes_added   = int(np.sum(mobile_cranes_added))
-    screw_unloaders_added = int(np.sum(screw_unloaders_added))
+    cranes_added = [int(np.sum(gantry_cranes_added)), int(np.sum(harbour_cranes_added)),
+                    int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]
     
-    # Assign the new quantities
-    cranes[0][0].quantity_calc(original_number_of_cranes[0] + gantry_cranes_added, 'Gantry crane')
-    cranes[1][0].quantity_calc(original_number_of_cranes[1] + harbour_cranes_added, 'Harbour crane')
-    cranes[2][0].quantity_calc(original_number_of_cranes[2] + mobile_cranes_added, 'Mobile crane')
-    cranes[3][0].quantity_calc(original_number_of_cranes[3] + screw_unloaders_added, 'Screw unloader')
+    # Assign purchase dates and dates on which assets come online
+    for i in range (4):
+        if cranes_added[i] != 0:
+            for j in range (online[i], online[i] + cranes_added[i]):
+                cranes[i][j].purchase_date = year
+                cranes[i][j].online_date = year + cranes[i][j].delivery_time
+            for k in range (online[i]+pending[i]+cranes_added[i]):
+                cranes[i][k].pending_quantity = pending[i]+cranes_added[i]
+        
+        cranes[i][0].delta = cranes_added[i]
     
-    # Cranes can be bought later than berth is purchased
-    delay_purchase = berths[0].delivery_time - cranes[0][0].delivery_time                     
-    
-    # Assign purchase dates and date on which asset comes online
-    assign_purchase_date(cranes[0], original_number_of_cranes[0], gantry_cranes_added, delay_purchase)  
-    assign_purchase_date(cranes[1], original_number_of_cranes[1], harbour_cranes_added, delay_purchase)     
-    assign_purchase_date(cranes[2], original_number_of_cranes[2], mobile_cranes_added, delay_purchase)
-    assign_purchase_date(cranes[3], original_number_of_cranes[3], screw_unloaders_added, delay_purchase)
-    
-    return [cranes, gantry_cranes_added, harbour_cranes_added, mobile_cranes_added, screw_unloaders_added]
+    return cranes
 
 
 # ### Storage investment decision
@@ -273,30 +317,63 @@ def crane_expansion(cranes, berths, berths_added):
 
 initial_silo_capacity       = 0
 initial_warehouse_capacity  = 0
-storage_type                = 'Silos'
+storage_type                = 'Warehouses'
 silo_size                   = 6000
 trigger_throughput_perc     = 10
 aspired_throughput_perc     = 20
 
 
-# In[4]:
+# In[1]:
 
 
 def initial_storage_setup(storage):
     
-    if initial_silo_capacity != 0:
-        storage[0][0].quantity = 1
-    else:
-        storage[0][0].quantity = 0
+    online  = [initial_silo_capacity, initial_warehouse_capacity]
+    pending = [0,0]
     
-    if initial_warehouse_capacity != 0:
-        storage[1][0].quantity = 1
-    else:
-        storage[1][0].quantity = 0
-         
-    storage[0][0].capacity = initial_silo_capacity
-    storage[1][0].capacity =initial_warehouse_capacity
+    for i in range (2):
+        if online[i] != 0:
+            for j in range (len(storage[i])):
+                storage[i][j].online_capacity  = online[i]
+                storage[i][j].pending_quantity = pending[i]
+                storage[i][j].quantity         = 1
+        else:
+            for j in range (len(storage[i])):
+                storage[i][j].online_capacity  = 0
+                storage[i][j].pending_capacity = 0
+                storage[i][j].quantity         = 0
     
+    return storage
+
+
+# In[ ]:
+
+
+def storage_online_transition(storage):
+    
+    online   = []
+    pending  = []
+    quantity = []
+    
+    for i in range (2):
+        online.append(storage[i][0].online_capacity)
+        pending.append(storage[i][0].pending_capacity)
+        quantity.append(storage[i][0].quantity)
+    
+    for i in range (2):
+        coming_online = []
+        
+        for j in range(quantity[i]):
+            if storage[i][j].online_date == year:
+                coming_online.append(storage[i][j].pending_capacity)
+                
+        capacity_coming_online = np.sum(coming_online)
+        
+        if capacity_coming_online != 0:
+            for j in range(quantity[i]):
+                storage[i][j].online_capacity  = online[i] + capacity_coming_online
+                storage[i][j].pending_capacity = 0
+            
     return storage
 
 
@@ -305,29 +382,28 @@ def initial_storage_setup(storage):
 
 def storage_invest_decision(storage):
     
-    # Determine current overall capacity 
-    silo_groups = storage[0][0].quantity
-    warehouse_groups = storage[1][0].quantity
-        
-    if silo_groups != 0 or warehouse_groups != 0:
-        silo_cap = []
-        warehouse_cap = []
-        for i in range (silo_groups):
-            silo_cap.append(storage[0][i].capacity)
-        for i in range (warehouse_groups):
-            warehouse_cap.append(storage[1][i].capacity)
-        storage[0][0].overall_capacity_calc(int(np.sum(silo_cap), silo_groups, 'Silos'))
-        storage[1][0].overall_capacity_calc(int(np.sum(warehouse_cap), warehouse_groups, 'Warehouses'))
-
-    else:
-        storage[0][0].overall_capacity = 0
-        storage[1][0].overall_capacity = 0
-                
-    # Decide whether to invest
-    current_cap = storage[0][0].overall_capacity + storage[1][0].overall_capacity
-    current_demand = maize.demand[timestep] + soybean.demand[timestep] + wheat.demand[timestep]
+    # Determine current capacity
+    online   = []
+    pending  = []
+    quantity = []
     
-    if current_cap < trigger_throughput_perc/100 * current_demand:
+    for i in range (2):
+        online.append(storage[i][0].online_capacity)
+        pending.append(storage[i][0].pending_capacity)
+        quantity.append(storage[i][0].quantity)
+    
+    total_online_capacity  = np.sum(online[0]) + np.sum(online[1])
+    total_pending_capacity = np.sum(pending[0]) + np.sum(pending[1])
+    current_demand         = maize.demand[timestep] + soybean.demand[timestep] + wheat.demand[timestep]
+    
+    for i in range (2):
+        for j in range(max(quantity[i],1)):
+            storage[i][j].total_online_capacity = total_online_capacity
+            storage[i][j].total_pending_capacity = total_pending_capacity
+            storage[i][j].current_demand = current_demand
+            
+    # Decide whether current capacity requires further investment
+    if total_online_capacity + total_pending_capacity < current_demand * trigger_throughput_perc/100:
         return ['Invest in storage', storage]
     else:
         return ['Do not invest in storage', storage]
@@ -337,47 +413,45 @@ def storage_invest_decision(storage):
 
 
 def storage_expansion(storage):
-
-    # Demand in current timestep
-    maize_demand   = maize.demand[timestep]
-    soybean_demand = soybean.demand[timestep]
-    wheat_demand   = wheat.demand[timestep]
-    total_demand   = maize_demand + soybean_demand + wheat_demand
+    
+    # Calculate capacity shortcoming
+    current_capacity = storage[0][0].total_online_capacity + storage[0][0].total_online_capacity
+    shortcoming      = storage[0][0].current_demand * aspired_throughput_perc/100 - current_capacity
     
     # Silo expansion method
     if storage_type == 'Silos':
         
         # Calculate requred capacity expansion
-        current_capacity = storage[0][0].overall_capacity + storage[1][0].overall_capacity
-        shortcoming      = total_demand*aspired_throughput_perc/100 - current_capacity
         added_silo_cap   = int(np.ceil(shortcoming/silo_size)*silo_size)
         added_warehouse_cap = 0
         
-        # Assign purchase dates and date on which asset comes online
-        number_of_silo_groups = storage[0][0].quantity
-        storage[0][number_of_silo_groups].capacity = added_silo_cap
-        storage[0][number_of_silo_groups].purchase_date = year
-        storage[0][number_of_silo_groups].online_date   = year + storage[0][0].delivery_time
-        storage[0][0].quantity_calc(storage[0][0].quantity + 1, 'Silos')
-        storage[0][0].overall_capacity_calc(storage[0][0].overall_capacity + added_silo_cap, storage[0][0].quantity, 'Silos')
-        
+        # Assign purchase date and date on which asset comes online
+        index = storage[0][0].quantity
+        storage[0][index].purchase_date = year
+        storage[0][index].online_date   = year + storage[0][0].delivery_time
+        for i in range (len(storage[0])):
+            storage[0][i].quantity = storage[0][i].quantity + 1
+            storage[0][i].pending_capacity = added_silo_cap
+            
     # Warehouse expansion method
     else:
-        # Calculate required capacity expansion
-        current_capacity    = storage[0][0].overall_capacity
-        shortcoming         = total_demand*aspired_throughput_perc/100 - current_capacity
-        added_warehouse_cap = int(shortcoming)
-        added_silo_cap      = 0
         
-        # Assign purchase dates and date on which asset comes online
-        number_of_warehouse_groups = storage[1][0].quantity
-        storage[1][number_of_warehouse_groups].capacity = added_warehouse_cap
-        storage[1][number_of_warehouse_groups].purchase_date = year
-        storage[1][number_of_warehouse_groups].online_date   = year + storage[1][0].delivery_time
-        storage[1][0].quantity_calc(storage[1][0].quantity + 1, 'Warehouses')
-        storage[1][0].overall_capacity_calc(storage[1][0].overall_capacity + added_warehouse_cap, storage[1][0].quantity, 'Warehouses')
+        # Calculate requred capacity expansion
+        added_silo_cap = 0
+        added_warehouse_cap = int(shortcoming)
+        
+        # Assign purchase date and date on which asset comes online
+        index = storage[0][0].quantity
+        storage[1][index].purchase_date = year
+        storage[1][index].online_date   = year + storage[1][0].delivery_time
+        for i in range (len(storage[1])):
+            storage[1][i].quantity = storage[1][i].quantity + 1
+            storage[1][i].pending_capacity = added_warehouse_cap
+            
+    storage[0][0].delta = added_silo_cap
+    storage[1][0].delta = added_warehouse_cap
     
-    return [storage, added_silo_cap, added_warehouse_cap]
+    return storage
 
 
 # ### Loading station investment decision
@@ -387,24 +461,56 @@ def storage_expansion(storage):
 
 
 initial_station_capacity = 0
-modular_capacity_steps   = 300
+station_modular_capacity_steps   = 300
 station_utilisation      = 0.60
 trigger_throughput_perc  = 80
 aspired_throughput_perc  = 20
 
 
-# In[ ]:
+# In[2]:
 
 
 def initial_station_setup(stations):
     
-    if initial_station_capacity != 0:
-        stations[0].quantity_calc(1)
+    online  = initial_station_capacity
+    pending = 0
+    
+    if online != 0:
+        for i in range (len(stations)):
+            stations[i].online_capacity  = online
+            stations[i].pending_quantity = pending
+            stations[i].quantity         = 1
     else:
-        stations[0].quantity_calc(0)
-        
-    stations[0].capacity_calc(initial_station_capacity)
+        for i in range (len(stations)):
+            stations[i].online_capacity  = 0
+            stations[i].pending_capacity = 0
+            stations[i].quantity         = 0
+    
+    return stations
 
+
+# In[ ]:
+
+
+def station_online_transition(stations):
+    
+    online   = stations[0].online_capacity
+    pending  = stations[0].pending_capacity
+    quantity = stations[0].quantity
+    
+    coming_online = []
+
+    for i in range(quantity):
+        if stations[i].online_date == year:
+            coming_online.append(stations[i].pending_capacity)
+
+    capacity_coming_online = np.sum(coming_online)
+
+    if capacity_coming_online != 0:
+        for i in range(quantity):
+            stations[i].online_capacity  = online + capacity_coming_online
+            stations[i].pending_capacity = 0
+            
     return stations
 
 
@@ -413,55 +519,47 @@ def initial_station_setup(stations):
 
 def station_invest_decision(stations):
     
-    # Determine current overall capacity 
-    number_of_stations = stations[0].quantity
-        
-    if number_of_stations != 0:
-        station_cap = []
-        for i in range (number_of_stations):
-            station_cap.append(station[i].capacity)
-        station[0].overall_capacity_calc(int(np.sum(station_cap)))
-
-    else:
-        stations[0].overall_capacity_calc(0)         
+    online   = stations[0].online_capacity
+    pending  = stations[0].pending_capacity
+    quantity = stations[0].quantity
 
     # Decide whether to invest
-    current_cap = stations[0].overall_capacity
-    utilisation = station_utilisation
-    current_demand = maize.demand[timestep] + soybean.demand[timestep] + wheat.demand[timestep]
-    required_capacity = current_demand*trigger_throughput_perc/100/operational_hours
-    
-    if current_cap < required_capacity:
-        return ['Invest in loading stations', stations]
+    current_capacity = online + pending 
+    current_demand   = maize.demand[timestep] + soybean.demand[timestep] + wheat.demand[timestep]
+    trigger_capacity = current_demand * trigger_throughput_perc/100/operational_hours/station_utilisation
+                   
+    if current_capacity < trigger_capacity:
+        return 'Invest in loading stations'
     else:
-        return ['Do not invest in loading stations', stations]
+        return 'Do not invest in loading stations'
 
 
 # In[9]:
 
 
 def station_expansion(stations):
-
-    # Demand in current timestep
-    maize_demand   = maize.demand[timestep]
-    soybean_demand = soybean.demand[timestep]
-    wheat_demand   = wheat.demand[timestep]
-    total_demand   = maize_demand + soybean_demand + wheat_demand
-
-    # Calculate requred capacity expansion
-    current_capacity  = stations[0].overall_capacity
-    hourly_demand     = total_demand/operational_hours/station_utilisation
-    shortcoming       = hourly_demand * trigger_throughput_perc/100 - current_capacity
-    added_station_cap = int(np.ceil(shortcoming/modular_capacity_steps)*modular_capacity_steps)
-
-    # Assign purchase date and date on which asset comes online
-    stations[stations[0].quantity].capacity = added_station_cap
-    stations[stations[0].quantity].purchase_date = year
-    stations[stations[0].quantity].online_date   = year + stations[0].delivery_time
-    stations[0].quantity_calc(stations[0].quantity + 1)
-    stations[0].overall_capacity_calc(stations[0].overall_capacity + added_station_cap)
     
-    return [stations, added_station_cap]
+    online   = stations[0].online_capacity
+    pending  = stations[0].pending_capacity
+    quantity = stations[0].quantity
+    
+    # Calculate required capacity expansion
+    current_capacity  = online + pending
+    current_demand    = maize.demand[timestep] + soybean.demand[timestep] + wheat.demand[timestep]
+    required_capacity = current_demand * aspired_throughput_perc/100/operational_hours/station_utilisation
+    shortcoming       = required_capacity - current_capacity
+    added_station_cap = int(np.ceil(shortcoming/station_modular_capacity_steps)*station_modular_capacity_steps)
+    
+    # Assign purchase date and date on which asset comes online
+    stations[quantity].purchase_date = year
+    stations[quantity].online_date   = year + stations[0].delivery_time
+    for i in range (len(stations)):
+        stations[i].quantity = quantity + 1
+        stations[i].pending_capacity = added_station_cap
+        
+    stations[0].delta = added_station_cap
+    
+    return stations
 
 
 # ### Conveyor investment decision
@@ -472,25 +570,56 @@ def station_expansion(stations):
 
 
 initial_quay_conveyor_capacity = 0    # in t/h
-quay_conveyor_length           = 1000 # in meters
-modular_capacity_steps         = 400  # in t/h
+quay_conveyor_length           = 500 # in meters
+quay_modular_capacity_steps    = 400  # in t/h
 
 
 # In[11]:
 
 
-def initial_quay_conveyor_setup(q_conveyors):
+def initial_conveyor_setup(q_conveyors):
     
-    q_conveyors[0].capacity = initial_quay_conveyor_capacity
+    online  = initial_quay_conveyor_capacity
+    pending = 0
     
-    if initial_quay_conveyor_capacity != 0:
-        q_conveyors[0].quantity = 1
+    if online != 0:
+        for i in range (len(q_conveyors)):
+            q_conveyors[i].online_capacity  = online
+            q_conveyors[i].pending_quantity = pending
+            q_conveyors[i].quantity         = 1
+            q_conveyors[i].length           = quay_conveyor_length
     else:
-        q_conveyors[0].quantity = 0
-         
-    for i in range (len(q_conveyors)):
-        q_conveyors[i].length = quay_conveyor_length
+        for i in range (len(q_conveyors)):
+            q_conveyors[i].online_capacity  = 0
+            q_conveyors[i].pending_capacity = 0
+            q_conveyors[i].quantity         = 0
+            q_conveyors[i].length           = quay_conveyor_length
     
+    return q_conveyors
+
+
+# In[ ]:
+
+
+def conveyor_online_transition(q_conveyors):
+    
+    online   = q_conveyors[0].online_capacity
+    pending  = q_conveyors[0].pending_capacity
+    quantity = q_conveyors[0].quantity
+    
+    coming_online = []
+
+    for i in range(quantity):
+        if q_conveyors[i].online_date == year:
+            coming_online.append(q_conveyors[i].pending_capacity)
+
+    capacity_coming_online = np.sum(coming_online)
+
+    if capacity_coming_online != 0:
+        for i in range(quantity):
+            q_conveyors[i].online_capacity  = online + capacity_coming_online
+            q_conveyors[i].pending_capacity = 0
+            
     return q_conveyors
 
 
@@ -499,23 +628,20 @@ def initial_quay_conveyor_setup(q_conveyors):
 
 def quay_conveyor_invest_decision(q_conveyors, cranes):
     
-    # Determine current overall capacity 
-    n_conveyors = q_conveyors[0].quantity
-        
-    if n_conveyors != 0:
-        conveyor_cap = []
-        for i in range (n_conveyors):
-            conveyor_cap.append(q_conveyors[i].capacity)
-        q_conveyors[0].overall_capacity_calc(int(np.sum(conveyor_cap), n_conveyors, 'Quay'))
+    online   = q_conveyors[0].online_capacity
+    pending  = q_conveyors[0].pending_capacity
+    quantity = q_conveyors[0].quantity
 
-    else:
-        q_conveyors[0].overall_capacity = 0
-                
     # Decide whether to invest
-    current_cap = q_conveyors[0].overall_capacity
-    current_demand = int(cranes[0][0].peak_capacity * cranes[0][0].quantity +                         cranes[1][0].peak_capacity * cranes[1][0].quantity +                         cranes[2][0].peak_capacity * cranes[2][0].quantity +                         cranes[3][0].peak_capacity * cranes[3][0].quantity)
+    current_capacity = online + pending 
+    current_demand   = int(cranes[0][0].peak_capacity * cranes[0][0].online_quantity +                           cranes[1][0].peak_capacity * cranes[1][0].online_quantity +                           cranes[2][0].peak_capacity * cranes[2][0].online_quantity +                           cranes[3][0].peak_capacity * cranes[3][0].online_quantity)
+    pending_demand   = int(cranes[0][0].peak_capacity * cranes[0][0].pending_quantity +                           cranes[1][0].peak_capacity * cranes[1][0].pending_quantity +                           cranes[2][0].peak_capacity * cranes[2][0].pending_quantity +                           cranes[3][0].peak_capacity * cranes[3][0].pending_quantity)
     
-    if current_cap < current_demand:
+    for i in range (max(quantity, 1)):
+        q_conveyors[i].current_demand = current_demand
+        q_conveyors[i].pending_demand = pending_demand
+                   
+    if current_capacity < current_demand + pending_demand:
         return ['Invest in quay conveyors', q_conveyors]
     else:
         return ['Do not invest in quay conveyors', q_conveyors]
@@ -525,36 +651,142 @@ def quay_conveyor_invest_decision(q_conveyors, cranes):
 
 
 def quay_conveyor_expansion(q_conveyors, cranes):
-
-    # Demand in current timestep
-    current_demand = int(cranes[0][0].peak_capacity * cranes[0][0].quantity +                         cranes[1][0].peak_capacity * cranes[1][0].quantity +                         cranes[2][0].peak_capacity * cranes[2][0].quantity +                         cranes[3][0].peak_capacity * cranes[3][0].quantity)
-        
+    
+    online   = q_conveyors[0].online_capacity
+    pending  = q_conveyors[0].pending_capacity
+    quantity = q_conveyors[0].quantity
+    
     # Calculate required capacity expansion
-    current_capacity    = q_conveyors[0].overall_capacity
-    shortcoming         = current_demand - current_capacity
-    added_conveying_cap = int(np.ceil(shortcoming/modular_capacity_steps)*modular_capacity_steps)
-
+    current_capacity    = online + pending
+    current_demand      = q_conveyors[0].current_demand
+    pending_demand      = q_conveyors[0].pending_demand
+    shortcoming         = current_demand + pending_demand - current_capacity
+    added_conveying_cap = int(np.ceil(shortcoming/quay_modular_capacity_steps)*quay_modular_capacity_steps)
+    
     # Assign purchase date and date on which asset comes online
-    n_conveyors = q_conveyors[0].quantity
-    q_conveyors[n_conveyors].capacity = added_conveying_cap
-    q_conveyors[n_conveyors].purchase_date = year
-    q_conveyors[n_conveyors].online_date = year + q_conveyors[0].delivery_time
-    q_conveyors[0].quantity_calc(n_conveyors + 1, 'Quay')
-    q_conveyors[0].overall_capacity_calc(q_conveyors[0].overall_capacity + added_conveying_cap, q_conveyors[0].quantity, 'Quay')
+    q_conveyors[quantity].purchase_date = year
+    q_conveyors[quantity].online_date   = year + q_conveyors[0].delivery_time
+    for i in range (len(q_conveyors)):
+        q_conveyors[i].quantity = quantity + 1
+        q_conveyors[i].pending_capacity = added_conveying_cap
         
-    return [q_conveyors, added_conveying_cap]
+    q_conveyors[0].delta = added_conveying_cap
+    
+    return q_conveyors
+
+
+# #### 3.2.5.1 Hinterland conveyor
+# In this setup, the hinterland conveyor investment dicision is triggered whenever the loading station investment is triggered. The conveyor capacity is always sufficient to cope with the hinterland loading stations' capacity. It is assumed that each additional conveyor built increases conveying capacity by 400 t/h.
+
+# In[3]:
+
+
+initial_hinterland_conveyor_capacity = 0    # in t/h
+hinterland_conveyor_length           = 500 # in meters
+hinterland_modular_capacity_steps    = 400  # in t/h
+
+
+# In[4]:
+
+
+def initial_hinterland_conveyor_setup(h_conveyors):
+    
+    online  = initial_hinterland_conveyor_capacity
+    pending = 0
+    
+    if online != 0:
+        for i in range (len(h_conveyors)):
+            h_conveyors[i].online_capacity  = online
+            h_conveyors[i].pending_quantity = pending
+            h_conveyors[i].quantity         = 1
+            h_conveyors[i].length           = initial_hinterland_conveyor_capacity
+    else:
+        for i in range (len(h_conveyors)):
+            h_conveyors[i].online_capacity  = 0
+            h_conveyors[i].pending_capacity = 0
+            h_conveyors[i].quantity         = 0
+            h_conveyors[i].length           = initial_hinterland_conveyor_capacity
+    
+    return h_conveyors
+
+
+# In[ ]:
+
+
+def hinterland_conveyor_online_transition(h_conveyors):
+    
+    online   = h_conveyors[0].online_capacity
+    pending  = h_conveyors[0].pending_capacity
+    quantity = h_conveyors[0].quantity
+    
+    coming_online = []
+
+    for i in range(quantity):
+        if h_conveyors[i].online_date == year:
+            coming_online.append(h_conveyors[i].pending_capacity)
+
+    capacity_coming_online = np.sum(coming_online)
+
+    if capacity_coming_online != 0:
+        for i in range(quantity):
+            h_conveyors[i].online_capacity  = online + capacity_coming_online
+            h_conveyors[i].pending_capacity = 0
+            
+    return h_conveyors
+
+
+# In[ ]:
+
+
+def hinterland_conveyor_invest_decision(h_conveyors, stations):
+    
+    online   = h_conveyors[0].online_capacity
+    pending  = h_conveyors[0].pending_capacity
+    quantity = h_conveyors[0].quantity
+
+    # Decide whether to invest
+    current_capacity = online + pending 
+    current_demand   = stations[0].online_capacity
+    pending_demand   = stations[0].pending_capacity
+    
+    for i in range (max(quantity, 1)):
+        h_conveyors[i].current_demand = current_demand
+        h_conveyors[i].pending_demand = pending_demand
+                   
+    if current_capacity < current_demand + pending_demand:
+        return ['Invest in hinterland conveyors', h_conveyors]
+    else:
+        return ['Do not invest in hinterland conveyors', h_conveyors]
+
+
+# In[ ]:
+
+
+def hinterland_conveyor_expansion(h_conveyors, stations):
+    
+    online   = h_conveyors[0].online_capacity
+    pending  = h_conveyors[0].pending_capacity
+    quantity = h_conveyors[0].quantity
+    
+    # Calculate required capacity expansion
+    current_capacity    = online + pending
+    current_demand      = h_conveyors[0].current_demand
+    pending_demand      = h_conveyors[0].pending_demand
+    shortcoming         = current_demand + pending_demand - current_capacity
+    added_conveying_cap = int(np.ceil(shortcoming/hinterland_modular_capacity_steps)*hinterland_modular_capacity_steps)
+    
+    # Assign purchase date and date on which asset comes online
+    h_conveyors[quantity].purchase_date = year
+    h_conveyors[quantity].online_date   = year + h_conveyors[0].delivery_time
+    for i in range (len(h_conveyors)):
+        h_conveyors[i].quantity = quantity + 1
+        h_conveyors[i].pending_capacity = added_conveying_cap
+        
+    h_conveyors[0].delta = added_conveying_cap
+    
+    return h_conveyors
 
 
 # # Investment functions
 
 # ### Assign purchase date
-
-# In[ ]:
-
-
-# When assets are expanded, the new instances get branded with a purchase date and a date on which they come online
-def assign_purchase_date(asset, originial_quantity, added_quantity, delay_purchase):
-    for i in range (originial_quantity, originial_quantity + added_quantity):
-        asset[i].purchase_date = year + delay_purchase
-        asset[i].online_date   = asset[i].purchase_date + asset[i].delivery_time
-

@@ -9,7 +9,6 @@ import pandas as pd
 
 
 # # Import from notebook
-
 # ### Import general port parameters
 # This imports the 'General Port parameters' from the notebook so that they can be used for calculations within this package
 
@@ -27,29 +26,6 @@ def import_notebook_parameters():
     start_year        = parameters.start_year
     timestep          = parameters.timestep
     operational_hours = parameters.operational_hours
-    
-    return
-
-
-# ### Create notebook affiliated classes
-# This creates the classes that are linked to data located within the notebook
-# - Commodity characteristics at current timestep
-
-# In[3]:
-
-
-def import_notebook_classes():
-    
-    global commodities
-    
-    class commodity_class():
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.maize_demand   = maize.demand[timestep]
-            self.soybean_demand = soybean.demand[timestep]
-            self.wheat_demand   = wheat.demand[timestep]
-            self.demand         = self.maize_demand + self.soybean_demand + self.wheat_demand
-    commodities = commodity_class()
     
     return
 
@@ -93,28 +69,37 @@ quay_data = {"ownership": 'Port authority', "delivery_time": 2, "lifespan": 50, 
 class quay_wall_class(quay_wall_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-    def unit_rate_calc(self):
-        self.unit_rate = int(self.Gijt_constant * (self.depth*2 + self.freeboard)**self.Gijt_coefficient) # van Gijt (2010)
     
     def original_value_calc(self):
         self.original_value = int(self.length * self.unit_rate)
-        
-    def mobilisation_calc(self):
-        self.mobilisation = int(max((self.delta * self.unit_rate * self.mobilisation_perc), self.mobilisation_min))
         
     def maintenance_calc(self):
         self.maintenance = int(self.original_value * self.maintenance_perc)
         
     def insurance_calc(self):
         self.insurance = int(self.original_value * self.insurance_perc)
+        
+    @classmethod
+    def online_length_calc(cls, quantity):
+        cls.online_length = quantity
+        
+    @classmethod
+    def pending_length_calc(cls, quantity):
+        cls.pending_length = quantity
+        
+    @classmethod
+    def quantity_calc(cls, quantity):
+        cls.quantity = quantity
 
 
 # In[7]:
 
 
 # create quay object
-quay = quay_wall_class(**quay_data)
+quays = []
+for i in range (5):
+    quays.append(quay_wall_class(**quay_data))
+    quays[i].index = i
 
 
 # ### Berths
@@ -127,7 +112,7 @@ class berth_properties_mixin(object):
     def __init__(self, crane_config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.crane_config  = crane_config
-        self.delivery_time = quay.delivery_time
+        self.delivery_time = quays[0].delivery_time
         
 # Initial data set, data from Excel_input.xlsx
 berth_data = {"crane_config": 'maximum'}
@@ -334,17 +319,6 @@ class cyclic_unloader(cyclic_properties_mixin):
         
     def shifts_calc(self):
         self.shifts = int(np.ceil(self.quantity * operational_hours * self.crew / labour.shift_length))
-        
-    def quantity_calc(self, quantity, crane_type):
-        if crane_type == 'Gantry crane':
-            for i in range (quantity):
-                cranes[0][i].quantity = quantity
-        elif crane_type == 'Harbour crane':
-            for i in range (quantity):
-                cranes[1][i].quantity = quantity
-        elif crane_type == 'Mobile crane':
-            for i in range (quantity):
-                cranes[2][i].quantity = quantity
 
 
 # In[5]:
@@ -427,11 +401,6 @@ class continuous_unloader(continuous_properties_mixin):
         
     def shifts_calc(self):
         self.shifts = int(np.ceil(self.quantity * operational_hours * self.crew / labour.shift_length))
-        
-    def quantity_calc(self, quantity, crane_type):
-        if crane_type == 'Screw unloader':
-            for i in range (quantity):
-                cranes[3][i].quantity = quantity
 
 
 # In[7]:
@@ -468,7 +437,7 @@ class conveyor_properties_mixin(object):
 
 # Initial data set, data from Excel_input.xlsx
 conveyor_data = {"ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 10, "mobilisation": 30000, 
-                 "maintenance_perc": 0.10, "insurance_perc": 0.01, "crew": 0.5, "utilisation": 0.80}
+                 "maintenance_perc": 0.10, "insurance_perc": 0.01, "crew": 1, "utilisation": 0.80}
 
 
 # In[19]:
@@ -478,9 +447,6 @@ conveyor_data = {"ownership": 'Terminal operator', "delivery_time": 1, "lifespan
 class conveyor(conveyor_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
-    def unit_rate_calc(self):
-        self.unit_rate = int(6.0 * self.length)
     
     def original_value_calc(self):
         self.original_value = int(self.capacity * self.unit_rate) 
@@ -536,7 +502,7 @@ for i in range (5):
 
 # create storage class **will ultimately be placed in package**
 class storage_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, maintenance_perc, insurance_perc, storage_type, utilisation, *args, **kwargs):
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, maintenance_perc, crew, insurance_perc, storage_type, utilisation, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership            = ownership
@@ -546,16 +512,17 @@ class storage_properties_mixin(object):
         self.mobilisation_min     = mobilisation_min
         self.mobilisation_perc    = mobilisation_perc
         self.maintenance_perc     = maintenance_perc
+        self.crew                 = crew
         self.insurance_perc       = insurance_perc
         self.storage_type         = storage_type
         self.utilisation          = utilisation
         
 # Initial data set, data from Excel_input.xlsx
 silo_data      = {"ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 30, "unit_rate": 60, 
-                  "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.02, 
+                  "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.02, "crew": 0.00002, 
                   "insurance_perc": 0.01, "storage_type": 'Silos', "utilisation": 0.80}
 warehouse_data = {"ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 30, "unit_rate": 140,
-                  "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.01, 
+                  "mobilisation_min": 200000, "mobilisation_perc": 0.02, "maintenance_perc": 0.01, "crew": 0.00002 
                   "insurance_perc": 0.01, "storage_type": 'Warehouse', "utilisation": 0.80}
 
 
@@ -591,22 +558,6 @@ class storage(storage_properties_mixin):
         if self.storage_type == 'Warehouse':
             self.crew = 0.00004 * self.capacity  # 4 people per 100.000t of storage
         self.shifts = int(np.ceil(operational_hours * self.crew / labour.shift_length))
-        
-    def quantity_calc(self, quantity, storage_type):
-        if storage_type == 'Silos':
-            for i in range (quantity):
-                storage[0][i].quantity = quantity
-        else:
-            for i in range (quantity):
-                storage[1][i].quantity = quantity
-    
-    def overall_capacity_calc(self, capacity, quantity, storage_type):
-        if storage_type == 'Silos':
-            for i in range (quantity):
-                storage[0][i].overall_capacity = capacity
-        else:
-            for i in range (quantity):
-                storage[1][i].overall_capacity = capacity
 
 
 # In[23]:
