@@ -30,26 +30,19 @@ import pandas as pd
 # In[2]:
 
 
-# create trend estimating class **will ultimately be placed in package**
-
 class estimate_trend:
     """trend estimate class"""
 
-    def __init__(self, year, window, demand, growth, rate, mu, sigma):
+    def __init__(self, year, window, initial_demand):
         """initialization"""
         self.year   = year
         self.window = window
-        self.demand = demand
-        self.growth = growth
-        self.rate   = 1 + rate/100
-        self.mu     = mu/100
-        self.sigma  = sigma/100
+        self.demand = initial_demand
         
-    def linear(self):
+    def linear(self, growth):
         """trend generated from constant growth increments"""
         years  = range(self.year, self.year + self.window)
         demand = self.demand
-        growth = self.growth
         t = []
         d = []
         for year in years:
@@ -59,11 +52,10 @@ class estimate_trend:
 
         return t, d
     
-    def constant(self):
+    def constant(self, rate):
         """trend generated from constant growth rate increments"""
         years  = range(self.year, self.year + self.window)
         demand = self.demand
-        rate   = self.rate
         t = []
         d = []
         for year in years:
@@ -73,36 +65,23 @@ class estimate_trend:
 
         return t, d
     
-    def random(self):
+    def random(self, rate, mu, sigma):
         """trend generated from random growth rate increments"""
         # package(s) used for probability
-        import numpy as np
-
         years  = range(self.year, self.year + self.window)
         demand = self.demand
-        rate   = self.rate
+        rate   = rate
         t = []
         d = []
         for year in years:
             t.append(year)
             d.append(demand)
             
-            change = np.random.normal(self.mu, self.sigma, 1000)
-            rate = rate + change[0]
-            
-            demand = demand * rate    
+            change = np.random.normal(mu, sigma, 1000)
+            new_rate = rate + change[0]
+            demand = demand * new_rate  
 
         return t, d
-    
-    def print(self, t, d):
-        """simpel print statement of estimated trend"""
-        print(t)
-        print(d)
-        
-    def plot(self, t, d):
-        """simpel plot of estimated trend"""
-        plt.plot(t, d, 'ro')
-        plt.show()
 
 
 # # Commodity classes
@@ -121,31 +100,16 @@ soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 10}
 wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 10}
 
 
-# In[17]:
+# In[ ]:
 
 
-# define commodity functions **will ultimately be placed in package**
 class bulk_commodities(commodity_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         pass
-    
-    def generate_trend(self, trend_type, year, window, demand, growth, rate, mu, sigma):
-        trendestimate = estimate_trend(year, window, demand, growth, rate, mu, sigma)
-        if trend_type == 'linear':
-            t, d = trendestimate.linear()  # linear trend generator
-        if trend_type == 'constant':
-            t, d = trendestimate.constant()  # constant growth trend generator
-        if trend_type == 'probabilistic':
-            t, d = trendestimate.random()  # probabilistic trend generator
-        self.years  = t
-        self.demand = d
-        self.forecast_start  = t[0]
-        self.forecast_stop   = t[len(t)-1]
-        
+
     def modal_split(self):
         fname = 'Excel_input.xlsx'
-        #fname = 'C:\\Checkouts\\Terminal_optimization\\notebooks\\Excel_input.xlsx'
         modal_split = pd.read_excel(fname, 'Vessel distribution')
         if self.commodity_name == "Maize":
             self.handysize_demand = modal_split["Handysize maize"]    * self.demand
@@ -165,8 +129,35 @@ class bulk_commodities(commodity_properties_mixin):
         self.handymax_calls  = self.handymax_demand  / handymax.call_size
         self.panamax_calls   = self.panamax_demand   / panamax.call_size
         
-    def generate_forecast(self, trend_type, year, window, demand, growth, rate, mu, sigma):
-        self.generate_trend(trend_type, year, window, demand, growth, rate, mu, sigma)
+    def linear_forecast(self, year, window, initial_demand, growth):
+        trendestimate = estimate_trend(year, window, initial_demand)
+        t, d = trendestimate.linear(growth)
+        self.years  = t
+        self.demand = d
+        self.modal_split()
+        self.calls_calc()
+        if self.commodity_name == 'Wheat':
+            handysize.calls_calc()
+            handymax.calls_calc()
+            panamax.calls_calc()
+        
+    def exponential_forecast(self, year, window, initial_demand, rate):
+        trendestimate = estimate_trend(year, window, initial_demand)
+        t, d = trendestimate.constant(rate)
+        self.years  = t
+        self.demand = d
+        self.modal_split()
+        self.calls_calc()
+        if self.commodity_name == 'Wheat':
+            handysize.calls_calc()
+            handymax.calls_calc()
+            panamax.calls_calc()
+        
+    def random_forecast(self, year, window, initial_demand, rate, mu, sigma):
+        trendestimate = estimate_trend(year, window, initial_demand)
+        t, d = trendestimate.random(rate, mu, sigma)
+        self.years  = t
+        self.demand = d
         self.modal_split()
         self.calls_calc()
         if self.commodity_name == 'Wheat':
@@ -221,7 +212,6 @@ panamax_data = {"vessel_type": 'Panamax', "call_size": 65000,
 # In[7]:
 
 
-# define vessel class functions **will ultimately be placed in package**
 class vessel(vessel_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

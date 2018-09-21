@@ -255,7 +255,7 @@ def crane_online_transition(cranes):
 def crane_invest_decision(cranes, berths):
     if berths[0].pending_quantity != 0:
         berth_index = (berths[0].online_quantity + berths[0].pending_quantity) - 1
-        if berths[berth_index].online_date == year + cranes[0][0].delivery_time + 1:
+        if berths[berth_index].online_date == year + cranes[0][0].delivery_time:
             return 'Invest in cranes'
         else:
             return 'Do not invest in cranes'

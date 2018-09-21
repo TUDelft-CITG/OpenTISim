@@ -96,6 +96,7 @@ class quay_wall_class(quay_wall_properties_mixin):
 
 
 # create quay object
+quay_object = quay_wall_class(**quay_data)
 quays = []
 for i in range (5):
     quays.append(quay_wall_class(**quay_data))
@@ -230,6 +231,7 @@ def remaining_calcs(clc):
 
 
 # create berth objects
+berth_object = berth_class(**berth_data)
 berths = []
 for i in range (5):
     berths.append(berth_class(**berth_data))
@@ -289,24 +291,11 @@ class cyclic_unloader(cyclic_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def total_capacity_calc(self):
-        self.total_peak_capacity = int(self.quantity * self.peak_capacity)
-        self.total_eff_capacity  = int(self.total_peak_capacity * self.eff_fact)
-    
-    def original_value_calc(self):
-        self.original_value = int(self.quantity * self.unit_rate) 
-        
     def lease_calc(self):
         if self.unloader_type == 'Mobile crane':
             self.lease = int(self.original_value * 0.10)
         else:
             return
-            
-    def mobilisation_calc(self):
-        self.mobilisation = int(self.delta * self.unit_rate * self.mobilisation_perc)
-        
-    def maintenance_calc(self):
-        self.maintenance = int(self.original_value * self.maintenance_perc)
         
     def insurance_calc(self):
         self.insurance = int(self.original_value * self.insurance_perc)
@@ -316,15 +305,16 @@ class cyclic_unloader(cyclic_properties_mixin):
             self.consumption = int(0.3 * operational_hours * self.utilisation * self.quantity * self.peak_capacity)
         if self.unloader_type == 'Mobile crane':
             self.consumption = int(485 * operational_hours * self.utilisation * self.quantity)
-        
-    def shifts_calc(self):
-        self.shifts = int(np.ceil(self.quantity * operational_hours * self.crew / labour.shift_length))
 
 
 # In[5]:
 
 
 # create crane objects
+gantry_crane_object  = cyclic_unloader(**gantry_crane_data)
+harbour_crane_object = cyclic_unloader(**harbour_crane_data)
+mobile_crane_object  = cyclic_unloader(**mobile_crane_data)
+
 gantry_cranes  = []
 harbour_cranes = []
 mobile_cranes  = []
@@ -406,7 +396,8 @@ class continuous_unloader(continuous_properties_mixin):
 # In[7]:
 
 
-# create screw unloader objects 
+# create screw unloader objects
+screw_unloader_object = continuous_unloader(**continuous_screw_data)
 screw_unloaders  = []
 
 for i in range (10):
@@ -484,6 +475,7 @@ class conveyor(conveyor_properties_mixin):
 
 
 # create loading station objects
+conveyor_object = conveyor(**conveyor_data)
 q_conveyors = []
 h_conveyors = []
 
@@ -564,6 +556,8 @@ class storage(storage_properties_mixin):
 
 
 # create storage objects
+silo_object = storage(**silo_data)
+warehouse_object = storage(**warehouse_data)
 silos = []
 warehouses = []
 
@@ -643,213 +637,12 @@ class hinterland_station(hinterland_station_properties_mixin):
 
 
 # create loading station objects
+station_object = hinterland_station(**hinterland_station_data)
+
 stations = []
 for i in range (5):
     stations.append(hinterland_station(**hinterland_station_data))
     stations[i].index = i
-
-
-# # Business Logic
-
-# ## Revenue calc
-
-# In[27]:
-
-
-# create revenue class **will ultimately be placed in package**
-class revenue_properties_mixin(object):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        pass
-
-
-# In[28]:
-
-
-# define revenue class functions **will ultimately be placed in package**
-class revenue_class(revenue_properties_mixin):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-    
-    def calc(self):
-        self.maize   = int(maize.throughput   * maize.handling_fee)
-        self.soybean = int(soybean.throughput * soybean.handling_fee)
-        self.wheat   = int(wheat.throughput   * wheat.handling_fee)
-        self.total   = int(self.maize + self.soybean + self.wheat)
-
-
-# In[29]:
-
-
-# create objects **will ultimately be placed in notebook**
-revenue = revenue_class()
-
-
-# ## Capex calc
-
-# In[30]:
-
-
-# create capex class **will ultimately be placed in package**
-class capex_properties_mixin(object):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-# In[31]:
-
-
-# define capex class functions **will ultimately be placed in package**
-class capex_class(capex_properties_mixin):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)    
-        
-    def individual_calc(self, asset):
-        if asset.delta != 0:
-            if "unit_rate_calc" in dir(asset) != False:
-                asset.unit_rate_calc()
-            if "mobilisation_calc" in dir(asset) != False:
-                asset.mobilisation_calc()
-            return int(asset.delta * asset.unit_rate + asset.mobilisation)
-        if asset.delta == 0: 
-            return 0
-            
-    def calc(self):
-        self.quay                = self.individual_calc(quay)
-        self.gantry_cranes       = self.individual_calc(gantry_cranes)
-        self.harbour_cranes      = self.individual_calc(harbour_cranes)
-        self.mobile_cranes       = self.individual_calc(mobile_cranes)
-        self.screw_unloaders     = self.individual_calc(screw_unloaders)
-        self.conveyor_quay       = self.individual_calc(conveyor_quay)
-        self.conveyor_hinterland = self.individual_calc(conveyor_hinterland)
-        self.silos               = self.individual_calc(silos)
-        self.warehouse           = self.individual_calc(warehouse)
-        self.loading_station     = self.individual_calc(loading_station)
-        
-        self.total = int(self.quay + self.gantry_cranes + self.harbour_cranes + self.mobile_cranes + self.screw_unloaders +                     self.conveyor_quay + self.conveyor_hinterland + self.silos + self.warehouse + self.loading_station)
-
-
-# In[32]:
-
-
-# create objects **will ultimately be placed in notebook**
-capex = capex_class()
-
-
-# ## Labour calc
-
-# In[33]:
-
-
-# create labour class **will ultimately be placed in package**
-class labour_properties_mixin(object):
-    def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary, 
-                 shift_length, annual_shifts, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.international_salary = international_salary
-        self.international_staff = international_staff
-        self.local_salary = local_salary
-        self.local_staff = local_staff
-        self.operational_salary = operational_salary
-        self.shift_length = shift_length
-        self.annual_shifts = annual_shifts
-
-labour_data =  {"international_salary": 105000, "international_staff": 4, "local_salary": 18850, "local_staff": 10, 
-                "operational_salary": 16750, "shift_length": 6.5, "annual_shifts": 200}
-
-
-# In[34]:
-
-
-# define labour class functions **will ultimately be placed in package**
-class labour_class(labour_properties_mixin):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-    
-    def individual_calc(self, asset):
-        if "shifts_calc" in dir(asset) != False:
-            asset.shifts_calc()
-            return int(np.ceil(asset.shifts / self.annual_shifts))
-        else:
-            return 0
-            
-    def calc(self):
-        self.staff_quay                = self.individual_calc(quay)
-        self.staff_gantry_cranes       = self.individual_calc(gantry_cranes)
-        self.staff_harbour_cranes      = self.individual_calc(harbour_cranes)
-        self.staff_mobile_cranes       = self.individual_calc(mobile_cranes)
-        self.staff_screw_unloaders     = self.individual_calc(screw_unloaders)
-        self.staff_conveyor_quay       = self.individual_calc(conveyor_quay)
-        self.staff_conveyor_hinterland = self.individual_calc(conveyor_hinterland)
-        self.staff_silos               = self.individual_calc(silos)
-        self.staff_warehouse           = self.individual_calc(warehouse)
-        self.staff_loading_station     = self.individual_calc(loading_station)
-        
-        self.operational_staff = int(self.staff_quay + self.staff_gantry_cranes + self.staff_harbour_cranes + 
-                                     self.staff_mobile_cranes + self.staff_screw_unloaders + self.staff_conveyor_quay +\
-                                     self.staff_conveyor_hinterland + self.staff_silos + self.staff_warehouse +\
-                                     self.staff_loading_station)
-        
-        self.total = self.international_salary * self.international_staff + self.local_salary * self.local_staff +                     self.operational_salary   * self.operational_staff
-
-
-# In[35]:
-
-
-# create objects **will ultimately be placed in notebook**
-labour = labour_class(**labour_data)
-
-
-# ## Maintenance calc
-
-# In[36]:
-
-
-# create maintenance class **will ultimately be placed in package**
-class maintenance_properties_mixin(object):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-# In[37]:
-
-
-# define maintenance class functions **will ultimately be placed in package**
-class maintenance_class(maintenance_properties_mixin):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-    
-    def individual_calc(self, asset):
-        if "unit_rate_calc" in dir(asset) != False:
-            asset.unit_rate_calc()
-        if "original_value_calc" in dir(asset) != False:
-            asset.original_value_calc()
-        if "maintenance_calc" in dir(asset) != False:
-            asset.maintenance_calc()
-            return asset.maintenance
-        else:
-            return 0
-            
-    def calc(self):
-        self.quay                = self.individual_calc(quay)
-        self.gantry_cranes       = self.individual_calc(gantry_cranes)
-        self.harbour_cranes      = self.individual_calc(harbour_cranes)
-        self.mobile_cranes       = self.individual_calc(mobile_cranes)
-        self.screw_unloaders     = self.individual_calc(screw_unloaders)
-        self.conveyor_quay       = self.individual_calc(conveyor_quay)
-        self.conveyor_hinterland = self.individual_calc(conveyor_hinterland)
-        self.silos               = self.individual_calc(silos)
-        self.warehouse           = self.individual_calc(warehouse)
-        self.loading_station     = self.individual_calc(loading_station)
-        
-        self.total = int(self.quay + self.gantry_cranes + self.harbour_cranes + self.mobile_cranes + self.screw_unloaders +                     self.conveyor_quay + self.conveyor_hinterland + self.silos + self.warehouse + self.loading_station)
-
-
-# In[38]:
-
-
-# create objects **will ultimately be placed in notebook**
-maintenance = maintenance_class()
 
 
 # ## Energy consumption calc
