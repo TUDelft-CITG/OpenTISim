@@ -8,30 +8,6 @@ import numpy as np
 import pandas as pd
 
 
-# # Import from notebook
-# ### Import general port parameters
-# This imports the 'General Port parameters' from the notebook so that they can be used for calculations within this package
-
-# In[ ]:
-
-
-def import_notebook_parameters():
-    
-    global year
-    global simulation_window
-    global start_year
-    global timestep
-    global operational_hours
-    
-    year              = parameters.year
-    simulation_window = parameters.simulation_window
-    start_year        = parameters.start_year
-    timestep          = parameters.timestep
-    operational_hours = parameters.operational_hours
-    
-    return
-
-
 # # Business Logic classes
 # ### Revenue
 
@@ -53,10 +29,14 @@ class revenue_class(revenue_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
-    def calc(self):
-        self.maize   = int(maize.demand[timestep]   * maize.handling_fee)
-        self.soybean = int(soybean.demand[timestep] * soybean.handling_fee)
-        self.wheat   = int(wheat.demand[timestep]   * wheat.handling_fee)
+    def calc(self, maize, soybean, wheat, terminal_throughput, timestep):
+        maize_throughput   = min(maize.demand[timestep], terminal_throughput)
+        soybean_throughput = min(maize_throughput+soybean.demand[timestep], terminal_throughput)
+        wheat_throughput   = min(maize_throughput+soybean_throughput+wheat.demand[timestep], terminal_throughput)
+
+        self.maize   = int(maize_throughput   * maize.handling_fee)
+        self.soybean = int(soybean_throughput * soybean.handling_fee)
+        self.wheat   = int(wheat_throughput   * wheat.handling_fee)
         self.total   = int(self.maize + self.soybean + self.wheat)
 
 
@@ -512,7 +492,7 @@ class demurrage_class(demurrage_properties_mixin):
 # In[ ]:
 
 
-def business_logic_objects():
+def business_logic_objects(start_year, window):
     
     revenues = []
     capex = []
@@ -521,7 +501,7 @@ def business_logic_objects():
     energy = []
     demurrage = []
     
-    for i in range (simulation_window):
+    for i in range (window):
         
         revenues.append(revenue_class())
         revenues[i].index = start_year + i
