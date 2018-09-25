@@ -63,131 +63,101 @@ aspired_throughput_perc = 120          # Aspired percentage of hourly peak deman
 
 # # 2 Investment functions
 
-# ### 2.1 Quay wall investment functions
-# Quay length is calculated as the sum of the berth lengths
-
-# In[5]:
-
-
-def initial_quay_setup(quays):
-    
-    online = quays[0].t0_length
-    pending = 0
-    
-    quays[0].online_length = online
-    quays[0].pending_length = pending
-    
-    return quays
-
+# ### 2.1 Quay investment decision
+# In this setup, the decision to expand the quay is based on whether berth expansions are plannen or not. The length of the quay is defined as the sum of the length of the berths 
 
 # In[ ]:
 
 
-def quay_online_transition(quays, year):
-    
+def quay_invest_decision(quays, berths, quay_object, year, timestep):
+
+    # at t=0 run initial quay configuration
+    if timestep == 0:
+        quays[0].online_length = quays[0].t0_length
+        quays[0].pending_length = 0
+
+    # for each time step, check whether pending assets come online
     online  = quays[0].online_length
     pending = quays[0].pending_length
-    
-    if quays[0].pending_length != 0:
-        index = len(quays)-1
-        if quays[index].online_date == year:
-            for i in range (index):
-                quays[i].online_lenth = online + pending
-                quays[i].pending_lenth = 0
-            
-    return quays
+    if pending != 0:
+        coming_online = []
+        for i in range(len(quays)):
+            if quays[i].online_date == year:
+                coming_online.append(quays[i].length)
+        capacity_coming_online = np.sum(coming_online)
+        for i in range(len(quays)):
+            quays[i].online_length  = online + capacity_coming_online
+            quays[i].pending_length = pending - capacity_coming_online
 
-
-# In[ ]:
-
-
-def quay_invest_decision(berths, quays, year):
+    # for each time step, decide whether to invest in the quay
     if berths[0].pending_quantity != 0:
         index = len(berths)-1
         if berths[index].online_date == year + quays[0].delivery_time:
-            return 'Invest in quay'
+            invest_decision = 'Invest in quay'
         else:
-            return 'Do not invest in quay'
+            invest_decision = 'Do not invest in quay'
+
+    # if investments are needed, calculate how much quay length should be added
+    if invest_decision == 'Invest in quay':
+        online_berths  = berths[0].online_quantity
+        pending_berths = berths[0].pending_quantity
+        berth_lengths  = []
+        for i in range (online_berths, online_berths + pending_berths):
+            berth_lengths.append(berths[i].length)
+        # Add quay object
+        quays.append(quay_object)
+        index = len(quays)-1
+        quays[index].purchase_date = year
+        quays[index].online_date = year + quays[0].delivery_time
+        quays[index].length = np.sum(berth_lengths)
+        # Refresh pending lengths
+        for i in range (len(quays)):
+            quays[i].pending_length = np.sum(berth_lengths)
+        # Register quay length added this timestep
+        quays[0].delta = quays[0].pending_length
     else:
-        return 'Do not invest in quay'
-
-
-# In[ ]:
-
-
-def quay_expansion(quays, quay_object, berths, year):
+        quays[0].delta = 0
     
-    # Calculate berth lengths
-    online  = berths[0].online_quantity
-    pending = berths[0].pending_quantity
-    berth_lengths    = []
-    
-    for i in range (online, online + pending):
-        berth_lengths.append(berths[i].length)
-    
-    # Add quay object
-    quays.append(quay_object)
-    quays[len(quays)-1].purchase_date = year
-    quays[len(quays)-1].online_date = year + quays[0].delivery_time
-    
-    # Refresh pending lengths
-    for i in range (len(quays)):
-        quays[i].pending_length = np.sum(berth_lengths)
-    
-    # Register quay length added this timestep
-    quays[0].delta = quays[0].pending_length
+    print ('Meters of quay added: ', quays[0].delta)
+    print ('Current quay length:  ', quays[0].online_length)
+    print ()
     
     return quays
 
 
-# ### 2.2 Berth investment functions
-# The number of berths is initially set to one after which the berth occupancy is calculated. If the berth occupancy is higher than the allowable threshold, an extra berth is added
+# ### Berth investment decision
+# Starting with a single berth and asuming that vessels are distributed equally between all berths, the berth occupancy is calculated. If the occupancy is above the set 'allowable berth occupancy' an extra berth is added and the calculation is iterated. The length of each berth is related to the maximum LOA expected to call at port
 
-# In[12]:
+# In[2]:
 
 
-def initial_berth_setup(berths, cranes, handysize, handymax, panamax, timestep):
+def berth_invest_decision(berths, cranes, berth_object, cranes_object, allowable_berth_occupancy, 
+                          vessels, year, timestep, operational_hours):
     
-    online = berths[0].t0_quantity
-    pending = 0
+    handysize = vessels[0]
+    handymax  = vessels[1]
+    panamax   = vessels[2]
     
-    for i in range (len(berths)):
-        berths[i].online_quantity = online
-        berths[i].pending_quantity = pending
-        berths[i].remaining_calcs(berths, cranes, handysize, handymax, panamax, timestep)
-    
-    return berths
+    # at t=0 run initial berth configuration
+    if timestep == 0:
+        berths[0].online_quantity = berths[0].t0_quantity
+        berths[0].pending_quantity = 0
+        berths[0].remaining_calcs(berths, cranes, handysize, handymax, panamax, timestep)
 
-
-# In[ ]:
-
-
-def berth_online_transition(berths, year):
-    
+    # for each time step, check whether pending assets come online
     online  = berths[0].online_quantity
     pending = berths[0].pending_quantity
-    
     for i in range (online, online + pending):
         if berths[i].online_date == year:
             for j in range (len(berths)):
                 berths[j].online_quantity = (online+1)
                 berths[j].pending_quantity = (pending-1)
-            
-    return berths
 
-
-# In[13]:
-
-
-def berth_invest_decision(berths, cranes, handysize, handymax, panamax, timestep, operational_hours):
-
-    number_of_berths = berths[0].online_quantity + berths[0].pending_quantity
-    
-    if number_of_berths == 0:
-        berths[0].current_occupancy = 100
-        berths[0].pending_occupancy = 100
-        return ['Invest in berths', berths]
-    
+    # for each time step, decide whether to invest in berths
+    if online + pending == 0:
+        current_occupancy = 100
+        pending_occupancy = 100
+        invest_decision = 'Invest in berths'
     else:
         current_occupancy = berths[0].occupancy_calc(berths[0].online_quantity, cranes, handysize, handymax, panamax, 
                                                      timestep, operational_hours)
@@ -196,65 +166,52 @@ def berth_invest_decision(berths, cranes, handysize, handymax, panamax, timestep
         for i in range (len(berths)):
             berths[i].current_occupancy = current_occupancy
             berths[i].pending_occupancy = pending_occupancy
-    
-    if berths[0].pending_occupancy < allowable_berth_occupancy:
-        return ['Do not invest in berths', berths]
+        if berths[0].pending_occupancy < allowable_berth_occupancy:
+            invest_decision = 'Do not invest in berths'
+        else:
+            invest_decision = 'Invest in berths'
+
+    # if investments are needed, calculate how much berths should be added
+    if invest_decision == 'Invest in berths':
+        n_berths = online + pending
+        old_n_berths = n_berths
+        while pending_occupancy > allowable_berth_occupancy:
+            n_berths = n_berths + 1
+            pending_occupancy = berths[0].occupancy_calc(n_berths, cranes, handysize, handymax, panamax, 
+                                                         timestep, operational_hours)
+            if pending_occupancy < allowable_berth_occupancy:
+                break
+        new_n_berths = n_berths
+        for i in range (old_n_berths, new_n_berths):
+            if n_berths != 1:
+                berths.append(berth_object)
+            berths[i].purchase_date = year
+            berths[i].online_date   = year + berths[i].delivery_time
+            berths[i].remaining_calcs(berths, cranes, handysize, handymax, panamax, timestep)
+        added_berths = new_n_berths - old_n_berths
+        for i in range (len(berths)):
+            berths[i].pending_quantity = berths[i].pending_quantity + added_berths
+        berths[0].delta = added_berths
     else:
-        return ['Invest in berths', berths]
-
-
-# In[ ]:
-
-
-def berth_expansion(berths, berth_object, cranes, handysize, handymax, panamax, year, timestep, operational_hours):
+        berths[0].delta = 0
     
-    n_berths = berths[0].online_quantity +  berths[0].pending_quantity
-    pending_occupancy = berths[0].pending_occupancy
-    
-    old_n_berths = n_berths
-    while pending_occupancy > allowable_berth_occupancy:
-        n_berths = n_berths + 1
-        pending_occupancy = berths[0].occupancy_calc(n_berths, cranes, handysize, handymax, panamax, timestep, operational_hours)
-        if pending_occupancy < allowable_berth_occupancy:
-            break
-    new_n_berths = n_berths
-            
-    for i in range (old_n_berths, new_n_berths):
-        if n_berths != 1:
-            berths.append(berth_object)
-        berths[i].purchase_date = year
-        berths[i].online_date = year + berths[i].delivery_time
-        berths[i].remaining_calcs(berths, cranes, handysize, handymax, panamax, timestep)
-        
-    for i in range (len(berths)):
-        berths[i].pending_quantity = berths[i].pending_quantity + new_n_berths - old_n_berths
-    
-    berths[0].delta = new_n_berths - old_n_berths
-    
-    return berths
+    print ('Number of berths added:  ', berths[0].delta)
+    print ('Pending number of berths:', berths[0].pending_quantity)
+    print ('Current number of berths:', berths[0].online_quantity)
+    print ()
+
+    return berths, cranes
 
 
-# ### 2.3 Crane investment functions
-# In this setup, the number of cranes is solely goverened by the number of berths. The number of cranes per berth is equal to the number of cranes that can work simultaeously on the largest vessel that calls to port. E.g. two cranes per berth in years where handymax is the largest vessel and three cranes per berth in years where panamax is the largest vessel
+# ### 3.2.3 Crane investment decision
+# In this setup, the number of cranes is solely goverened by the number of berths. The number of cranes per berth is equal to the number of cranes that can work simultaeously on the largest vessel that calls to port during the current timestep. E.g. two cranes per berth in years where handymax is the largest vessel and three cranes per berth in years where panamax is the largest vessel
 
 # In[6]:
 
 
 def initial_crane_setup(cranes):
     
-    online = [int(cranes[0][0].t0_quantity), int(cranes[1][0].t0_quantity), 
-              int(cranes[2][0].t0_quantity), int(cranes[3][0].t0_quantity)]
-    pending = [0,0,0,0]
-    
-    for i in range (4):
-        if online[i] != 0:
-            cranes[i].append((online[i]-1)*cranes[i])
-            for j in range (online[i]):
-                cranes[i][j].online_quantity  = online[i]
-                cranes[i][j].pending_quantity = pending[i]
-        else:
-            cranes[i][0].online_quantity  = 0
-            cranes[i][0].pending_quantity = 0
+
     
     return cranes
 
@@ -347,6 +304,106 @@ def crane_expansion(cranes, cranes_object, berths, year):
         cranes[i][0].delta = cranes_added[i]
     
     return cranes
+
+
+# In[ ]:
+
+
+def crane_invest_decision(
+    # at t=0 run initial crane configuration
+    if timestep == 0:
+        for i in range (4):
+            if cranes[i][0].t0_quantity != 0:
+                for j in range (int(cranes[i][0].t0_quantity-1)):
+                    cranes[i].append(cranes_object[i])
+                for j in range (len(cranes[i])):
+                    cranes[i][j].online_quantity  = cranes[i][0].t0_quantity
+                    cranes[i][j].pending_quantity = 0
+            else:
+                cranes[i][0].online_quantity = 0
+                cranes[i][0].pending_quantity = 0
+
+    # for each time step, check whether pending assets come online
+        online  = []
+        pending = []
+        for i in range (4):
+            online.append(cranes[i][0].online_quantity)
+            pending.append(cranes[i][0].pending_quantity)
+        for i in range (4):
+            coming_online = []
+            for j in range(online[i], online[i] + pending[i]):
+                if cranes[i][j].online_date == year:
+                    cranes[i][j].berth = berths[0].online_quantity
+                    coming_online.append(1)   
+            for j in range (len(cranes[i])):
+                cranes[i][j].online_quantity = int(np.sum(coming_online))
+                cranes[i][j].pending_quantity = int(cranes[i][j].pending_quantity - np.sum(coming_online))
+
+    # for each time step, decide whether to invest in the cranes
+        if berths[0].pending_quantity != 0:
+            if berths[len(berths)-1].online_date == year + cranes[0][0].delivery_time + 1:
+                invest_decision = 'Invest in cranes'
+            else:
+                invest_decision = 'Do not invest in cranes'
+        else:
+            invest_decision = 'Do not invest in cranes'
+
+    # if investments are needed, calculate how much cranes should be added
+    if invest_decision == 'Invest in cranes':
+        # Required cranes at the berths because berths are coming online 
+        index = len(berths)-1
+        gantry_cranes_added   = []
+        harbour_cranes_added  = []
+        mobile_cranes_added   = []
+        screw_unloaders_added = []
+        if berths[index].crane_type == 'Gantry cranes':
+            gantry_cranes_added.append(berths[berth_index].n_cranes)
+        if berths[index].crane_type == 'Harbour cranes':
+            harbour_cranes_added.append(berths[berth_index].n_cranes)
+        if berths[index].crane_type == 'Mobile cranes':
+            mobile_cranes_added.append(berths[berth_index].n_cranes)            
+        if berths[index].crane_type == 'Screw unloaders':
+            screw_unloaders_added.append(berths[berth_index].n_cranes)
+        cranes_added = [int(np.sum(gantry_cranes_added)), int(np.sum(harbour_cranes_added)),
+                        int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]
+        # Assign purchase dates and dates on which assets come online
+        for i in range (4):
+            if cranes_added[i] != 0:
+                if len(cranes[i]) == 1:
+                    for j in range (cranes_added[i]-1):
+                        cranes[i].append(cranes_object[i])
+                else:
+                    for j in range (cranes_added[i]):
+                        cranes[i].append(cranes_object[i])
+                for j in range (online[i], online[i] + cranes_added[i]):
+                    cranes[i][j].purchase_date = year
+                    cranes[i][j].online_date = year + cranes[i][j].delivery_time
+                for j in range (len(cranes[i])):
+                    cranes[i][j].pending_quantity = pending[i]+cranes_added[i]
+
+            cranes[i][0].delta = cranes_added[i]
+
+
+
+
+
+
+
+
+
+
+
+
+        cranes = invest.crane_expansion(cranes, cranes_object, berths, year)
+    else:
+        for i in range (4):
+            cranes[i][0].delta = 0
+
+    print ('Number of berths added:', berths[0].delta)
+    print ('Gantry cranes added:   ', cranes[0][0].delta)
+    print ('Harbour cranes added:  ', cranes[1][0].delta)
+    print ('Mobile cranes added:   ', cranes[2][0].delta)
+    print ('Screw unloaders added: ', cranes[3][0].delta)
 
 
 # ### 2.4 Storage investment functions
@@ -453,6 +510,7 @@ def storage_expansion(storage, year):
         index = len(storage[0])-1
         storage[0][index].purchase_date = year
         storage[0][index].online_date   = year + storage[0][0].delivery_time
+        storage[0][index].capacity = added_silo_cap
         for i in range (len(storage[0])):
             storage[0][i].pending_capacity = added_silo_cap
             
@@ -467,6 +525,7 @@ def storage_expansion(storage, year):
         index = len(storage[1])-1
         storage[1][index].purchase_date = year
         storage[1][index].online_date   = year + storage[1][0].delivery_time
+        storage[1][index].capacity = added_warehouse_cap
         for i in range (len(storage[1])):
             storage[1][i].pending_capacity = added_warehouse_cap
             
@@ -606,7 +665,7 @@ def conveyor_online_transition(conveyors, year):
     else:
         for i in range(len(conveyors)):
             if conveyors[i].online_date == year:
-                coming_online.append(conveyors[i].pending_capacity)
+                coming_online.append(conveyors[i].capacity)
 
         capacity_coming_online = np.sum(coming_online)
 
@@ -659,6 +718,7 @@ def quay_conveyor_expansion(q_conveyors, cranes, year):
     index = len(q_conveyors)-1
     q_conveyors[index].purchase_date = year
     q_conveyors[index].online_date   = year + q_conveyors[0].delivery_time
+    q_conveyors[index].capacity = added_conveying_cap
     for i in range (len(q_conveyors)):
         q_conveyors[i].pending_capacity = added_conveying_cap
         
@@ -713,62 +773,11 @@ def hinterland_conveyor_expansion(h_conveyors, stations, year):
     index = len(h_conveyors)-1
     h_conveyors[index].purchase_date = year
     h_conveyors[index].online_date   = year + h_conveyors[0].delivery_time
+    h_conveyors[index].capacity = added_conveying_cap
     for i in range (len(h_conveyors)):
         h_conveyors[i].pending_capacity = added_conveying_cap
         
     h_conveyors[0].delta = added_conveying_cap
     
     return h_conveyors
-
-
-# # Throughput Calculations
-
-# In[ ]:
-
-
-def quay_throughput(berths, cranes):
-    
-    if berths[0].online_quantity == 0:
-        return 0
-    
-    quay_throughput = []
-    for i in range (len(berths)):
-        occupancy = berths[i].current_occupancy/berths[i].online_quantity
-        eff_unloading_rate = []
-        for j in range (4):
-            for k in range (len(cranes[j])):
-                if cranes[i][j].berth == i+1:
-                    eff_unloading_rate.append(crane[i][j].effective_capacity)
-        online_eff_unloading_rate = np.sum(eff_unloading_rate)
-        berth[i].throughput = online_eff_unloading_rate * occupancy
-        quay_throughput.append(berth[i].throughput)
-    return np.sum(quay_throughput)
-
-
-# In[5]:
-
-
-def quay_conveyor_throughput():
-    pass
-
-
-# In[ ]:
-
-
-def storage_throughput():
-    pass
-
-
-# In[ ]:
-
-
-def hinterland_conveyor_throughput():
-    pass
-
-
-# In[ ]:
-
-
-def loading_station_throughput():
-    pass
 
