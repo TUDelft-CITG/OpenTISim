@@ -91,13 +91,16 @@ class estimate_trend:
 
 # create commodity class **will ultimately be placed in package**
 class commodity_properties_mixin(object):
-    def __init__(self, commodity_name, handling_fee):
+    def __init__(self, commodity_name, handling_fee, handysize_perc, handymax_perc,panamax_perc):
         self.commodity_name = commodity_name
         self.handling_fee   = handling_fee
+        self.handysize_perc = handysize_perc
+        self.handymax_perc  = handymax_perc
+        self.panamax_perc   = panamax_perc
     
-maize_data   = {"commodity_name": 'Maize',    "handling_fee": 10}
-soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 10}
-wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 10}
+maize_data   = {"commodity_name": 'Maize',    "handling_fee": 10, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 10, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 10, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
 
 
 # In[ ]:
@@ -108,33 +111,34 @@ class bulk_commodities(commodity_properties_mixin):
         super().__init__(*args, **kwargs)
         pass
 
-    def modal_split(self):
-        fname = 'Excel_input.xlsx'
-        modal_split = pd.read_excel(fname, 'Vessel distribution')
-        if self.commodity_name == "Maize":
-            self.handysize_demand = modal_split["Handysize maize"]    * self.demand
-            self.handymax_demand  = modal_split["Handymax maize"]     * self.demand
-            self.panamax_demand   = modal_split["Panamax maize"]      * self.demand
-        if self.commodity_name == "Soybeans":
-            self.handysize_demand = modal_split["Handysize soybeans"] * self.demand
-            self.handymax_demand  = modal_split["Handymax soybeans"]  * self.demand
-            self.panamax_demand   = modal_split["Panamax soybeans"]   * self.demand
-        if self.commodity_name == "Wheat":
-            self.handysize_demand = modal_split["Handysize wheat"]    * self.demand
-            self.handymax_demand  = modal_split["Handymax wheat"]     * self.demand
-            self.panamax_demand   = modal_split["Panamax wheat"]      * self.demand
+    def modal_split(self, window):
+        #fname = 'Excel_input.xlsx'
+        #modal_split = pd.read_excel(fname, 'Vessel distribution')
+        handysize_demand = []
+        handymax_demand  = []
+        panamax_demand   = []
+        for i in range (window):
+            handysize_demand.append(self.handysize_perc/100 * self.demand[i])
+            handymax_demand.append(self.handysize_perc/100  * self.demand[i])
+            panamax_demand.append(self.handysize_perc/100   * self.demand[i])
+        self.handysize_demand = handysize_demand
+        self.handymax_demand  = handymax_demand
+        self.panamax_demand   = panamax_demand
             
     def calls_calc(self):
-        self.handysize_calls = self.handysize_demand / handysize.call_size
-        self.handymax_calls  = self.handymax_demand  / handymax.call_size
-        self.panamax_calls   = self.panamax_demand   / panamax.call_size
+        self.handysize_calls = [x / handysize.call_size for x in self.handysize_demand]
+        self.handymax_calls  = [x / handymax.call_size for x in self.handymax_demand]
+        self.panamax_calls   = [x / panamax.call_size for x in self.panamax_demand]
+        #self.handysize_calls = self.handysize_demand / handysize.call_size
+        #self.handymax_calls  = self.handymax_demand  / handymax.call_size
+        #self.panamax_calls   = self.panamax_demand   / panamax.call_size
         
     def linear_forecast(self, year, window, initial_demand, growth):
         trendestimate = estimate_trend(year, window, initial_demand)
         t, d = trendestimate.linear(growth)
         self.years  = t
         self.demand = d
-        self.modal_split()
+        self.modal_split(window)
         self.calls_calc()
         if self.commodity_name == 'Wheat':
             handysize.calls_calc()
@@ -146,7 +150,7 @@ class bulk_commodities(commodity_properties_mixin):
         t, d = trendestimate.constant(rate)
         self.years  = t
         self.demand = d
-        self.modal_split()
+        self.modal_split(window)
         self.calls_calc()
         if self.commodity_name == 'Wheat':
             handysize.calls_calc()
@@ -158,7 +162,7 @@ class bulk_commodities(commodity_properties_mixin):
         t, d = trendestimate.random(rate, mu, sigma)
         self.years  = t
         self.demand = d
-        self.modal_split()
+        self.modal_split(window)
         self.calls_calc()
         if self.commodity_name == 'Wheat':
             handysize.calls_calc()

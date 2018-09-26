@@ -17,10 +17,7 @@ class throughput_class():
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, assets):
-        
-        berths      = assets[1]
-        cranes      = assets[2]
+    def calc(self, berths, cranes, operational_hours):
         
         # Throughput over the entire quay 
         if berths[0].online_quantity == 0:
@@ -32,12 +29,12 @@ class throughput_class():
                 eff_unloading_rate = []
                 for j in range (4):
                     for k in range (len(cranes[j])):
-                        if cranes[i][j].berth == i+1:
-                            eff_unloading_rate.append(crane[i][j].effective_capacity * crane[i][j].utilisation)
+                        if cranes[j][k].berth == i+1:
+                            eff_unloading_rate.append(cranes[j][k].effective_capacity * cranes[j][k].utilisation)
                 online_eff_unloading_rate = np.sum(eff_unloading_rate)
-                berth[i].throughput = online_eff_unloading_rate * occupancy
-                quay_throughput.append(berth[i].throughput)
-            self.quay = np.sum(quay_throughput)
+                berths[i].throughput = online_eff_unloading_rate * occupancy
+                quay_throughput.append(berths[i].throughput)
+            self.quay = np.sum(quay_throughput) * operational_hours
             
         self.total = self.quay
         
@@ -47,11 +44,13 @@ class throughput_class():
 # In[ ]:
 
 
-def throughput_calc(throughputs, year, assets):
+def throughput_calc(throughputs, berths, cranes, year, timestep, operational_hours):
     throughputs.append(throughput_class())
     index = len(throughputs)-1
     throughputs[index].year = year
-    throughputs[index].calc(assets)
+    throughputs[index].calc(berths, cranes, operational_hours)
+    #print ('Terminal throughput (t/y):',throughputs[timestep].total)
+    #print ()
     return throughputs
 
 
@@ -76,7 +75,11 @@ class revenue_class(revenue_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
-    def calc(self, maize, soybean, wheat, throughputs, timestep):
+    def calc(self, commodities, throughputs, timestep):
+        maize   = commodities[0]
+        soybean = commodities[1]
+        wheat   = commodities[2]
+        
         maize_throughput   = min(maize.demand[timestep], throughputs[timestep].total)
         soybean_throughput = min(maize_throughput+soybean.demand[timestep], throughputs[timestep].total)
         wheat_throughput   = min(maize_throughput+soybean_throughput+wheat.demand[timestep], throughputs[timestep].total)
@@ -90,11 +93,13 @@ class revenue_class(revenue_properties_mixin):
 # In[ ]:
 
 
-def revenue_calc(revenues, maize, soybean, wheat, throughputs, year, timestep):
+def revenue_calc(revenues, commodities, throughputs, year, timestep):
     revenues.append(revenue_class())
     index = len(revenues)-1
     revenues[index].year = year
-    revenues[index].calc(maize, soybean, wheat, throughputs, timestep)
+    revenues[index].calc(commodities, throughputs, timestep)
+    #print ('Total revenue ($):', revenues[timestep].total)
+    #print ()
     return revenues
 
 
@@ -117,14 +122,7 @@ class capex_class(capex_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
-    def calc(self, assets):
-        
-        quays       = assets[0]
-        cranes      = assets[2]
-        storage     = assets[3]
-        stations    = assets[4]
-        q_conveyors = assets[5]
-        h_conveyors = assets[6]
+    def calc(self, quays, cranes, storage, stations, q_conveyors, h_conveyors):
         
         # Capex associated with the quay wall
         if quays[0].delta != 0:
@@ -236,11 +234,18 @@ class capex_class(capex_properties_mixin):
 # In[ ]:
 
 
-def capex_calc(capex, assets, year):
+def capex_calc(capex, quays, cranes, storage, stations, q_conveyors, h_conveyors, year, timestep):
     capex.append(capex_class())
     index = len(capex)-1
     capex[index].year = year
-    capex[index].calc(assets)
+    capex[index].calc(quays, cranes, storage, stations, q_conveyors, h_conveyors)
+    #print ('Quay capex($)           ', capex[timestep].quay)
+    #print ('Crane capex($)          ', capex[timestep].cranes)
+    #print ('Storage capex($)        ', capex[timestep].storage)
+    #print ('Conveyor capex($)       ', capex[timestep].conveyors)
+    #print ('Loading station capex($)', capex[timestep].loading_stations)
+    #print ('Total capex ($):        ', capex[timestep].total)
+    #print ()
     return capex
 
 
@@ -274,13 +279,7 @@ class labour_class(labour_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        
-    def calc(self, assets):
-        cranes      = assets[2]
-        storage     = assets[3]
-        stations    = assets[4]
-        q_conveyors = assets[5]
-        h_conveyors = assets[6]
+    def calc(self, cranes, storage, stations, q_conveyors, h_conveyors, operational_hours):
         
         # Number of shifts associated with the cranes (3 crew per crane)
         crane_shifts = []
@@ -295,7 +294,7 @@ class labour_class(labour_properties_mixin):
         for i in range (2):
             asset = storage[i][0]
             if asset.online_capacity != 0:
-                storage_shifts.append(int(np.ceil(asset.online_capacity * operational_hours * asset.crew / self.shift_length)))
+                storage_shifts.append(int(np.ceil(operational_hours * asset.crew / self.shift_length)))
         storage_shifts = np.sum(storage_shifts)
         
         # Number of shifts associated with the loading stations (always 2)
@@ -328,11 +327,16 @@ class labour_class(labour_properties_mixin):
 # In[ ]:
 
 
-def labour_calc(labour, assets, year):
+def labour_calc(labour, cranes, storage, stations, q_conveyors, h_conveyors, year, timestep, operational_hours):
     labour.append(labour_class(**labour_data))
     index = len(labour)-1
     labour[index].year = year
-    labour[index].calc(assets)
+    labour[index].calc(cranes, storage, stations, q_conveyors, h_conveyors, operational_hours)
+    #print ('International staff costs($):', labour[timestep].international_salary * labour[timestep].international_staff)
+    #print ('Local staff costs($):        ', labour[timestep].local_salary         * labour[timestep].local_staff)
+    #print ('Operational staff costs($):  ', labour[timestep].operational_salary   * labour[timestep].operational_staff)
+    #print ('Total costs($):', labour[timestep].total)
+    #print ()
     return labour
 
 
@@ -355,13 +359,7 @@ class maintenance_class(maintenance_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
-    def calc(self, assets, year):
-        quays       = assets[0]
-        cranes      = assets[2]
-        storage     = assets[3]
-        stations    = assets[4]
-        q_conveyors = assets[5]
-        h_conveyors = assets[6]
+    def calc(self, quays, cranes, storage, stations, q_conveyors, h_conveyors, year):
         
         # Maintenance costs associated with the quay
         quay_maintenance = []        
@@ -370,7 +368,7 @@ class maintenance_class(maintenance_properties_mixin):
                 unit_rate  = int(quays[i].Gijt_constant * (quays[i].depth*2 + quays[i].freeboard)**quays[i].Gijt_coefficient)
                 length     = quays[i].length
                 percentage = quays[i].maintenance_perc
-                maintenance = unit_rate * length * maintenance
+                maintenance = unit_rate * length * percentage
                 quay_maintenance.append(maintenance)
         self.quay = int(np.sum(quay_maintenance))
             
@@ -430,11 +428,17 @@ class maintenance_class(maintenance_properties_mixin):
 # In[ ]:
 
 
-def maintenance_calc(maintenance, assets, year):
+def maintenance_calc(maintenance, quays, cranes, storage, stations, q_conveyors, h_conveyors, year, timestep):
     maintenance.append(maintenance_class())
     index = len(maintenance)-1
     maintenance[index].year = year
-    maintenance[index].calc(assets, year)
+    maintenance[index].calc(quays, cranes, storage, stations, q_conveyors, h_conveyors, year)
+    #print ('Quay maintenance costs($):    ', maintenance[timestep].quay)
+    #print ('Crane maintenance costs($):   ', maintenance[timestep].cranes)
+    #print ('Storage maintenance costs($): ', maintenance[timestep].storage)
+    #print ('Conveyor maintenance costs($):', maintenance[timestep].conveyors)
+    #print ('Total maintenance costs($):', maintenance[timestep].total)
+    #print ()
     return maintenance
 
 
@@ -461,13 +465,7 @@ class energy_class(energy_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, assets, year, operational_hours):
-        berths      = assets[1]
-        cranes      = assets[2]
-        storage     = assets[3]
-        stations    = assets[4]
-        q_conveyors = assets[5]
-        h_conveyors = assets[6]
+    def calc(self, berths, cranes, storage, stations, q_conveyors, h_conveyors, year, operational_hours):
             
         # Energy costs associated with the cranes
         crane_energy = []
@@ -525,11 +523,17 @@ class energy_class(energy_properties_mixin):
 # In[ ]:
 
 
-def energy_calc(energy, assets, year, operational_hours):
+def energy_calc(energy, berths, cranes, storage, stations, q_conveyors, h_conveyors, year, operational_hours, timestep):
     energy.append(energy_class(**energy_data))
     index = len(energy)-1
     energy[index].year = year
-    energy[index].calc(assets, year, operational_hours)
+    energy[index].calc(berths, cranes, storage, stations, q_conveyors, h_conveyors, year, operational_hours)
+    #print ('Crane energy costs($):          ', energy[timestep].cranes)
+    #print ('Storage energy costs($):        ', energy[timestep].storage)
+    #print ('Loading station energy costs($):', energy[timestep].stations)
+    #print ('Conveyor energy costs($):       ', energy[timestep].conveyors)
+    #print ('Total energy costs($):', energy[timestep].total)
+    #print ()
     return energy
 
 
@@ -552,13 +556,7 @@ class insurance_class(insurance_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, assets, year):
-        quays       = assets[0]
-        cranes      = assets[2]
-        storage     = assets[3]
-        stations    = assets[4]
-        q_conveyors = assets[5]
-        h_conveyors = assets[6]
+    def calc(self, quays, cranes, storage, stations, q_conveyors, h_conveyors, year):
 
         # Insurance costs associated with the quay
         quay_insurance = []        
@@ -639,11 +637,13 @@ class insurance_class(insurance_properties_mixin):
 # In[ ]:
 
 
-def insurance_calc(insurance, assets, year):
+def insurance_calc(insurance, quays, cranes, storage, stations, q_conveyors, h_conveyors, year, timestep):
     insurance.append(insurance_class())
     index = len(insurance)-1
     insurance[index].year = year
-    insurance[index].calc(assets, year)
+    insurance[index].calc(quays, cranes, storage, stations, q_conveyors, h_conveyors, year)
+    #print ('Total insurance costs($):', insurance[timestep].total)
+    #print ()
     return insurance
 
 
@@ -673,11 +673,13 @@ class lease_class(lease_properties_mixin):
 # In[ ]:
 
 
-def lease_calc(lease, year):
+def lease_calc(lease, year, timestep):
     lease.append(lease_class())
     index = len(lease)-1
     lease[index].year = year
     lease[index].calc()
+    #print ('Total lease costs($):', lease[timestep].total)
+    #print ()
     return lease
 
 
@@ -739,7 +741,6 @@ class demurrage_class(demurrage_properties_mixin):
             costs = []
             vessels = [handysize, handymax, panamax]
             for i in range (3):
-                print ('factor', factor)
                 service_time   = vessels[i].call_size/service_rate
                 mooring_time   = vessels[i].mooring_time
                 waiting_time   = factor * service_time
@@ -765,6 +766,8 @@ def demurrage_calc(demurrage, year, berths, handysize, handymax, panamax, timest
     index = len(demurrage)-1
     demurrage[index].year = year
     demurrage[index].calc(berths, handysize, handymax, panamax, timestep)
+    #print ('Total demurrage costs($):', demurrage[timestep].total)
+    #print ()
     return demurrage
 
 
@@ -787,16 +790,10 @@ class residual_class(residual_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, assets, year):
+    def calc(self, quays, cranes, storage, stations, q_conveyors, h_conveyors, year):
         # All assets are presumed to depreciate linearly
-        # Residual value associated with the quay
-        quays       = assets[0]
-        cranes      = assets[2]
-        storage     = assets[3]
-        stations    = assets[4]
-        q_conveyors = assets[5]
-        h_conveyors = assets[6]
         
+        # Residual value associated with the quay
         quay_residual = []        
         for i in range(len(quays)):
             if quays[i].online_date <= year:
@@ -886,15 +883,17 @@ class residual_class(residual_properties_mixin):
 # In[ ]:
 
 
-def residual_calc(residuals, assets, year):
+def residual_calc(residuals, quays, cranes, storage, stations, q_conveyors, h_conveyors, assets, year, timestep):
     residuals.append(residual_class())
     index = len(residuals)-1
     residuals[index].year = year
-    residuals[index].calc(assets, year)
+    residuals[index].calc(quays, cranes, storage, stations, q_conveyors, h_conveyors, year)
+    #print ('Total residual value ($)', residuals[timestep].total)
+    #print ()
     return residuals
 
 
-# ### Profit calc
+# ### Profits
 
 # In[ ]:
 
@@ -943,7 +942,53 @@ def profit_calc(profits, revenues, capex, labour, maintenance, energy, insurance
     profits[index].year = year
     profits[index].calc(revenues, capex, labour, maintenance, energy, insurance, lease, demurrage, residuals, 
                         window, timestep, year, start_year)
+    #print ('Total profit/loss ($)', profits[timestep].total)
+    #print ()
     return profits
+
+
+# ### OPEX
+
+# In[1]:
+
+
+# create opex class 
+class opex_properties_mixin(object):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+# In[ ]:
+
+
+# define opex class functions 
+class opex_class(opex_properties_mixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    def calc(self, labour, maintenance, energy, insurance, lease, demurrage, timestep):
+        
+        self.labour      = labour[timestep].total      * -1
+        self.maintenance = maintenance[timestep].total * -1
+        self.energy      = energy[timestep].total      * -1
+        self.insurance   = insurance[timestep].total   * -1
+        self.lease       = lease[timestep].total       * -1
+        self.demurrage   = demurrage[timestep].total   * -1
+            
+        self.total = int(self.labour + self.maintenance + self.energy + self.insurance + self.lease + self.demurrage)
+
+
+# In[ ]:
+
+
+def opex_calc(opex, labour, maintenance, energy, insurance, lease, demurrage, year, timestep):
+    opex.append(opex_class())
+    index = len(opex)-1
+    opex[index].year = year
+    opex[index].calc(labour, maintenance, energy, insurance, lease, demurrage, timestep)
+    #print ('Total opex/loss ($)', opexs[timestep].total)
+    #print ()
+    return opex
 
 
 # ### WACC
