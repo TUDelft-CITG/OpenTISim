@@ -778,8 +778,6 @@ def demurrage_calc(demurrage, year, berths, handysize, handymax, panamax, timest
     index = len(demurrage)-1
     demurrage[index].year = year
     demurrage[index].calc(berths, handysize, handymax, panamax, timestep)
-    #print ('Total demurrage costs($):', demurrage[timestep].total)
-    #print ()
     return demurrage
 
 
@@ -1013,8 +1011,11 @@ def opex_calc(opex, labour, maintenance, energy, insurance, lease, demurrage, ye
 
 # create WACC class 
 class WACC_properties_mixin(object):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, real_WACC, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.real_WACC = real_WACC
+        
+WACC_data = {"real_WACC": 0.09}
 
 
 # In[ ]:
@@ -1025,10 +1026,81 @@ class WACC_class(WACC_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, assets):
-        pass
-        # All assets are presumed to depreciate linearly
-        # Residual value associated with the quay
+    def calc(self, profits, window):
+        real_WACC = []
+        for i in range (window):
+            real_WACC.append(1/((1+self.real_WACC)**(i)))
+        self.profits = profits * real_WACC
+        return profits
+
+
+# In[ ]:
+
+
+def WACC_calc(profits, window):
+    profits_WACC = WACC_class(**WACC_data)
+    profits_WACC.calc(profits, window)
+    return profits_WACC
 
 
 # ### Escalation
+
+# In[ ]:
+
+
+# create WACC class 
+class escalation_properties_mixin(object):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+# In[ ]:
+
+
+# define escalation class functions 
+class escalation_class(escalation_properties_mixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    #def calc(self, window):
+
+
+# In[ ]:
+
+
+# Revenues (always terminal operator)
+#self.profits = profits * real_WACC
+
+# Capex
+
+
+
+# Labour costs (always terminal operator)
+
+
+# Maintenance costs
+
+# Energy costs (always terminal operator)
+
+# Insurance costs (always terminal operator)
+
+# Lease costs 
+
+# Demurrage costs
+
+# Residual value calculations 
+
+# Profits
+
+# Opex
+
+
+# ### NPV
+
+# In[ ]:
+
+
+def NPV_calc(profits_WACC):
+    NPV = np.sum(profits_WACC)
+    return NPV
+

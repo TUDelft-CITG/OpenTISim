@@ -29,6 +29,14 @@ def trend(maize, soybean, wheat, width, height):
 
 
 # # Business Logic
+# ### NPV
+
+# In[ ]:
+
+
+###
+
+
 # ### Capex
 
 # In[ ]:
@@ -52,8 +60,6 @@ def profit_loss(profits, width, height):
             y_max.append(0)
         else:
             y_max.append(y1[i])
-    
-    print (y_min)
     
     fig  = plt.figure(figsize=(width, height))
     grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
