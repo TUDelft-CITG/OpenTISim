@@ -34,6 +34,45 @@ def trend(maize, soybean, wheat, width, height):
 # In[ ]:
 
 
+def profit_loss(profits, width, height):
+    
+    x = []
+    y1 = []
+    y_min = []
+    y_max = []
+    
+    for i in range (len(profits)):
+        x.append(profits[i].year)
+        y1.append(profits[i].total)
+        if y1[i] <= 0:
+            y_min.append(0)
+        else:
+            y_min.append(y1[i])
+        if y1[i] >= 0:
+            y_max.append(0)
+        else:
+            y_max.append(y1[i])
+    
+    print (y_min)
+    
+    fig  = plt.figure(figsize=(width, height))
+    grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
+    fig1 = fig.add_subplot(grid[0, 0])
+
+    fig1.step(x, y1, where='post', label='Profit / loss')
+    fig1.fill_between(x, y1, y_min, step='post', facecolor='red', alpha=0.4)
+    fig1.fill_between(x, y1, y_max, step='post', facecolor='green', alpha=0.4)
+    fig1.set_title ('Annualised profits')
+    fig1.set_xlabel('Year')
+    fig1.set_ylabel('Profit / Loss [$]')
+    fig1.legend()
+
+    return fig1
+
+
+# In[ ]:
+
+
 def capex(capex, width, height):
     
     x = []
@@ -46,7 +85,7 @@ def capex(capex, width, height):
     grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
     fig1 = fig.add_subplot(grid[0, 0])
 
-    fig1.plot(x, y, label='Capex')
+    fig1.step(x, y, where='post', label='Capex')
     fig1.set_title ('Capex')
     fig1.set_xlabel('Year')
     fig1.set_ylabel('Cost [$]')
@@ -121,14 +160,14 @@ def all_cashflows(revenues, capex, labour, maintenance, energy, insurance, demur
     grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
     fig1 = fig.add_subplot(grid[0, 0])
     
-    fig1.step(x, y1, where='pre', label='Revenues')
-    fig1.step(x, y2, where='pre', label='Capex')
-    fig1.step(x, y3, where='pre', label='Labour')
-    fig1.step(x, y4, where='pre', label='Maintenance')
-    fig1.step(x, y5, where='pre', label='Energy')
-    fig1.step(x, y6, where='pre', label='Insurance')
-    fig1.step(x, y7, where='pre', label='Demurrage')
-    fig1.step(x, y8, where='pre', label='Residual value')
+    fig1.step(x, y1, where='post', label='Revenues')
+    fig1.step(x, y2, where='post', label='Capex')
+    fig1.step(x, y3, where='post', label='Labour')
+    fig1.step(x, y4, where='post', label='Maintenance')
+    fig1.step(x, y5, where='post', label='Energy')
+    fig1.step(x, y6, where='post', label='Insurance')
+    fig1.step(x, y7, where='post', label='Demurrage')
+    fig1.step(x, y8, where='post', label='Residual value')
     fig1.set_title ('Cash flows')
     fig1.set_xlabel('Year')
     fig1.set_ylabel('Profit/loss [$]')
@@ -151,19 +190,22 @@ def throughput(commodities, throughputs, width, height):
     x  = []
     y1 = []
     y2 = []
+    y3 = []
     
     for i in range (len(throughputs)):
         demand = maize.demand[i] + soybean.demand[i] + wheat.demand[i]
         x.append(throughputs[i].year)
-        y1.append(throughputs[i].total)
-        y2.append(demand)
+        y1.append(throughputs[i].current_total)
+        y2.append(throughputs[i].max_total)
+        y3.append(demand)
         
     fig  = plt.figure(figsize=(width, height))
     grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
     fig1 = fig.add_subplot(grid[0, 0])
 
-    fig1.plot(x, y1, label='Terminal throughput')
-    fig1.plot(x, y2, label='Demand')
+    fig1.step(x, y1, where='post', label='Current throughput')
+    fig1.step(x, y2, where='post', label='Maximum terminal capacity')
+    fig1.step(x, y3, where='post', label='Demand')
     fig1.set_title ('Demand vs. capacity')
     fig1.set_xlabel('Year')
     fig1.set_ylabel('Annual throughput [t/y]')

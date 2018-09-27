@@ -49,10 +49,6 @@ class quay_wall_class(quay_wall_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        
-    def insurance_calc(self):
-        self.insurance = int(self.original_value * self.insurance_perc)
-
 
 # In[5]:
 
@@ -76,7 +72,7 @@ class berth_properties_mixin(object):
         self.delivery_time = quay_object.delivery_time
         
 # Initial data set, data from Excel_input.xlsx
-berth_data = {"t0_quantity": 0, "crane_type": 'Gantry cranes', "crane_config": 'maximum'}
+berth_data = {"t0_quantity": 0, "crane_type": 'Mobile cranes', "crane_config": 'maximum'}
 
 
 # In[7]:
@@ -112,54 +108,13 @@ class berth_class(berth_properties_mixin):
 
     def depth_calc(self, max_draft):
         return max_draft + 1
-        
-    def cranes_calc(self, handysize, handymax, panamax, timestep):
-        if self.crane_config == 'maximum': 
-            if panamax.calls[timestep] != 0:
-                self.n_cranes = panamax.max_cranes
-            elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
-                self.n_cranes = handymax.max_cranes
-            else:
-                self.n_cranes = handysize.max_cranes
-        
-    def eff_unloading_rate_calc(self, cranes):
-        if self.crane_type == 'Gantry cranes':
-            return cranes[0][0].effective_capacity * self.n_cranes
-        if self.crane_type == 'Harbour cranes':
-            return cranes[1][0].effective_capacity * self.n_cranes
-        if self.crane_type == 'Mobile cranes':
-            return cranes[2][0].effective_capacity * self.n_cranes
-        if self.crane_type == 'Screw unloaders':
-            return cranes[3][0].effective_capacity * self.n_cranes
-        
-    def peak_unloading_rate_calc(self, cranes):
-        if self.crane_type == 'Gantry cranes':
-            return cranes[0][0].peak_capacity * self.n_cranes
-        if self.crane_type == 'Harbour cranes':
-            return cranes[1][0].peak_capacity * self.n_cranes
-        if self.crane_type == 'Mobile cranes':
-            return cranes[2][0].peak_capacity * self.n_cranes
-        if self.crane_type == 'Screw unloaders':
-            return cranes[3][0].peak_capacity * self.n_cranes
     
-    def occupancy_calc(self, quantity, cranes, handysize, handymax, panamax, timestep, operational_hours):
-        self.cranes_calc(handysize, handymax, panamax, timestep)
-        unloading_rate = self.eff_unloading_rate_calc(cranes)
-        handysize.berth_time_calc(unloading_rate)
-        handymax.berth_time_calc(unloading_rate)
-        panamax.berth_time_calc(unloading_rate)
-        berth_time = (handysize.berth_time * handysize.calls[timestep] +                      handymax.berth_time  * handymax.calls[timestep] +                      panamax.berth_time   * panamax.calls[timestep]) / quantity       
-        return berth_time / (operational_hours)    
-    
-    def remaining_calcs(self, berths, cranes, handysize, handymax, panamax, timestep):
+    def remaining_calcs(self, berths, handysize, handymax, panamax, timestep):
         max_LOA   = berths[0].LOA_calc(handysize, handymax, panamax, timestep)          # Maximum vessel LOA
         max_draft = berths[0].vessel_depth_calc(handysize, handymax, panamax, timestep) # Maximum vessel draft
-        n_cranes  = berths[0].cranes_calc(handysize, handymax, panamax, timestep)       # Number of cranes per vessel
-        self.cranes_calc(handysize, handymax, panamax, timestep)
+        n_cranes  = self.n_cranes                                       # Number of cranes per vessel
         self.length             = self.length_calc(max_LOA, berths)     # assign length of each berth
         self.depth              = self.depth_calc(max_draft)            # assign depth of each berth
-        self.eff_unloading_rate = self.eff_unloading_rate_calc(cranes)  # effective unloading rate of each berth
-        self.eff_unloading_rate = self.peak_unloading_rate_calc(cranes) # peak unloading rate of each berth
 
 
 # In[8]:
@@ -229,21 +184,6 @@ class cyclic_unloader(cyclic_properties_mixin):
             self.consumption = 0.3 * self.peak_capacity
         else:
             self.consumption = 485
-        
-    def lease_calc(self):
-        if self.unloader_type == 'Mobile crane':
-            self.lease = int(self.original_value * 0.10)
-        else:
-            return
-        
-    def insurance_calc(self):
-        self.insurance = int(self.original_value * self.insurance_perc)
-        
-    def consumption_calc(self):
-        if self.unloader_type != 'Mobile crane':
-            self.consumption = int(0.3 * operational_hours * self.utilisation * self.quantity * self.peak_capacity)
-        if self.unloader_type == 'Mobile crane':
-            self.consumption = int(485 * operational_hours * self.utilisation * self.quantity)
 
 
 # In[11]:
@@ -293,17 +233,8 @@ continuous_screw_data = {"t0_quantity": 0, "ownership": 'Terminal operator', "de
 
 # define continuous unloader class functions **will ultimately be placed in package**
 class continuous_unloader(continuous_properties_mixin):
-    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        self.consumption = 0.3 * self.peak_capacity
-        
-    def insurance_calc(self):
-        self.insurance = int(self.original_value * self.insurance_perc)
-        
-    def consumption_calc(self):
-        self.consumption = int(0.52 * operational_hours * self.utilisation * self.quantity * self.peak_capacity)
 
 
 # In[14]:
@@ -355,9 +286,6 @@ warehouse_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_
 class storage(storage_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-            
-    def insurance_calc(self):
-        self.insurance = int(self.original_value * self.insurance_perc)
 
 
 # In[17]:
@@ -395,7 +323,7 @@ class hinterland_station_properties_mixin(object):
         
 # Initial data set, data from Excel_input.xlsx
 hinterland_station_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 15, "unit_rate": 4000, "mobilisation": 100000, 
-                           "maintenance_perc": 0.02, "consumption": 100, "insurance_perc": 0.01, "crew": 2, "utilisation": 0.80, "capacity_steps": 300}
+                           "maintenance_perc": 0.02, "consumption": 0.25, "insurance_perc": 0.01, "crew": 2, "utilisation": 0.80, "capacity_steps": 300}
 
 
 # In[19]:
@@ -405,35 +333,6 @@ hinterland_station_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "
 class hinterland_station(hinterland_station_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-    def capacity_calc(self):
-        self.capacity = 0    
-    
-    def original_value_calc(self):
-        self.original_value = int(self.capacity * self.unit_rate) 
-        
-    def maintenance_calc(self):
-        self.maintenance = int(self.original_value * self.maintenance_perc)
-        
-    def insurance_calc(self):
-        self.insurance = int(self.original_value * self.insurance_perc)
-        
-    def consumption_calc(self):
-        self.consumption = int(0.75 * operational_hours * self.utilisation * self.capacity)
-        
-    def shifts_calc(self):
-        self.shifts = int(np.ceil(operational_hours * self.crew / labour.shift_length))
-    
-    def capacity_calc(self, capacity):
-        self.capacity = capacity
-        
-    @classmethod
-    def overall_capacity_calc(cls, capacity):
-        cls.overall_capacity = capacity
-        
-    @classmethod
-    def quantity_calc(cls, quantity):
-        cls.quantity = quantity
 
 
 # In[20]:
@@ -487,37 +386,6 @@ hinterland_conveyor_data = {"t0_capacity": 0, "length": 500, "ownership": 'Termi
 class conveyor(conveyor_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
-    def original_value_calc(self):
-        self.original_value = int(self.capacity * self.unit_rate) 
-        
-    def maintenance_calc(self):
-        self.maintenance = int(self.original_value * self.maintenance_perc)
-        
-    def insurance_calc(self):
-        self.insurance = int(self.original_value * self.insurance_perc)
-        
-    def consumption_calc(self):
-        self.consumption = int(0.08 * operational_hours * self.utilisation * self.capacity)
-        
-    def shifts_calc(self):
-        self.shifts = int(np.ceil(operational_hours * self.crew / labour.shift_length))
-        
-    def quantity_calc(self, quantity, conveyor_group):
-        if conveyor_group == 'Quay':
-            for i in range (quantity):
-                q_conveyors[i].quantity = quantity
-        else:
-            for i in range (quantity):
-                h_conveyors[i].quantity = quantity
-    
-    def overall_capacity_calc(self, capacity, quantity, conveyor_group):
-        if conveyor_group == 'Quay':
-            for i in range (quantity):
-                q_conveyors[i].overall_capacity = capacity
-        else:
-            for i in range (quantity):
-                h_conveyors[i].overall_capacity = capacity
 
 
 # In[23]:

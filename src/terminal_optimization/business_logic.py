@@ -10,33 +10,54 @@ import pandas as pd
 
 # # Terminal Throughput class
 
-# In[2]:
+# In[1]:
 
 
 class throughput_class():
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, berths, cranes, operational_hours):
+    def calc(self, commodities, berths, cranes, timestep, operational_hours):
+        
+        demand = []
+        for i in range (3):
+            demand.append(commodities[i].demand[timestep])
+        demand = np.sum(demand)
         
         # Throughput over the entire quay 
         if berths[0].online_quantity == 0:
-            self.quay = 0
+            self.current_quay = 0
+            self.max_quay = 0
         else:
-            quay_throughput = []
+            max_quay_throughput = []
+            current_quay_throughput = []
+            eff_unloading_rate = []
+            current_occupancy = berths[0].current_occupancy
+            max_occupancy = 0.90
             for i in range (len(berths)):
-                occupancy = berths[i].current_occupancy
-                eff_unloading_rate = []
                 for j in range (4):
                     for k in range (len(cranes[j])):
                         if cranes[j][k].berth == i+1:
                             eff_unloading_rate.append(cranes[j][k].effective_capacity * cranes[j][k].utilisation)
-                online_eff_unloading_rate = np.sum(eff_unloading_rate)
-                berths[i].throughput = online_eff_unloading_rate * occupancy
-                quay_throughput.append(berths[i].throughput)
-            self.quay = np.sum(quay_throughput) * operational_hours
+                unloading_rate = np.sum(eff_unloading_rate)
+                berths[i].current_throughput = current_occupancy * unloading_rate * operational_hours
+                berths[i].maximum_throughput = max_occupancy * unloading_rate * operational_hours
+                max_quay_throughput.append(berths[i].maximum_throughput)
+                current_quay_throughput.append(berths[i].current_throughput)
+            self.current_quay = int(np.sum(current_quay_throughput))
+            self.max_quay = int(np.sum(max_quay_throughput))
             
-        self.total = self.quay
+        self.current_total = self.current_quay
+        self.max_total = self.max_quay
+        
+        #print ('service rate', cranes[2][0].effective_capacity)
+        #print ('number of cranes', len(cranes[2]))
+        #print ('occupancy', berths[0].current_occupancy)
+        #print ('throughput', cranes[2][0].effective_capacity * len(cranes[2]) * berths[0].current_occupancy * operational_hours)
+        #print ('demand', demand)
+        #print ('difference (positive is too much throughput)', cranes[2][0].effective_capacity * len(cranes[2]) * berths[0].current_occupancy * operational_hours- demand)
+        #print (berths[0].__dict__)
+        #print ()
         
         return 
 
@@ -44,13 +65,11 @@ class throughput_class():
 # In[ ]:
 
 
-def throughput_calc(throughputs, berths, cranes, year, timestep, operational_hours):
+def throughput_calc(throughputs, commodities, berths, cranes, year, timestep, operational_hours):
     throughputs.append(throughput_class())
     index = len(throughputs)-1
     throughputs[index].year = year
-    throughputs[index].calc(berths, cranes, operational_hours)
-    #print ('Terminal throughput (t/y):',throughputs[timestep].total)
-    #print ()
+    throughputs[index].calc(commodities, berths, cranes, timestep, operational_hours)
     return throughputs
 
 
@@ -80,9 +99,9 @@ class revenue_class(revenue_properties_mixin):
         soybean = commodities[1]
         wheat   = commodities[2]
         
-        maize_throughput   = min(maize.demand[timestep], throughputs[timestep].total)
-        soybean_throughput = min(maize_throughput+soybean.demand[timestep], throughputs[timestep].total)
-        wheat_throughput   = min(maize_throughput+soybean_throughput+wheat.demand[timestep], throughputs[timestep].total)
+        maize_throughput   = min(maize.demand[timestep], throughputs[timestep].current_total)
+        soybean_throughput = min(maize_throughput+soybean.demand[timestep], throughputs[timestep].current_total)
+        wheat_throughput   = min(maize_throughput+soybean_throughput+wheat.demand[timestep], throughputs[timestep].current_total)
 
         self.maize   = int(maize_throughput   * maize.handling_fee)
         self.soybean = int(soybean_throughput * soybean.handling_fee)
@@ -130,7 +149,7 @@ class capex_class(capex_properties_mixin):
             delta        = quay.delta
             unit_rate    = int(quay.Gijt_constant * (quay.depth*2 + quay.freeboard)**quay.Gijt_coefficient)
             mobilisation = int(max((delta * unit_rate * quay.mobilisation_perc), quay.mobilisation_min))
-            self.quay    = delta * unit_rate + mobilisation
+            self.quay    = int(delta * unit_rate + mobilisation)
         else:
             self.quay = 0
         
@@ -140,7 +159,7 @@ class capex_class(capex_properties_mixin):
             delta        = crane.delta
             unit_rate    = crane.unit_rate
             mobilisation = delta * unit_rate * crane.mobilisation_perc
-            self.gantry_cranes = delta * unit_rate + mobilisation
+            self.gantry_cranes = int(delta * unit_rate + mobilisation)
         else:
             self.gantry_cranes = 0
         
@@ -150,7 +169,7 @@ class capex_class(capex_properties_mixin):
             delta        = crane.delta
             unit_rate  = crane.unit_rate
             mobilisation = delta * unit_rate * crane.mobilisation_perc
-            self.harbour_cranes = delta * unit_rate + mobilisation
+            self.harbour_cranes = int(delta * unit_rate + mobilisation)
         else:
             self.harbour_cranes = 0
         
@@ -160,7 +179,7 @@ class capex_class(capex_properties_mixin):
             delta        = crane.delta
             unit_rate    = crane.unit_rate
             mobilisation = delta * unit_rate * crane.mobilisation_perc
-            self.mobile_cranes = delta * unit_rate + mobilisation 
+            self.mobile_cranes = int(delta * unit_rate + mobilisation) 
         else:
             self.mobile_cranes = 0
         
@@ -170,7 +189,7 @@ class capex_class(capex_properties_mixin):
             delta        = crane.delta
             unit_rate    = crane.unit_rate
             mobilisation = delta * unit_rate * crane.mobilisation_perc
-            self.screw_unloaders = delta * unit_rate + mobilisation
+            self.screw_unloaders = int(delta * unit_rate + mobilisation)
         else:
             self.screw_unloaders = 0
         
@@ -180,7 +199,7 @@ class capex_class(capex_properties_mixin):
             delta        = asset.delta
             unit_rate    = asset.unit_rate
             mobilisation = delta * unit_rate * asset.mobilisation_perc
-            self.silos   = delta * unit_rate + mobilisation
+            self.silos   = int(delta * unit_rate + mobilisation)
         else:
             self.silos = 0
         
@@ -190,7 +209,7 @@ class capex_class(capex_properties_mixin):
             delta        = asset.delta
             unit_rate    = asset.unit_rate
             mobilisation = delta * unit_rate * asset.mobilisation_perc
-            self.warehouses = delta * unit_rate + mobilisation
+            self.warehouses = int(delta * unit_rate + mobilisation)
         else:
             self.warehouses = 0
         
@@ -210,7 +229,7 @@ class capex_class(capex_properties_mixin):
             delta        = conveyor.delta
             unit_rate    = 6.0 * conveyor.length
             mobilisation = conveyor.mobilisation
-            self.quay_conveyors = delta * unit_rate + mobilisation
+            self.quay_conveyors = int(delta * unit_rate + mobilisation)
         else:
             self.quay_conveyors = 0
         
@@ -220,7 +239,7 @@ class capex_class(capex_properties_mixin):
             delta        = conveyor.delta
             unit_rate    = 6.0 * conveyor.length
             mobilisation = conveyor.mobilisation
-            self.hinterland_conveyors = delta * unit_rate + mobilisation
+            self.hinterland_conveyors = int(delta * unit_rate + mobilisation)
         else:
             self.hinterland_conveyors = 0
         
@@ -472,7 +491,7 @@ class energy_class(energy_properties_mixin):
         for i in range (4):
             for j in range (cranes[i][0].online_quantity):
                 consumption = cranes[i][j].consumption
-                occupancy = berths[i].current_occupancy
+                occupancy = berths[0].current_occupancy
                 utilisation = cranes[i][j].utilisation
                 hours = operational_hours * occupancy * utilisation
                 crane_energy.append(consumption * hours)
@@ -528,12 +547,6 @@ def energy_calc(energy, berths, cranes, storage, stations, q_conveyors, h_convey
     index = len(energy)-1
     energy[index].year = year
     energy[index].calc(berths, cranes, storage, stations, q_conveyors, h_conveyors, year, operational_hours)
-    #print ('Crane energy costs($):          ', energy[timestep].cranes)
-    #print ('Storage energy costs($):        ', energy[timestep].storage)
-    #print ('Loading station energy costs($):', energy[timestep].stations)
-    #print ('Conveyor energy costs($):       ', energy[timestep].conveyors)
-    #print ('Total energy costs($):', energy[timestep].total)
-    #print ()
     return energy
 
 
@@ -642,8 +655,6 @@ def insurance_calc(insurance, quays, cranes, storage, stations, q_conveyors, h_c
     index = len(insurance)-1
     insurance[index].year = year
     insurance[index].calc(quays, cranes, storage, stations, q_conveyors, h_conveyors, year)
-    #print ('Total insurance costs($):', insurance[timestep].total)
-    #print ()
     return insurance
 
 
@@ -678,8 +689,6 @@ def lease_calc(lease, year, timestep):
     index = len(lease)-1
     lease[index].year = year
     lease[index].calc()
-    #print ('Total lease costs($):', lease[timestep].total)
-    #print ()
     return lease
 
 
@@ -704,58 +713,61 @@ class demurrage_class(demurrage_properties_mixin):
        
     def calc(self, berths, handysize, handymax, panamax, timestep):
         
-        # Calculate berth unloading rate and occupancy
-        service_rate = []
-        occupancy = []
-        for i in range (len(berths)):
-            service_rate.append(berths[i].eff_unloading_rate)
-            occupancy.append(berths[i].current_occupancy)
-        service_rate = np.average(service_rate)
-        occupancy    = np.average(occupancy)
-        n_berths     = berths[0].online_quantity 
-        
-        if n_berths == 0:        
-            self.handysize = 0
-            self.handymax  = 0
-            self.panamax   = 0
-            self.total     = 0
-            
-        if n_berths != 0:  
-            # Waiting time factor (E2/E/n quing theory using 4th order polynomial regression)
-            if n_berths == 1:
-                factor = max(0, 79.726* occupancy **4 - 126.47* occupancy **3 + 70.660* occupancy **2 - 14.651* occupancy + 0.9218)
-            if n_berths == 2:
-                factor = max(0, 29.825* occupancy **4 - 46.489* occupancy **3 + 25.656* occupancy **2 - 5.3517* occupancy + 0.3376)
-            if n_berths == 3:
-                factor = max(0, 19.362* occupancy **4 - 30.388* occupancy **3 + 16.791* occupancy **2 - 3.5457* occupancy + 0.2253)
-            if n_berths == 4:
-                factor = max(0, 17.334* occupancy **4 - 27.745* occupancy **3 + 15.432* occupancy **2 - 3.2725* occupancy + 0.2080)
-            if n_berths == 5:
-                factor = max(0, 11.149* occupancy **4 - 17.339* occupancy **3 + 9.4010* occupancy **2 - 1.9687* occupancy + 0.1247)
-            if n_berths == 6:
-                factor = max(0, 10.512* occupancy **4 - 16.390* occupancy **3 + 8.8292* occupancy **2 - 1.8368* occupancy + 0.1158)
-            if n_berths == 7:
-                factor = max(0, 8.4371* occupancy **4 - 13.226* occupancy **3 + 7.1446* occupancy **2 - 1.4902* occupancy + 0.0941)
+        if berths[0].online_quantity == 0:
+            self.total = 0
+        else:
+            # Calculate berth unloading rate and occupancy
+            service_rate = []
+            occupancy = []
+            for i in range (len(berths)):
+                service_rate.append(berths[i].eff_unloading_rate)
+                occupancy.append(berths[i].current_occupancy)
+            service_rate = np.average(service_rate)
+            occupancy    = np.average(occupancy)
+            n_berths     = berths[0].online_quantity 
 
-            # Calculate total time at port
-            costs = []
-            vessels = [handysize, handymax, panamax]
-            for i in range (3):
-                service_time   = vessels[i].call_size/service_rate
-                mooring_time   = vessels[i].mooring_time
-                waiting_time   = factor * service_time
-                berth_time     = service_time + mooring_time 
-                port_time      = berth_time + waiting_time
-                penalty_time   = max(0, port_time - vessels[i].all_turn_time)
-                n_calls        = vessels[i].calls[timestep]
-                demurrage_time = penalty_time * n_calls
-                demurrage_cost = demurrage_time * vessels[i].demurrage_rate
-                costs.append(demurrage_cost)
+            if n_berths == 0:        
+                self.handysize = 0
+                self.handymax  = 0
+                self.panamax   = 0
+                self.total     = 0
 
-            self.handysize = costs[0]
-            self.handymax  = costs[1]
-            self.panamax   = costs[2]
-            self.total     = np.sum(costs)
+            if n_berths != 0:  
+                # Waiting time factor (E2/E/n quing theory using 4th order polynomial regression)
+                if n_berths == 1:
+                    factor = max(0, 79.726* occupancy **4 - 126.47* occupancy **3 + 70.660* occupancy **2 - 14.651* occupancy + 0.9218)
+                if n_berths == 2:
+                    factor = max(0, 29.825* occupancy **4 - 46.489* occupancy **3 + 25.656* occupancy **2 - 5.3517* occupancy + 0.3376)
+                if n_berths == 3:
+                    factor = max(0, 19.362* occupancy **4 - 30.388* occupancy **3 + 16.791* occupancy **2 - 3.5457* occupancy + 0.2253)
+                if n_berths == 4:
+                    factor = max(0, 17.334* occupancy **4 - 27.745* occupancy **3 + 15.432* occupancy **2 - 3.2725* occupancy + 0.2080)
+                if n_berths == 5:
+                    factor = max(0, 11.149* occupancy **4 - 17.339* occupancy **3 + 9.4010* occupancy **2 - 1.9687* occupancy + 0.1247)
+                if n_berths == 6:
+                    factor = max(0, 10.512* occupancy **4 - 16.390* occupancy **3 + 8.8292* occupancy **2 - 1.8368* occupancy + 0.1158)
+                if n_berths == 7:
+                    factor = max(0, 8.4371* occupancy **4 - 13.226* occupancy **3 + 7.1446* occupancy **2 - 1.4902* occupancy + 0.0941)
+
+                # Calculate total time at port
+                costs = []
+                vessels = [handysize, handymax, panamax]
+                for i in range (3):
+                    service_time   = vessels[i].call_size/service_rate
+                    mooring_time   = vessels[i].mooring_time
+                    waiting_time   = factor * service_time
+                    berth_time     = service_time + mooring_time 
+                    port_time      = berth_time + waiting_time
+                    penalty_time   = max(0, port_time - vessels[i].all_turn_time)
+                    n_calls        = vessels[i].calls[timestep]
+                    demurrage_time = penalty_time * n_calls
+                    demurrage_cost = demurrage_time * vessels[i].demurrage_rate
+                    costs.append(demurrage_cost)
+
+                self.handysize = costs[0]
+                self.handymax  = costs[1]
+                self.panamax   = costs[2]
+                self.total     = np.sum(costs)
 
 
 # In[ ]:
@@ -809,12 +821,15 @@ class residual_class(residual_properties_mixin):
         # Current value associated with the cranes        
         cranes_residual = [] 
         for i in range (4):
-            for j in range(cranes[i][0].online_quantity):
-                ini_value  = cranes[i][j].unit_rate
-                age        = year - cranes[i][j].online_date
-                depreciation_rate = 1/cranes[i][j].lifespan
-                current_value = ini_value * (1 - age * depreciation_rate)  
-                cranes_residual.append(current_value)
+            for j in range(len(cranes[i])):
+                if not 'online_date' in dir(cranes[i][j]):
+                    break
+                if cranes[i][j].online_date <= year:
+                    ini_value = cranes[i][j].unit_rate
+                    age = year - cranes[i][j].online_date
+                    depreciation_rate = 1/cranes[i][j].lifespan
+                    current_value = ini_value * (1 - age * depreciation_rate)  
+                    cranes_residual.append(current_value)
         self.cranes = int(np.sum(cranes_residual))
 
         # Residual value associated with storage
