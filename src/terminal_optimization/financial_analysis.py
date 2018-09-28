@@ -50,15 +50,6 @@ class throughput_class():
         self.current_total = self.current_quay
         self.max_total = self.max_quay
         
-        #print ('service rate', cranes[2][0].effective_capacity)
-        #print ('number of cranes', len(cranes[2]))
-        #print ('occupancy', berths[0].current_occupancy)
-        #print ('throughput', cranes[2][0].effective_capacity * len(cranes[2]) * berths[0].current_occupancy * operational_hours)
-        #print ('demand', demand)
-        #print ('difference (positive is too much throughput)', cranes[2][0].effective_capacity * len(cranes[2]) * berths[0].current_occupancy * operational_hours- demand)
-        #print (berths[0].__dict__)
-        #print ()
-        
         return 
 
 
@@ -711,7 +702,9 @@ class demurrage_class(demurrage_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
        
-    def calc(self, berths, handysize, handymax, panamax, timestep):
+    def calc(self, berths, vessels, timestep):
+        
+        handysize, handymax, panamax = vessels[0], vessels[1], vessels[2]
         
         if berths[0].online_quantity == 0:
             self.total = 0
@@ -773,11 +766,11 @@ class demurrage_class(demurrage_properties_mixin):
 # In[ ]:
 
 
-def demurrage_calc(demurrage, year, berths, handysize, handymax, panamax, timestep):
+def demurrage_calc(demurrage, year, berths, vessels, timestep):
     demurrage.append(demurrage_class())
     index = len(demurrage)-1
     demurrage[index].year = year
-    demurrage[index].calc(berths, handysize, handymax, panamax, timestep)
+    demurrage[index].calc(berths, vessels, timestep)
     return demurrage
 
 
@@ -896,7 +889,7 @@ class residual_class(residual_properties_mixin):
 # In[ ]:
 
 
-def residual_calc(residuals, quays, cranes, storage, stations, q_conveyors, h_conveyors, assets, year, timestep):
+def residual_calc(residuals, quays, cranes, storage, stations, q_conveyors, h_conveyors, year, timestep):
     residuals.append(residual_class())
     index = len(residuals)-1
     residuals[index].year = year

@@ -166,7 +166,7 @@ harbour_crane_data = {"t0_quantity":0, "ownership": 'Terminal operator', "delive
                       "crane_type": 'Harbour crane crane', "lifting_capacity": 40, "hourly_cycles": 40, "eff_fact": 0.55,
                       "utilisation": 0.80}
 
-mobile_crane_data  = {"t0_quantity":0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 20, "unit_rate": 3325000,"mobilisation_perc": 0.15, 
+mobile_crane_data  = {"t0_quantity":1, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 20, "unit_rate": 3325000,"mobilisation_perc": 0.15, 
                       "maintenance_perc": 0.031,"insurance_perc": 0.01, "crew": 3, 
                       "crane_type": 'Mobile crane',"lifting_capacity": 60, "hourly_cycles": 30, "eff_fact": 0.55,
                       "utilisation": 0.80}

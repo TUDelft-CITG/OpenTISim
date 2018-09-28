@@ -6,7 +6,7 @@
 
 import numpy as np
 import pandas as pd
-from copy import copy
+import terminal_optimization.infrastructure as infra
 
 
 # # 2 Investment functions
@@ -82,52 +82,47 @@ def quay_invest_decision(quays, berths, quay_object, year, timestep):
 # In[1]:
 
 
-def berth_invest_decision(berths, cranes, berth_object, allowable_berth_occupancy, 
-                          vessels, year, timestep, operational_hours):
+def berth_invest_decision(berths, cranes, allowable_berth_occupancy, vessels, year, timestep, operational_hours):
     
     handysize = vessels[0]
     handymax  = vessels[1]
     panamax   = vessels[2]
     
     # at t=0 run initial berth configuration
-    if timestep == 0:
-        berths[0].online_quantity = berths[0].t0_quantity
-        berths[0].pending_quantity = 0
-        if panamax.calls[timestep] != 0: 
-            berths[0].n_cranes = panamax.max_cranes
-        if panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
-            berths[0].n_cranes = handymax.max_cranes
-        else:
-            berths[0].n_cranes = handysize.max_cranes
-        berths[0].remaining_calcs(berths, handysize, handymax, panamax, timestep)
+    #if timestep == 0:
+    #    berths[0].online_quantity = berths[0].t0_quantity
+    #    berths[0].pending_quantity = 0
+    #    if panamax.calls[timestep] != 0: 
+    #        berths[0].n_cranes = panamax.max_cranes
+    #    if panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
+    #        berths[0].n_cranes = handymax.max_cranes
+    #    else:
+    #        berths[0].n_cranes = handysize.max_cranes
+    #    berths[0].remaining_calcs(berths, handysize, handymax, panamax, timestep)
 
     # for each time step, check whether pending assets come online
-    online  = berths[0].online_quantity
-    pending = berths[0].pending_quantity
-    for i in range (online, online + pending):
-        if berths[i].online_date == year:
-            for j in range (len(berths)):
-                berths[j].online_quantity = (online+1)
-                berths[j].pending_quantity = (pending-1)
+    if len(berths) != 0:
+        online  = berths[0].online_quantity
+        pending = berths[0].pending_quantity
+        for i in range (online, online + pending):
+            if berths[i].online_date == year:
+                for j in range (len(berths)):
+                    berths[j].online_quantity = (online+1)
+                    berths[j].pending_quantity = (pending-1)
 
     # for each time step, decide whether to invest in berths
     online  = berths[0].online_quantity
     pending = berths[0].pending_quantity
-    if online + pending == 0:
+    if len(berths) == 0:
         invest_decision = 'Invest in berths'
     else:
         # Determine effective unloading rate of each berth
         service_rate = []
-        for i in range (len(berths)):
-            if berths[i].crane_type == 'Gantry cranes':
-                service_rate.append(berths[i].n_cranes * cranes[0][0].effective_capacity)
-            if berths[i].crane_type == 'Harbour cranes':
-                service_rate.append(berths[i].n_cranes * cranes[1][0].effective_capacity)
-            if berths[i].crane_type == 'Mobile cranes':
-                service_rate.append(berths[i].n_cranes * cranes[2][0].effective_capacity)
-            if berths[i].crane_type == 'Screw unloaders':
-                service_rate.append(berths[i].n_cranes * cranes[3][0].effective_capacity)
+        for i in range (4):
+            for j in range (len(cranes[i])):
+                service_rate.append(cranes[i][j].effective_capacity)
         service_rate = np.average(service_rate)
+       
         # Determine time at berth
         total_berth_time = []
         for j in range (3):
@@ -137,25 +132,18 @@ def berth_invest_decision(berths, cranes, berth_object, allowable_berth_occupanc
             berth_time     = service_time + mooring_time
             total_berth_time.append(berth_time * calls)
         total_berth_time = np.sum(total_berth_time)
-        if pending != 0:
-            # Register berth occupancy
-            pending_single_berth_time = total_berth_time / (online+pending)
-            berths[i].pending_occupancy = pending_single_berth_time / operational_hours
-        if online != 0:
-            online_single_berth_time = total_berth_time / online
-            berths[i].current_occupancy = online_single_berth_time / operational_hours  
-            occupancy = min(berths[0].current_occupancy, berths[0].pending_occupancy)
-        if pending != 0:
-            occupancy = berths[0].pending_occupancy
+
         # Determine whether to invest in berth
+        occupancy = total_berth_time / operational_hours / len(berths)
         if occupancy < allowable_berth_occupancy:
             invest_decision = 'Do not invest in berths'
         else:
             invest_decision = 'Invest in berths'
 
+###########################################################################################################
     # if investments are needed, calculate how much berths should be added
     if invest_decision == 'Invest in berths':
-        n_berths = online + pending
+        n_berths = len(berths)
         old_n_berths = n_berths
         
         # First berth iteration
