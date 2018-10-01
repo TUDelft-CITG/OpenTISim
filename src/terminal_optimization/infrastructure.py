@@ -12,7 +12,7 @@ import pandas as pd
 
 # ### Quay wall
 
-# In[3]:
+# In[1]:
 
 
 # create quay wall class
@@ -41,7 +41,7 @@ quay_data = {"t0_length": 0, "ownership": 'Port authority', "delivery_time": 2, 
              "freeboard": 4, "Gijt_constant": 757.20, "Gijt_coefficient": 1.2878} 
 
 
-# In[4]:
+# In[2]:
 
 
 # define quay wall class functions
@@ -50,7 +50,7 @@ class quay_wall_class(quay_wall_properties_mixin):
         super().__init__(*args, **kwargs)
 
 
-# In[5]:
+# In[3]:
 
 
 # create quay object
@@ -64,15 +64,15 @@ quay_object = quay_wall_class(**quay_data)
 
 # create berth class
 class berth_properties_mixin(object):
-    def __init__(self, t0_quantity, crane_type, crane_config, *args, **kwargs):
+    def __init__(self, t0_quantity, crane_type, max_cranes, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.t0_quantity   = t0_quantity
         self.crane_type    = crane_type
-        self.crane_config  = crane_config
+        self.max_cranes    = max_cranes
         self.delivery_time = quay_object.delivery_time
         
 # Initial data set, data from Excel_input.xlsx
-berth_data = {"t0_quantity": 0, "crane_type": 'Mobile cranes', "crane_config": 'maximum'}
+berth_data = {"t0_quantity": 0, "crane_type": 'Mobile cranes', "max_cranes": 3}
 
 
 # In[7]:
@@ -84,7 +84,10 @@ class berth_class(berth_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def LOA_calc(self, handysize, handymax, panamax, timestep):
+    def LOA_calc(self, vessels, timestep):
+        handysize = vessels[0]
+        handymax = vessels[1] 
+        panamax = vessels[2]
         if panamax.calls[timestep] != 0:
             return panamax.LOA
         elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
@@ -92,7 +95,10 @@ class berth_class(berth_properties_mixin):
         else:
             return handysize.LOA
 
-    def vessel_depth_calc(self, handysize, handymax, panamax, timestep):
+    def vessel_depth_calc(self, vessels, timestep):
+        handysize = vessels[0]
+        handymax = vessels[1] 
+        panamax = vessels[2]
         if panamax.calls[timestep] != 0:
             return panamax.draft
         elif panamax.calls[timestep] == 0 and handymax.calls[timestep] != 0:
@@ -109,10 +115,9 @@ class berth_class(berth_properties_mixin):
     def depth_calc(self, max_draft):
         return max_draft + 1
     
-    def remaining_calcs(self, berths, handysize, handymax, panamax, timestep):
-        max_LOA   = berths[0].LOA_calc(handysize, handymax, panamax, timestep)          # Maximum vessel LOA
-        max_draft = berths[0].vessel_depth_calc(handysize, handymax, panamax, timestep) # Maximum vessel draft
-        n_cranes  = self.n_cranes                                       # Number of cranes per vessel
+    def remaining_calcs(self, berths, vessels, timestep):
+        max_LOA   = berths[0].LOA_calc(vessels, timestep)          # Maximum vessel LOA
+        max_draft = berths[0].vessel_depth_calc(vessels, timestep) # Maximum vessel draft
         self.length             = self.length_calc(max_LOA, berths)     # assign length of each berth
         self.depth              = self.depth_calc(max_draft)            # assign depth of each berth
 
