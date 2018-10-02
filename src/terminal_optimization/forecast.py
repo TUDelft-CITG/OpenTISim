@@ -71,12 +71,24 @@ class vessel(vessel_properties_mixin):
 # In[ ]:
 
 
-def vessel_call_calc(maize, soybean, wheat, vessels):
-    handysize, handymax, panamax = vessels[0], vessels[1], vessels[2]
-    handysize.calls = maize.handysize_calls + soybean.handysize_calls + wheat.handysize_calls
-    handymax.calls  = maize.handymax_calls + soybean.handymax_calls + wheat.handymax_calls
-    panamax.calls   = maize.panamax_calls + soybean.panamax_calls + wheat.panamax_calls
-    return [handysize, handymax, panamax]
+def vessel_call_calc(vessels, commodities, simulation_window):
+    
+    for i in range (len(vessels)):
+        calls = []
+        for t in range(simulation_window):
+            commodity_specific_demand = []
+            for j in range(len(commodities)):
+                if i == 0:
+                    percentage = commodities[j].handysize_perc/100
+                if i == 1:
+                    percentage = commodities[j].handymax_perc/100
+                if i == 2:
+                    percentage = commodities[j].panamax_perc/100  
+                commodity_specific_demand.append(commodities[j].demand[t] * percentage)
+            calls.append(int(np.ceil(np.sum(commodity_specific_demand)/vessels[i].call_size)))
+        vessels[i].calls = calls
+        
+    return vessels
 
 
 # # Trend Generator
@@ -162,45 +174,21 @@ class bulk_commodities(commodity_properties_mixin):
         super().__init__(*args, **kwargs)
         pass
         
-    def linear_forecast(self, vessels, year, window, initial_demand, growth):
+    def linear_forecast(self, year, window, initial_demand, growth):
         trendestimate = estimate_trend(year, window, initial_demand)
         t, d = trendestimate.linear(growth)
         self.years  = t
         self.demand = d
-        handysize, handymax, panamax = vessels[0], vessels[1], vessels[2]
-        self.handysize_calls = []
-        self.handymax_calls  = []
-        self.panamax_calls   = []
-        for i in range (window):
-            self.handysize_calls.append(self.handysize_perc/100 * self.demand[i] / handysize.call_size)
-            self.handymax_calls.append(self.handysize_perc/100  * self.demand[i] / handymax.call_size)
-            self.panamax_calls.append(self.handysize_perc/100   * self.demand[i] / panamax.call_size)
         
-    def exponential_forecast(self, vessels, year, window, initial_demand, rate):
+    def exponential_forecast(self, year, window, initial_demand, rate):
         trendestimate = estimate_trend(year, window, initial_demand)
         t, d = trendestimate.constant(rate)
         self.years  = t
         self.demand = d
-        handysize, handymax, panamax = vessels[0], vessels[1], vessels[2]
-        self.handysize_calls = []
-        self.handymax_calls  = []
-        self.panamax_calls   = []
-        for i in range (window):
-            self.handysize_calls.append(self.handysize_perc/100 * self.demand[i] / handysize.call_size)
-            self.handymax_calls.append(self.handysize_perc/100  * self.demand[i] / handymax.call_size)
-            self.panamax_calls.append(self.handysize_perc/100   * self.demand[i] / panamax.call_size)
         
-    def random_forecast(self, vessels, year, window, initial_demand, rate, mu, sigma):
+    def random_forecast(self, year, window, initial_demand, rate, mu, sigma):
         trendestimate = estimate_trend(year, window, initial_demand)
         t, d = trendestimate.random(rate, mu, sigma)
         self.years  = t
         self.demand = d
-        handysize, handymax, panamax = vessels[0], vessels[1], vessels[2]
-        self.handysize_calls = []
-        self.handymax_calls  = []
-        self.panamax_calls   = []
-        for i in range (window):
-            self.handysize_calls.append(self.handysize_perc/100 * self.demand[i] / handysize.call_size)
-            self.handymax_calls.append(self.handysize_perc/100  * self.demand[i] / handymax.call_size)
-            self.panamax_calls.append(self.handysize_perc/100   * self.demand[i] / panamax.call_size)
 
