@@ -297,10 +297,10 @@ class capex_class(capex_properties_mixin):
             self.hinterland_conveyors = 0
         
         # Combining all capex data
-        self.total     = int(self.quay + self.gantry_cranes + self.harbour_cranes + self.mobile_cranes +                             self.screw_unloaders + self.silos + self.warehouses + self.loading_stations +                             self.quay_conveyors + self.hinterland_conveyors)
-        self.cranes    = int(self.gantry_cranes + self.harbour_cranes + self.mobile_cranes + self.screw_unloaders)
-        self.storage   = int(self.silos + self.warehouses)
-        self.conveyors = int(self.quay_conveyors + self.hinterland_conveyors)
+        self.total     = -1*int(self.quay + self.gantry_cranes + self.harbour_cranes + self.mobile_cranes +                             self.screw_unloaders + self.silos + self.warehouses + self.loading_stations +                             self.quay_conveyors + self.hinterland_conveyors)
+        self.cranes    = -1*int(self.gantry_cranes + self.harbour_cranes + self.mobile_cranes + self.screw_unloaders)
+        self.storage   = -1*int(self.silos + self.warehouses)
+        self.conveyors = -1*int(self.quay_conveyors + self.hinterland_conveyors)
 
 
 # In[ ]:
@@ -979,7 +979,7 @@ class profit_class(profit_properties_mixin):
         
         profits, revenues, capex, labour, maintenance, energy, insurance, lease, demurrage, residuals = terminal.profits, terminal.revenues, terminal.capex, terminal.labour, terminal.maintenance, terminal.energy, terminal.insurance, terminal.lease, terminal.demurrage, terminal.residuals
         self.revenues    = revenues[timestep].total
-        self.capex       = capex[timestep].total       * -1
+        self.capex       = capex[timestep].total
         self.labour      = labour[timestep].total      * -1
         self.maintenance = maintenance[timestep].total * -1
         self.energy      = energy[timestep].total      * -1
@@ -987,6 +987,7 @@ class profit_class(profit_properties_mixin):
         self.lease       = lease[timestep].total       * -1
         self.demurrage   = demurrage[timestep].total   * -1
         if year == start_year + window - 1:
+            #self.residuals = 0
             self.residuals = residuals[timestep].total
         else:
             self.residuals = 0
@@ -1050,6 +1051,68 @@ def opex_calc(terminal, year, timestep):
     opex[index].year = year
     opex[index].calc(terminal, timestep)
     return opex
+
+
+# ### Combining all cashflow 
+# - 
+
+# In[1]:
+
+
+def cashflow_calc(terminal, simulation_window, start_year):
+
+    flows = np.zeros(shape=(simulation_window, 12))
+    profits, revenues, capex, opex, labour, maintenance, energy, insurance, lease, demurrage, residuals = terminal.profits, terminal.revenues, terminal.capex, terminal.opex, terminal.labour, terminal.maintenance, terminal.energy, terminal.insurance, terminal.lease, terminal.demurrage, terminal.residuals
+
+    ############################################################################################################
+    # For each year, register the corresponding cashflow 
+    ############################################################################################################
+    
+    for t in range (simulation_window):
+        
+        # Years (Column 0)
+        year = t + start_year 
+        flows[t,0] = year
+
+        # Profits (Column 1)
+        flows[t,1] = profits[t].total
+
+        # Revenues (Column 2)
+        flows[t,2] = revenues[t].total
+
+        # Capex (Column 3)
+        flows[t,3] = capex[t].total
+
+        # Opex (Column 4)
+        flows[t,4] = opex[t].total
+
+        # Labour costs (Column 5)
+        flows[t,5] = labour[t].total
+
+        # Maintenance costs (Column 6)
+        flows[t,6] = maintenance[t].total
+
+        # Energy costs (Column 7)
+        flows[t,7] = energy[t].total
+
+        # Insurance costs (Column 8)
+        flows[t,8] = insurance[t].total
+
+        # Lease costs (Column 9)
+        flows[t,9] = lease[t].total
+
+        # Demurrage costs (Column 10)
+        flows[t,10] = demurrage[t].total
+
+        # Residual asset value (Column 11)
+        flows[t,11] = residuals[t].total
+
+    cashflows = pd.DataFrame(flows, columns=['Year', 'Profits', 'Revenues', 'Capex', 'Opex', 'Labour costs', 
+                                                'Maintenance costs', 'Energy costs', 'Insurance costs', 'Lease costs', 
+                                                'Demurrage costs','Residual asset value'])
+    cashflows = cashflows.astype(int)
+    
+    return cashflows
 
 
 # ### Escalation
@@ -1126,15 +1189,21 @@ class WACC_class(WACC_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def profits_calc(self, profits, window):
+    def profits_calc(self, profits, window, start_year):
         
+        WACC = []
+        years = []
         profits_WACC = []
-        for i in range (window):
-            WACC = (1/((1+self.real_WACC)**(i)))
-            profit = profits[i].total
-            profits_WACC.append(profit / WACC)
         
+        for i in range (window):
+            WACC.append(1/((1+self.real_WACC)**(i)))
+            years.append(start_year + i)
+            profit = profits[i].total
+            profits_WACC.append(profit * WACC[i])
+
+        self.WACC = WACC
         self.profits = profits_WACC
+        self.years = years
         
         return 
 
@@ -1142,9 +1211,9 @@ class WACC_class(WACC_properties_mixin):
 # In[ ]:
 
 
-def WACC_calc(profits, window):
+def WACC_calc(profits, window, start_year):
     WACC_cashflows = WACC_class(**WACC_data)
-    WACC_cashflows.profits_calc(profits, window)
+    WACC_cashflows.profits_calc(profits, window, start_year)
     return WACC_cashflows
 
 
