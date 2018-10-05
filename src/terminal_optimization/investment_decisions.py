@@ -139,7 +139,7 @@ def berth_invest_decision(berths, cranes, vessels, allowable_berth_occupancy, ye
             invest_decision = 'Do not invest in berths or cranes'
         else:
             invest_decision = 'Invest in berths or cranes'
-
+        
     # If investments are needed, calculate how much cranes should be added and whether an extra berth should be added
     if invest_decision == 'Invest in berths or cranes':
         berths_added          = []
@@ -252,15 +252,30 @@ def berth_invest_decision(berths, cranes, vessels, allowable_berth_occupancy, ye
                         int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]
         
         # Evaluate how many berths and cranes haven been added
+        online = []
+        offline = []
         for i in range(len(berths)):
             berths[i].delta = int(np.sum(berths_added))
-            berths[i].online = int(len(berths) - int(np.sum(berths_added)))
-            berths[i].offline = int(np.sum(berths_added))
+            if berths[i].online_date <= year:
+                online.append(1)
+            if berths[i].online_date > year:
+                offline.append(1)
+        for i in range(len(berths)):
+            berths[i].online = int(np.sum(online))
+            berths[i].offline = int(np.sum(offline))
         for i in range (4):
+            online = []
+            offline = []
             for j in range (len(cranes[i])):
-                cranes[i][j].online = int(len(cranes[i]) - cranes_added[i])
-                cranes[i][j].offline = cranes_added[i]
                 cranes[i][j].delta = cranes_added[i]
+                if cranes[i][j].online_date <= year:
+                    online.append(1)
+                if cranes[i][j].online_date > year:
+                    offline.append(1)
+            for j in range (len(cranes[i])):
+                cranes[i][j].online = int(np.sum(online))
+                cranes[i][j].offline = int(np.sum(offline))
+                
     else:
         berths[0].delta = 0
         for i in range (4):

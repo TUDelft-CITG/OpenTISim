@@ -1061,7 +1061,7 @@ def opex_calc(terminal, year, timestep):
 
 def cashflow_calc(terminal, simulation_window, start_year):
 
-    flows = np.zeros(shape=(simulation_window, 12))
+    flows = np.zeros(shape=(simulation_window, 13))
     profits, revenues, capex, opex, labour, maintenance, energy, insurance, lease, demurrage, residuals = terminal.profits, terminal.revenues, terminal.capex, terminal.opex, terminal.labour, terminal.maintenance, terminal.energy, terminal.insurance, terminal.lease, terminal.demurrage, terminal.residuals
 
     ############################################################################################################
@@ -1106,10 +1106,13 @@ def cashflow_calc(terminal, simulation_window, start_year):
 
         # Residual asset value (Column 11)
         flows[t,11] = residuals[t].total
+        
+        # WACC depreciated profits
+        flows[t,12] = terminal.WACC_cashflows.profits[t]
 
     cashflows = pd.DataFrame(flows, columns=['Year', 'Profits', 'Revenues', 'Capex', 'Opex', 'Labour costs', 
                                                 'Maintenance costs', 'Energy costs', 'Insurance costs', 'Lease costs', 
-                                                'Demurrage costs','Residual asset value'])
+                                                'Demurrage costs','Residual asset value', 'Profits (discounted)'])
     cashflows = cashflows.astype(int)
     
     return cashflows
@@ -1225,6 +1228,6 @@ def WACC_calc(profits, window, start_year):
 def NPV_calc(WACC_cashflows):
     profits = WACC_cashflows.profits
     NPV = int(np.sum(profits))
-    NPV = '${:0,.0f}'.format(NPV)
+    #NPV = '${:0,.0f}'.format(NPV)
     return NPV
 
