@@ -1,28 +1,206 @@
 
 # coding: utf-8
 
-# # # Forecast Package
-#  This package includes: 
-#  - Trend generator
-#  - Commodity classes
-#  - Vessel classes
-#  - Forecast simulation
-#  <br><br>
-#  
-# #### Object outputs
-#  
-#  - maize
-#  - soybean
-#  - wheat
-#  - handysize
-#  - handymax
-#  - panamax
-
-# In[1]:
+# In[2]:
 
 
 import numpy as np
 import pandas as pd
+
+
+# # Commodity classes
+
+# In[ ]:
+
+
+# create commodity class **will ultimately be placed in package**
+class commodity_properties_mixin(object):
+    def __init__(self, commodity_name, handling_fee, handysize_perc, handymax_perc,panamax_perc):
+        self.commodity_name = commodity_name
+        self.handling_fee   = handling_fee
+        self.handysize_perc = handysize_perc
+        self.handymax_perc  = handymax_perc
+        self.panamax_perc   = panamax_perc
+    
+maize_data   = {"commodity_name": 'Maize',    "handling_fee": 3.5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 3.5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 3.5, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
+
+
+# In[ ]:
+
+
+class bulk_commodities(commodity_properties_mixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        pass
+    
+    # Scenario generator
+    def linear_scenario(self, year, window, initial_demand, growth):
+        scenario = create_scenario(year, window, initial_demand)
+        t, d = scenario.linear(growth)
+        self.years  = t
+        self.demand = d
+        
+    def exponential_scenario(self, year, window, initial_demand, rate):
+        scenario = create_scenario(year, window, initial_demand)
+        t, d = scenario.constant(rate)
+        self.years  = t
+        self.demand = d
+        
+    def random_scenario(self, year, window, initial_demand, rate, mu, sigma):
+        scenario = create_scenario(year, window, initial_demand)
+        t, d = scenario.random(rate, mu, sigma)
+        self.years  = t
+        self.demand = d
+
+
+# # Scenario generator
+
+# In[ ]:
+
+
+class create_scenario:
+
+    def __init__(self, year, window, initial_demand):
+        """initialization"""
+        self.year   = year
+        self.window = window
+        self.demand = initial_demand
+        
+    def linear(self, growth):
+        """trend generated from constant growth increments"""
+        years  = range(self.year, self.year + self.window)
+        demand = self.demand
+        t = []
+        d = []
+        for year in years:
+            t.append(int(year))
+            d.append(int(demand))
+            demand = demand + growth    
+        return t, d
+    
+    def constant(self, rate):
+        """trend generated from constant growth rate increments"""
+        years  = range(self.year, self.year + self.window)
+        demand = self.demand
+        t = []
+        d = []
+        for year in years:
+            t.append(int(year))
+            d.append(int(demand))
+            demand = demand * rate    
+        return t, d
+    
+    def random(self, rate, mu, sigma):
+        """trend generated from random growth rate increments"""
+        # package(s) used for probability
+        years  = range(self.year, self.year + self.window)
+        demand = self.demand
+        rate   = rate
+        t = []
+        d = []
+        for year in years:
+            t.append(int(year))
+            d.append(int(demand))
+            
+            change = np.random.normal(mu, sigma, 1000)
+            new_rate = rate + change[0]
+            demand = demand * new_rate  
+        return t, d
+
+
+# # Forecast generator
+
+# In[ ]:
+
+
+class create_forecast:
+
+    def __init__(self, commodities, foresight, hindsight, timestep, year):
+        """initialization"""
+        self.foresight = foresight
+        self.hindsight = hindsight
+        self.year      = year
+
+        
+        foresight = 5
+        hindsight = 5
+        year = 2030
+        start_year = 2018
+        timestep = year - start_year
+
+        # List historic demand
+        if self.hindsight > len(commodities[0].years[timestep-self.hindsight:timestep]):
+            self.hindsight = len(commodities[0].years[timestep-self.hindsight:timestep])
+        historic_years = commodities[0].years[timestep-self.hindsight:timestep]
+        historic_data = []
+        for i in range (len(commodities)):
+            historic_data.append(commodities[i].demand[timestep-self.hindsight:timestep])
+
+        # Create linear trendline
+        #trendlines = []
+        #trendline_years = range (historic_years[0], historic_years[-1]+self.foresight+1, 1)
+        #for i in range (len(commodities)):
+        #    coefficients = np.polyfit(historic_years, historic_data[i], 1)
+        #    trendline = []
+        #    for t in trendline_years:
+        #        trendline.append(int(t*coefficients[0] + coefficients[1]))
+        #   trendlines.append(trendline)
+
+        # Create 2nd order polynomial trendline
+        trendlines = []
+        trendline_years = range (historic_years[0], historic_years[-1]+self.foresight+1)
+        for i in range (len(commodities)):
+            coefficients = np.polyfit(historic_years, historic_data[i], 2)
+            trendline = []
+            for t in trendline_years:
+                trendline.append(z[0]*t**2+z[1]*t+z[2])
+            trendlines.append(trendline)
+    
+    
+    
+        
+    def create_trendline(self):
+        """trend generated from constant growth increments"""
+        years  = range(self.year, self.year + self.window)
+        demand = self.demand
+        t = []
+        d = []
+        for year in years:
+            t.append(year)
+            d.append(demand)
+            demand = demand + growth    
+        return t, d
+    
+    def constant(self, rate):
+        """trend generated from constant growth rate increments"""
+        years  = range(self.year, self.year + self.window)
+        demand = self.demand
+        t = []
+        d = []
+        for year in years:
+            t.append(year)
+            d.append(demand)
+            demand = demand * rate    
+        return t, d
+    
+    def random(self, rate, mu, sigma):
+        """trend generated from random growth rate increments"""
+        # package(s) used for probability
+        years  = range(self.year, self.year + self.window)
+        demand = self.demand
+        rate   = rate
+        t = []
+        d = []
+        for year in years:
+            t.append(year)
+            d.append(demand)
+            
+            change = np.random.normal(mu, sigma, 1000)
+            new_rate = rate + change[0]
+            demand = demand * new_rate  
+        return t, d
 
 
 # # Vessel classes
@@ -89,106 +267,4 @@ def vessel_call_calc(vessels, commodities, simulation_window):
         vessels[i].calls = calls
         
     return vessels
-
-
-# # Trend Generator
-
-# In[2]:
-
-
-class estimate_trend:
-    """trend estimate class"""
-
-    def __init__(self, year, window, initial_demand):
-        """initialization"""
-        self.year   = year
-        self.window = window
-        self.demand = initial_demand
-        
-    def linear(self, growth):
-        """trend generated from constant growth increments"""
-        years  = range(self.year, self.year + self.window)
-        demand = self.demand
-        t = []
-        d = []
-        for year in years:
-            t.append(year)
-            d.append(demand)
-            demand = demand + growth    
-        return t, d
-    
-    def constant(self, rate):
-        """trend generated from constant growth rate increments"""
-        years  = range(self.year, self.year + self.window)
-        demand = self.demand
-        t = []
-        d = []
-        for year in years:
-            t.append(year)
-            d.append(demand)
-            demand = demand * rate    
-        return t, d
-    
-    def random(self, rate, mu, sigma):
-        """trend generated from random growth rate increments"""
-        # package(s) used for probability
-        years  = range(self.year, self.year + self.window)
-        demand = self.demand
-        rate   = rate
-        t = []
-        d = []
-        for year in years:
-            t.append(year)
-            d.append(demand)
-            
-            change = np.random.normal(mu, sigma, 1000)
-            new_rate = rate + change[0]
-            demand = demand * new_rate  
-        return t, d
-
-
-# # Commodity classes
-
-# In[3]:
-
-
-# create commodity class **will ultimately be placed in package**
-class commodity_properties_mixin(object):
-    def __init__(self, commodity_name, handling_fee, handysize_perc, handymax_perc,panamax_perc):
-        self.commodity_name = commodity_name
-        self.handling_fee   = handling_fee
-        self.handysize_perc = handysize_perc
-        self.handymax_perc  = handymax_perc
-        self.panamax_perc   = panamax_perc
-    
-maize_data   = {"commodity_name": 'Maize',    "handling_fee": 3.5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 3.5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 3.5, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
-
-
-# In[ ]:
-
-
-class bulk_commodities(commodity_properties_mixin):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        pass
-        
-    def linear_forecast(self, year, window, initial_demand, growth):
-        trendestimate = estimate_trend(year, window, initial_demand)
-        t, d = trendestimate.linear(growth)
-        self.years  = t
-        self.demand = d
-        
-    def exponential_forecast(self, year, window, initial_demand, rate):
-        trendestimate = estimate_trend(year, window, initial_demand)
-        t, d = trendestimate.constant(rate)
-        self.years  = t
-        self.demand = d
-        
-    def random_forecast(self, year, window, initial_demand, rate, mu, sigma):
-        trendestimate = estimate_trend(year, window, initial_demand)
-        t, d = trendestimate.random(rate, mu, sigma)
-        self.years  = t
-        self.demand = d
 

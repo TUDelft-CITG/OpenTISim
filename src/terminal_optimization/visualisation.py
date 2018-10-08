@@ -103,8 +103,8 @@ def trend(commodities, simulation_window, start_year):
         plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.5, color="black", alpha=0.3)    
 
     # Remove the tick marks; they are unnecessary with the tick lines we just plotted    
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on")    
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True)   
 
     # The names of each asset equals the name of the corresponding dataframe column
     commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
@@ -174,9 +174,6 @@ def profit_loss(terminal):
     y_min = int(min(y_min))
     y_min = int((np.ceil(y_min/20000000)-1)*20000000)
 
-    # Create figure
-    #revenue_plot = plt.figure(figsize=(6, 4.5))
-
     # Create bars
     barWidth = 0.7
     bars1 = cashflows.Profits.values
@@ -185,10 +182,10 @@ def profit_loss(terminal):
     x1 = cashflows.Year.values
 
     # Create barplot
+    ax = plt.subplot(111)   
     plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='Profit')
 
-    # Remove the plot frame lines  
-    ax = plt.subplot(111)    
+    # Remove the plot frame lines
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
@@ -198,16 +195,13 @@ def profit_loss(terminal):
     ax.get_xaxis().tick_bottom()    
     ax.get_yaxis().tick_left()
 
-    # Create legend
-    #plt.legend()
-
     # Text below each barplot with a rotation at 90°
     plt.yticks(range(y_min, y_max+1, 20000000), 
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 20000000)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
 
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on") 
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True) 
 
     # Add the title
     plt.text((x_min+x_max)/2, 1.2*y_max, "Profit/Loss overview", fontsize=17, ha="center")
@@ -250,10 +244,10 @@ def profit_loss_pv(terminal):
     x1 = cashflows.Year.values
 
     # Create barplot
+    ax = plt.subplot(111)  
     plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='Profit')
 
-    # Remove the plot frame lines  
-    ax = plt.subplot(111)    
+    # Remove the plot frame lines    
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
@@ -271,8 +265,8 @@ def profit_loss_pv(terminal):
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 20000000)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
 
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on") 
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True) 
 
     # Add the title
     plt.text((x_min+x_max)/2, 1.2*y_max, "Profit/Loss overview", fontsize=17, ha="center")
@@ -282,45 +276,6 @@ def profit_loss_pv(terminal):
 
     # Show graphic
     plt.show()
-
-
-# ### Profit / Loss (nominal)
-
-# In[ ]:
-
-
-def xxprofit_loss(profits, width, height):
-    
-    x = []
-    y1 = []
-    y_min = []
-    y_max = []
-    
-    for i in range (len(profits)):
-        x.append(profits[i].year)
-        y1.append(profits[i].total)
-        if y1[i] <= 0:
-            y_min.append(0)
-        else:
-            y_min.append(y1[i])
-        if y1[i] >= 0:
-            y_max.append(0)
-        else:
-            y_max.append(y1[i])
-    
-    fig  = plt.figure(figsize=(width, height))
-    grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
-    fig1 = fig.add_subplot(grid[0, 0])
-
-    fig1.step(x, y1, where='post', label='Profit / loss')
-    fig1.fill_between(x, y1, y_min, step='post', facecolor='red', alpha=0.4)
-    fig1.fill_between(x, y1, y_max, step='post', facecolor='green', alpha=0.4)
-    fig1.set_title ('Annualised profits')
-    fig1.set_xlabel('Year')
-    fig1.set_ylabel('Profit / Loss [$]')
-    fig1.legend()
-
-    return fig1
 
 
 # ### Revenues
@@ -355,10 +310,10 @@ def revenues(terminal):
     x1 = terminal.cashflows.Year.values
 
     # Create barplot
+    ax = plt.subplot(111)
     plt.bar(x1, bars1, width = barWidth, color = '#2CA02C', label='Revenues')
 
-    # Remove the plot frame lines  
-    ax = plt.subplot(111)    
+    # Remove the plot frame lines      
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
@@ -376,8 +331,8 @@ def revenues(terminal):
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 10000000)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
 
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on") 
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True) 
 
     # Add a text label to the right end of every line. Most of the code below    
     # is adding specific offsets y position because some labels overlapped.    
@@ -431,12 +386,12 @@ def revenue_capex_opex(terminal):
     x1 = terminal.cashflows.Year.values
 
     # Create barplot
+    ax = plt.subplot(111)  
     plt.bar(x1, revenue, width = barWidth, color = '#2CA02C', label='Revenues')
     plt.bar(x1, capex, width = barWidth, color = '#D62728', label='Capex')
     plt.bar(x1, opex, width = barWidth, color = '#1F77B4', label='Opex')
 
-    # Remove the plot frame lines  
-    ax = plt.subplot(111)    
+    # Remove the plot frame lines    
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
@@ -458,8 +413,8 @@ def revenue_capex_opex(terminal):
     for y in range(y_min-1 , y_max+1, 20000000):    
         plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.4, color="black", alpha=0.3)  
 
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on") 
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True) 
 
     # Add a text label to the right end of every line. Most of the code below    
     # is adding specific offsets y position because some labels overlapped.    
@@ -533,10 +488,10 @@ def NPV_distribution(iterations):
     x1 = NPV_spectrum['Trigger occupancy'].values
 
     # Create barplot
+    ax = plt.subplot(111) 
     plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='NPV')
 
-    # Remove the plot frame lines  
-    ax = plt.subplot(111)    
+    # Remove the plot frame lines     
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
@@ -554,8 +509,8 @@ def NPV_distribution(iterations):
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 10000000)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 10), [str(x) + "%" for x in range(x_min, x_max+1, 10)], fontsize=9, rotation=45)
 
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on") 
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True) 
 
     # Trigger value that coincides with maximum NPV
     max_iteration = NPV_spectrum.loc[NPV_spectrum['NPV']==max(NPV_spectrum['NPV'])].index[0]
@@ -1002,8 +957,8 @@ def asset_trajectory(terminal, simulation_window, start_year):
             plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.5, color="black", alpha=0.3)    
 
         # Remove the tick marks; they are unnecessary with the tick lines we just plotted    
-        plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                        labelbottom="on", left="off", right="off", labelleft="on")    
+        plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                        labelbottom=True, left=False, right=False, labelleft=True)    
 
         # The names of each asset equals the name of the corresponding dataframe column
         asset_names = data.loc[:, data.columns != 'Year'].columns.values
@@ -1089,10 +1044,10 @@ def revenues(terminal):
     x1 = terminal.cashflows.Year.values
 
     # Create barplot
+    ax = plt.subplot(111) 
     plt.bar(x1, bars1, width = barWidth, color = '#2CA02C', label='Revenues')
 
-    # Remove the plot frame lines  
-    ax = plt.subplot(111)    
+    # Remove the plot frame lines     
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
@@ -1110,8 +1065,8 @@ def revenues(terminal):
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 10000000)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
 
-    plt.tick_params(axis="both", which="both", bottom="off", top="off",    
-                    labelbottom="on", left="off", right="off", labelleft="on") 
+    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                    labelbottom=True, left=False, right=False, labelleft=True)
 
     # Add a text label to the right end of every line. Most of the code below    
     # is adding specific offsets y position because some labels overlapped.    
