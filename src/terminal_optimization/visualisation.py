@@ -38,16 +38,16 @@ def trend(commodities, simulation_window, start_year):
     maize   = commodities[0]
     soybean = commodities[1]
     wheat   = commodities[2]
-    demand_matrix = np.zeros(shape=(simulation_window, 4))
+    demand_matrix = np.zeros(shape=(len(commodities[0].years), 4))
     
     ############################################################################################################
     # For each year, register each commodities' demand 
     ############################################################################################################
     
-    for t in range (simulation_window):
+    for t in range (len(commodities[0].years)):
 
         # Years (Column 0)
-        year = t + start_year 
+        year = t + commodities[0].years[0] 
         demand_matrix[t,0] = year
         # Maize (Column 1)
         demand_matrix[t,1] = maize.demand[t]
@@ -69,11 +69,11 @@ def trend(commodities, simulation_window, start_year):
         y_min.append(min(demand.iloc[:,i]))
     y_max = int(max(y_max))
     y_max = int(np.ceil(y_max/100000)*100000)
-    y_min = int(max(y_min)) 
+    y_min = int((np.ceil(min(y_min)/100000)-1)*100000)
 
     # You typically want your plot to be ~1.33x wider than tall
     # Common sizes: (10, 7.5) and (12, 9)    
-    plt.figure(figsize=(6, 4))    
+    plt.figure(figsize=(10, 7.5))    
 
     # Remove the plot frame lines
     ax = plt.subplot(111)    
@@ -92,10 +92,10 @@ def trend(commodities, simulation_window, start_year):
     plt.xlim(x_min-1, x_max+1)    
 
     # Make sure your axis ticks are large enough to be easily read      
-    plt.yticks(range(y_min, y_max+1, 200000), 
-               [str(x) for x in range(y_min, y_max+1, 200000)], fontsize=14)
-    plt.xticks(range(x_min, x_max+1, int((x_max-x_min)/4)), [str(x) for x in range(x_min, x_max+1, int((x_max-x_min)/4))], fontsize=14)  
-
+    plt.yticks(range(y_min, y_max+1, 500000), 
+               [str(x) for x in range(y_min, y_max+1, 500000)], fontsize=14)
+    plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=14, rotation=45)
+    
     # Provide tick lines across the plot to help your viewers trace along    
     # the axis ticks. Make sure that the lines are light and small so they    
     # don't obscure the primary data lines    
@@ -110,13 +110,16 @@ def trend(commodities, simulation_window, start_year):
     commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
     
     # Plot each commodity
-    plt.plot(demand.Year.values, demand['Maize demand'].values, lw=2.5, color=tableau20[0])
-    plt.plot(demand.Year.values, demand['Soybean demand'].values, lw=2.5, color=tableau20[1])
-    plt.plot(demand.Year.values, demand['Wheat demand'].values, lw=2.5, color=tableau20[2])
+    #plt.plot(demand.Year.values, demand['Maize demand'].values, lw=2.5, color=tableau20[0])
+    #plt.plot(demand.Year.values, demand['Soybean demand'].values, lw=2.5, color=tableau20[1])
+    plt.plot(demand.Year.values, demand['Wheat demand'].values, lw=2.5, color=tableau20[0])
+    plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
     
-    plt.text(x_max+1, y_max*1.0, 'Maize demand', fontsize=14, color=tableau20[0])
-    plt.text(x_max+1, y_max*0.9, 'Soybean demand', fontsize=14, color=tableau20[1])
-    plt.text(x_max+1, y_max*0.8, 'Wheat demand', fontsize=14, color=tableau20[2])  
+    #plt.text(x_max+1, y_max*1.0, 'Maize demand', fontsize=16, color=tableau20[0])
+    #plt.text(x_max+1, y_max*0.9, 'Soybean demand', fontsize=16, color=tableau20[1])
+    plt.text(x_max+1, max(demand['Wheat demand']), 'Wheat demand', fontsize=16, color=tableau20[0])
+    plt.text(start_year-1, 3000000, "Historic data", fontsize=16, ha="center", rotation=90)
+    plt.text(start_year+1, 3000000, "Conjured scenario", fontsize=16, ha="center", rotation=90)
 
     # matplotlib's title() call centers the title on the plot, but not the graph,    
     # so I used the text() call to customize where the title goes.    
@@ -126,7 +129,7 @@ def trend(commodities, simulation_window, start_year):
 
     # Note that if the title is descriptive enough, it is unnecessary to include    
     # axis labels; they are self-evident, in this plot's case.    
-    plt.text((x_min + x_max)/2, 1.2*y_max, "Commodity demand", fontsize=17, ha="center")    
+    plt.text((x_min + x_max)/2, 1.1*y_max, "Commodity demand", fontsize=20, ha="center")    
 
     # Always include your data source(s) and copyright notice! And for your    
     # data sources, tell your viewers exactly where the data came from,    
@@ -140,9 +143,283 @@ def trend(commodities, simulation_window, start_year):
     # You can also save it as a PDF, JPEG, etc.    
     # Just change the file extension in this call.    
     # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
-    #plt.savefig("percent-bachelors-degrees-women-usa.png", bbox_inches="tight") 
+    plt.savefig("Scenario.png", bbox_inches="tight")  
 
     return
+
+
+# In[ ]:
+
+
+def consecutive_reative_trend(commodities, simulation_window, start_year):
+    
+    maize   = commodities[0]
+    soybean = commodities[1]
+    wheat   = commodities[2]
+    demand_matrix = np.zeros(shape=(len(commodities[0].years), 4))
+    
+    ############################################################################################################
+    # For each year, register each commodities' demand 
+    ############################################################################################################
+    
+    for t in range (len(commodities[0].years)):
+
+        # Years (Column 0)
+        year = t + commodities[0].years[0] 
+        demand_matrix[t,0] = year
+        # Maize (Column 1)
+        demand_matrix[t,1] = maize.demand[t]
+        # Soybean (Column 2)
+        demand_matrix[t,2] = soybean.demand[t]
+        # Wheat (Column 3)
+        demand_matrix[t,3] = wheat.demand[t]
+    
+    demand = pd.DataFrame(demand_matrix, columns=['Year', 'Maize demand', 'Soybean demand', 'Wheat demand'])
+    demand = demand.astype(int)
+
+    # Determining max and min x and y values
+    x_max = int(max(demand['Year']))
+    x_min = int(min(demand['Year']))
+    y_max = []
+    y_min = []
+    for i in range (1, len(demand.columns)):
+        y_max.append(max(demand.iloc[:,i]))
+        y_min.append(min(demand.iloc[:,i]))
+    y_max = int(max(y_max))
+    y_max = int(np.ceil(y_max/100000)*100000)
+    y_min = int((np.ceil(min(y_min)/100000)-1)*100000)
+
+    for z in range (8):
+        # You typically want your plot to be ~1.33x wider than tall
+        # Common sizes: (10, 7.5) and (12, 9)    
+        plt.figure(figsize=(10, 7.5))    
+
+        # Remove the plot frame lines
+        ax = plt.subplot(111)    
+        ax.spines["top"].set_visible(False)    
+        ax.spines["bottom"].set_visible(False)    
+        ax.spines["right"].set_visible(False)    
+        ax.spines["left"].set_visible(False)    
+
+        # Ensure that the axis ticks only show up on the bottom and left of the plot.      
+        ax.get_xaxis().tick_bottom()    
+        ax.get_yaxis().tick_left()    
+
+        # Limit the range of the plot to only where the data is  
+        # Avoid unnecessary whitespace
+        plt.ylim(y_min, y_max)
+        plt.xlim(x_min-1, 2031)    
+
+        # Make sure your axis ticks are large enough to be easily read      
+        plt.yticks(range(y_min, y_max+1, 500000), 
+               [str(x) for x in range(y_min, y_max+1, 500000)], fontsize=19)
+        plt.xticks(range(x_min, x_max+1, 2), [str(x) for x in range(x_min, x_max+1, 2)], fontsize=19, rotation=45)
+        
+        # Provide tick lines across the plot to help your viewers trace along    
+        # the axis ticks. Make sure that the lines are light and small so they    
+        # don't obscure the primary data lines    
+        for y in range(y_min+200000, y_max+1, 200000):    
+            plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.5, color="black", alpha=0.3)    
+
+        # Remove the tick marks; they are unnecessary with the tick lines we just plotted    
+        plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                        labelbottom=True, left=False, right=False, labelleft=True)   
+
+        # The names of each asset equals the name of the corresponding dataframe column
+        commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
+
+        # Plot each commodity
+        plt.plot(demand.Year[0:5+z].values, demand['Wheat demand'][0:5+z].values, lw=2.5, color=tableau20[0])
+        plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
+
+        plt.text(demand.Year[5+z] + 1, demand['Wheat demand'][5+z], 'Wheat demand', fontsize=19, color=tableau20[0])  
+        plt.text(start_year-1, 3000000, "Historic data", fontsize=16, ha="center", rotation=90)
+        plt.text(start_year+1, 3000000, "Conjured scenario", fontsize=16, ha="center", rotation=90)
+
+        # matplotlib's title() call centers the title on the plot, but not the graph,    
+        # so I used the text() call to customize where the title goes.    
+
+        # Make the title big enough so it spans the entire plot, but don't make it    
+        # so big that it requires two lines to show.    
+
+        # Note that if the title is descriptive enough, it is unnecessary to include    
+        # axis labels; they are self-evident, in this plot's case.    
+        plt.text((x_min + x_max)/2, 1.1*y_max, "Commodity demand", fontsize=24, ha="center")    
+
+        # Always include your data source(s) and copyright notice! And for your    
+        # data sources, tell your viewers exactly where the data came from,    
+        # preferably with a direct link to the data. Just telling your viewers    
+        # that you used data from the "U.S. Census Bureau" is completely useless:    
+        # the U.S. Census Bureau provides all kinds of data, so how are your    
+        # viewers supposed to know which data set you used?    
+        #plt.text(x_max+1, y_min-0.1*y_min, "Data source: Forecasting model", fontsize=10)    
+
+        # Finally, save the figure as a PNG.    
+        # You can also save it as a PDF, JPEG, etc.    
+        # Just change the file extension in this call.    
+        # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
+        plt.savefig(str(z) + "Multiple trends.png", bbox_inches="tight") 
+
+    return
+
+
+# In[ ]:
+
+
+def consecutive_predictive_trend(commodities, simulation_window, start_year):
+
+    maize   = commodities[0]
+    soybean = commodities[1]
+    wheat   = commodities[2]
+    demand_matrix = np.zeros(shape=(len(commodities[0].years), 4))
+    
+    ############################################################################################################
+    # For each year, register each commodities' demand 
+    ############################################################################################################
+    
+    for t in range (len(commodities[0].years)):
+
+        # Years (Column 0)
+        year = t + commodities[0].years[0] 
+        demand_matrix[t,0] = year
+        # Maize (Column 1)
+        demand_matrix[t,1] = maize.demand[t]
+        # Soybean (Column 2)
+        demand_matrix[t,2] = soybean.demand[t]
+        # Wheat (Column 3)
+        demand_matrix[t,3] = wheat.demand[t]
+    
+    demand = pd.DataFrame(demand_matrix, columns=['Year', 'Maize demand', 'Soybean demand', 'Wheat demand'])
+    demand = demand.astype(int)
+
+    # Determining max and min x and y values
+    x_max = int(max(demand['Year']))
+    x_min = int(min(demand['Year']))
+    y_max = []
+    y_min = []
+    for i in range (1, len(demand.columns)):
+        y_max.append(max(demand.iloc[:,i]))
+        y_min.append(min(demand.iloc[:,i]))
+    y_max = int(max(y_max))
+    y_max = int(np.ceil(y_max/100000)*100000)
+    y_min = int((np.ceil(min(y_min)/100000)-1)*100000)
+
+    for zz in range (2):
+        for z in range (6):
+            # You typically want your plot to be ~1.33x wider than tall
+            # Common sizes: (10, 7.5) and (12, 9)    
+            plt.figure(figsize=(10, 7.5))    
+
+            # Remove the plot frame lines
+            ax = plt.subplot(111)    
+            ax.spines["top"].set_visible(False)    
+            ax.spines["bottom"].set_visible(False)    
+            ax.spines["right"].set_visible(False)    
+            ax.spines["left"].set_visible(False)    
+
+            # Ensure that the axis ticks only show up on the bottom and left of the plot.      
+            ax.get_xaxis().tick_bottom()    
+            ax.get_yaxis().tick_left()    
+
+            # Limit the range of the plot to only where the data is  
+            # Avoid unnecessary whitespace
+            plt.ylim(y_min, y_max)
+            plt.xlim(x_min-1, x_max+1)    
+
+            # Make sure your axis ticks are large enough to be easily read      
+            plt.yticks(range(y_min, y_max+1, 500000), 
+               [str(x) for x in range(y_min, y_max+1, 500000)], fontsize=19)
+            plt.xticks(range(x_min, x_max+1, 2), [str(x) for x in range(x_min, x_max+1, 2)], fontsize=19, rotation=45)
+
+            # Provide tick lines across the plot to help your viewers trace along    
+            # the axis ticks. Make sure that the lines are light and small so they    
+            # don't obscure the primary data lines    
+            for y in range(y_min+200000, y_max+1, 200000):    
+                plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.5, color="black", alpha=0.3)    
+
+            # Remove the tick marks; they are unnecessary with the tick lines we just plotted    
+            plt.tick_params(axis="both", which="both", bottom=False, top=False,    
+                            labelbottom=True, left=False, right=False, labelleft=True)   
+
+            # The names of each asset equals the name of the corresponding dataframe column
+            commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
+
+            foresight = 5
+            hindsight = 5
+            start_year = 2018
+            year = start_year + z
+            timestep = year - start_year
+
+            # List historic demand
+            start_row = demand.loc[demand['Year']==2018].index[0]
+            if hindsight > start_row:
+                hindsight = start_row
+            previous_years = commodities[0].years[timestep+start_row-hindsight:timestep+start_row]
+            previous_demand = []
+            for i in range (len(commodities)):
+                previous_demand.append(commodities[i].demand[timestep+start_row-hindsight:timestep+start_row])
+            
+            if zz == 0:
+                # Create linear trendline
+                trendlines = []
+                trendline_years = range (previous_years[0], previous_years[-1]+foresight+1, 1)
+                for i in range (len(commodities)):
+                    coefficients = np.polyfit(previous_years, previous_demand[i], 1)
+                    trendline = []
+                    for k in trendline_years:
+                        trendline.append(coefficients[0]*k+coefficients[1])
+                    trendlines.append(trendline)
+
+            if zz == 1:
+                # Create 2nd order polynomial trendline
+                trendlines = []
+                trendline_years = range (previous_years[0], previous_years[-1]+foresight+1)
+                for i in range (len(commodities)):
+                    coefficients = np.polyfit(previous_years, previous_demand[i], 2)
+                    trendline = []
+                    for k in trendline_years:
+                        trendline.append(coefficients[0]*k**2+coefficients[1]*k+coefficients[2])
+                    trendlines.append(trendline)
+
+            # Plot historic data
+            plt.scatter(demand.Year[0:5+z].values, demand['Wheat demand'][0:5+z].values, lw=2.5, color=tableau20[0])
+            plt.text(demand.Year[z]-2, demand['Wheat demand'][3+z]+100000, 'Previous wheat demand', fontsize=19, color=tableau20[0])
+
+            # Plot trendline
+            plt.plot(trendline_years, trendlines[2], lw=2.5, color=tableau20[1])
+            plt.text(trendline_years[-1]+1, min(max(1000000,trendlines[2][-1]),y_max), 'Demand forecast', fontsize=19, color=tableau20[1])  
+
+            # Plot border of historic and scenario data
+            plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
+            plt.text(start_year-1, 3000000, "Historic data", fontsize=19, ha="center", rotation=90)
+            plt.text(start_year+1, 3000000, "Conjured scenario", fontsize=19, ha="center", rotation=90)
+        
+            # matplotlib's title() call centers the title on the plot, but not the graph,    
+            # so I used the text() call to customize where the title goes.    
+
+            # Make the title big enough so it spans the entire plot, but don't make it    
+            # so big that it requires two lines to show.    
+
+            # Note that if the title is descriptive enough, it is unnecessary to include    
+            # axis labels; they are self-evident, in this plot's case.    
+            plt.text((x_min + x_max)/2, 1.1*y_max, "Commodity demand", fontsize=24, ha="center")    
+
+            # Always include your data source(s) and copyright notice! And for your    
+            # data sources, tell your viewers exactly where the data came from,    
+            # preferably with a direct link to the data. Just telling your viewers    
+            # that you used data from the "U.S. Census Bureau" is completely useless:    
+            # the U.S. Census Bureau provides all kinds of data, so how are your    
+            # viewers supposed to know which data set you used?    
+            #plt.text(x_max+1, y_min-0.1*y_min, "Data source: Forecasting model", fontsize=10)    
+
+            # Finally, save the figure as a PNG.    
+            # You can also save it as a PDF, JPEG, etc.    
+            # Just change the file extension in this call.    
+            # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
+            plt.savefig(str(zz) + "%" + str(z) + "Multiple trends.png", bbox_inches="tight") 
+
+    return
+    
 
 
 # # Cash Flows
@@ -208,6 +485,8 @@ def profit_loss(terminal):
 
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
+    
+    plt.savefig("Profit Loss.png", bbox_inches="tight") 
 
     # Show graphic
     plt.show()
@@ -232,6 +511,10 @@ def profit_loss_pv(terminal):
     y_max = int(np.ceil(y_max/20000000)*20000000)
     y_min = int(min(y_min))
     y_min = int((np.ceil(y_min/20000000)-1)*20000000)
+    
+    WACC = terminal.WACC_cashflows.WACC 
+    WACC = [i * 100 for i in WACC]
+    NPV = terminal.NPV
 
     # Create figure
     #revenue_plot = plt.figure(figsize=(6, 4.5))
@@ -246,13 +529,23 @@ def profit_loss_pv(terminal):
     # Create barplot
     ax = plt.subplot(111)  
     plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='Profit')
-
+    
     # Remove the plot frame lines    
     ax.spines["top"].set_visible(False)    
     ax.spines["bottom"].set_visible(False)    
     ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-
+    ax.spines["left"].set_visible(False) 
+    
+    # Ensure that the axis ticks only show up on the bottom and left of the plot.     
+    ax.get_xaxis().tick_bottom()    
+    ax.get_yaxis().tick_left()
+    
+    # Remove the plot frame lines    
+    ax.spines["top"].set_visible(False)    
+    ax.spines["bottom"].set_visible(False)    
+    ax.spines["right"].set_visible(False)    
+    ax.spines["left"].set_visible(False) 
+    
     # Ensure that the axis ticks only show up on the bottom and left of the plot.     
     ax.get_xaxis().tick_bottom()    
     ax.get_yaxis().tick_left()
@@ -267,12 +560,33 @@ def profit_loss_pv(terminal):
 
     plt.tick_params(axis="both", which="both", bottom=False, top=False,    
                     labelbottom=True, left=False, right=False, labelleft=True) 
-
+    
+    plt.text(((x_min + x_max)/2), y_min, "NPV: $" + str('{:0,.0f}'.format(NPV)), fontsize=11, ha="center")
+    
     # Add the title
     plt.text((x_min+x_max)/2, 1.2*y_max, "Profit/Loss overview", fontsize=17, ha="center")
+    
+    # Create line plot
+    ax1 = ax.twinx()
+    ax1.spines["top"].set_visible(False)    
+    ax1.spines["bottom"].set_visible(False)    
+    ax1.spines["right"].set_visible(False)    
+    ax1.spines["left"].set_visible(False) 
+    
+    #plt.ylim(0, 100)
+    #plt.xlim(x_min-1, x_max+1)
+    
+    plt.plot(x1, WACC, color = '#D62728', label='WACC') 
+    plt.yticks(range(0, 101, 10), 
+               [str('{:0,.0f}'.format(x)) for x in range(0, 101, 10)], fontsize=9)
+    plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
+    plt.text(x_min+5, 45, "WACC discount", color = '#D62728', fontsize=9, ha="center")
 
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
+    
+    # Save image
+    plt.savefig("Profit Loss (PV).png", bbox_inches="tight")
 
     # Show graphic
     plt.show()
@@ -333,15 +647,6 @@ def revenues(terminal):
 
     plt.tick_params(axis="both", which="both", bottom=False, top=False,    
                     labelbottom=True, left=False, right=False, labelleft=True) 
-
-    # Add a text label to the right end of every line. Most of the code below    
-    # is adding specific offsets y position because some labels overlapped.    
-    #y_pos = terminal.cashflows.Revenues.values[-1]
-    #plt.text(x_max+1, y_pos, 'Revenues', fontsize=14, color='#2CA02C') 
-
-    # Text on the top of each barplot
-    #for i in range(len(r4)):
-    #    plt.text(x = r4[i]-0.5 , y = bars4[i]+0.1, s = label[i], size = 6)
 
     # Add the title
     plt.text((x_min+x_max)/2, 1.2*y_max, "Terminal Revenues", fontsize=17, ha="center")  
@@ -434,6 +739,9 @@ def revenue_capex_opex(terminal):
 
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
+    
+    # Save graphic
+    plt.savefig("Cashflows.png", bbox_inches="tight")
 
     # Show graphic
     plt.show()
@@ -532,6 +840,9 @@ def NPV_distribution(iterations):
 
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
+    
+    # Save graphic
+    plt.savefig("NPV distribution.png", bbox_inches="tight")
 
     # Show graphic
     plt.show()
@@ -998,14 +1309,15 @@ def asset_trajectory(terminal, simulation_window, start_year):
         # You can also save it as a PDF, JPEG, etc.    
         # Just change the file extension in this call.    
         # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
-        #plt.savefig("percent-bachelors-degrees-women-usa.png", bbox_inches="tight") 
-    
+        
+        plt.savefig("assets.png", bbox_inches="tight")
+        
     quay_plot = line_plot(quays)
     berths_plot = line_plot(berths)
     storage_plot = line_plot(storage)
     stations_plot = line_plot(station)
     conveyor_plot = line_plot(conveyors)
-
+    
     return
 
 

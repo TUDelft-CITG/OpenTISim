@@ -36,20 +36,20 @@ class bulk_commodities(commodity_properties_mixin):
         pass
     
     # Scenario generator
-    def linear_scenario(self, year, window, initial_demand, growth):
-        scenario = create_scenario(year, window, initial_demand)
+    def linear_scenario(self, year, window, historic_demand, growth):
+        scenario = create_scenario(year, window, historic_demand)
         t, d = scenario.linear(growth)
         self.years  = t
         self.demand = d
         
-    def exponential_scenario(self, year, window, initial_demand, rate):
-        scenario = create_scenario(year, window, initial_demand)
+    def exponential_scenario(self, year, window, historic_demand, rate):
+        scenario = create_scenario(year, window, historic_demand)
         t, d = scenario.constant(rate)
         self.years  = t
         self.demand = d
         
-    def random_scenario(self, year, window, initial_demand, rate, mu, sigma):
-        scenario = create_scenario(year, window, initial_demand)
+    def random_scenario(self, year, window, historic_demand, rate, mu, sigma):
+        scenario = create_scenario(year, window, historic_demand)
         t, d = scenario.random(rate, mu, sigma)
         self.years  = t
         self.demand = d
@@ -62,18 +62,29 @@ class bulk_commodities(commodity_properties_mixin):
 
 class create_scenario:
 
-    def __init__(self, year, window, initial_demand):
+    def __init__(self, year, window, historic_demand):
         """initialization"""
         self.year   = year
         self.window = window
-        self.demand = initial_demand
+        self.historic_demand = historic_demand
+        self.historic_years = []
+        
+        for t in range((year-len(self.historic_demand)), year):
+            self.historic_years.append(t)  
         
     def linear(self, growth):
         """trend generated from constant growth increments"""
         years  = range(self.year, self.year + self.window)
-        demand = self.demand
+        demand = self.historic_demand[-1]
         t = []
         d = []
+        
+        # add historic data
+        for i in range(len(self.historic_demand)):
+            t.append(self.historic_years[i])
+            d.append(self.historic_demand[i])
+            
+        # create scenario
         for year in years:
             t.append(int(year))
             d.append(int(demand))
@@ -83,9 +94,16 @@ class create_scenario:
     def constant(self, rate):
         """trend generated from constant growth rate increments"""
         years  = range(self.year, self.year + self.window)
-        demand = self.demand
+        demand = self.historic_demand[-1]
         t = []
         d = []
+        
+        # add historic data
+        for i in range(len(self.historic_demand)):
+            t.append(self.historic_years[i])
+            d.append(self.historic_demand[i])
+            
+        # create scenario
         for year in years:
             t.append(int(year))
             d.append(int(demand))
@@ -96,14 +114,20 @@ class create_scenario:
         """trend generated from random growth rate increments"""
         # package(s) used for probability
         years  = range(self.year, self.year + self.window)
-        demand = self.demand
+        demand = self.historic_demand[-1]
         rate   = rate
         t = []
         d = []
+        
+        # add historic data
+        for i in range(len(self.historic_demand)):
+            t.append(self.historic_years[i])
+            d.append(self.historic_demand[i])
+            
+        # create scenario
         for year in years:
             t.append(int(year))
             d.append(int(demand))
-            
             change = np.random.normal(mu, sigma, 1000)
             new_rate = rate + change[0]
             demand = demand * new_rate  
