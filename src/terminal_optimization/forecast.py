@@ -53,9 +53,19 @@ class bulk_commodities(commodity_properties_mixin):
         t, d = scenario.random(rate, mu, sigma)
         self.years  = t
         self.demand = d
+        
+    def predefined_scenario(self, year, window, historic_demand, predefined_demand):
+        scenario = create_scenario(year, window, historic_demand)
+        t, d = scenario.predefined(predefined_demand)
+        self.years  = t
+        self.demand = d
 
 
 # # Scenario generator
+# - Linear
+# - Exponential
+# - Exponential using standard deviation
+# - Predefined
 
 # In[ ]:
 
@@ -131,6 +141,24 @@ class create_scenario:
             change = np.random.normal(mu, sigma, 1000)
             new_rate = rate + change[0]
             demand = demand * new_rate  
+        return t, d
+    
+    def predefined(self, predefined_demand):
+        """trend generated from random growth rate increments"""
+        years  = range(self.year, self.year + self.window)
+        demand = self.historic_demand[-1]
+        t = []
+        d = []
+        
+        # add historic data
+        for i in range(len(self.historic_demand)):
+            t.append(self.historic_years[i])
+            d.append(self.historic_demand[i])
+            
+        # create scenario
+        for year in years:
+            t.append(int(year))
+            d.append(int(predefined_demand[year - self.year]))
         return t, d
 
 

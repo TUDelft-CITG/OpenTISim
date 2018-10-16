@@ -1,18 +1,19 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[4]:
 
 
+import os
 import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 
-# # Plot colours
+# ### Plot colours
 
-# In[3]:
+# In[2]:
 
 
 # Applied colours within the plots
@@ -28,12 +29,29 @@ for i in range(len(tableau20)):
     tableau20[i] = (r / 255., g / 255., b / 255.) 
 
 
-# # Scenario Trend
+# ### Import Plotly packages
 
-# In[1]:
+# In[ ]:
 
 
-def trend(commodities, simulation_window, start_year):
+# Log in to Plotly servers
+import plotly
+plotly.tools.set_credentials_file(username='wijzermans', api_key='FKGDvSah3z5WCNREBZEq')
+
+# (*) To communicate with Plotly's server, sign in with credentials file
+import plotly.plotly as py  
+import plotly.graph_objs as go
+import plotly.tools as tls 
+from plotly.graph_objs import *
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+
+# # Scenarios
+
+# In[4]:
+
+
+def scenario(commodities, simulation_window, start_year):
     
     maize   = commodities[0]
     soybean = commodities[1]
@@ -110,16 +128,16 @@ def trend(commodities, simulation_window, start_year):
     commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
     
     # Plot each commodity
-    #plt.plot(demand.Year.values, demand['Maize demand'].values, lw=2.5, color=tableau20[0])
-    #plt.plot(demand.Year.values, demand['Soybean demand'].values, lw=2.5, color=tableau20[1])
+    plt.plot(demand.Year.values, demand['Maize demand'].values, lw=2.5, color=tableau20[0])
+    plt.plot(demand.Year.values, demand['Soybean demand'].values, lw=2.5, color=tableau20[1])
     plt.plot(demand.Year.values, demand['Wheat demand'].values, lw=2.5, color=tableau20[0])
     plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
     
     #plt.text(x_max+1, y_max*1.0, 'Maize demand', fontsize=16, color=tableau20[0])
     #plt.text(x_max+1, y_max*0.9, 'Soybean demand', fontsize=16, color=tableau20[1])
-    plt.text(x_max+1, max(demand['Wheat demand']), 'Wheat demand', fontsize=16, color=tableau20[0])
+    plt.text(x_max+1, max(demand['Maize demand']), 'Maize demand', fontsize=16, color=tableau20[0])
     plt.text(start_year-1, 3000000, "Historic data", fontsize=16, ha="center", rotation=90)
-    plt.text(start_year+1, 3000000, "Conjured scenario", fontsize=16, ha="center", rotation=90)
+    plt.text(start_year+1, 3000000, "Scenario", fontsize=16, ha="center", rotation=90)
 
     # matplotlib's title() call centers the title on the plot, but not the graph,    
     # so I used the text() call to customize where the title goes.    
@@ -129,7 +147,7 @@ def trend(commodities, simulation_window, start_year):
 
     # Note that if the title is descriptive enough, it is unnecessary to include    
     # axis labels; they are self-evident, in this plot's case.    
-    plt.text((x_min + x_max)/2, 1.1*y_max, "Commodity demand", fontsize=20, ha="center")    
+    plt.text((x_min + x_max)/2, 1.1*y_max, "Demand Scenario", fontsize=20, ha="center")    
 
     # Always include your data source(s) and copyright notice! And for your    
     # data sources, tell your viewers exactly where the data came from,    
@@ -137,18 +155,30 @@ def trend(commodities, simulation_window, start_year):
     # that you used data from the "U.S. Census Bureau" is completely useless:    
     # the U.S. Census Bureau provides all kinds of data, so how are your    
     # viewers supposed to know which data set you used?    
-    plt.text(x_max+1, y_min-0.1*y_min, "Data source: Forecasting model", fontsize=10)    
+    plt.text(x_max+1, y_min-0.1*y_min, "Data source: Scenario generator", fontsize=10)    
 
     # Finally, save the figure as a PNG.    
     # You can also save it as a PDF, JPEG, etc.    
     # Just change the file extension in this call.    
-    # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
-    plt.savefig("Scenario.png", bbox_inches="tight")  
+    # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.  
+    
+    # Save figure at designated folder. Create scenario folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\scenarios')
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+        
+    # Save figure
+    plt.savefig(str(folder + "\\Scenario.png"), bbox_inches="tight")
+    
+    # Online-based, interactive graphic
+    figure = plt.gcf()
+    py.iplot_mpl(figure, filename='Scenario')
 
     return
 
 
-# In[ ]:
+# In[5]:
 
 
 def consecutive_reative_trend(commodities, simulation_window, start_year):
@@ -191,7 +221,6 @@ def consecutive_reative_trend(commodities, simulation_window, start_year):
 
     for z in range (8):
         # You typically want your plot to be ~1.33x wider than tall
-        # Common sizes: (10, 7.5) and (12, 9)    
         plt.figure(figsize=(10, 7.5))    
 
         # Remove the plot frame lines
@@ -205,8 +234,7 @@ def consecutive_reative_trend(commodities, simulation_window, start_year):
         ax.get_xaxis().tick_bottom()    
         ax.get_yaxis().tick_left()    
 
-        # Limit the range of the plot to only where the data is  
-        # Avoid unnecessary whitespace
+        # Limit the range of the plot to only where the data is to avoid unnecessary whitespace
         plt.ylim(y_min, y_max)
         plt.xlim(x_min-1, 2031)    
 
@@ -229,41 +257,38 @@ def consecutive_reative_trend(commodities, simulation_window, start_year):
         commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
 
         # Plot each commodity
-        plt.plot(demand.Year[0:5+z].values, demand['Wheat demand'][0:5+z].values, lw=2.5, color=tableau20[0])
+        plt.plot(demand.Year[0:5+z].values, demand['Maize demand'][0:5+z].values, lw=2.5, color=tableau20[0])
         plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
 
-        plt.text(demand.Year[5+z] + 1, demand['Wheat demand'][5+z], 'Wheat demand', fontsize=19, color=tableau20[0])  
+        # Name each plot line
+        plt.text(demand.Year[5+z] + 1, demand['Maize demand'][5+z], 'Maize demand', fontsize=19, color=tableau20[0])  
         plt.text(start_year-1, 3000000, "Historic data", fontsize=16, ha="center", rotation=90)
-        plt.text(start_year+1, 3000000, "Conjured scenario", fontsize=16, ha="center", rotation=90)
+        plt.text(start_year+1, 3000000, "Scenario", fontsize=16, ha="center", rotation=90)
+ 
 
-        # matplotlib's title() call centers the title on the plot, but not the graph,    
-        # so I used the text() call to customize where the title goes.    
-
-        # Make the title big enough so it spans the entire plot, but don't make it    
-        # so big that it requires two lines to show.    
+        # Make the title big enough so it spans the entire plot, but don't make it so big that it requires two lines to show.    
 
         # Note that if the title is descriptive enough, it is unnecessary to include    
         # axis labels; they are self-evident, in this plot's case.    
         plt.text((x_min + x_max)/2, 1.1*y_max, "Commodity demand", fontsize=24, ha="center")    
 
-        # Always include your data source(s) and copyright notice! And for your    
-        # data sources, tell your viewers exactly where the data came from,    
-        # preferably with a direct link to the data. Just telling your viewers    
-        # that you used data from the "U.S. Census Bureau" is completely useless:    
-        # the U.S. Census Bureau provides all kinds of data, so how are your    
-        # viewers supposed to know which data set you used?    
+        # Include data source    
         #plt.text(x_max+1, y_min-0.1*y_min, "Data source: Forecasting model", fontsize=10)    
+        
+        # Save figure at designated folder. Create scenario folder if it is not present
+        cwd = os.getcwd()
+        folder = cwd + str('\\visualisations\\forecasts\\reactive')
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
-        # Finally, save the figure as a PNG.    
-        # You can also save it as a PDF, JPEG, etc.    
-        # Just change the file extension in this call.    
-        # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
-        plt.savefig(str(z) + "Multiple trends.png", bbox_inches="tight") 
+        # Save figure
+        file = folder + str("\\Forecast ") + str(z) + str(".png")
+        plt.savefig(str(file), bbox_inches="tight") 
 
     return
 
 
-# In[ ]:
+# In[6]:
 
 
 def consecutive_predictive_trend(commodities, simulation_window, start_year):
@@ -305,6 +330,11 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
     y_min = int((np.ceil(min(y_min)/100000)-1)*100000)
 
     for zz in range (2):
+        if zz == 0: 
+            trendtype = 'linear'
+        if zz == 1:
+            trendtype = '2nd polynomial'
+            
         for z in range (6):
             # You typically want your plot to be ~1.33x wider than tall
             # Common sizes: (10, 7.5) and (12, 9)    
@@ -382,8 +412,8 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
                     trendlines.append(trendline)
 
             # Plot historic data
-            plt.scatter(demand.Year[0:5+z].values, demand['Wheat demand'][0:5+z].values, lw=2.5, color=tableau20[0])
-            plt.text(demand.Year[z]-2, demand['Wheat demand'][3+z]+100000, 'Previous wheat demand', fontsize=19, color=tableau20[0])
+            plt.scatter(demand.Year[0:5+z].values, demand['Maize demand'][0:5+z].values, lw=2.5, color=tableau20[0])
+            plt.text(demand.Year[z]-2, demand['Maize demand'][3+z]+100000, 'Previous Demand', fontsize=19, color=tableau20[0])
 
             # Plot trendline
             plt.plot(trendline_years, trendlines[2], lw=2.5, color=tableau20[1])
@@ -392,7 +422,7 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
             # Plot border of historic and scenario data
             plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
             plt.text(start_year-1, 3000000, "Historic data", fontsize=19, ha="center", rotation=90)
-            plt.text(start_year+1, 3000000, "Conjured scenario", fontsize=19, ha="center", rotation=90)
+            plt.text(start_year+1, 3000000, "Scenario", fontsize=19, ha="center", rotation=90)
         
             # matplotlib's title() call centers the title on the plot, but not the graph,    
             # so I used the text() call to customize where the title goes.    
@@ -411,27 +441,138 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
             # the U.S. Census Bureau provides all kinds of data, so how are your    
             # viewers supposed to know which data set you used?    
             #plt.text(x_max+1, y_min-0.1*y_min, "Data source: Forecasting model", fontsize=10)    
+            
+            # Save figure at designated folder. Create folder if it is not present
+            cwd = os.getcwd()
+            folder = cwd + str('\\visualisations\\forecasts\\predictive') + str('\\') + str(trendtype)
+            if not os.path.exists(folder):
+                os.makedirs(folder)
 
-            # Finally, save the figure as a PNG.    
-            # You can also save it as a PDF, JPEG, etc.    
-            # Just change the file extension in this call.    
-            # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
-            plt.savefig(str(zz) + "%" + str(z) + "Multiple trends.png", bbox_inches="tight") 
+            # Save figure
+            file = folder + str("\\Forecast ") + str(z) + str ('(') + str(trendtype) + str (')') + str(".png")
+            plt.savefig(str(file), bbox_inches="tight") 
 
     return
     
 
 
 # # Cash Flows
-# - Profit / Loss (present value)
 # - Profit / Loss (nominal value)
+# - Profit / Loss (present value)
 # - Revenues (nominal value)
 # - Revenues + Capex + Opex (nominal value)
 # - NPV distribution
+# - Risk sensitivity
 
-# ### Profit / Loss (present value)
+# In[1]:
 
-# In[ ]:
+
+def revenue_capex_opex(terminal):
+    
+    cashflows = terminal.cashflows
+    
+    # Determine payback timestep
+    payback_t = cashflows['Compounded profit'].loc[cashflows['Compounded profit'] == min(cashflows['Compounded profit'], key=abs)].index[0]
+    
+    # Construct data for underlying profit/loss area chart
+    loss = []
+    profit = []
+    for t in range (len(cashflows['Compounded profit'])):
+        if t < payback_t:
+            loss.append(cashflows['Compounded profit'][t])
+            profit.append(0)
+        if t == payback_t:
+            loss.append(0)
+            profit.append(0)
+        if t > payback_t:
+            loss.append(0)
+            profit.append(cashflows['Compounded profit'][t])
+
+    # Plot bars
+    trace1 = go.Bar(
+        x=cashflows['Year'],
+        y=cashflows['Revenues'],
+        name='Revenues',
+        marker=dict(
+            color='#025928'
+        )
+    )
+    trace2 = go.Bar(
+        x=cashflows['Year'],
+        y=cashflows['Capex'],
+        name='Capex',
+        marker=dict(
+            color='#8c1c03'
+        )
+    )
+    trace3 = go.Bar(
+        x=cashflows['Year'],
+        y=cashflows['Opex'],
+        name='Opex',
+        marker=dict(
+            color='rgb(55, 83, 109)'
+        )
+    )
+    trace4 = go.Scatter(
+        x=cashflows['Year'],
+        y=loss,
+        opacity = 0.8,
+        fill='tozeroy',
+        mode='none',
+        line=dict(
+            color='#8c1c03',
+            shape='spline'
+        )
+    )
+    trace5 = go.Scatter(
+        x=cashflows['Year'],
+        y=profit,
+        opacity = 0.8,
+        fill='tozeroy',
+        mode='none',
+        line=dict(
+            color='rgb(44, 160, 44)',
+            shape='spline'
+        )
+    )
+    data = [trace1, trace2, trace3, trace4, trace5]
+    layout = go.Layout(
+        title='Terminal cashflows in real terms',
+        xaxis=dict(
+            tickfont=dict(
+                size=21,
+                color='rgb(107, 107, 107)'
+            )
+        ),
+        yaxis=dict(
+            title='USD (millions)',
+            titlefont=dict(
+                size=18,
+                color='rgb(107, 107, 107)'
+            ),
+            tickfont=dict(
+                size=16,
+                color='rgb(107, 107, 107)'
+            )
+        ),
+        legend=dict(
+            x=0,
+            y=1.0,
+            bgcolor='rgba(255, 255, 255, 0)',
+            bordercolor='rgba(255, 255, 255, 0)'
+        ),
+        barmode='group',
+        bargap=0.15,
+        bargroupgap=0.1
+    )
+
+    fig = go.Figure(data=data, layout=layout)
+    py.iplot(fig, filename='style-bar')
+
+
+# ### Profit / Loss (nominal value)
+
+# In[7]:
 
 
 def profit_loss(terminal):
@@ -486,19 +627,29 @@ def profit_loss(terminal):
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
     
-    plt.savefig("Profit Loss.png", bbox_inches="tight") 
+    # Save figure at designated folder. Create folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\cashflows\\Profits') 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save figure
+    file = folder + str("\\Profits (real)") + str(".png")
+    plt.savefig(str(file), bbox_inches="tight") 
 
     # Show graphic
     plt.show()
 
 
-# In[ ]:
+# ### Profit / Loss (present value)
+
+# In[8]:
 
 
 def profit_loss_pv(terminal):
     
     cashflows = terminal.cashflows
-    cashflows = cashflows[['Year', 'Profits (discounted)']]
+    cashflows = cashflows[['Year', 'Profits', 'Profits (discounted)']]
 
     x_max = int(max(cashflows['Year']))
     x_min = int(min(cashflows['Year']))
@@ -522,13 +673,15 @@ def profit_loss_pv(terminal):
     # Create bars
     barWidth = 0.7
     bars1 = cashflows['Profits (discounted)']
+    bars2 = cashflows['Profits']
 
     # The X position of bars
     x1 = cashflows.Year.values
 
     # Create barplot
     ax = plt.subplot(111)  
-    plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='Profit')
+    plt.bar(x1, bars2, width = barWidth, color = '#CEDCEF', label='Profit')
+    plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='Profit (PV)')
     
     # Remove the plot frame lines    
     ax.spines["top"].set_visible(False)    
@@ -580,13 +733,20 @@ def profit_loss_pv(terminal):
     plt.yticks(range(0, 101, 10), 
                [str('{:0,.0f}'.format(x)) for x in range(0, 101, 10)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
-    plt.text(x_min+5, 45, "WACC discount", color = '#D62728', fontsize=9, ha="center")
+    plt.text(2029, 20, "WACC discount", color = '#D62728', fontsize=9, ha="center")
 
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
     
-    # Save image
-    plt.savefig("Profit Loss (PV).png", bbox_inches="tight")
+    # Save figure at designated folder. Create folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\cashflows\\Profits') 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save figure
+    file = folder + str("\\Profits (PV and real)") + str(".png")
+    plt.savefig(str(file), bbox_inches="tight") 
 
     # Show graphic
     plt.show()
@@ -594,7 +754,7 @@ def profit_loss_pv(terminal):
 
 # ### Revenues
 
-# In[ ]:
+# In[9]:
 
 
 def revenues(terminal):
@@ -653,6 +813,16 @@ def revenues(terminal):
 
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
+    
+    # Save figure at designated folder. Create folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\cashflows\\Revenues') 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save figure
+    file = folder + str("\\Revenues") + str(".png")
+    plt.savefig(str(file), bbox_inches="tight") 
 
     # Show graphic
     plt.show()
@@ -660,10 +830,10 @@ def revenues(terminal):
 
 # ### Revenues + Capex + Opex (nominal value)
 
-# In[ ]:
+# In[10]:
 
 
-def revenue_capex_opex(terminal):
+def xxxrevenue_capex_opex(terminal):
     
     cashflows = terminal.cashflows
     cashflows = cashflows[['Year', 'Revenues', 'Capex', 'Opex']]
@@ -740,8 +910,15 @@ def revenue_capex_opex(terminal):
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
     
-    # Save graphic
-    plt.savefig("Cashflows.png", bbox_inches="tight")
+    # Save figure at designated folder. Create folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\cashflows') 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save figure
+    file = folder + str("\\Revenues, Capex and Opex") + str(".png")
+    plt.savefig(str(file), bbox_inches="tight") 
 
     # Show graphic
     plt.show()
@@ -749,7 +926,7 @@ def revenue_capex_opex(terminal):
 
 # ### NPV distribution
 
-# In[ ]:
+# In[11]:
 
 
 def NPV_distribution(iterations):
@@ -841,104 +1018,80 @@ def NPV_distribution(iterations):
     # Adjust the margins
     plt.subplots_adjust(bottom= 0.2, top = 0.98)
     
-    # Save graphic
-    plt.savefig("NPV distribution.png", bbox_inches="tight")
+    # Save figure at designated folder. Create folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\optimization\\NPV') 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save figure
+    file = folder + str("\\Berth occupancy") + str(".png")
+    plt.savefig(str(file), bbox_inches="tight") 
 
     # Show graphic
     plt.show()
 
 
-# ### All cashflows seperate
+# ### Risk Sensitivity
 
 # In[ ]:
 
 
-def cashflows(profits, revenues, capex, opex, width, height):
+def risk_sensitivity(cashflow_list, WACC_list):
     
-    x  = []
-    y1 = []
-    y2 = []
-    y3 = []
-    y4 = []
+    revenues_list = []
+    capex_list = []
+    opex_list = []
+    compounded_profit_list = []
+    loss_list = []
+    profit_list = []
     
-    for i in range (len(capex)):
-        x.append(capex[i].year)
-        y1.append(profits[i].total)
-        y2.append(revenues[i].total)
-        y3.append(capex[i].total)
-        y4.append(opex[i].total)
+    for i in range(len(cashflow_list)):
+        revenues_list.append(cashflow_list[i]['Revenues'])
+        capex_list.append(cashflow_list[i]['Capex'])
+        opex_list.append(cashflow_list[i]['Opex'])
+        compounded_profit_list.append(cashflow_list[i]['Compounded profit'])
         
-    fig  = plt.figure(figsize=(width, height))
-    grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
-    fig1 = fig.add_subplot(grid[0, 0])
+        # Determine payback timestep
+        payback_t = cashflow_list[i]['Compounded profit'].loc[cashflow_list[i]['Compounded profit'] == 
+                                                              min(cashflow_list[i]['Compounded profit'], key=abs)].index[0]
 
-    fig1.plot(x, y1, label='Profits')
-    fig1.plot(x, y2, label='Revenues')
-    fig1.plot(x, y3, label='Capex')
-    fig1.plot(x, y3, label='Opex')
-    fig1.set_title ('Cash flows')
-    fig1.set_xlabel('Year')
-    fig1.set_ylabel('Profit/loss [$]')
-    fig1.legend()
-    
-    return fig1
-
-
-# In[ ]:
-
-
-def all_cashflows(terminal, width, height):
-    
-    revenues, capex, labour, maintenance, energy, insurance, demurrage, residuals = terminal.revenues, terminal.capex, terminal.labour, terminal.maintenance, terminal.energy, terminal.insurance, terminal.demurrage, terminal.residuals
-    
-    x  = []
-    y1 = []
-    y2 = []
-    y3 = []
-    y4 = []
-    y5 = []
-    y6 = []
-    y7 = []
-    y8 = []
-    
-    for i in range (len(capex)):
-        x.append(revenues[i].year)
-        y1.append(revenues[i].total)
-        y2.append(capex[i].total)
-        y3.append(labour[i].total)
-        y4.append(maintenance[i].total)
-        y5.append(energy[i].total)
-        y6.append(insurance[i].total)
-        y7.append(demurrage[i].total)
-        y8.append(residuals[i].total)
+        # Construct data for underlying profit/loss area chart
+        loss = []
+        profit = []
+        for t in range (len(cashflow_list[i]['Compounded profit'])):
+            if t < payback_t:
+                loss.append(cashflow_list[i]['Compounded profit'][t])
+                profit.append(0)
+            if t == payback_t:
+                loss.append(0)
+                profit.append(0)
+            if t > payback_t:
+                loss.append(0)
+                profit.append(cashflow_list[i]['Compounded profit'][t])
+        loss_list.append(loss)
+        profit_list.append(profit)
         
-    fig  = plt.figure(figsize=(width, height))
-    grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
-    fig1 = fig.add_subplot(grid[0, 0])
-    
-    fig1.step(x, y1, where='post', label='Revenues')
-    fig1.step(x, y2, where='post', label='Capex')
-    fig1.step(x, y3, where='post', label='Labour')
-    fig1.step(x, y4, where='post', label='Maintenance')
-    fig1.step(x, y5, where='post', label='Energy')
-    fig1.step(x, y6, where='post', label='Insurance')
-    fig1.step(x, y7, where='post', label='Demurrage')
-    fig1.step(x, y8, where='post', label='Residual value')
-    fig1.set_title ('Cash flows')
-    fig1.set_xlabel('Year')
-    fig1.set_ylabel('Profit/loss [$]')
-    fig1.legend()
-    
-    #fig1.text((start_year+5), 0.75*max(y8), '${:0,.0f}'.format(min(y2)), horizontalalignment='center', fontsize=14)
-    #fig1.text((start_year+window), 0.75*max(y8), '${:0,.0f}'.format(min(y2)), horizontalalignment='center', fontsize=14)
-    #fig1.text((start_year+5), 0.75*max(y8), '${:0,.0f}'.format(min(y2)), horizontalalignment='center', fontsize=14)
-    
-    return fig1
+        
+    data = [dict(
+            visible = False,
+            line=dict(color='#00CED1', width=6),
+            name = 'WACC = '+str(WACC_list[step]),
+            revenues = revenues_list[step],
+            capex  = capex_list[step],
+            opex   = opex_list[step],
+            loss   = loss_list[step],
+            profit = profit_list[step]) for step in range (len(cashflow_list))]
+        
+        
+    data[9]['visible'] = True
+
+    py.iplot(data, filename='Single Sine Wave')
 
 
 # ### Demand vs Capacity
 
-# In[ ]:
+# In[14]:
 
 
 def throughput(terminal, width, height):
@@ -979,14 +1132,24 @@ def throughput(terminal, width, height):
     fig1.set_ylabel('Annual throughput [t/y]')
     fig1.legend()
     
-    return fig1
+    # Save figure at designated folder. Create folder if it is not present
+    cwd = os.getcwd()
+    folder = cwd + str('\\visualisations\\terminal capacity') 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save figure
+    file = folder + str("\\Capacity vs demand") + str(".png")
+    plt.savefig(str(file), bbox_inches="tight")
+    
+    return
 
 
 # # Terminal Assets
 
 # ### Determine development trajectory of terminals assets
 
-# In[4]:
+# In[15]:
 
 
 # Line plots of the development trajectory of all terminal assets
@@ -1207,7 +1370,7 @@ def asset_trajectory(terminal, simulation_window, start_year):
     # Line plot function uses a dataframe object as input
     ############################################################################################################ 
     
-    def line_plot(data):
+    def line_plot(data, asset):
 
         # Determining max and min x and y values
         x_max = int(max(data['Year']))
@@ -1219,22 +1382,6 @@ def asset_trajectory(terminal, simulation_window, start_year):
             y_min.append(min(data.iloc[:,i]))
         y_max = int(max(y_max))
         y_min = int(max(y_min))
-
-        # Read the data into a pandas DataFrame.    
-        #gender_degree_data = pd.read_csv("http://www.randalolson.com/wp-content/uploads/percent-bachelors-degrees-women-usa.csv")    
-        #gender_degree_data = online_assets_perc
-
-        # These are the "Tableau 20" colors as RGB.    
-        tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),    
-                     (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),    
-                     (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),    
-                     (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),    
-                     (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]    
-
-        # Scale the RGB values to the [0, 1] range, which is the format matplotlib accepts.    
-        for i in range(len(tableau20)):    
-            r, g, b = tableau20[i]    
-            tableau20[i] = (r / 255., g / 255., b / 255.)    
 
         # You typically want your plot to be ~1.33x wider than tall
         # Common sizes: (10, 7.5) and (12, 9)    
@@ -1310,13 +1457,21 @@ def asset_trajectory(terminal, simulation_window, start_year):
         # Just change the file extension in this call.    
         # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.    
         
-        plt.savefig("assets.png", bbox_inches="tight")
+        # Save figure at designated folder. Create folder if it is not present
+        cwd = os.getcwd()
+        folder = cwd + str('\\visualisations\\assets') 
+        if not os.path.exists(folder):
+            os.makedirs(folder)            
         
-    quay_plot = line_plot(quays)
-    berths_plot = line_plot(berths)
-    storage_plot = line_plot(storage)
-    stations_plot = line_plot(station)
-    conveyor_plot = line_plot(conveyors)
+        # Save figure
+        file = folder + str("\\") + str(asset) + str(".png")
+        plt.savefig(str(file), bbox_inches="tight") 
+        
+    quay_plot = line_plot(quays, 'Quay trajectory')
+    berths_plot = line_plot(berths, 'Berths trajectory')
+    storage_plot = line_plot(storage, 'Storage trajectory')
+    stations_plot = line_plot(station, 'Stations trajectory')
+    conveyor_plot = line_plot(conveyors, 'Conveyors trajectory')
     
     return
 
@@ -1325,7 +1480,7 @@ def asset_trajectory(terminal, simulation_window, start_year):
 
 # ### Compare capex
 
-# In[ ]:
+# In[16]:
 
 
 def revenues(terminal):

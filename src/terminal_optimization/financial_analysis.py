@@ -1061,7 +1061,7 @@ def opex_calc(terminal, year, timestep):
 
 def cashflow_calc(terminal, simulation_window, start_year):
 
-    flows = np.zeros(shape=(simulation_window, 13))
+    flows = np.zeros(shape=(simulation_window, 15))
     profits, revenues, capex, opex, labour, maintenance, energy, insurance, lease, demurrage, residuals = terminal.profits, terminal.revenues, terminal.capex, terminal.opex, terminal.labour, terminal.maintenance, terminal.energy, terminal.insurance, terminal.lease, terminal.demurrage, terminal.residuals
 
     ############################################################################################################
@@ -1109,10 +1109,25 @@ def cashflow_calc(terminal, simulation_window, start_year):
         
         # WACC depreciated profits
         flows[t,12] = terminal.WACC_cashflows.profits[t]
+        
+        if t != 0:
+            # Compounded profit
+            flows[t-1,13] = sum(flows[0:t,1])
+
+            # Compounded profit (present value)
+            flows[t-1,14] = sum(flows[0:t,12])
+            
+        if t == simulation_window-1:
+            # Compounded profit
+            flows[t,13] = sum(flows[0:t+1,1])
+
+            # Compounded profit (present value)
+            flows[t,14] = sum(flows[0:t+1,12])
 
     cashflows = pd.DataFrame(flows, columns=['Year', 'Profits', 'Revenues', 'Capex', 'Opex', 'Labour costs', 
-                                                'Maintenance costs', 'Energy costs', 'Insurance costs', 'Lease costs', 
-                                                'Demurrage costs','Residual asset value', 'Profits (discounted)'])
+                                             'Maintenance costs', 'Energy costs', 'Insurance costs', 'Lease costs', 
+                                             'Demurrage costs','Residual asset value', 'Profits (discounted)', 
+                                             'Compounded profit', 'Compounded profit (discounted)'])
     cashflows = cashflows.astype(int)
     
     return cashflows
@@ -1192,14 +1207,14 @@ class WACC_class(WACC_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def profits_calc(self, profits, window, start_year):
+    def profits_calc(self, overruled_WACC, profits, window, start_year):
         
         WACC = []
         years = []
         profits_WACC = []
         
         for i in range (window):
-            WACC.append(1/((1+self.real_WACC)**(i)))
+            WACC.append(1/((1+overruled_WACC)**(i)))
             years.append(start_year + i)
             profit = profits[i].total
             profits_WACC.append(profit * WACC[i])
@@ -1214,9 +1229,9 @@ class WACC_class(WACC_properties_mixin):
 # In[ ]:
 
 
-def WACC_calc(profits, window, start_year):
+def WACC_calc(WACC, profits, window, start_year):
     WACC_cashflows = WACC_class(**WACC_data)
-    WACC_cashflows.profits_calc(profits, window, start_year)
+    WACC_cashflows.profits_calc(WACC, profits, window, start_year)
     return WACC_cashflows
 
 
