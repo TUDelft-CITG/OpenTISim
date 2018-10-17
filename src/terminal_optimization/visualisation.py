@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
 import os
@@ -31,12 +31,13 @@ for i in range(len(tableau20)):
 
 # ### Import Plotly packages
 
-# In[ ]:
+# In[3]:
 
 
 # Log in to Plotly servers
 import plotly
-plotly.tools.set_credentials_file(username='wijzermans', api_key='FKGDvSah3z5WCNREBZEq')
+#plotly.tools.set_credentials_file(username='wijzermans', api_key='FKGDvSah3z5WCNREBZEq')
+plotly.tools.set_credentials_file(username='wijnandijzermans', api_key='xeDEwwpCK3aLLR4TIrM9')
 
 # (*) To communicate with Plotly's server, sign in with credentials file
 import plotly.plotly as py  
@@ -155,7 +156,7 @@ def scenario(commodities, simulation_window, start_year):
     # that you used data from the "U.S. Census Bureau" is completely useless:    
     # the U.S. Census Bureau provides all kinds of data, so how are your    
     # viewers supposed to know which data set you used?    
-    plt.text(x_max+1, y_min-0.1*y_min, "Data source: Scenario generator", fontsize=10)    
+    plt.text(x_max+1, y_min-0.1*y_min, "Data source: Scenario generator", horizontalalignment='left', fontsize=10)    
 
     # Finally, save the figure as a PNG.    
     # You can also save it as a PDF, JPEG, etc.    
@@ -173,7 +174,7 @@ def scenario(commodities, simulation_window, start_year):
     
     # Online-based, interactive graphic
     figure = plt.gcf()
-    py.iplot_mpl(figure, filename='Scenario')
+    #py.iplot_mpl(figure, filename='Scenario')
 
     return
 
@@ -464,7 +465,7 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
 # - NPV distribution
 # - Risk sensitivity
 
-# In[1]:
+# In[7]:
 
 
 def revenue_capex_opex(terminal):
@@ -516,63 +517,66 @@ def revenue_capex_opex(terminal):
     trace4 = go.Scatter(
         x=cashflows['Year'],
         y=loss,
-        opacity = 0.8,
-        fill='tozeroy',
+        name='Loss',
         mode='none',
         line=dict(
             color='#8c1c03',
-            shape='spline'
-        )
+            shape='spline'),
+        fill='tozeroy'
     )
     trace5 = go.Scatter(
         x=cashflows['Year'],
         y=profit,
-        opacity = 0.8,
-        fill='tozeroy',
+        name='Profit',
         mode='none',
         line=dict(
             color='rgb(44, 160, 44)',
-            shape='spline'
-        )
+            shape='spline'),
+        fill='tozeroy',
     )
     data = [trace1, trace2, trace3, trace4, trace5]
     layout = go.Layout(
-        title='Terminal cashflows in real terms',
+        title='Terminal cashflows',
+
         xaxis=dict(
             tickfont=dict(
-                size=21,
+                size=24,
                 color='rgb(107, 107, 107)'
             )
         ),
         yaxis=dict(
-            title='USD (millions)',
+            title='Cashflows in USD ($)',
             titlefont=dict(
-                size=18,
+                size=27,
                 color='rgb(107, 107, 107)'
             ),
             tickfont=dict(
-                size=16,
+                size=24,
                 color='rgb(107, 107, 107)'
             )
-        ),
+        ),       
         legend=dict(
             x=0,
             y=1.0,
             bgcolor='rgba(255, 255, 255, 0)',
-            bordercolor='rgba(255, 255, 255, 0)'
+            bordercolor='rgba(255, 255, 255, 0)',
+            font=dict(
+                size=25,
+                color='rgb(107, 107, 107)'
+            )
         ),
         barmode='group',
-        bargap=0.15,
+        bargap=0.05,
         bargroupgap=0.1
     )
-
+    
     fig = go.Figure(data=data, layout=layout)
-    py.iplot(fig, filename='style-bar')
+    py.iplot(fig, filename='Revenue, Capex and Opex')
 
 
 # ### Profit / Loss (nominal value)
 
-# In[7]:
+# In[8]:
 
 
 def profit_loss(terminal):
@@ -643,7 +647,7 @@ def profit_loss(terminal):
 
 # ### Profit / Loss (present value)
 
-# In[8]:
+# In[9]:
 
 
 def profit_loss_pv(terminal):
@@ -754,7 +758,7 @@ def profit_loss_pv(terminal):
 
 # ### Revenues
 
-# In[9]:
+# In[10]:
 
 
 def revenues(terminal):
@@ -828,102 +832,6 @@ def revenues(terminal):
     plt.show()
 
 
-# ### Revenues + Capex + Opex (nominal value)
-
-# In[10]:
-
-
-def xxxrevenue_capex_opex(terminal):
-    
-    cashflows = terminal.cashflows
-    cashflows = cashflows[['Year', 'Revenues', 'Capex', 'Opex']]
-    NPV = terminal.NPV
-
-    x_max = int(max(cashflows['Year']))
-    x_min = int(min(cashflows['Year']))
-    y_max = []
-    y_min = []
-    for i in range (1, len(cashflows.columns)):
-        y_max.append(max(cashflows.iloc[:,i]))
-        y_min.append(min(cashflows.iloc[:,i]))
-    y_max = int(max(y_max))
-    y_max = int(np.ceil(y_max/20000000)*20000000)
-    y_min = int(min(y_min))
-    y_min = int((np.ceil(y_min/20000000)-1)*20000000)
-
-    # Create bars
-    barWidth = 0.7
-    revenue = terminal.cashflows.Revenues.values 
-    opex = terminal.cashflows.Opex.values
-    capex = terminal.cashflows.Capex.values+opex
-
-    # The X position of bars
-    x1 = terminal.cashflows.Year.values
-
-    # Create barplot
-    ax = plt.subplot(111)  
-    plt.bar(x1, revenue, width = barWidth, color = '#2CA02C', label='Revenues')
-    plt.bar(x1, capex, width = barWidth, color = '#D62728', label='Capex')
-    plt.bar(x1, opex, width = barWidth, color = '#1F77B4', label='Opex')
-
-    # Remove the plot frame lines    
-    ax.spines["top"].set_visible(False)    
-    ax.spines["bottom"].set_visible(False)    
-    ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-
-    # Ensure that the axis ticks only show up on the bottom and left of the plot.     
-    ax.get_xaxis().tick_bottom()    
-    ax.get_yaxis().tick_left()
-
-    # Create legend
-    #plt.legend()
-
-    # Text below each barplot with a rotation at 90°
-    plt.yticks(range(y_min, y_max+1, 20000000), 
-               ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 20000000)], fontsize=9)
-    plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
-
-    # Horizontal dashed lines instead of y-ticks
-    for y in range(y_min-1 , y_max+1, 20000000):    
-        plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.4, color="black", alpha=0.3)  
-
-    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
-                    labelbottom=True, left=False, right=False, labelleft=True) 
-
-    # Add a text label to the right end of every line. Most of the code below    
-    # is adding specific offsets y position because some labels overlapped.    
-    y_pos_revenue = y_max * 0.9
-    y_pos_capex = y_max * 0.7
-    y_pos_opex = y_max * 0.5
-    plt.text(x_max+2, y_pos_revenue, 'Revenues', fontsize=14, color='#2CA02C')
-    plt.text(x_max+2, y_pos_capex, 'Capex', fontsize=14, color='#D62728')
-    plt.text(x_max+2, y_pos_opex, 'Opex', fontsize=14, color='#1F77B4')
-
-    # Text on the top of each barplot
-    #for i in range(len(r4)):
-    #    plt.text(x = r4[i]-0.5 , y = bars4[i]+0.1, s = label[i], size = 6)
-
-    # Add the title
-    plt.text((x_min+x_max)/2, 1.2*y_max, "Terminal Revenues, Capex and Opex in Nominal Values", fontsize=14, ha="center")  
-
-    # Adjust the margins
-    plt.subplots_adjust(bottom= 0.2, top = 0.98)
-    
-    # Save figure at designated folder. Create folder if it is not present
-    cwd = os.getcwd()
-    folder = cwd + str('\\visualisations\\cashflows') 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    # Save figure
-    file = folder + str("\\Revenues, Capex and Opex") + str(".png")
-    plt.savefig(str(file), bbox_inches="tight") 
-
-    # Show graphic
-    plt.show()
-
-
 # ### NPV distribution
 
 # In[11]:
@@ -958,9 +866,9 @@ def NPV_distribution(iterations):
     x_max = int(max(NPV_spectrum['Trigger occupancy']))
     x_min = int(min(NPV_spectrum['Trigger occupancy'])) 
     y_max = int(max(NPV_spectrum['NPV']))
-    y_max = int(np.ceil(y_max/10000000)*10000000)
+    y_max = int(np.ceil(y_max/40000000)*40000000)
     y_min = int(min(NPV_spectrum['NPV']))
-    y_min = int((np.ceil(y_min/10000000)-1)*10000000)
+    y_min = int((np.ceil(y_min/40000000)-1)*40000000)
 
     # Create figure
     #revenue_plot = plt.figure(figsize=(6, 4.5))
@@ -990,8 +898,8 @@ def NPV_distribution(iterations):
     #plt.legend()
 
     # Text below each barplot with a rotation at 90°
-    plt.yticks(range(y_min, y_max+1, 10000000), 
-               ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 10000000)], fontsize=9)
+    plt.yticks(range(y_min, y_max+1, 40000000), 
+               ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 40000000)], fontsize=9)
     plt.xticks(range(x_min, x_max+1, 10), [str(x) + "%" for x in range(x_min, x_max+1, 10)], fontsize=9, rotation=45)
 
     plt.tick_params(axis="both", which="both", bottom=False, top=False,    
@@ -1034,7 +942,7 @@ def NPV_distribution(iterations):
 
 # ### Risk Sensitivity
 
-# In[ ]:
+# In[12]:
 
 
 def risk_sensitivity(cashflow_list, WACC_list):
@@ -1045,6 +953,7 @@ def risk_sensitivity(cashflow_list, WACC_list):
     compounded_profit_list = []
     loss_list = []
     profit_list = []
+    years = cashflow_list[0]['Year']
     
     for i in range(len(cashflow_list)):
         revenues_list.append(cashflow_list[i]['Revenues'])
@@ -1071,66 +980,202 @@ def risk_sensitivity(cashflow_list, WACC_list):
                 profit.append(cashflow_list[i]['Compounded profit'][t])
         loss_list.append(loss)
         profit_list.append(profit)
+    
+    bars = []
+    for step in range (len(cashflow_list)):
         
+        # Plot bars
+        trace1 = go.Bar(
+            x=years,
+            y=revenues_list[step],
+            visible=False,
+            name='Revenues',
+            marker=dict(
+                color='#025928'
+            )
+        )
+        trace2 = go.Bar(
+            x=years,
+            y=capex_list[step],
+            visible=False,
+            name='Capex',
+            marker=dict(
+                color='#8c1c03'
+            )
+        ) 
+        trace3 = go.Bar(
+            x=years,
+            y=opex_list[step],
+            visible=False,
+            name='Opex',
+            marker=dict(
+                color='rgb(55, 83, 109)'
+            )
+        )
+        trace4 = go.Scatter(
+            x=years,
+            y=loss_list[step],
+            visible=False,
+            opacity = 0.1,
+            fill='tozeroy',
+            mode='none',
+            line=dict(
+                color='#8c1c03',
+                shape='spline'
+            )
+        )       
+        trace5 = go.Scatter(
+            x=years,
+            y=profit_list[step],
+            visible=False,
+            opacity = 0.1,
+            fill='tozeroy',
+            mode='none',
+            line=dict(
+                color='rgb(55, 83, 109)',
+                shape='spline'
+            )
+        )
         
-    data = [dict(
-            visible = False,
-            line=dict(color='#00CED1', width=6),
-            name = 'WACC = '+str(WACC_list[step]),
-            revenues = revenues_list[step],
-            capex  = capex_list[step],
-            opex   = opex_list[step],
-            loss   = loss_list[step],
-            profit = profit_list[step]) for step in range (len(cashflow_list))]
-        
-        
-    data[9]['visible'] = True
+        bars.append([trace1, trace2, trace3, trace4, trace5])
+    
+    data = bars[0]
+    
+    layout = go.Layout(
+        title='Terminal cashflows in real terms',
 
-    py.iplot(data, filename='Single Sine Wave')
+        xaxis=dict(
+            tickfont=dict(
+                size=24,
+                color='rgb(107, 107, 107)'
+            )
+        ),
+        yaxis=dict(
+            title='Cashflow in USD ($)',
+            titlefont=dict(
+                size=27,
+                color='rgb(107, 107, 107)'
+            ),
+            tickfont=dict(
+                size=24,
+                color='rgb(107, 107, 107)'
+            )
+        ),       
+        legend=dict(
+            x=0,
+            y=1.0,
+            bgcolor='rgba(255, 255, 255, 0)',
+            bordercolor='rgba(255, 255, 255, 0)',
+            font=dict(
+                size=27,
+                color='black'
+            )
+        ),
+        barmode='group',
+        bargap=0.1,
+        bargroupgap=0.05
+    )
+    
+    fig = go.Figure(data=data, layout=layout)
+    
+    py.iplot(fig, filename='Risk sensitivity')
+    
+    return
 
 
 # ### Demand vs Capacity
 
-# In[14]:
+# In[13]:
 
 
-def throughput(terminal, width, height):
+def throughput(terminal):
     
     throughputs = terminal.throughputs
+    start_year = throughputs[0].start_year
     
-    x  = []
-    y1 = []
-    y2 = []
-    overcapacity = []
-    undercapacity = []
+    throughput_matrix = np.zeros(shape=(len(throughputs), 4))
     
-    for i in range (len(throughputs)):
-        x.append(throughputs[i].year)
-        y1.append(throughputs[i].capacity)
-        y2.append(throughputs[i].demand)
-        
-        if y1[i] >= y2[i]:
-            overcapacity.append(y1[i])
-        else:
-            overcapacity.append(y2[i])
-        if y1[i] <= y2[i]:
-            undercapacity.append(y1[i])
-        else:
-            undercapacity.append(y2[i])
+    for t in range (len(throughputs)):
+        # Years (Column 0)
+        year = t + start_year
+        throughput_matrix[t,0] = year
+        # Throughput (Column 1)
+        throughput_matrix[t,1] = throughputs[t].demand
+        # Capacity (Column 2)
+        throughput_matrix[t,2] = throughputs[t].capacity
+        # Demand (Column 3)
+        throughput_matrix[t,3] = throughputs[t].demand
+    
+    df = pd.DataFrame(throughput_matrix, columns=['Year', 'Throughput', 'Capacity', 'Demand'])
+    df = df.astype(int)
+ 
+    # Plot bars
+    trace1 = go.Scatter(
+        x=df['Year'],
+        y=df['Demand'],
+        name='Demand',
+        line=dict(
+            color='#8c1c03',
+            shape='spline'
+        )
+    )     
+    trace2 = go.Bar(
+        x=df['Year'],
+        y=df['Capacity'],
+        name='Capacity',
+        opacity = 0.2,
+        marker=dict(
+            color='rgb(55, 83, 109)'
+        )
+    ) 
+    trace3 = go.Bar(
+        x=df['Year'],
+        y=df['Throughput'],
+        name='Throughput',
+        opacity = 0.9,
+        marker=dict(
+            color='rgb(55, 83, 109)'
+        )
+    ) 
+    
+    
+    data = [trace1, trace2, trace3]
+    layout = go.Layout(
+        title='Terminal throughput vs. capacity',
 
-    fig  = plt.figure(figsize=(width, height))
-    grid = plt.GridSpec(1, 1, wspace=0.4, hspace=0.5)
-    fig1 = fig.add_subplot(grid[0, 0])
+        xaxis=dict(
+            tickfont=dict(
+                size=24,
+                color='rgb(107, 107, 107)'
+            )
+        ),
+        yaxis=dict(
+            title='Throughputs [t/annum]',
+            titlefont=dict(
+                size=27,
+                color='rgb(107, 107, 107)'
+            ),
+            tickfont=dict(
+                size=24,
+                color='rgb(107, 107, 107)'
+            )
+        ),       
+        legend=dict(
+            x=0,
+            y=1.0,
+            bgcolor='rgba(255, 255, 255, 0)',
+            bordercolor='rgba(255, 255, 255, 0)',
+            font=dict(
+                size=25,
+                color='rgb(107, 107, 107)'
+            )
+        ),
+        barmode='group',
+        bargap=0.1,
+        bargroupgap=0.05
+    )
     
-    fig1.step(x, y1, where='post', label='Capacity')
-    fig1.step(x, y2, where='post', label='Demand')
-    fig1.fill_between(x, overcapacity, y2, step='post', facecolor='#63FE41', alpha=0.4)
-    fig1.fill_between(x, undercapacity, y2, step='post', facecolor='#FF5733', alpha=0.4)
-    fig1.fill_between(x, y1, step='post', facecolor='#524634', alpha=0.4)
-    fig1.set_title ('Demand vs. capacity')
-    fig1.set_xlabel('Year')
-    fig1.set_ylabel('Annual throughput [t/y]')
-    fig1.legend()
+    fig = go.Figure(data=data, layout=layout)
     
     # Save figure at designated folder. Create folder if it is not present
     cwd = os.getcwd()
@@ -1142,6 +1187,8 @@ def throughput(terminal, width, height):
     file = folder + str("\\Capacity vs demand") + str(".png")
     plt.savefig(str(file), bbox_inches="tight")
     
+    py.iplot(fig, filename='Terminal capacity')
+    
     return
 
 
@@ -1149,7 +1196,7 @@ def throughput(terminal, width, height):
 
 # ### Determine development trajectory of terminals assets
 
-# In[15]:
+# In[14]:
 
 
 # Line plots of the development trajectory of all terminal assets
@@ -1474,82 +1521,4 @@ def asset_trajectory(terminal, simulation_window, start_year):
     conveyor_plot = line_plot(conveyors, 'Conveyors trajectory')
     
     return
-
-
-# # Compare investment triggers
-
-# ### Compare capex
-
-# In[16]:
-
-
-def revenues(terminal):
-    
-    cashflows = terminal.cashflows
-    revenues = cashflows[['Year', 'Revenues']]
-
-    x_max = int(max(revenues['Year']))
-    x_min = int(min(revenues['Year']))
-    y_max = []
-    y_min = []
-    for i in range (1, len(revenues.columns)):
-        y_max.append(max(revenues.iloc[:,i]))
-        y_min.append(min(revenues.iloc[:,i]))
-    y_max = int(max(y_max))
-    y_max = int(np.ceil(y_max/10000000)*10000000)
-    y_min = int(max(y_min))
-
-
-    # Create figure
-    #revenue_plot = plt.figure(figsize=(6, 4.5))
-
-    # Create bars
-    barWidth = 0.7
-    bars1 = terminal.cashflows.Revenues.values
-
-    # The X position of bars
-    x1 = terminal.cashflows.Year.values
-
-    # Create barplot
-    ax = plt.subplot(111) 
-    plt.bar(x1, bars1, width = barWidth, color = '#2CA02C', label='Revenues')
-
-    # Remove the plot frame lines     
-    ax.spines["top"].set_visible(False)    
-    ax.spines["bottom"].set_visible(False)    
-    ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-
-    # Ensure that the axis ticks only show up on the bottom and left of the plot.     
-    ax.get_xaxis().tick_bottom()    
-    ax.get_yaxis().tick_left()
-
-    # Create legend
-    #plt.legend()
-
-    # Text below each barplot with a rotation at 90°
-    plt.yticks(range(y_min, y_max+1, 10000000), 
-               ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 10000000)], fontsize=9)
-    plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
-
-    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
-                    labelbottom=True, left=False, right=False, labelleft=True)
-
-    # Add a text label to the right end of every line. Most of the code below    
-    # is adding specific offsets y position because some labels overlapped.    
-    #y_pos = terminal.cashflows.Revenues.values[-1]
-    #plt.text(x_max+1, y_pos, 'Revenues', fontsize=14, color='#2CA02C') 
-
-    # Text on the top of each barplot
-    #for i in range(len(r4)):
-    #    plt.text(x = r4[i]-0.5 , y = bars4[i]+0.1, s = label[i], size = 6)
-
-    # Add the title
-    plt.text((x_min+x_max)/2, 1.2*y_max, "Terminal Revenues", fontsize=17, ha="center")  
-
-    # Adjust the margins
-    plt.subplots_adjust(bottom= 0.2, top = 0.98)
-
-    # Show graphic
-    plt.show()
 

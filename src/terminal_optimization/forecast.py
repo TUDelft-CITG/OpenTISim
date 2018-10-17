@@ -22,9 +22,9 @@ class commodity_properties_mixin(object):
         self.handymax_perc  = handymax_perc
         self.panamax_perc   = panamax_perc
     
-maize_data   = {"commodity_name": 'Maize',    "handling_fee": 3.5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 3.5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 3.5, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
+maize_data   = {"commodity_name": 'Maize',    "handling_fee": 3, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 3, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 3, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
 
 
 # In[ ]:

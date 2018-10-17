@@ -19,7 +19,7 @@ class throughput_class():
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def calc(self, terminal, vessels, commodities, allowable_berth_occupancy, year, timestep, operational_hours):
+    def calc(self, terminal, vessels, commodities, allowable_berth_occupancy, year, start_year, timestep, operational_hours):
         
         berths = terminal.berths
         cranes = terminal.cranes
@@ -97,6 +97,7 @@ class throughput_class():
             self.demand = demand
             self.capacity = 0
             self.throughput = 0
+            self.start_year = start_year
 
         return terminal
 
@@ -104,12 +105,12 @@ class throughput_class():
 # In[ ]:
 
 
-def throughput_calc(terminal, vessels,commodities, allowable_berth_occupancy, year, timestep, operational_hours):
+def throughput_calc(terminal, vessels,commodities, allowable_berth_occupancy, year, start_year, timestep, operational_hours):
     throughputs = terminal.throughputs
     throughputs.append(throughput_class())
     index = len(throughputs)-1
     throughputs[index].year = year
-    terminal = throughputs[index].calc(terminal, vessels, commodities, allowable_berth_occupancy, year, timestep, operational_hours)
+    terminal = throughputs[index].calc(terminal, vessels, commodities, allowable_berth_occupancy, year, start_year, timestep, operational_hours)
     terminal.throughputs = throughputs
     return terminal
 
