@@ -285,6 +285,493 @@ def berth_invest_decision(berths, cranes, vessels, allowable_berth_occupancy, ye
     return berths, cranes
 
 
+# In[ ]:
+
+
+def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_time, year, timestep, operational_hours):
+
+    # for each time step, check whether pending berths come online
+    online = []
+    offline = []
+    for i in range(len(berths)):
+        if berths[i].online_date <= year:
+            online.append(1)
+        if berths[i].online_date > year:
+            offline.append(1)
+    for i in range(len(berths)):
+        berths[i].online = int(np.sum(online))
+        berths[i].offline = int(np.sum(offline))
+    
+    # for each time step, check whether pending cranes come online
+    for i in range (4):
+        online = []
+        offline = []
+        for j in range(len(cranes[i])):
+            if cranes[i][j].online_date <= year:
+                online.append(1)
+            if cranes[i][j].online_date > year:
+                offline.append(1)
+        for j in range(len(cranes[i])):
+            cranes[i][j].online = int(np.sum(online))
+            cranes[i][j].offline = int(np.sum(offline))
+
+    # for each time step, decide whether to invest in the quay side
+    if len(berths) == 0:
+        invest_decision = 'Invest in berths or cranes'
+    else:
+        # Determine the unloading capacity of each berth
+        berth_service_rate = []
+        for i in range (len(berths)):
+            service_rate = []
+            for j in range(4):
+                for k in range(len(cranes[j])):
+                    if cranes[j][k].berth == i+1:
+                        service_rate.append(cranes[j][k].effective_capacity * cranes[j][k].utilisation)                  
+            berth_service_rate.append(int(np.sum(service_rate)))
+        total_service_rate = np.sum(berth_service_rate)
+        
+        # Traffic distribution according to ratio service rate of each berth
+        traffic_ratio = []
+        for i in range (len(berths)):
+            traffic_ratio.append(berth_service_rate[i]/total_service_rate)
+            
+        # Determine total time that vessels are at each berth
+        occupancy = []
+        service_times = []
+        for i in range (len(berths)):            
+            berth_time = []
+            for j in range (3):
+                calls          = vessels[j].calls[timestep] * traffic_ratio[i]
+                service_time   = vessels[j].call_size / berth_service_rate[i]
+                mooring_time   = vessels[j].mooring_time
+                time_at_berth  = service_time + mooring_time
+                berth_time.append(time_at_berth * calls)
+            berth_time = np.sum(berth_time)
+            service_times.append(service_time)
+            occupancy.append(berth_time / operational_hours)
+        
+        # Determine the waiting time of each vessel type
+        waiting_times = []
+        for i in range (len(berths)):    
+            factor = waiting_factor(occupancy[i], len(berths))
+            print ('past stage one')
+            vessel_wait_times = []
+            for j in range (3):
+                calls           = vessels[j].calls[timestep] * traffic_ratio[i]
+                service_time    = vessels[j].call_size / berth_service_rate[i]
+                individual_wait = service_time * factor
+                vessel_wait_times.append(individual_wait)
+            waiting_times.append(max(vessel_wait_times))
+        
+        # Decide whether investments are needed
+        if max(waiting_times) < allowable_waiting_time:
+            invest_decision = 'Do not invest in berths or cranes'
+        else:
+            invest_decision = 'Invest in berths or cranes'
+        
+    # If investments are needed, calculate how much cranes should be added and whether an extra berth should be added
+    if invest_decision == 'Invest in berths or cranes':
+        berths_added          = []
+        gantry_cranes_added   = []
+        harbour_cranes_added  = []
+        mobile_cranes_added   = []
+        screw_unloaders_added = []
+        
+        if len(berths) == 0:
+            berths_added.append(1)
+            berths.append(infra.berth_class(**infra.berth_data))
+            berths[len(berths)-1].purchase_date = year
+            berths[len(berths)-1].online_date = year + berths[0].delivery_time
+            berths[len(berths)-1].remaining_calcs(berths, vessels, timestep)
+    
+        # Add cranes untill berth occupancy is sufficiently reduced
+        max_iterations = 10
+        iteration = 1
+        while iteration < max_iterations:
+        
+            # Determine how many crane slots are available at each berth
+            available_slots = []
+            for i in range (len(berths)):
+                used_slots = []
+                for j in range (4):
+                    for k in range (len(cranes[j])):
+                        if cranes[j][k].berth == i+1:
+                            used_slots.append(1)
+                used_slots = np.sum(used_slots)
+                available_slots.append(int(berths[i].max_cranes - used_slots))
+            if np.sum(available_slots) == 0:
+                berths_added.append(1)
+                berths.append(infra.berth_class(**infra.berth_data))
+                berths[len(berths)-1].purchase_date = year
+                berths[len(berths)-1].online_date = year + berths[0].delivery_time
+                berths[len(berths)-1].remaining_calcs(berths, vessels, timestep)
+                available_slots.append(berths[len(berths)-1].max_cranes)
+            
+            for i in range(len(available_slots)):
+                if available_slots[i] != 0:
+                    if berths[i].crane_type == 'Gantry cranes':
+                        gantry_cranes_added.append(1)
+                        cranes[0].append(infra.cyclic_unloader(**infra.gantry_crane_data))
+                        cranes[0][len(cranes[0])-1].berth = i+1
+                        cranes[0][len(cranes[0])-1].purchase_date = year
+                        cranes[0][len(cranes[0])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Gantry crane')
+                    elif berths[i].crane_type == 'Harbour cranes':
+                        harbour_cranes_added.append(1)
+                        cranes[1].append(infra.cyclic_unloader(**infra.harbour_crane_data))
+                        cranes[1][len(cranes[1])-1].berth = i+1
+                        cranes[1][len(cranes[1])-1].purchase_date = year
+                        cranes[1][len(cranes[1])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Harbour crane')
+                    elif berths[i].crane_type == 'Mobile cranes':
+                        mobile_cranes_added.append(1)
+                        cranes[2].append(infra.cyclic_unloader(**infra.mobile_crane_data))
+                        cranes[2][len(cranes[2])-1].berth = i+1
+                        cranes[2][len(cranes[2])-1].purchase_date = year
+                        cranes[2][len(cranes[2])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Mobile crane')
+                    elif berths[i].crane_type == 'Screw unloaders':
+                        screw_unloaders_added.append(1)
+                        cranes[3].append(continuous_unloader(**continuous_screw_data))
+                        cranes[3][len(cranes[3])-1].berth = i+1
+                        cranes[3][len(cranes[3])-1].purchase_date = year
+                        cranes[3][len(cranes[3])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Screw unloader')
+                    
+                    available_slots[i] = available_slots[i] - 1
+            
+                # Determine the unloading capacity of each berth
+                berth_service_rate = []
+                for j in range (len(berths)):
+                    service_rate = []
+                    for k in range(4):
+                        for l in range(len(cranes[k])):
+                            if cranes[k][l].berth == j+1:
+                                service_rate.append(cranes[k][l].effective_capacity * cranes[k][l].utilisation)                  
+                    berth_service_rate.append(int(np.sum(service_rate)))
+                total_service_rate = np.sum(berth_service_rate)
+            
+                # Traffic distribution according to ratio service rate of each berth
+                traffic_ratio = []
+                for j in range (len(berths)):
+                    traffic_ratio.append(berth_service_rate[j]/total_service_rate)
+                
+                # Determine total time that vessels are at each berth
+                if berth_service_rate[len(berths)-1] != 0:
+                    occupancy = []
+                    for j in range (len(berths)):            
+                        berth_time = []
+                        for k in range (3):
+                            calls          = vessels[k].calls[timestep] * traffic_ratio[j]
+                            service_time   = vessels[k].call_size / berth_service_rate[j]
+                            mooring_time   = vessels[k].mooring_time
+                            time_at_berth  = service_time + mooring_time
+                            berth_time.append(time_at_berth * calls)
+                        berth_time = np.sum(berth_time)
+                        occupancy.append(berth_time / operational_hours)
+                        
+                        
+                # Determine the waiting time of each vessel type
+                waiting_times = []
+                for i in range (len(berths)):            
+                    factor = waiting_factor(occupancy[i], len(berths))
+                    print ('past stage two')
+                    print ('timestep', timestep)
+                    print ('occupancy', occupancy)
+                    print ('number of berths', len(berths))
+                    print ('berth number:', i)
+                    print ()
+                    vessel_wait_times = []
+                    for j in range (3):
+                        calls           = vessels[j].calls[timestep] * traffic_ratio[i]
+                        service_time    = vessels[j].call_size / berth_service_rate[i]
+                        individual_wait = service_time * factor
+                        vessel_wait_times.append(individual_wait)
+                    waiting_times.append(max(vessel_wait_times))
+                    
+                if max(waiting_times) < allowable_waiting_time or available_slots[len(available_slots)-1] == 0:
+                    break
+
+            if max(waiting_times) < allowable_waiting_time:
+                break
+            iteration = iteration + 1
+                    
+        cranes_added = [int(np.sum(gantry_cranes_added)), int(np.sum(harbour_cranes_added)),
+                        int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]
+        
+        # Evaluate how many berths and cranes haven been added
+        online = []
+        offline = []
+        for i in range(len(berths)):
+            berths[i].delta = int(np.sum(berths_added))
+            if berths[i].online_date <= year:
+                online.append(1)
+            if berths[i].online_date > year:
+                offline.append(1)
+        for i in range(len(berths)):
+            berths[i].online = int(np.sum(online))
+            berths[i].offline = int(np.sum(offline))
+        for i in range (4):
+            online = []
+            offline = []
+            for j in range (len(cranes[i])):
+                cranes[i][j].delta = cranes_added[i]
+                if cranes[i][j].online_date <= year:
+                    online.append(1)
+                if cranes[i][j].online_date > year:
+                    offline.append(1)
+            for j in range (len(cranes[i])):
+                cranes[i][j].online = int(np.sum(online))
+                cranes[i][j].offline = int(np.sum(offline))
+                
+    else:
+        berths[0].delta = 0
+        for i in range (4):
+            for j in range (len(cranes[i])):
+                cranes[i][j].delta = 0
+
+    return berths, cranes
+
+
+# In[ ]:
+
+
+def waiting_factor(occupancy, n_berths):
+    online = n_berths
+    # Waiting time factor (E2/E/n quing theory using 4th order polynomial regression)
+    if online == 1:
+        return max(0, 79.726* occupancy **4 - 126.47* occupancy **3 + 70.660* occupancy **2 - 14.651* occupancy + 0.9218)
+    if online == 2:
+        return max(0, 29.825* occupancy **4 - 46.489* occupancy **3 + 25.656* occupancy **2 - 5.3517* occupancy + 0.3376)
+    if online == 3:
+        return max(0, 19.362* occupancy **4 - 30.388* occupancy **3 + 16.791* occupancy **2 - 3.5457* occupancy + 0.2253)
+    if online == 4:
+        return max(0, 17.334* occupancy **4 - 27.745* occupancy **3 + 15.432* occupancy **2 - 3.2725* occupancy + 0.2080)
+    if online == 5:
+        return max(0, 11.149* occupancy **4 - 17.339* occupancy **3 + 9.4010* occupancy **2 - 1.9687* occupancy + 0.1247)
+    if online == 6:
+        return max(0, 10.512* occupancy **4 - 16.390* occupancy **3 + 8.8292* occupancy **2 - 1.8368* occupancy + 0.1158)
+    if online == 7:
+        return max(0, 8.4371* occupancy **4 - 13.226* occupancy **3 + 7.1446* occupancy **2 - 1.4902* occupancy + 0.0941)
+
+
+# In[ ]:
+
+
+def berth_invest_decision2(berths, cranes, vessels, allowable_berth_occupancy, year, timestep, operational_hours):
+
+    # for each time step, check whether pending berths come online
+    online = []
+    offline = []
+    for i in range(len(berths)):
+        if berths[i].online_date <= year:
+            online.append(1)
+        if berths[i].online_date > year:
+            offline.append(1)
+    for i in range(len(berths)):
+        berths[i].online = int(np.sum(online))
+        berths[i].offline = int(np.sum(offline))
+    
+    # for each time step, check whether pending cranes come online
+    for i in range (4):
+        online = []
+        offline = []
+        for j in range(len(cranes[i])):
+            if cranes[i][j].online_date <= year:
+                online.append(1)
+            if cranes[i][j].online_date > year:
+                offline.append(1)
+        for j in range(len(cranes[i])):
+            cranes[i][j].online = int(np.sum(online))
+            cranes[i][j].offline = int(np.sum(offline))
+
+    # for each time step, decide whether to invest in the quay side
+    if len(berths) == 0:
+        invest_decision = 'Invest in berths or cranes'
+        loop_occupancy = 1
+    else:
+        # Determine the unloading capacity of each berth
+        berth_service_rate = []
+        for i in range (len(berths)):
+            service_rate = []
+            for j in range(4):
+                for k in range(len(cranes[j])):
+                    if cranes[j][k].berth == i+1:
+                        service_rate.append(cranes[j][k].effective_capacity * cranes[j][k].utilisation)                  
+            berth_service_rate.append(int(np.sum(service_rate)))
+        total_service_rate = np.sum(berth_service_rate)
+        
+        # Traffic distribution according to ratio service rate of each berth
+        traffic_ratio = []
+        for i in range (len(berths)):
+            traffic_ratio.append(berth_service_rate[i]/total_service_rate)
+            
+        # Determine total time that vessels are at each berth
+        occupancy = []
+        factors = []
+        for i in range (len(berths)):            
+            berth_time = []
+            for j in range (3):
+                calls          = vessels[j].calls[timestep] * traffic_ratio[i]
+                service_time   = vessels[j].call_size / berth_service_rate[i]
+                mooring_time   = vessels[j].mooring_time
+                time_at_berth  = service_time + mooring_time
+                berth_time.append(time_at_berth * calls)
+            berth_time = np.sum(berth_time)
+            occupancy.append(berth_time / operational_hours)
+            factors.append(waiting_factor(occupancy[i],berths[i].online))
+        
+        # Decide whether investments are needed
+        if max(occupancy) < allowable_berth_occupancy:
+            invest_decision = 'Do not invest in berths or cranes'
+        else:
+            invest_decision = 'Invest in berths or cranes'
+        
+    # If investments are needed, calculate how much cranes should be added and whether an extra berth should be added
+    if invest_decision == 'Invest in berths or cranes':
+        berths_added          = []
+        gantry_cranes_added   = []
+        harbour_cranes_added  = []
+        mobile_cranes_added   = []
+        screw_unloaders_added = []
+        
+        if len(berths) == 0:
+            berths_added.append(1)
+            berths.append(infra.berth_class(**infra.berth_data))
+            berths[len(berths)-1].purchase_date = year
+            berths[len(berths)-1].online_date = year + berths[0].delivery_time
+            berths[len(berths)-1].remaining_calcs(berths, vessels, timestep)
+    
+        # Add cranes untill berth occupancy is sufficiently reduced
+        max_iterations = 10
+        iteration = 1
+        while iteration < max_iterations:
+        
+            # Determine how many crane slots are available at each berth
+            available_slots = []
+            for i in range (len(berths)):
+                used_slots = []
+                for j in range (4):
+                    for k in range (len(cranes[j])):
+                        if cranes[j][k].berth == i+1:
+                            used_slots.append(1)
+                used_slots = np.sum(used_slots)
+                available_slots.append(int(berths[i].max_cranes - used_slots))
+            if np.sum(available_slots) == 0:
+                berths_added.append(1)
+                berths.append(infra.berth_class(**infra.berth_data))
+                berths[len(berths)-1].purchase_date = year
+                berths[len(berths)-1].online_date = year + berths[0].delivery_time
+                berths[len(berths)-1].remaining_calcs(berths, vessels, timestep)
+                available_slots.append(berths[len(berths)-1].max_cranes)
+            
+            for i in range(len(available_slots)):
+                if available_slots[i] != 0:
+                    if berths[i].crane_type == 'Gantry cranes':
+                        gantry_cranes_added.append(1)
+                        cranes[0].append(infra.cyclic_unloader(**infra.gantry_crane_data))
+                        cranes[0][len(cranes[0])-1].berth = i+1
+                        cranes[0][len(cranes[0])-1].purchase_date = year
+                        cranes[0][len(cranes[0])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Gantry crane')
+                    elif berths[i].crane_type == 'Harbour cranes':
+                        harbour_cranes_added.append(1)
+                        cranes[1].append(infra.cyclic_unloader(**infra.harbour_crane_data))
+                        cranes[1][len(cranes[1])-1].berth = i+1
+                        cranes[1][len(cranes[1])-1].purchase_date = year
+                        cranes[1][len(cranes[1])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Harbour crane')
+                    elif berths[i].crane_type == 'Mobile cranes':
+                        mobile_cranes_added.append(1)
+                        cranes[2].append(infra.cyclic_unloader(**infra.mobile_crane_data))
+                        cranes[2][len(cranes[2])-1].berth = i+1
+                        cranes[2][len(cranes[2])-1].purchase_date = year
+                        cranes[2][len(cranes[2])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Mobile crane')
+                    elif berths[i].crane_type == 'Screw unloaders':
+                        screw_unloaders_added.append(1)
+                        cranes[3].append(continuous_unloader(**continuous_screw_data))
+                        cranes[3][len(cranes[3])-1].berth = i+1
+                        cranes[3][len(cranes[3])-1].purchase_date = year
+                        cranes[3][len(cranes[3])-1].online_date = year + berths[0].delivery_time
+                        berths[i].cranes_present.append('Screw unloader')
+                    
+                    available_slots[i] = available_slots[i] - 1
+            
+                # Determine the unloading capacity of each berth
+                berth_service_rate = []
+                for j in range (len(berths)):
+                    service_rate = []
+                    for k in range(4):
+                        for l in range(len(cranes[k])):
+                            if cranes[k][l].berth == j+1:
+                                service_rate.append(cranes[k][l].effective_capacity * cranes[k][l].utilisation)                  
+                    berth_service_rate.append(int(np.sum(service_rate)))
+                total_service_rate = np.sum(berth_service_rate)
+            
+                # Traffic distribution according to ratio service rate of each berth
+                traffic_ratio = []
+                for j in range (len(berths)):
+                    traffic_ratio.append(berth_service_rate[j]/total_service_rate)
+                
+                # Determine total time that vessels are at each berth
+                if berth_service_rate[len(berths)-1] != 0:
+                    occupancy = []
+                    for j in range (len(berths)):            
+                        berth_time = []
+                        for k in range (3):
+                            calls          = vessels[k].calls[timestep] * traffic_ratio[j]
+                            service_time   = vessels[k].call_size / berth_service_rate[j]
+                            mooring_time   = vessels[k].mooring_time
+                            time_at_berth  = service_time + mooring_time
+                            berth_time.append(time_at_berth * calls)
+                        berth_time = np.sum(berth_time)
+                        occupancy.append(berth_time / operational_hours)
+                    
+                if max(occupancy) < allowable_berth_occupancy or available_slots[len(available_slots)-1] == 0:
+                    break
+
+            if max(occupancy) < allowable_berth_occupancy:
+                break
+            iteration = iteration + 1
+                    
+        cranes_added = [int(np.sum(gantry_cranes_added)), int(np.sum(harbour_cranes_added)),
+                        int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]
+        
+        # Evaluate how many berths and cranes haven been added
+        online = []
+        offline = []
+        for i in range(len(berths)):
+            berths[i].delta = int(np.sum(berths_added))
+            if berths[i].online_date <= year:
+                online.append(1)
+            if berths[i].online_date > year:
+                offline.append(1)
+        for i in range(len(berths)):
+            berths[i].online = int(np.sum(online))
+            berths[i].offline = int(np.sum(offline))
+        for i in range (4):
+            online = []
+            offline = []
+            for j in range (len(cranes[i])):
+                cranes[i][j].delta = cranes_added[i]
+                if cranes[i][j].online_date <= year:
+                    online.append(1)
+                if cranes[i][j].online_date > year:
+                    offline.append(1)
+            for j in range (len(cranes[i])):
+                cranes[i][j].online = int(np.sum(online))
+                cranes[i][j].offline = int(np.sum(offline))
+                
+    else:
+        berths[0].delta = 0
+        for i in range (4):
+            for j in range (len(cranes[i])):
+                cranes[i][j].delta = 0
+
+    return berths, cranes
+
+
 # ### Storage investment decision
 # In this setup, the storage investment is triggered whenever the storage capacity equals 10% of yearly demand. Once triggered, the storage is expanded to accomodate 20% of yearly throughput
 
