@@ -21,7 +21,7 @@ class terminal_properties_mixin(object):
 
 
 class terminal(terminal_properties_mixin):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, project_WACC, allowable_berth_occupancy, allowable_waiting_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         #########################################
@@ -144,4 +144,12 @@ class terminal(terminal_properties_mixin):
         self.throughputs, self.revenues, self.capex, self.labour, self.maintenance = [], [], [], [], []
         self.energy, self.insurance, self.lease, self.demurrage, self.residuals = [], [], [], [], []
         self.profits, self.opex = [], []
+        
+        #########################################
+        # Assign iteration variables
+        #########################################
+    
+        self.project_WACC = project_WACC
+        self.allowable_berth_occupancy = allowable_berth_occupancy
+        self.allowable_waiting_time = allowable_waiting_time
 
