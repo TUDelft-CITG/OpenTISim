@@ -570,6 +570,7 @@ def revenue_capex_opex(terminal):
         bargroupgap=0.1
     )
     
+    get_ipython().run_line_magic('matplotlib', 'inline')
     fig = go.Figure(data=data, layout=layout)
     py.iplot(fig, filename='Revenue, Capex and Opex')
 
@@ -843,7 +844,7 @@ from IPython.display import display, HTML
 # In[11]:
 
 
-def NPV_distribution_occupancy(iterations):
+def NPV_distribution_waiting_times(iterations):
 
     NPV_matrix = np.zeros(shape=(len(iterations), 3))
 
@@ -855,25 +856,25 @@ def NPV_distribution_occupancy(iterations):
 
         terminal = iterations[i]
         NPV = terminal.NPV
-        allowable_occupancy = terminal.allowable_berth_occupancy
+        allowable_waiting_time = terminal.allowable_waiting_time
 
         # Iteration (Column 0)
         iteration = i 
         NPV_matrix[i,0] = iteration
         # NPV (Column 1)
         NPV_matrix[i,1] = NPV
-        # Allowable occupancy
-        NPV_matrix[i,2] = allowable_occupancy * 100
+        # Allowable waiting factor
+        NPV_matrix[i,2] = allowable_waiting_time * 100
 
-    NPV_spectrum = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Allowable occupancy'])
+    NPV_spectrum = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Allowable waiting factor'])
     NPV_spectrum = NPV_spectrum.astype(int)
     
-    # Assuming that dataframes df1 and df2 are already defined:
-    display(NPV_spectrum)
+    # display dataframe
+    #display(NPV_spectrum)
 
     # Determining max and min x and y values
-    x_max = int(max(NPV_spectrum['Allowable occupancy']))
-    x_min = int(min(NPV_spectrum['Allowable occupancy'])) 
+    x_max = int(max(NPV_spectrum['Allowable waiting factor']))
+    x_min = int(min(NPV_spectrum['Allowable waiting factor'])) 
     y_max = int(max(NPV_spectrum['NPV']))
     y_max = int(np.ceil(y_max/40000000)*40000000)
     y_min = int(min(NPV_spectrum['NPV']))
@@ -887,7 +888,7 @@ def NPV_distribution_occupancy(iterations):
     bars1 = NPV_spectrum.NPV.values
 
     # The X position of bars
-    x1 = NPV_spectrum['Allowable occupancy'].values
+    x1 = NPV_spectrum['Allowable waiting factor'].values
 
     # Create barplot
     ax = plt.subplot(111) 
@@ -909,25 +910,10 @@ def NPV_distribution_occupancy(iterations):
     # Text below each barplot with a rotation at 90°
     plt.yticks(range(y_min, y_max+1, 40000000), 
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 40000000)], fontsize=9)
-    plt.xticks(range(x_min, x_max+1, 10), [str(x) + "%" for x in range(x_min, x_max+1, 10)], fontsize=9, rotation=45)
+    plt.xticks(range(0, x_max+1, 5), [str(x) + "%" for x in range(0, x_max+1, 5)], fontsize=9, rotation=45)
 
     plt.tick_params(axis="both", which="both", bottom=False, top=False,    
                     labelbottom=True, left=False, right=False, labelleft=True) 
-
-    # Allowable occupancy value that coincides with maximum NPV
-    max_iteration = NPV_spectrum.loc[NPV_spectrum['NPV']==max(NPV_spectrum['NPV'])].index[0]
-    x_max_NPV = NPV_spectrum['Allowable occupancy'][max_iteration] 
-    plt.plot((x_max_NPV, x_max_NPV), (y_min, y_max), "--", lw=1, color="black", alpha=0.3)
-    plt.text(x_max_NPV, 0.3*y_min, str('Optimial: ''{:0,.0f}'.format(x_max_NPV))+"%", fontsize=9, ha="center", rotation=90)
-
-    # Add a text label to the right end of every line. Most of the code below    
-    # is adding specific offsets y position because some labels overlapped.    
-    #y_pos = terminal.cashflows.Revenues.values[-1]
-    #plt.text(x_max+1, y_pos, 'Revenues', fontsize=14, color='#2CA02C') 
-
-    # Text on the top of each barplot
-    #for i in range(len(r4)):
-    #    plt.text(x = r4[i]-0.5 , y = bars4[i]+0.1, s = label[i], size = 6)
 
     # Add the title
     plt.text((x_min+x_max)/2, 1.2*y_max, "The impact of allowable berth occupation on NPV", fontsize=17, ha="center")
@@ -977,8 +963,8 @@ def NPV_distribution_WACC(iterations):
     NPV_spectrum = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Project WACC'])
     NPV_spectrum['NPV'] = NPV_spectrum['NPV'].astype(int)
     
-    # Assuming that dataframes df1 and df2 are already defined:
-    display(NPV_spectrum)
+    # Display dataframe
+    #display(NPV_spectrum)
 
     # Determining max and min x and y values
     x_max = int(max(NPV_spectrum['Project WACC']))
@@ -1015,24 +1001,13 @@ def NPV_distribution_WACC(iterations):
     # Create legend
     #plt.legend()
 
-    # Text below each barplot with a rotation at 90°
+    # Text below each barplot
     plt.yticks(range(y_min, y_max+1, 40000000), 
                ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 40000000)], fontsize=9)
-    plt.xticks(range(x_min, x_max+1, 10), [str(x) + "%" for x in range(x_min, x_max+1, 10)], fontsize=9, rotation=45)
+    plt.xticks(range(x_min, x_max+1, 1), [str(x) + "%" for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
 
     plt.tick_params(axis="both", which="both", bottom=False, top=False,    
                     labelbottom=True, left=False, right=False, labelleft=True) 
-
-    # Project WACC value that coincides with maximum NPV
-    max_iteration = NPV_spectrum.loc[NPV_spectrum['NPV']==max(NPV_spectrum['NPV'])].index[0]
-    x_max_NPV = NPV_spectrum['Project WACC'][max_iteration] 
-    plt.plot((x_max_NPV, x_max_NPV), (y_min, y_max), "--", lw=1, color="black", alpha=0.3)
-    plt.text(x_max_NPV, 0.3*y_min, str('Optimial: ''{:0,.0f}'.format(x_max_NPV))+"%", fontsize=9, ha="center", rotation=90)
-
-    # Add a text label to the right end of every line. Most of the code below    
-    # is adding specific offsets y position because some labels overlapped.    
-    #y_pos = terminal.cashflows.Revenues.values[-1]
-    #plt.text(x_max+1, y_pos, 'Revenues', fontsize=14, color='#2CA02C') 
 
     # Text on the top of each barplot
     #for i in range(len(r4)):

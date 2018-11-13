@@ -352,9 +352,9 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
         
         # Determine the waiting time of each vessel type
         waiting_times = []
+        waiting_factors = []
         for i in range (len(berths)):    
             factor = waiting_factor(occupancy[i], len(berths))
-            print ('past stage one')
             vessel_wait_times = []
             for j in range (3):
                 calls           = vessels[j].calls[timestep] * traffic_ratio[i]
@@ -362,9 +362,10 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
                 individual_wait = service_time * factor
                 vessel_wait_times.append(individual_wait)
             waiting_times.append(max(vessel_wait_times))
+            waiting_factors.append(factor)
         
         # Decide whether investments are needed
-        if max(waiting_times) < allowable_waiting_time:
+        if max(waiting_factors) < allowable_waiting_time:
             invest_decision = 'Do not invest in berths or cranes'
         else:
             invest_decision = 'Invest in berths or cranes'
@@ -383,7 +384,7 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
             berths[len(berths)-1].purchase_date = year
             berths[len(berths)-1].online_date = year + berths[0].delivery_time
             berths[len(berths)-1].remaining_calcs(berths, vessels, timestep)
-    
+        
         # Add cranes untill berth occupancy is sufficiently reduced
         max_iterations = 10
         iteration = 1
@@ -406,7 +407,15 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
                 berths[len(berths)-1].online_date = year + berths[0].delivery_time
                 berths[len(berths)-1].remaining_calcs(berths, vessels, timestep)
                 available_slots.append(berths[len(berths)-1].max_cranes)
+                
+            #print ('available slots', available_slots, invest_decision)
+            #print ('year|point 1: nr of berths', year,'|', len(terminal.berths))          
+            #print ('year|point 2: nr of berths', year,'|', len(terminal.berths))
+            #print ('timestep | waiting time factor per berth:', timestep, '|', waiting_factors)
+            #print ('timestep | waiting time per berth:', timestep, '|', waiting_times) 
+            #print()
             
+            # If a slot is available, add a crane
             for i in range(len(available_slots)):
                 if available_slots[i] != 0:
                     if berths[i].crane_type == 'Gantry cranes':
@@ -440,61 +449,55 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
                     
                     available_slots[i] = available_slots[i] - 1
             
-                # Determine the unloading capacity of each berth
-                berth_service_rate = []
-                for j in range (len(berths)):
-                    service_rate = []
-                    for k in range(4):
-                        for l in range(len(cranes[k])):
-                            if cranes[k][l].berth == j+1:
-                                service_rate.append(cranes[k][l].effective_capacity * cranes[k][l].utilisation)                  
-                    berth_service_rate.append(int(np.sum(service_rate)))
-                total_service_rate = np.sum(berth_service_rate)
-            
-                # Traffic distribution according to ratio service rate of each berth
-                traffic_ratio = []
-                for j in range (len(berths)):
-                    traffic_ratio.append(berth_service_rate[j]/total_service_rate)
-                
-                # Determine total time that vessels are at each berth
-                if berth_service_rate[len(berths)-1] != 0:
-                    occupancy = []
-                    for j in range (len(berths)):            
-                        berth_time = []
-                        for k in range (3):
-                            calls          = vessels[k].calls[timestep] * traffic_ratio[j]
-                            service_time   = vessels[k].call_size / berth_service_rate[j]
-                            mooring_time   = vessels[k].mooring_time
-                            time_at_berth  = service_time + mooring_time
-                            berth_time.append(time_at_berth * calls)
-                        berth_time = np.sum(berth_time)
-                        occupancy.append(berth_time / operational_hours)
-                        
-                        
-                # Determine the waiting time of each vessel type
-                waiting_times = []
-                for i in range (len(berths)):            
-                    factor = waiting_factor(occupancy[i], len(berths))
-                    print ('past stage two')
-                    print ('timestep', timestep)
-                    print ('occupancy', occupancy)
-                    print ('number of berths', len(berths))
-                    print ('berth number:', i)
-                    print ()
-                    vessel_wait_times = []
-                    for j in range (3):
-                        calls           = vessels[j].calls[timestep] * traffic_ratio[i]
-                        service_time    = vessels[j].call_size / berth_service_rate[i]
-                        individual_wait = service_time * factor
-                        vessel_wait_times.append(individual_wait)
-                    waiting_times.append(max(vessel_wait_times))
-                    
-                if max(waiting_times) < allowable_waiting_time or available_slots[len(available_slots)-1] == 0:
-                    break
+            # Determine the new unloading capacity of each berth
+            berth_service_rate = []
+            for j in range (len(berths)):
+                service_rate = []
+                for k in range(4):
+                    for l in range(len(cranes[k])):
+                        if cranes[k][l].berth == j+1:
+                            service_rate.append(cranes[k][l].effective_capacity * cranes[k][l].utilisation)                  
+                berth_service_rate.append(int(np.sum(service_rate)))
+            total_service_rate = np.sum(berth_service_rate)
 
-            if max(waiting_times) < allowable_waiting_time:
-                break
+            # Traffic distribution according to ratio service rate of each berth
+            traffic_ratio = []
+            for j in range (len(berths)):
+                traffic_ratio.append(berth_service_rate[j]/total_service_rate)
+
+            # Determine total time that vessels are at each berth
+            if berth_service_rate[len(berths)-1] != 0:
+                occupancy = []
+                for j in range (len(berths)):            
+                    berth_time = []
+                    for k in range (3):
+                        calls          = vessels[k].calls[timestep] * traffic_ratio[j]
+                        service_time   = vessels[k].call_size / berth_service_rate[j]
+                        mooring_time   = vessels[k].mooring_time
+                        time_at_berth  = service_time + mooring_time
+                        berth_time.append(time_at_berth * calls)
+                    berth_time = np.sum(berth_time)
+                    occupancy.append(berth_time / operational_hours)
+                    berths[j].occupancy = occupancy[j]
+
+            # Determine the waiting time of each vessel type
+            waiting_times = []
+            waiting_factors = []
+            for i in range (len(berths)):            
+                factor = waiting_factor(occupancy[i], len(berths))
+                vessel_wait_times = []
+                for j in range (3):
+                    calls           = vessels[j].calls[timestep] * traffic_ratio[i]
+                    service_time    = vessels[j].call_size / berth_service_rate[i]
+                    individual_wait = service_time * factor
+                    vessel_wait_times.append(individual_wait)
+                waiting_times.append(max(vessel_wait_times))
+                waiting_factors.append(factor)  
+            
             iteration = iteration + 1
+            
+            if max(waiting_factors) < allowable_waiting_time:
+                break
                     
         cranes_added = [int(np.sum(gantry_cranes_added)), int(np.sum(harbour_cranes_added)),
                         int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]
@@ -536,23 +539,53 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
 # In[ ]:
 
 
+# Waiting time factor (E2/E2/n quing theory using 6th order polynomial regression)
+x = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+berth1 = [0.055555556,0.125, 0.214285714, 0.333333333, 0.5, 0.75, 1.1667, 2.0, 4.5] 
+berth2 = [0.0006, 0.0065, 0.0235, 0.0516, 0.1181, 0.2222, 0.4125, 0.83, 2.00]
+berth3 = [0,0.0011,0.0062,0.0205,0.0512,0.1103,0.2275,0.46,1.2]
+berth4 = [0,0.0002,0.0019,0.0085,0.0532,0.0639,0.1441,0.33,0.92]
+berth5 = [0,0.0007,0.0039,0.0142,0.04,0.0988,0.23,0.65]
+berth6 = [0,0.0002,0.0019,0.0082,0.0265,0.0712,0.19,0.57]
+berth7 = [0,0.0001,0.0009,0.005,0.0182,0.0532,0.14,0.44]
+berth8 = [0,0,0.0005,0.0031,0.0128,0.0407,0.12,0.4]
+berth9 = [0,0,0.0003,0.002,0.0093,0.0319,0.09,0.32]
+berth10 = [0,0,0.0001,0.0013,0.0069,0.0258,0.09,0.3]
+
+#Polynomial regression
+coefficients1 = np.polyfit(x, berth1, 6)
+coefficients2 = np.polyfit(x, berth2, 6)
+coefficients3 = np.polyfit(x, berth3, 6)
+coefficients4 = np.polyfit(x, berth4, 6)
+
+#Resulting continuous representation
+def berth1_trend(occupancy):
+    return (coefficients1[0]*occupancy**6+coefficients1[1]*occupancy**5+coefficients1[2]*occupancy**4+
+            coefficients1[3]*occupancy**3+coefficients1[4]*occupancy**2+coefficients1[5]*occupancy+coefficients1[6])
+
+def berth2_trend(occupancy):
+    return (coefficients2[0]*occupancy**6+coefficients2[1]*occupancy**5+coefficients2[2]*occupancy**4+
+            coefficients2[3]*occupancy**3+coefficients2[4]*occupancy**2+coefficients2[5]*occupancy+coefficients2[6])
+
+def berth3_trend(occupancy):
+    return (coefficients3[0]*occupancy**6+coefficients3[1]*occupancy**5+coefficients3[2]*occupancy**4+
+            coefficients3[3]*occupancy**3+coefficients3[4]*occupancy**3+coefficients3[5]*occupancy+coefficients3[6])
+
+def berth4_trend(occupancy):
+    return (coefficients4[0]*occupancy**6+coefficients4[1]*occupancy**5+coefficients4[2]*occupancy**4+
+            coefficients4[3]*occupancy**3+coefficients4[4]*occupancy**4+coefficients4[5]*occupancy+coefficients4[6])
+
 def waiting_factor(occupancy, n_berths):
     online = n_berths
-    # Waiting time factor (E2/E/n quing theory using 4th order polynomial regression)
+    x = occupancy*100
     if online == 1:
-        return max(0, 79.726* occupancy **4 - 126.47* occupancy **3 + 70.660* occupancy **2 - 14.651* occupancy + 0.9218)
+        return max(0, berth1_trend(x))
     if online == 2:
-        return max(0, 29.825* occupancy **4 - 46.489* occupancy **3 + 25.656* occupancy **2 - 5.3517* occupancy + 0.3376)
+        return max(0, berth2_trend(x))
     if online == 3:
-        return max(0, 19.362* occupancy **4 - 30.388* occupancy **3 + 16.791* occupancy **2 - 3.5457* occupancy + 0.2253)
+        return max(0, berth3_trend(x))
     if online == 4:
-        return max(0, 17.334* occupancy **4 - 27.745* occupancy **3 + 15.432* occupancy **2 - 3.2725* occupancy + 0.2080)
-    if online == 5:
-        return max(0, 11.149* occupancy **4 - 17.339* occupancy **3 + 9.4010* occupancy **2 - 1.9687* occupancy + 0.1247)
-    if online == 6:
-        return max(0, 10.512* occupancy **4 - 16.390* occupancy **3 + 8.8292* occupancy **2 - 1.8368* occupancy + 0.1158)
-    if online == 7:
-        return max(0, 8.4371* occupancy **4 - 13.226* occupancy **3 + 7.1446* occupancy **2 - 1.4902* occupancy + 0.0941)
+        return max(0, berth4_trend(x))
 
 
 # In[ ]:
