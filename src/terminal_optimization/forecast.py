@@ -286,7 +286,7 @@ handymax_data = {"vessel_type": 'Handymax', "call_size": 50000,
 
 panamax_data = {"vessel_type": 'Panamax', "call_size": 65000, 
                   "LOA": 220, "draft": 13, "beam": 32.2, "max_cranes": 3, 
-                  "all_turn_time": 36, "mooring_time": 4, "demurrage_rate": 730} 
+                  "all_turn_time": 36, "mooring_time": 3, "demurrage_rate": 730} 
 
 
 # In[ ]:
