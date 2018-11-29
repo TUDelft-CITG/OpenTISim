@@ -21,8 +21,18 @@ class terminal_properties_mixin(object):
 
 
 class terminal(terminal_properties_mixin):
-    def __init__(self, project_WACC, allowable_berth_occupancy, allowable_waiting_time, *args, **kwargs):
+    def __init__(self, project_WACC, triggers, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        #########################################
+        # Assign iteration variables
+        #########################################
+    
+        self.project_WACC = project_WACC       
+        self.allowable_vessel_waiting_time = triggers[0][0]
+        self.required_storage_factor       = triggers[1][0]
+        self.aspired_storage_factor        = triggers[2][0]
+        self.allowable_train_waiting_time  = triggers[3][0]
         
         #########################################
         # Import terminal infrastructure objects
@@ -145,11 +155,4 @@ class terminal(terminal_properties_mixin):
         self.energy, self.insurance, self.lease, self.demurrage, self.residuals = [], [], [], [], []
         self.profits, self.opex = [], []
         
-        #########################################
-        # Assign iteration variables
-        #########################################
-    
-        self.project_WACC = project_WACC
-        self.allowable_berth_occupancy = allowable_berth_occupancy
-        self.allowable_waiting_time = allowable_waiting_time
 

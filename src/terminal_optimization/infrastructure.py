@@ -76,7 +76,7 @@ class berth_properties_mixin(object):
 berth_data = {"t0_quantity": 0, "crane_type": 'Mobile cranes', "max_cranes": 3}
 
 
-# In[7]:
+# In[ ]:
 
 
 # define berth functions 
@@ -121,6 +121,59 @@ class berth_class(berth_properties_mixin):
         max_draft = berths[0].vessel_depth_calc(vessels, timestep) # Maximum vessel draft
         self.length             = self.length_calc(max_LOA, berths)     # assign length of each berth
         self.depth              = self.depth_calc(max_draft)            # assign depth of each berth
+
+    # Waiting time factor (E2/E2/n Erlang quing theory using 6th order polynomial regression)
+    def occupancy_to_waitingfactor(self, occupancy, n_berths):
+        x = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        berth1 = [0.055555556,0.125, 0.214285714, 0.333333333, 0.5, 0.75, 1.1667, 2.0, 4.5] 
+        berth2 = [0.0006, 0.0065, 0.0235, 0.0516, 0.1181, 0.2222, 0.4125, 0.83, 2.00]
+        berth3 = [0,0.0011,0.0062,0.0205,0.0512,0.1103,0.2275,0.46,1.2]
+        berth4 = [0,0.0002,0.0019,0.0085,0.0532,0.0639,0.1441,0.33,0.92]
+
+        #Polynomial regression
+        coefficients1 = np.polyfit(x, berth1, 6)
+        coefficients2 = np.polyfit(x, berth2, 6)
+        coefficients3 = np.polyfit(x, berth3, 6)
+        coefficients4 = np.polyfit(x, berth4, 6)
+        
+        #Resulting continuous representation
+        def berth1_trend(occupancy):
+            return (coefficients1[0]*occupancy**6+coefficients1[1]*occupancy**5+coefficients1[2]*occupancy**4+
+                    coefficients1[3]*occupancy**3+coefficients1[4]*occupancy**2+coefficients1[5]*occupancy+coefficients1[6])
+
+        def berth2_trend(occupancy):
+            return (coefficients2[0]*occupancy**6+coefficients2[1]*occupancy**5+coefficients2[2]*occupancy**4+
+                    coefficients2[3]*occupancy**3+coefficients2[4]*occupancy**2+coefficients2[5]*occupancy+coefficients2[6])
+
+        def berth3_trend(occupancy):
+            return (coefficients3[0]*occupancy**6+coefficients3[1]*occupancy**5+coefficients3[2]*occupancy**4+
+                    coefficients3[3]*occupancy**3+coefficients3[4]*occupancy**3+coefficients3[5]*occupancy+coefficients3[6])
+
+        def berth4_trend(occupancy):
+            return (coefficients4[0]*occupancy**6+coefficients4[1]*occupancy**5+coefficients4[2]*occupancy**4+
+                    coefficients4[3]*occupancy**3+coefficients4[4]*occupancy**4+coefficients4[5]*occupancy+coefficients4[6])
+        
+        x = occupancy*100
+        if n_berths == 1:
+            return max(0, berth1_trend(x))
+        if n_berths == 2:
+            return max(0, berth2_trend(x))
+        if n_berths == 3:
+            return max(0, berth3_trend(x))
+        if n_berths == 4:
+            return max(0, berth4_trend(x))
+        
+    # Waiting time factor (E2/E2/n Erlang quing theory using 6th order polynomial regression)  
+    def waitingfactor_to_occupancy(self, factor, n_berths):
+        factor = factor * 100
+        if n_berths == 1:
+            return max(1,(19.462 * np.log(factor) - 25.505))/100
+        if n_berths == 2:
+            return max(1,(14.091 * np.log(factor) + 16.509))/100
+        if n_berths == 3:
+            return max(1,(12.625 * np.log(factor) + 30.298))/100
+        if n_berths == 4:
+            return max(1,(11.296 * np.log(factor) + 38.548))/100
 
 
 # In[8]:
@@ -310,25 +363,25 @@ storage_object = [silo_object, warehouse_object]
 # create loading station class **will ultimately be placed in package**
 class hinterland_station_properties_mixin(object):
     def __init__(self, t0_capacity, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, 
-                 insurance_perc, consumption, crew, utilisation, capacity_steps, *args, **kwargs):
+                 insurance_perc, consumption, crew, utilisation, production, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
-        self.t0_capacity          = t0_capacity
-        self.ownership            = ownership
-        self.delivery_time        = delivery_time
-        self.lifespan             = lifespan
-        self.unit_rate            = unit_rate
-        self.mobilisation         = mobilisation
-        self.maintenance_perc     = maintenance_perc
-        self.insurance_perc       = insurance_perc
-        self.consumption          = consumption
-        self.crew                 = crew
-        self.utilisation          = utilisation
-        self.capacity_steps       = capacity_steps
+        self.t0_capacity      = t0_capacity
+        self.ownership        = ownership
+        self.delivery_time    = delivery_time
+        self.lifespan         = lifespan
+        self.unit_rate        = unit_rate
+        self.mobilisation     = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc   = insurance_perc
+        self.consumption      = consumption
+        self.crew             = crew
+        self.utilisation      = utilisation
+        self.production       = production
         
 # Initial data set, data from Excel_input.xlsx
-hinterland_station_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 15, "unit_rate": 4000, "mobilisation": 100000, 
-                           "maintenance_perc": 0.02, "consumption": 0.25, "insurance_perc": 0.01, "crew": 2, "utilisation": 0.80, "capacity_steps": 300}
+hinterland_station_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 15, "unit_rate": 800000, "mobilisation": 200000, 
+                           "maintenance_perc": 0.02, "consumption": 100, "insurance_perc": 0.01, "crew": 2, "utilisation": 0.80, "production": 800}
 
 
 # In[19]:
@@ -374,12 +427,12 @@ class conveyor_properties_mixin(object):
         self.capacity_steps          = capacity_steps
 
 # Initial data set, data from Excel_input.xlsx
-quay_conveyor_data = {"t0_capacity": 0, "length": 500, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 10, 
+quay_conveyor_data = {"t0_capacity": 0, "length": 200, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 10, 
                       "unit_rate": 6, "mobilisation": 30000,"maintenance_perc": 0.10, "insurance_perc": 0.01, 
                       "consumption_constant": 81,"consumption_coefficient":0.08, "crew": 1, "utilisation": 0.80, 
                       "capacity_steps": 400}
 
-hinterland_conveyor_data = {"t0_capacity": 0, "length": 500, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 10, "mobilisation": 30000, 
+hinterland_conveyor_data = {"t0_capacity": 0, "length": 200, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 10, "mobilisation": 30000, 
                             "unit_rate": 6, "maintenance_perc": 0.10, "insurance_perc": 0.01, "consumption_constant": 81, 
                             "consumption_coefficient":0.08, "crew": 1, "utilisation": 0.80, "capacity_steps": 400}
 

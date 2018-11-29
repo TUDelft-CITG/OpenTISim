@@ -17,166 +17,121 @@ import matplotlib.pyplot as plt
 
 
 # Applied colours within the plots
-tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),    
-             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),    
-             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),    
-             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),    
-             (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]    
-
-# Scale the RGB values to the [0, 1] range, which is the format matplotlib accepts.    
-for i in range(len(tableau20)):    
-    r, g, b = tableau20[i]    
-    tableau20[i] = (r / 255., g / 255., b / 255.) 
+colors = ['rgba(55, 83, 109, 1)', 'rgba(55, 83, 109, 0.8)', 'rgba(55, 83, 109, 0.5)',
+          'rgb(129, 180, 179, 1)', 'rgb(79, 127, 127, 1)', 'rgb(110,110,110)']  
 
 
 # ### Import Plotly packages
 
-# In[3]:
+# In[7]:
 
 
 # Log in to Plotly servers
 import plotly
 #plotly.tools.set_credentials_file(username='wijzermans', api_key='FKGDvSah3z5WCNREBZEq')
-plotly.tools.set_credentials_file(username='wijnandijzermans', api_key='xeDEwwpCK3aLLR4TIrM9')
+#plotly.tools.set_credentials_file(username='wijnandijzermans', api_key='xeDEwwpCK3aLLR4TIrM9')
+plotly.tools.set_credentials_file(username='jorisneuman', api_key='zButeTrlr5xVETcyvazd')
 
-# (*) To communicate with Plotly's server, sign in with credentials file
 import plotly.plotly as py  
 import plotly.graph_objs as go
 import plotly.tools as tls 
 from plotly.graph_objs import *
+import plotly.figure_factory as ff
 get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # # Scenarios
 
-# In[4]:
+# In[ ]:
 
 
-def scenario(commodities, simulation_window, start_year):
+def scenario(traffic_projections, commodities):
     
     maize   = commodities[0]
     soybean = commodities[1]
     wheat   = commodities[2]
-    demand_matrix = np.zeros(shape=(len(commodities[0].years), 4))
     
-    ############################################################################################################
-    # For each year, register each commodities' demand 
-    ############################################################################################################
+    # Visualize each traffic projections
+    data = []
+    for i in range(len(traffic_projections)):
+        if i == 0:
+            data.append(
+                go.Scatter(
+                    x = maize.years,
+                    y = traffic_projections[i],
+                    name = 'Traffic projections',
+                    line = dict(
+                        color = ('rgb(215, 215, 215)'),
+                        width = 2)))
+        else:
+            data.append(
+                go.Scatter(
+                    x = maize.years,
+                    y = traffic_projections[i],
+                    name = 'Traffic projections',
+                    showlegend = False,
+                    line = dict(
+                        color = ('rgb(215, 215, 215)'),
+                        width = 2)))
+
+    # Visualize median traffic projections
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = maize.demand,
+            name = 'Traffic scenario',
+            line = dict(
+               color = ('rgb(214, 39, 40)'),
+                width = 2)))
+
+    # Edit the layout
+    layout = dict(
+                title = 'Traffic projections',
+                yaxis = dict(title = 'Maize throughput (t/year)'),
+                legend=dict(
+                    x=1.05,
+                    y=1),
+                annotations=[
+                    dict(
+                        x=1,
+                        y=-0.12,
+                        showarrow=False,
+                        text='Source: Own work',
+                        xref='paper',
+                        yref='paper'),
+                    dict(
+                        x=2018.7,
+                        y=1,
+                        showarrow=False,
+                        text='Projected traffic',
+                        yref='paper',
+                        textangle=90,
+                        font=dict(
+                            size=13)),
+                    dict(
+                        x=2017.3,
+                        y=1,
+                        showarrow=False,
+                        text='Historic traffic',
+                        yref='paper',
+                        textangle=90,
+                        font=dict(
+                            size=13))],
+                shapes=[
+                    dict(
+                        type='line',
+                        x0=2018,
+                        y0=-0.05,
+                        x1=2018,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dashdot'))]
+    )
     
-    for t in range (len(commodities[0].years)):
-
-        # Years (Column 0)
-        year = t + commodities[0].years[0] 
-        demand_matrix[t,0] = year
-        # Maize (Column 1)
-        demand_matrix[t,1] = maize.demand[t]
-        # Soybean (Column 2)
-        demand_matrix[t,2] = soybean.demand[t]
-        # Wheat (Column 3)
-        demand_matrix[t,3] = wheat.demand[t]
-    
-    demand = pd.DataFrame(demand_matrix, columns=['Year', 'Maize demand', 'Soybean demand', 'Wheat demand'])
-    demand = demand.astype(int)
-
-    # Determining max and min x and y values
-    x_max = int(max(demand['Year']))
-    x_min = int(min(demand['Year']))
-    y_max = []
-    y_min = []
-    for i in range (1, len(demand.columns)):
-        y_max.append(max(demand.iloc[:,i]))
-        y_min.append(min(demand.iloc[:,i]))
-    y_max = int(max(y_max))
-    y_max = int(np.ceil(y_max/100000)*100000)
-    y_min = int((np.ceil(min(y_min)/100000)-1)*100000)
-
-    # You typically want your plot to be ~1.33x wider than tall
-    # Common sizes: (10, 7.5) and (12, 9)    
-    plt.figure(figsize=(10, 7.5))    
-
-    # Remove the plot frame lines
-    ax = plt.subplot(111)    
-    ax.spines["top"].set_visible(False)    
-    ax.spines["bottom"].set_visible(False)    
-    ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-
-    # Ensure that the axis ticks only show up on the bottom and left of the plot.      
-    ax.get_xaxis().tick_bottom()    
-    ax.get_yaxis().tick_left()    
-
-    # Limit the range of the plot to only where the data is  
-    # Avoid unnecessary whitespace
-    plt.ylim(y_min, y_max)
-    plt.xlim(x_min-1, x_max+1)    
-
-    # Make sure your axis ticks are large enough to be easily read      
-    plt.yticks(range(y_min, y_max+1, 500000), 
-               [str(x) for x in range(y_min, y_max+1, 500000)], fontsize=14)
-    plt.xticks(range(x_min, x_max+1, 1), [str(x) for x in range(x_min, x_max+1, 1)], fontsize=14, rotation=45)
-    
-    # Provide tick lines across the plot to help your viewers trace along    
-    # the axis ticks. Make sure that the lines are light and small so they    
-    # don't obscure the primary data lines    
-    for y in range(y_min+200000, y_max+1, 200000):    
-        plt.plot((x_min-1, x_max+1), (y, y), "--", lw=0.5, color="black", alpha=0.3)    
-
-    # Remove the tick marks; they are unnecessary with the tick lines we just plotted    
-    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
-                    labelbottom=True, left=False, right=False, labelleft=True)   
-
-    # The names of each asset equals the name of the corresponding dataframe column
-    commodity_names = demand.loc[:, demand.columns != 'Year'].columns.values
-    
-    # Plot each commodity
-    plt.plot(demand.Year.values, demand['Maize demand'].values, lw=2.5, color=tableau20[0])
-    plt.plot(demand.Year.values, demand['Soybean demand'].values, lw=2.5, color=tableau20[1])
-    plt.plot(demand.Year.values, demand['Wheat demand'].values, lw=2.5, color=tableau20[0])
-    plt.plot((start_year, start_year), (y_min, y_max), "--", lw=3, color="black", alpha=0.3)
-    
-    #plt.text(x_max+1, y_max*1.0, 'Maize demand', fontsize=16, color=tableau20[0])
-    #plt.text(x_max+1, y_max*0.9, 'Soybean demand', fontsize=16, color=tableau20[1])
-    plt.text(x_max+1, max(demand['Maize demand']), 'Maize demand', fontsize=16, color=tableau20[0])
-    plt.text(start_year-1, 3000000, "Historic data", fontsize=16, ha="center", rotation=90)
-    plt.text(start_year+1, 3000000, "Scenario", fontsize=16, ha="center", rotation=90)
-
-    # matplotlib's title() call centers the title on the plot, but not the graph,    
-    # so I used the text() call to customize where the title goes.    
-
-    # Make the title big enough so it spans the entire plot, but don't make it    
-    # so big that it requires two lines to show.    
-
-    # Note that if the title is descriptive enough, it is unnecessary to include    
-    # axis labels; they are self-evident, in this plot's case.    
-    plt.text((x_min + x_max)/2, 1.1*y_max, "Demand Scenario", fontsize=20, ha="center")    
-
-    # Always include your data source(s) and copyright notice! And for your    
-    # data sources, tell your viewers exactly where the data came from,    
-    # preferably with a direct link to the data. Just telling your viewers    
-    # that you used data from the "U.S. Census Bureau" is completely useless:    
-    # the U.S. Census Bureau provides all kinds of data, so how are your    
-    # viewers supposed to know which data set you used?    
-    plt.text(x_max+1, y_min-0.1*y_min, "Data source: Scenario generator", horizontalalignment='left', fontsize=10)    
-
-    # Finally, save the figure as a PNG.    
-    # You can also save it as a PDF, JPEG, etc.    
-    # Just change the file extension in this call.    
-    # bbox_inches="tight" removes all the extra whitespace on the edges of your plot.  
-    
-    # Save figure at designated folder. Create scenario folder if it is not present
-    cwd = os.getcwd()
-    folder = cwd + str('\\visualisations\\scenarios')
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-        
-    # Save figure
-    plt.savefig(str(folder + "\\Scenario.png"), bbox_inches="tight")
-    
-    # Online-based, interactive graphic
-    figure = plt.gcf()
-    #py.iplot_mpl(figure, filename='Scenario')
-
-    return
+    return [data, layout]
 
 
 # In[5]:
@@ -468,7 +423,7 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
 # In[7]:
 
 
-def revenue_capex_opex(terminal):
+def revenue_capex_opexxx(terminal):
     
     cashflows = terminal.cashflows
     
@@ -573,6 +528,87 @@ def revenue_capex_opex(terminal):
     get_ipython().run_line_magic('matplotlib', 'inline')
     fig = go.Figure(data=data, layout=layout)
     py.iplot(fig, filename='Revenue, Capex and Opex')
+
+
+# In[ ]:
+
+
+def revenue_capex_opex(terminal):
+
+    cashflows = terminal.cashflows
+
+    x = cashflows['Year']
+
+    trace1 = {
+      'x': x,
+      'y': cashflows['Revenues'],
+      'name': 'Revenues',
+      'type': 'bar',
+      'marker': dict(color=colors[3])
+    };
+
+    trace2 = {
+      'x': x,
+      'y': cashflows['Capex'],
+      'name': 'Capex',
+      'type': 'bar',
+      'marker': dict(color='rgb(214, 39, 40)')
+    };
+
+    trace3 = {
+      'x': x,
+      'y': cashflows['Opex'],
+      'name': 'Opex',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    trace4 = {
+      'x': x,
+      'y': cashflows['Revenues (discounted)'],
+      'name': 'Revenues (discounted)',
+      'type': 'bar',
+      'marker': dict(color=colors[3])
+    };
+
+    trace5 = {
+      'x': x,
+      'y': cashflows['Capex (discounted)'],
+      'name': 'Capex (discounted)',
+      'type': 'bar',
+      'marker': dict(color='rgb(214, 39, 40)')
+    };
+
+    trace6 = {
+      'x': x,
+      'y': cashflows['Opex (discounted)'],
+      'name': 'Opex (discounted)',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    data = [trace4, trace5, trace6];
+    layout = {
+        'xaxis': {'tickangle': 315,
+                  'dtick': 1},
+        'yaxis': {'title': 'Cashflows',
+                  'tickprefix': '$'},
+        'title': 'Discounted terminal cashflows',
+        'legend': dict(x=1,
+                     y=1),
+        'bargap': 0.35,
+        'bargroupgap' :0.05,
+        'annotations' :[dict(
+                        x=1,
+                        y=-0.18,
+                        showarrow=False,
+                        text='Source: Own work',
+                        xanchor='right',
+                        xref='paper',
+                        yref='paper')]
+    }
+    
+    return [data, layout]
 
 
 # ### Profit / Loss (nominal value)
@@ -841,100 +877,6 @@ def revenues(terminal):
 from IPython.display import display, HTML
 
 
-# In[11]:
-
-
-def NPV_distribution_waiting_times(iterations):
-
-    NPV_matrix = np.zeros(shape=(len(iterations), 3))
-
-    ############################################################################################################
-    # For each run, register the terminal's NPV 
-    ############################################################################################################
-
-    for i in range (len(iterations)):
-
-        terminal = iterations[i]
-        NPV = terminal.NPV
-        allowable_waiting_time = terminal.allowable_waiting_time
-
-        # Iteration (Column 0)
-        iteration = i 
-        NPV_matrix[i,0] = iteration
-        # NPV (Column 1)
-        NPV_matrix[i,1] = NPV
-        # Allowable waiting factor
-        NPV_matrix[i,2] = allowable_waiting_time * 100
-
-    NPV_spectrum = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Allowable waiting factor'])
-    NPV_spectrum = NPV_spectrum.astype(int)
-    
-    # display dataframe
-    #display(NPV_spectrum)
-
-    # Determining max and min x and y values
-    x_max = int(max(NPV_spectrum['Allowable waiting factor']))
-    x_min = int(min(NPV_spectrum['Allowable waiting factor'])) 
-    y_max = int(max(NPV_spectrum['NPV']))
-    y_max = int(np.ceil(y_max/40000000)*40000000)
-    y_min = int(min(NPV_spectrum['NPV']))
-    y_min = int((np.ceil(y_min/40000000)-1)*40000000)
-
-    # Create figure
-    #revenue_plot = plt.figure(figsize=(6, 4.5))
-
-    # Create bars
-    barWidth = 0.7
-    bars1 = NPV_spectrum.NPV.values
-
-    # The X position of bars
-    x1 = NPV_spectrum['Allowable waiting factor'].values
-
-    # Create barplot
-    ax = plt.subplot(111) 
-    plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='NPV')
-
-    # Remove the plot frame lines     
-    ax.spines["top"].set_visible(False)    
-    ax.spines["bottom"].set_visible(False)    
-    ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-
-    # Ensure that the axis ticks only show up on the bottom and left of the plot.     
-    ax.get_xaxis().tick_bottom()    
-    ax.get_yaxis().tick_left()
-
-    # Create legend
-    #plt.legend()
-
-    # Text below each barplot with a rotation at 90°
-    plt.yticks(range(y_min, y_max+1, 40000000), 
-               ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 40000000)], fontsize=9)
-    plt.xticks(range(0, x_max+1, 5), [str(x) + "%" for x in range(0, x_max+1, 5)], fontsize=9, rotation=45)
-
-    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
-                    labelbottom=True, left=False, right=False, labelleft=True) 
-
-    # Add the title
-    plt.text((x_min+x_max)/2, 1.2*y_max, "The impact of allowable berth occupation on NPV", fontsize=17, ha="center")
-
-    # Adjust the margins
-    plt.subplots_adjust(bottom= 0.2, top = 0.98)
-    
-    # Save figure at designated folder. Create folder if it is not present
-    cwd = os.getcwd()
-    folder = cwd + str('\\visualisations\\optimization\\NPV') 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    # Save figure
-    file = folder + str("\\Berth occupancy") + str(".png")
-    plt.savefig(str(file), bbox_inches="tight") 
-
-    # Show graphic
-    plt.show()
-
-
 # In[ ]:
 
 
@@ -950,87 +892,52 @@ def NPV_distribution_WACC(iterations):
 
         terminal = iterations[i]
         NPV = terminal.NPV
-        project_WACC = terminal.project_WACC
+        WACC = terminal.project_WACC
 
         # Iteration (Column 0)
         iteration = i 
         NPV_matrix[i,0] = iteration
         # NPV (Column 1)
         NPV_matrix[i,1] = NPV
-        # Project WACC
-        NPV_matrix[i,2] = project_WACC * 100
+        # Allowable waiting factor
+        NPV_matrix[i,2] = WACC * 100
 
-    NPV_spectrum = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Project WACC'])
-    NPV_spectrum['NPV'] = NPV_spectrum['NPV'].astype(int)
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'WACC'])
     
-    # Display dataframe
-    #display(NPV_spectrum)
+    x = df['WACC']
+    y = df['NPV']
 
-    # Determining max and min x and y values
-    x_max = int(max(NPV_spectrum['Project WACC']))
-    x_min = int(min(NPV_spectrum['Project WACC'])) 
-    y_max = int(max(NPV_spectrum['NPV']))
-    y_max = int(np.ceil(y_max/40000000)*40000000)
-    y_min = int(min(NPV_spectrum['NPV']))
-    y_min = int((np.ceil(y_min/40000000)-1)*40000000)
+    trace1 = {
+      'x': x,
+      'y': y,
+      'name': 'Iterations',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
 
-    # Create figure
-    #revenue_plot = plt.figure(figsize=(6, 4.5))
+    data = [trace1];
+    layout = dict(
+                xaxis= dict(
+                    title='Weighted average cost of capital (WACC)',
+                    ticksuffix='%'
+                ),
+                yaxis= dict(
+                    title='Terminal NPV',
+                    tickprefix='$'
+                ),
+                title= 'Financial impact of the weighted average<br>cost of capital',
+                showlegend=False,
+                annotations=[dict(
+                                x=1,
+                                y=-0.13,
+                                showarrow=False,
+                                text='Source: Own work',
+                                xanchor='right',
+                                xref='paper',
+                                yref='paper')]
+    )
 
-    # Create bars
-    barWidth = 0.7
-    bars1 = NPV_spectrum.NPV.values
-
-    # The X position of bars
-    x1 = NPV_spectrum['Project WACC'].values
-
-    # Create barplot
-    ax = plt.subplot(111) 
-    plt.bar(x1, bars1, width = barWidth, color = '#3F5D7D', label='NPV')
-
-    # Remove the plot frame lines     
-    ax.spines["top"].set_visible(False)    
-    ax.spines["bottom"].set_visible(False)    
-    ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-
-    # Ensure that the axis ticks only show up on the bottom and left of the plot.     
-    ax.get_xaxis().tick_bottom()    
-    ax.get_yaxis().tick_left()
-
-    # Create legend
-    #plt.legend()
-
-    # Text below each barplot
-    plt.yticks(range(y_min, y_max+1, 40000000), 
-               ["$" + str('{:0,.0f}'.format(x)) for x in range(y_min, y_max+1, 40000000)], fontsize=9)
-    plt.xticks(range(x_min, x_max+1, 1), [str(x) + "%" for x in range(x_min, x_max+1, 1)], fontsize=9, rotation=45)
-
-    plt.tick_params(axis="both", which="both", bottom=False, top=False,    
-                    labelbottom=True, left=False, right=False, labelleft=True) 
-
-    # Text on the top of each barplot
-    #for i in range(len(r4)):
-    #    plt.text(x = r4[i]-0.5 , y = bars4[i]+0.1, s = label[i], size = 6)
-
-    # Add the title
-    plt.text((x_min+x_max)/2, 1.2*y_max, "The impact of the WACC on project NPV", fontsize=17, ha="center")
-
-    # Adjust the margins
-    plt.subplots_adjust(bottom= 0.2, top = 0.98)
-    
-    # Save figure at designated folder. Create folder if it is not present
-    cwd = os.getcwd()
-    folder = cwd + str('\\visualisations\\optimization\\NPV') 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    # Save figure
-    file = folder + str("\\Berth occupancy") + str(".png")
-    plt.savefig(str(file), bbox_inches="tight") 
-
-    # Show graphic
-    plt.show()
+    return [data, layout]
 
 
 # ### Risk Sensitivity
@@ -1178,114 +1085,470 @@ def risk_sensitivity(cashflow_list, WACC_list):
 
 # ### Demand vs Capacity
 
-# In[13]:
+# In[ ]:
 
 
-def throughput(terminal):
+def capacity(terminal, commodities):
+
+    maize   = commodities[0]
+    soybean = commodities[1]
+    wheat   = commodities[2]
     
-    throughputs = terminal.throughputs
-    start_year = throughputs[0].start_year
+    terminal_capacity = []
+    quay_capacity = []
+    storage_capacity = []
+    station_capacity = []
+    quay_conveyor_capacity = []
+    hinterland_conveyor_capacity = []
     
-    throughput_matrix = np.zeros(shape=(len(throughputs), 4))
-    
-    for t in range (len(throughputs)):
-        # Years (Column 0)
-        year = t + start_year
-        throughput_matrix[t,0] = year
-        # Throughput (Column 1)
-        throughput_matrix[t,1] = throughputs[t].demand
-        # Capacity (Column 2)
-        throughput_matrix[t,2] = throughputs[t].capacity
-        # Demand (Column 3)
-        throughput_matrix[t,3] = throughputs[t].demand
-    
-    df = pd.DataFrame(throughput_matrix, columns=['Year', 'Throughput', 'Capacity', 'Demand'])
-    df = df.astype(int)
- 
-    # Plot bars
+    for i in range(len(terminal.throughputs)):
+        terminal_capacity.append(terminal.throughputs[i].capacity)
+        if terminal_capacity[-1] != 0:
+            quay_capacity.append(terminal.throughputs[i].quay_capacity)
+            storage_capacity.append(terminal.throughputs[i].storage_capacity)
+            station_capacity.append(terminal.throughputs[i].station_capacity)
+            quay_conveyor_capacity.append(terminal.throughputs[i].quay_conveyor_capacity)
+            hinterland_conveyor_capacity.append(terminal.throughputs[i].hinterland_conveyor_capacity)
+        else:
+            quay_capacity.append(0)
+            storage_capacity.append(0)
+            station_capacity.append(0)
+            quay_conveyor_capacity.append(0)
+            hinterland_conveyor_capacity.append(0)
+
+    x = maize.years[5:]
+    demand = maize.demand[5:]
+    terminal_capacity = terminal_capacity
+   
     trace1 = go.Scatter(
-        x=df['Year'],
-        y=df['Demand'],
-        name='Demand',
+        name='Terminal capacity',
+        x=x,
+        y=terminal_capacity,
+        mode='lines',
         line=dict(
-            color='#8c1c03',
-            shape='spline'
-        )
-    )     
-    trace2 = go.Bar(
-        x=df['Year'],
-        y=df['Capacity'],
-        name='Capacity',
-        opacity = 0.2,
-        marker=dict(
-            color='rgb(55, 83, 109)'
-        )
-    ) 
-    trace3 = go.Bar(
-        x=df['Year'],
-        y=df['Throughput'],
-        name='Throughput',
-        opacity = 0.9,
-        marker=dict(
-            color='rgb(55, 83, 109)'
-        )
-    ) 
-    
-    
-    data = [trace1, trace2, trace3]
-    layout = go.Layout(
-        title='Terminal throughput vs. capacity',
-
-        xaxis=dict(
-            tickfont=dict(
-                size=24,
-                color='rgb(107, 107, 107)'
-            )
-        ),
-        yaxis=dict(
-            title='Throughputs [t/annum]',
-            titlefont=dict(
-                size=27,
-                color='rgb(107, 107, 107)'
-            ),
-            tickfont=dict(
-                size=24,
-                color='rgb(107, 107, 107)'
-            )
-        ),       
-        legend=dict(
-            x=0,
-            y=1.0,
-            bgcolor='rgba(255, 255, 255, 0)',
-            bordercolor='rgba(255, 255, 255, 0)',
-            font=dict(
-                size=25,
-                color='rgb(107, 107, 107)'
-            )
-        ),
-        barmode='group',
-        bargap=0.1,
-        bargroupgap=0.05
+            color='rgb(200, 200, 200, 0.2)', 
+            width=0,
+            shape='hv'),
+        fill='tozeroy',
+        fillcolor='rgba(200, 200, 200, 0.4)',
     )
-    
-    fig = go.Figure(data=data, layout=layout)
-    
-    # Save figure at designated folder. Create folder if it is not present
-    cwd = os.getcwd()
-    folder = cwd + str('\\visualisations\\terminal capacity') 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
 
-    # Save figure
-    file = folder + str("\\Capacity vs demand") + str(".png")
-    plt.savefig(str(file), bbox_inches="tight")
+    trace2 = {
+      'x': x,
+      'y': quay_capacity,
+      'name': 'Quay capacity',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    trace3 = {
+      'x': x,
+      'y': storage_capacity,
+      'name': 'Storage capacity',
+      'type': 'bar',
+      'marker': dict(color=colors[2])
+    };
+
+    trace4 = {
+      'x': x,
+      'y': station_capacity,
+      'name': 'Train loading capacity',
+      'type': 'bar',
+      'marker': dict(color=colors[3])
+    };
+
+    trace5 = {
+      'x': x,
+      'y': quay_conveyor_capacity,
+      'name': 'Quay conveyor<br>capacity',
+      'type': 'bar',
+      'marker': dict(color=colors[4])
+    };
+
+    trace6 = {
+      'x': x,
+      'y': hinterland_conveyor_capacity,
+      'name': 'Hinterland conveyor<br>capacity',
+      'type': 'bar',
+      'marker': dict(color=colors[5])
+    };
     
-    py.iplot(fig, filename='Terminal capacity')
+    trace7 = go.Scatter(
+        name='Traffic projection',
+        x=x,
+        y=demand,
+        mode='lines',
+        line=dict(
+            color='rgb(214, 39, 40)', 
+            width=3
+        )
+    )
+
+    data = [trace1, trace2, trace3, trace4, trace7];
+    layout = {
+        'xaxis': dict(
+                tick0=0,
+                dtick=1,
+                tickangle=315),
+        'yaxis': {'title': 'Terminal throughput (t/year)'},
+        'title': 'Temporal asset development',
+        'legend': dict(x=1,
+                     y=1),
+        'bargap': 0.15,
+        'bargroupgap' :0.1,
+        'annotations' :[dict(
+                        x=1,
+                        y=-0.14,
+                        showarrow=False,
+                        text='Source: Own work',
+                        xanchor='right',
+                        xref='paper',
+                        yref='paper')]
+    }
+    return [data, layout]
+
+
+# # Trigger Iteration
+
+# ### Vessel waiting times
+
+# In[ ]:
+
+
+def NPV_distribution_vessel_waiting_times(iterations):
+
+    NPV_matrix = np.zeros(shape=(len(iterations), 3))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(iterations)):
+
+        terminal = iterations[i]
+        NPV = terminal.NPV
+        allowable_waiting_time = terminal.allowable_vessel_waiting_time
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # NPV (Column 1)
+        NPV_matrix[i,1] = NPV
+        # Allowable waiting factor
+        NPV_matrix[i,2] = allowable_waiting_time * 100
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Allowable waiting factor'])
     
-    return
+    x = df['Allowable waiting factor']
+    y = df['NPV']
+
+    trace1 = {
+      'x': x,
+      'y': y,
+      'name': 'Iterations',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    data = [trace1];
+    layout = dict(
+                xaxis= dict(
+                    title='Allowable waiting time as factor of service time',
+                    ticksuffix='%'
+                ),
+                yaxis= dict(
+                    title='Terminal NPV',
+                    tickprefix='$'
+                ),
+                title= 'Financial impact of the allowable<br>vessel waiting time',
+                showlegend=False,
+                annotations=[dict(
+                                x=1,
+                                y=-0.13,
+                                showarrow=False,
+                                text='Source: Own work',
+                                xanchor='right',
+                                xref='paper',
+                                yref='paper')]
+    )
+
+    return [data, layout]
+
+
+# ### Required storage factor
+
+# In[ ]:
+
+
+def NPV_distribution_required_storage(iterations):
+
+    NPV_matrix = np.zeros(shape=(len(iterations), 3))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(iterations)):
+
+        terminal = iterations[i]
+        NPV = terminal.NPV
+        required_storage_factor = terminal.required_storage_factor
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # NPV (Column 1)
+        NPV_matrix[i,1] = NPV
+        # Allowable waiting factor
+        NPV_matrix[i,2] = required_storage_factor * 100
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Required storage factor'])
+    
+    x = df['Required storage factor']
+    y = df['NPV']
+
+    trace1 = {
+      'x': x,
+      'y': y,
+      'name': 'Iterations',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    data = [trace1];
+    layout = dict(
+                xaxis= dict(
+                    title='Percentage of annual throughput',
+                    ticksuffix='%'
+                ),
+                yaxis= dict(
+                    title='Terminal NPV',
+                    tickprefix='$'
+                ),
+                title= 'Minimum percentage of annual throughput required as storage volume',
+                showlegend=False,
+                annotations=[dict(
+                                x=1,
+                                y=-0.13,
+                                showarrow=False,
+                                text='Source: Own work',
+                                xanchor='right',
+                                xref='paper',
+                                yref='paper')]
+    )
+    return [data, layout]
+
+
+# ### Aspired storage factor
+
+# In[ ]:
+
+
+def NPV_distribution_aspired_storage(iterations):
+
+    NPV_matrix = np.zeros(shape=(len(iterations), 3))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(iterations)):
+
+        terminal = iterations[i]
+        NPV = terminal.NPV
+        aspired_storage_factor = terminal.aspired_storage_factor
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # NPV (Column 1)
+        NPV_matrix[i,1] = NPV
+        # Allowable waiting factor
+        NPV_matrix[i,2] = aspired_storage_factor * 100
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Aspired storage factor'])
+    
+    x = df['Aspired storage factor']
+    y = df['NPV']
+
+    trace1 = {
+      'x': x,
+      'y': y,
+      'name': 'Iterations',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    data = [trace1];
+    layout = dict(
+                xaxis= dict(
+                    title='Percentage of annual throughput',
+                    ticksuffix='%'
+                ),
+                yaxis= dict(
+                    title='Terminal NPV',
+                    tickprefix='$'
+                ),
+                title= 'Aspired percentage of annual throughput built as storage',
+                showlegend=False,
+                annotations=[dict(
+                                x=1,
+                                y=-0.13,
+                                showarrow=False,
+                                text='Source: Own work',
+                                xanchor='right',
+                                xref='paper',
+                                yref='paper')]
+    ) 
+    return [data, layout]
+
+
+# ### Allowable train waiting times 
+
+# In[ ]:
+
+
+def NPV_distribution_train_waiting_times(iterations):
+
+    NPV_matrix = np.zeros(shape=(len(iterations), 3))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(iterations)):
+
+        terminal = iterations[i]
+        NPV = terminal.NPV
+        allowable_train_waiting_time = terminal.allowable_train_waiting_time
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # NPV (Column 1)
+        NPV_matrix[i,1] = NPV
+        # Allowable waiting factor
+        NPV_matrix[i,2] = allowable_train_waiting_time * 100
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV', 'Allowable train waiting times'])
+    
+    x = df['Allowable train waiting times']
+    y = df['NPV']
+
+    trace1 = {
+      'x': x,
+      'y': y,
+      'name': 'Iterations',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    data = [trace1];
+    layout = dict(
+                xaxis= dict(
+                    title='Waiting time as factor of service time',
+                    ticksuffix='%'
+                ),
+                yaxis= dict(
+                    title='Terminal NPV',
+                    tickprefix='$'
+                ),
+                title= 'Financial impact of the allowable<br>train waiting time',
+                showlegend=False,
+                annotations=[dict(
+                                x=1,
+                                y=-0.13,
+                                showarrow=False,
+                                text='Source: Own work',
+                                xanchor='right',
+                                xref='paper',
+                                yref='paper')]
+    ) 
+    return [data, layout]
 
 
 # # Terminal Assets
+
+# ### Berths and cranes 
+
+# In[ ]:
+
+
+def berth_cranes(terminal, commodities):
+
+    maize   = commodities[0]
+    soybean = commodities[1]
+    wheat   = commodities[2]
+    
+    x  = maize.years[5:]
+    demand = maize.demand[5:]
+    n_berths, n_cranes = [], []
+    
+    for year in x:
+        
+        # Number of berths online
+        online = []
+        for i in range(len(terminal.berths)):
+            if year >= terminal.berths[i].online_date:
+                online.append(1)
+        n_berths.append(np.sum(online))
+        
+        # Number of cranes online
+        online = []
+        for i in range(len(terminal.cranes[2])):
+            if year >= terminal.cranes[2][i].online_date:
+                online.append(1)
+        n_cranes.append(np.sum(online))
+
+    trace1 = {
+      'x': x,
+      'y': n_berths,
+      'name': 'Berths',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+    
+    trace2 = {
+      'x': x,
+      'y': n_cranes,
+      'name': 'Mobile cranes',
+      'type': 'bar',
+      'marker': dict(color=colors[2])
+    };
+
+    trace3 = go.Scatter(
+        name='Traffic projection',
+        x=x,
+        y=demand,
+        yaxis='y2',
+        mode='lines',
+        line=dict(
+            color='rgb(214, 39, 40)', 
+            width=3
+        )
+    )
+
+    data = [trace1, trace2, trace2];
+    layout = {
+        'xaxis': dict(
+                tick0=0,
+                dtick=1,
+                tickangle=315),
+        'yaxis': {'title': 'Number of assets'},
+                #'range':[1000000,2400000]},
+        'yaxis2':dict(
+                    title='Terminal throughput (t/year)',
+                    overlaying='y',
+                    side='right'
+                    ),
+        'title': 'Temporal berth development',
+        'legend': dict(x=1.1,
+                     y=1),
+        'bargap': 0.15,
+        'bargroupgap' :0.1,
+        };
+    return [data, layout]
+
 
 # ### Determine development trajectory of terminals assets
 
@@ -1614,4 +1877,375 @@ def asset_trajectory(terminal, simulation_window, start_year):
     conveyor_plot = line_plot(conveyors, 'Conveyors trajectory')
     
     return
+
+
+# # Estimate project value
+
+# In[ ]:
+
+
+def NPV_estimation(iterations):
+
+    NPV_matrix = np.zeros(shape=(len(iterations), 2))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(iterations)):
+
+        terminal = iterations[i]
+        NPV = terminal.NPV
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # NPV (Column 1)
+        NPV_matrix[i,1] = NPV
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV'])
+
+    # Add histogram data
+    hist_data = [df['NPV']]
+    group_labels = ['Terminal designs based<br>on traffic projections']
+    
+    NPV_estimation = np.average(df['NPV'])
+    estimated_NPV = "$" + str('{:0,.0f}'.format(NPV_estimation))
+
+    # Create distplot with curve_type set to 'normal'
+    fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)'])
+
+    fig['layout'].update(
+        xaxis=dict(
+            title='Project NPV',
+            tickprefix='$'
+        ),
+        yaxis=dict(
+            title='Probability distribution (%)',
+            autorange=True,
+            showgrid=True,
+            zeroline=True,
+            showline=True,
+            ticks='',
+            showticklabels=False
+        ),
+        legend=dict(
+                x=0.78,
+                y=1),
+        annotations=[
+            dict(
+                x=0.5,
+                y=1.25,
+                showarrow=False,
+                text='Project value of the various designs using<br>the current performance method',
+                xref='paper',
+                yref='paper',
+                font=dict(
+                    size=16)
+            ),
+            dict(
+                x=np.median(df['NPV']),
+                y=0.55,
+                showarrow=False,
+                text='Estimated project value<br>' + str(estimated_NPV),
+                yref='paper',
+                font=dict(
+                    size=13)
+            ),
+            dict(
+                x=1,
+                y=-0.12,
+                showarrow=False,
+                text='Source: Own work',
+                xref='paper',
+                yref='paper'
+            )],
+        shapes=[dict(type='line',
+                     x0=np.average(df['NPV']),
+                     y0=0.36,
+                     x1=np.average(df['NPV']),
+                     y1=0.48,
+                     yref='paper',
+                     line=dict(
+                         color='rgb(214, 39, 40)',
+                         width=2,
+                         dash='dot')),
+                dict(type='line',
+                     x0=np.average(df['NPV']),
+                     y0=0.62,
+                     x1=np.average(df['NPV']),
+                     y1=1,
+                     yref='paper',
+                     line=dict(
+                         color='rgb(214, 39, 40)',
+                         width=2,
+                         dash='dot'))]
+)
+
+    return fig, NPV_estimation
+
+
+# # Evaluate financial performance
+
+# In[ ]:
+
+
+def NPV_evaluation(iterations, NPV_estimation):
+
+    NPV_matrix = np.zeros(shape=(len(iterations), 2))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(iterations)):
+
+        terminal = iterations[i]
+        NPV = terminal.NPV
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # NPV (Column 1)
+        NPV_matrix[i,1] = NPV
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV'])
+
+    # Add histogram data
+    hist_data = [df['NPV']]
+    group_labels = ['Terminal designs based<br>on traffic simulations']
+
+    NPV_estimation = int(NPV_estimation)
+    NPV_average    = int(np.average(df['NPV']))
+    NPV_difference = "$" + str('{:0,.0f}'.format(abs(NPV_estimation - NPV_average)))
+    estimated_NPV  = "$" + str('{:0,.0f}'.format(NPV_estimation))
+    average_NPV    = "$" + str('{:0,.0f}'.format(NPV_average))
+
+    # Create distplot with curve_type set to 'normal'
+    fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)'])
+
+    fig['layout'].update(
+        xaxis=dict(
+            title='Project NPV',
+            tickprefix='$'
+        ),
+        yaxis=dict(
+            title='Probability distribution (%)',
+            autorange=True,
+            showgrid=True,
+            zeroline=True,
+            showline=True,
+            ticks='',
+            showticklabels=False
+        ),
+        legend=dict(
+                x=0.78,
+                y=1),
+        annotations=[
+            dict(
+                x=0.5,
+                y=1.25,
+                showarrow=False,
+                text='Evaluating financial performance',
+                xref='paper',
+                yref='paper',
+                font=dict(
+                    size=16)
+            ),
+            dict(
+                x=NPV_average,
+                y=0.55,
+                showarrow=False,
+                text='Average realized project value<br>' + str(average_NPV),
+                yref='paper',
+                font=dict(
+                    size=13)
+            ),
+            dict(
+                x=1,
+                y=-0.12,
+                showarrow=False,
+                text='Source: Own work',
+                xref='paper',
+                yref='paper'
+            )],
+        shapes=[dict(type='line',
+                     x0=np.average(df['NPV']),
+                     y0=0.36,
+                     x1=np.average(df['NPV']),
+                     y1=0.48,
+                     yref='paper',
+                     line=dict(
+                         color='rgb(214, 39, 40)',
+                         width=2,
+                         dash='dot')),
+                dict(type='line',
+                     x0=np.average(df['NPV']),
+                     y0=0.62,
+                     x1=np.average(df['NPV']),
+                     y1=1,
+                     yref='paper',
+                     line=dict(
+                         color='rgb(214, 39, 40)',
+                         width=2,
+                         dash='dot'))]
+    )
+    
+    return fig
+
+
+# # Assessing the design method
+
+# In[ ]:
+
+
+def method_evaluation(estimate_designs, evaluate_designs):
+
+    NPV_matrix = np.zeros(shape=(len(evaluate_designs), 3))
+
+    ############################################################################################################
+    # For each run, register the terminal's NPV 
+    ############################################################################################################
+
+    for i in range (len(estimate_designs)):
+
+        simulation_NPV = evaluate_designs[i].NPV
+        estimate_NPV = estimate_designs[i].NPV
+
+        # Iteration (Column 0)
+        iteration = i 
+        NPV_matrix[i,0] = iteration
+        # Simulations (Column 1)
+        NPV_matrix[i,1] = simulation_NPV
+        # Estimates (Column 2)
+        NPV_matrix[i,2] = estimate_NPV
+
+    df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'Simulations', 'Estimations'])
+
+    # Add histogram data
+    hist_data = [df['Simulations'], df['Estimations']]
+    group_labels = ['Terminal designs based<br>on traffic simulations',
+                    'Terminal designs based<br>on traffic projections']
+
+    simulation_NPV = int(np.average(df['Simulations']))
+    estimate_NPV   = int(np.average(df['Estimations']))
+    NPV_difference = "$" + str('{:0,.0f}'.format(abs(simulation_NPV - estimate_NPV)))
+    midway = 0.5 * abs(simulation_NPV - estimate_NPV) + min(simulation_NPV, estimate_NPV)
+
+    # Create distplot with curve_type set to 'normal'
+    fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)', 'rgb(214, 39, 40)'])
+
+    fig['layout'].update(
+        xaxis=dict(
+            title='Project NPV',
+            tickprefix='$'
+        ),
+        yaxis=dict(
+            title='Probability distribution (%)',
+            autorange=True,
+            showgrid=True,
+            zeroline=True,
+            showline=True,
+            ticks='',
+            showticklabels=False
+        ),
+        legend=dict(
+                x=0.78,
+                y=1),
+        annotations=[
+            dict(
+                x=0.5,
+                y=1.25,
+                showarrow=False,
+                text='Assessing the design method',
+                xref='paper',
+                yref='paper',
+                font=dict(
+                    size=16)
+            ),
+            dict(
+                x=midway,
+                y=0.65,
+                showarrow=False,
+                text=u'Δ ' + str(NPV_difference),
+                yref='paper',
+                font=dict(
+                    size=13)
+            ),
+            dict(
+                x=simulation_NPV*0.98,
+                y=0.47,
+                showarrow=False,
+                text='Average realized<br>value',
+                xanchor = 'right',
+                yref='paper',
+                font=dict(
+                    size=13,
+                    color='rgba(55, 83, 109, 1)')
+            ),
+            dict(
+                x=estimate_NPV*1.02,
+                y=0.47,
+                showarrow=False,
+                text='Estimated<br>value',
+                xanchor = 'left',
+                yref='paper',
+                font=dict(
+                    size=13,
+                    color='rgb(214, 39, 40)')
+            ),
+            dict(
+                x=1,
+                y=-0.12,
+                showarrow=False,
+                text='Source: Own work',
+                xref='paper',
+                yref='paper'
+            )],
+        shapes=[dict(type='line',
+                     x0=np.average(df['Simulations']),
+                     y0=0.36,
+                     x1=np.average(df['Simulations']),
+                     y1=0.60,
+                     yref='paper',
+                     line=dict(
+                         color='rgba(55, 83, 109, 1)',
+                         width=2,
+                         dash='dot')
+                    ),
+                dict(type='line',
+                     x0=np.average(df['Simulations']),
+                     y0=0.70,
+                     x1=np.average(df['Simulations']),
+                     y1=1,
+                     yref='paper',
+                     line=dict(
+                         color='rgba(55, 83, 109, 1)',
+                         width=2,
+                         dash='dot')
+                    ),
+                dict(type='line',
+                     x0=np.average(df['Estimations']),
+                     y0=0.36,
+                     x1=np.average(df['Estimations']),
+                     y1=0.60,
+                     yref='paper',
+                     line=dict(
+                         color='rgb(214, 39, 40)',
+                         width=2,
+                         dash='dot')
+                    ),
+                dict(type='line',
+                     x0=np.average(df['Estimations']),
+                     y0=0.70,
+                     x1=np.average(df['Estimations']),
+                     y1=1,
+                     yref='paper',
+                     line=dict(
+                         color='rgb(214, 39, 40)',
+                         width=2,
+                         dash='dot'))]
+    )
+
+    return fig
 

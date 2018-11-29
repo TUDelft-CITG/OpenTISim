@@ -22,9 +22,9 @@ class commodity_properties_mixin(object):
         self.handymax_perc  = handymax_perc
         self.panamax_perc   = panamax_perc
     
-maize_data   = {"commodity_name": 'Maize',    "handling_fee": 3, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 3, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 3, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
+maize_data   = {"commodity_name": 'Maize',    "handling_fee": 8, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 8, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 8, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
 
 
 # In[ ]:
@@ -319,4 +319,84 @@ def vessel_call_calc(vessels, commodities, simulation_window):
         vessels[i].calls = calls
         
     return vessels
+
+
+# # Train class
+
+# In[ ]:
+
+
+# create vessel class **will ultimately be placed in package**
+class train_properties_mixin(object):
+    def __init__(self, wagon_payload, number_of_wagons, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.wagon_payload    = wagon_payload
+        self.number_of_wagons = number_of_wagons 
+        self.prep_time        = 2
+        self.call_size        = wagon_payload * number_of_wagons
+        
+# Initial data set, data from Excel_input.xlsx
+train_data = {"wagon_payload": 30, "number_of_wagons": 40}
+
+
+# In[ ]:
+
+
+class train(train_properties_mixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    # Waiting time factor (E2/E2/n Erlang quing theory using 6th order polynomial regression)
+    def occupancy_to_waitingfactor(self, occupancy, n_stations):
+        x = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        berth1 = [0.055555556,0.125, 0.214285714, 0.333333333, 0.5, 0.75, 1.1667, 2.0, 4.5] 
+        berth2 = [0.0006, 0.0065, 0.0235, 0.0516, 0.1181, 0.2222, 0.4125, 0.83, 2.00]
+        berth3 = [0,0.0011,0.0062,0.0205,0.0512,0.1103,0.2275,0.46,1.2]
+        berth4 = [0,0.0002,0.0019,0.0085,0.0532,0.0639,0.1441,0.33,0.92]
+
+        #Polynomial regression
+        coefficients1 = np.polyfit(x, berth1, 6)
+        coefficients2 = np.polyfit(x, berth2, 6)
+        coefficients3 = np.polyfit(x, berth3, 6)
+        coefficients4 = np.polyfit(x, berth4, 6)
+        
+        #Resulting continuous representation
+        def berth1_trend(occupancy):
+            return (coefficients1[0]*occupancy**6+coefficients1[1]*occupancy**5+coefficients1[2]*occupancy**4+
+                    coefficients1[3]*occupancy**3+coefficients1[4]*occupancy**2+coefficients1[5]*occupancy+coefficients1[6])
+
+        def berth2_trend(occupancy):
+            return (coefficients2[0]*occupancy**6+coefficients2[1]*occupancy**5+coefficients2[2]*occupancy**4+
+                    coefficients2[3]*occupancy**3+coefficients2[4]*occupancy**2+coefficients2[5]*occupancy+coefficients2[6])
+
+        def berth3_trend(occupancy):
+            return (coefficients3[0]*occupancy**6+coefficients3[1]*occupancy**5+coefficients3[2]*occupancy**4+
+                    coefficients3[3]*occupancy**3+coefficients3[4]*occupancy**3+coefficients3[5]*occupancy+coefficients3[6])
+
+        def berth4_trend(occupancy):
+            return (coefficients4[0]*occupancy**6+coefficients4[1]*occupancy**5+coefficients4[2]*occupancy**4+
+                    coefficients4[3]*occupancy**3+coefficients4[4]*occupancy**4+coefficients4[5]*occupancy+coefficients4[6])
+        
+        x = occupancy*100
+        if n_stations == 1:
+            return max(0, berth1_trend(x))
+        if n_stations == 2:
+            return max(0, berth2_trend(x))
+        if n_stations == 3:
+            return max(0, berth3_trend(x))
+        if n_stations == 4:
+            return max(0, berth4_trend(x))
+        
+    # Waiting time factor (E2/E2/n Erlang quing theory using 6th order polynomial regression)  
+    def waitingfactor_to_occupancy(self, factor, n_stations):
+        factor = factor * 100
+        if n_stations == 1:
+            return max(1,(19.462 * np.log(factor) - 25.505))/100
+        if n_stations == 2:
+            return max(1,(14.091 * np.log(factor) + 16.509))/100
+        if n_stations == 3:
+            return max(1,(12.625 * np.log(factor) + 30.298))/100
+        if n_stations == 4:
+            return max(1,(11.296 * np.log(factor) + 38.548))/100
 
