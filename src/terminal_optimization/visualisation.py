@@ -1879,12 +1879,12 @@ def asset_trajectory(terminal, simulation_window, start_year):
     return
 
 
-# # Estimate project value
+# # Estimate or simulate project value
 
 # In[ ]:
 
 
-def NPV_estimation(iterations):
+def NPV_distribution_designs(iterations):
 
     NPV_matrix = np.zeros(shape=(len(iterations), 2))
 
@@ -1894,23 +1894,22 @@ def NPV_estimation(iterations):
 
     for i in range (len(iterations)):
 
-        terminal = iterations[i]
-        NPV = terminal.NPV
-
         # Iteration (Column 0)
         iteration = i 
         NPV_matrix[i,0] = iteration
         # NPV (Column 1)
-        NPV_matrix[i,1] = NPV
+        NPV_matrix[i,1] = iterations[i].NPV
 
     df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV'])
-
+    
+    print (df['NPV'])
+    
     # Add histogram data
     hist_data = [df['NPV']]
     group_labels = ['Terminal designs based<br>on traffic projections']
     
     NPV_estimation = np.average(df['NPV'])
-    estimated_NPV = "$" + str('{:0,.0f}'.format(NPV_estimation))
+    estimated_NPV = "$" + str('{:0,.0f}'.format(np.average(df['NPV'])))
 
     # Create distplot with curve_type set to 'normal'
     fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)'])
@@ -1937,7 +1936,7 @@ def NPV_estimation(iterations):
                 x=0.5,
                 y=1.25,
                 showarrow=False,
-                text='Project value of the various designs using<br>the current performance method',
+                text='Project value of the various designs',
                 xref='paper',
                 yref='paper',
                 font=dict(
@@ -1947,7 +1946,7 @@ def NPV_estimation(iterations):
                 x=np.median(df['NPV']),
                 y=0.55,
                 showarrow=False,
-                text='Estimated project value<br>' + str(estimated_NPV),
+                text='Average project value<br>' + str("$" + str('{:0,.0f}'.format(np.average(df['NPV'])))),
                 yref='paper',
                 font=dict(
                     size=13)
@@ -1982,7 +1981,7 @@ def NPV_estimation(iterations):
                          dash='dot'))]
 )
 
-    return fig, NPV_estimation
+    return fig
 
 
 # # Evaluate financial performance
@@ -1990,7 +1989,7 @@ def NPV_estimation(iterations):
 # In[ ]:
 
 
-def NPV_evaluation(iterations, NPV_estimation):
+def NPV_evaluation(chosen_method, iterations, NPV_estimation):
 
     NPV_matrix = np.zeros(shape=(len(iterations), 2))
 
@@ -2006,7 +2005,7 @@ def NPV_evaluation(iterations, NPV_estimation):
         # Iteration (Column 0)
         iteration = i 
         NPV_matrix[i,0] = iteration
-        # NPV (Column 1)
+        # Estimated NPV (Column 1)
         NPV_matrix[i,1] = NPV
 
     df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV'])
@@ -2099,7 +2098,7 @@ def NPV_evaluation(iterations, NPV_estimation):
 # In[ ]:
 
 
-def method_evaluation(estimate_designs, evaluate_designs):
+def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
 
     NPV_matrix = np.zeros(shape=(len(evaluate_designs), 3))
 
@@ -2107,10 +2106,13 @@ def method_evaluation(estimate_designs, evaluate_designs):
     # For each run, register the terminal's NPV 
     ############################################################################################################
 
-    for i in range (len(estimate_designs)):
+    for i in range (len(evaluate_designs)):
 
         simulation_NPV = evaluate_designs[i].NPV
-        estimate_NPV = estimate_designs[i].NPV
+        if chosen_method == 'Perfect foresight method':
+            estimate_NPV = estimate_designs[0].NPV
+        else:
+            estimate_NPV = estimate_designs[i].NPV
 
         # Iteration (Column 0)
         iteration = i 
@@ -2121,11 +2123,17 @@ def method_evaluation(estimate_designs, evaluate_designs):
         NPV_matrix[i,2] = estimate_NPV
 
     df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'Simulations', 'Estimations'])
-
-    # Add histogram data
-    hist_data = [df['Simulations'], df['Estimations']]
-    group_labels = ['Terminal designs based<br>on traffic simulations',
-                    'Terminal designs based<br>on traffic projections']
+    
+    if chosen_method == 'Perfect foresight method':
+        # Add histogram data
+        hist_data    = [df['Simulations']]
+        group_labels = ['Terminal designs based on<br>ex-post traffic simulations']
+        
+    else:
+        # Add histogram data
+        hist_data = [df['Simulations'], df['Estimations']]
+        group_labels = ['Terminal designs based on<br>ex-post traffic simulations',
+                        'Terminal designs based on<br>ex-ante traffic projections']
 
     simulation_NPV = int(np.average(df['Simulations']))
     estimate_NPV   = int(np.average(df['Estimations']))

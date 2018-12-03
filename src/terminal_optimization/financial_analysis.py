@@ -32,8 +32,14 @@ class throughput_class():
         soybean_demand = commodities[1].demand[timestep]
         wheat_demand   = commodities[2].demand[timestep]
         demand         = maize_demand + soybean_demand + wheat_demand
+             
+        online_berths = []
+        for i in range(len(berths)):
+            if berths[i].online_date <= year:
+                online_berths.append(1)
+        online_berths = np.sum(online_berths)
         
-        if berths[0].online == 0:
+        if online_berths == 0:
             self.capacity = 0
         else:
         
@@ -42,11 +48,11 @@ class throughput_class():
             ###############################################################################################
 
             # Allowable waiting time to berth occupancy
-            max_occupancy = berths[0].waitingfactor_to_occupancy(terminal.allowable_vessel_waiting_time, berths[0].online)
+            max_occupancy = berths[0].waitingfactor_to_occupancy(terminal.allowable_vessel_waiting_time, online_berths)
 
             # Effective service time per berth
             max_berth_time = int(operational_hours * max_occupancy - (vessels[0].mooring_time * demand/ 
-                                                                     (berths[0].online * vessels[2].call_size)))
+                                                                     (online_berths * vessels[2].call_size)))
             
             # Effective service rate per berth
             berth_service_rate = []
@@ -63,7 +69,7 @@ class throughput_class():
 
             # Quay capacity
             quay_capacity = []
-            for i in range (berths[0].online):
+            for i in range (online_berths):
                 quay_capacity.append(berths[i].capacity)
             self.quay_capacity = np.sum(quay_capacity)
 
@@ -283,7 +289,7 @@ class capex_class(capex_properties_mixin):
         
         # Capex associated with the silos
         if len(storage[0]) != 0 and storage[0][0].delta != 0:
-            silo         = terminal.storage[0][0]
+            silo         = terminal.storage[0][-1]
             delta        = silo.delta
             unit_rate    = silo.unit_rate
             mobilisation = delta * unit_rate * silo.mobilisation_perc
@@ -576,9 +582,10 @@ class energy_class(energy_properties_mixin):
         crane_energy = []
         for i in range (4):
             for j in range (len(cranes[i])):
-                if cranes[i][j].online_date <= year and 'occupancy' in dir(cranes[i][j]):
+                if cranes[i][j].online_date <= year:
+                    berth_nr = cranes[i][j].berth
                     consumption = cranes[i][j].consumption
-                    occupancy = berths[0].occupancy
+                    occupancy = berths[berth_nr-1].info[-1:]['Occupancy']
                     hours = operational_hours * occupancy
                     crane_energy.append(consumption * hours)
         self.cranes = int(np.sum(crane_energy) * self.price)
@@ -599,7 +606,7 @@ class energy_class(energy_properties_mixin):
         for i in range(len(stations)):
             if stations[i].online_date <= year:
                 consumption = stations[i].consumption
-                hours       = operational_hours * stations[i].occupancy
+                hours       = operational_hours * stations[i].info[-1:]['Occupancy']
                 station_energy.append(consumption * hours)
         self.stations = int(np.sum(station_energy) * self.price)
         
@@ -608,18 +615,26 @@ class energy_class(energy_properties_mixin):
         if 'occupancy' in dir(berths[0]):
             berth_occupancy = []
             for i in range (len(berths)):
-                berth_occupancy.append(berths[i].occupancy)
+                berth_occupancy.append(berths[i].info[-1:]['Occupancy'])
                 occupancy = np.average(berth_occupancy)
         for i in range(len(q_conveyors)):
-            if q_conveyors[i].online_date <= year and 'occupancy' in dir(berths[0]):
+            if q_conveyors[i].online_date <= year:
                 consumption = q_conveyors[i].capacity * q_conveyors[i].consumption_coefficient + q_conveyors[i].consumption_constant
                 hours       = operational_hours * occupancy
                 usage       = consumption * hours
                 conveyor_energy.append(usage)
+        station_occupancy = []
+        for i in range (len(stations)):
+            if stations[i].online_date <= year:
+                station_occupancy.append(stations[i].info[-1:]['Occupancy'])
+        if np.sum(station_occupancy) != 0:
+            occupancy = np.average(station_occupancy)
+        else:
+            occupancy = 0
         for i in range(len(h_conveyors)):
             if h_conveyors[i].online_date <= year:
                 consumption = h_conveyors[i].capacity * h_conveyors[i].consumption_coefficient + h_conveyors[i].consumption_constant
-                hours       = operational_hours * stations[0].utilisation
+                hours       = operational_hours * occupancy
                 usage       = consumption * hours
                 conveyor_energy.append(usage)
         self.conveyors = int(np.sum(conveyor_energy) * self.price)
@@ -806,47 +821,122 @@ class demurrage_class(demurrage_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
        
-    def calc(self, berths, vessels, timestep):
+    def calc(self, berths, cranes, commodities, vessels, operational_hours, timestep, year):
         
-        if berths[0].online == 0:
-            self.total = 0
-        else:
-            # Calculate berth unloading rate and occupancy
-            online = berths[0].online
-            costs = []
-            for i in range (online):
-                occupancy     = berths[i].occupancy
-                service_rate  = berths[i].online_service_rate 
-                traffic_ratio = berths[i].traffic_ratio   
-            
-                # Calculate total time at port
-                factor = berths[0].occupancy_to_waitingfactor(occupancy, online)
-                vessel_specific_costs = []
-                for j in range (3):
-                    service_time   = vessels[j].call_size/service_rate
-                    mooring_time   = vessels[j].mooring_time
-                    waiting_time   = factor * service_time
-                    berth_time     = service_time + mooring_time 
-                    port_time      = berth_time + waiting_time
-                    penalty_time   = max(0, port_time - vessels[j].all_turn_time)
-                    n_calls        = vessels[j].calls[timestep] * traffic_ratio
-                    demurrage_time = penalty_time * n_calls
-                    demurrage_cost = demurrage_time * vessels[j].demurrage_rate
-                    vessel_specific_costs.append(demurrage_cost)
-                    costs.append(np.sum(vessel_specific_costs))
+        # Calculate demand and resulting number of vessel calls
+        demand = commodities[0].demand[len(commodities[0].historic) + timestep]
+        
+        for i in range (3):
+            if i == 0:
+                percentage = commodities[0].handysize_perc/100
+            if i == 1:
+                percentage = commodities[0].handymax_perc/100
+            if i == 2:
+                percentage = commodities[0].panamax_perc/100  
+            vessels[i].n_calls = demand * percentage / vessels[i].call_size
+        
+        # Number of online berths
+        online_berths = []
+        for i in range(len(berths)):
+            if berths[i].online_date <= year:
+                online_berths.append(1)
+        online_berths = np.sum(online_berths)
+        
+        if online_berths == 0:
+            total_costs = 0
 
-            self.total = np.sum(costs)
+        else:
+        
+            # Determine the unloading capacity of each berth
+            berth_service_rate = []
+            for i in range (online_berths):
+                service_rate = []
+                for j in range(4):
+                    for k in range(len(cranes[j])):
+                        if cranes[j][k].berth == i+1 and cranes[j][k].online_date <= year:
+                            service_rate.append(cranes[j][k].effective_capacity)                  
+                berth_service_rate.append(int(np.sum(service_rate)))
+            total_service_rate = np.sum(berth_service_rate)
+
+            # Traffic distribution according to ratio service rate of each berth
+            traffic_ratio = []
+            for i in range (online_berths):
+                traffic_ratio.append(berth_service_rate[i]/total_service_rate)
+
+            # Determine total time that vessels are at each berth
+            occupancy = []
+            service_times = []
+            for i in range (online_berths):            
+                berth_time = []
+                for j in range (3):
+                    calls          = vessels[j].n_calls * traffic_ratio[i]
+                    service_time   = vessels[j].call_size / berth_service_rate[i]
+                    mooring_time   = vessels[j].mooring_time
+                    time_at_berth  = service_time + mooring_time
+                    berth_time.append(time_at_berth * calls)
+                berth_time = np.sum(berth_time)
+                service_times.append(service_time)
+                occupancy.append(berth_time / operational_hours)
+
+            # Determine the waiting time of each vessel type and the resulting demurrage cost
+            demurrage_costs = []
+            for i in range (3):                    
+                for j in range (online_berths):    
+                    factor         = berths[0].occupancy_to_waitingfactor(occupancy[j], online_berths)                
+                    calls          = vessels[i].n_calls * traffic_ratio[j]
+                    mooring_time   = vessels[i].mooring_time
+                    service_time   = vessels[i].call_size / berth_service_rate[j]
+                    waiting_time   = service_time * factor
+                    port_time      = service_time + mooring_time + waiting_time
+                    penalty_time   = max(0, port_time - vessels[i].all_turn_time)
+                    demurrage_time = penalty_time * calls
+                    demurrage_cost = demurrage_time * vessels[i].demurrage_rate
+                    demurrage_costs.append(demurrage_cost)
+                    
+                    # Register demurrage costs under the vessel class per berth
+                    matrix = np.zeros(shape=(1, 10))
+                    # Year
+                    matrix[-1,0] = int(year)
+                    # Berth nr
+                    matrix[-1,1] = int(j+1)
+                    # Vessel calls
+                    matrix[-1,2] = int(calls)
+                    # Service time
+                    matrix[-1,3] = round(service_time,2)
+                    # Waiting factor
+                    matrix[-1,4] = round(factor,2)
+                    # Waiting time 
+                    matrix[-1,5] = round(waiting_time,2)
+                    # Port time 
+                    matrix[-1,6] = round(port_time,2)
+                    # Penalty time
+                    matrix[-1,7] = round(penalty_time,2)
+                    # Demurrage costs
+                    matrix[-1,8] = int(demurrage_cost)
+                    # Occupancy
+                    matrix[-1,8] = int(demurrage_cost)
+                    # Translate to dataframe
+                    df = pd.DataFrame(matrix, columns=['Year', 'Berth nr.', 'Vessel calls', 'Service time', 'Waiting factor', 'Waiting time', 'Total port time', 'Penalty time', 'Demurrage costs', 'Occupancy'])
+                    # Register under vessel class
+                    if 'demurrage_info' in dir(vessels[i]):
+                        vessels[i].demurrage_info = vessels[i].demurrage_info.append(df)
+                    if 'demurrage_info' not in dir(vessels[i]):
+                        vessels[i].demurrage_info = df
+
+            total_costs = np.sum(demurrage_costs)
+
+        return total_costs, vessels
 
 
 # In[ ]:
 
 
-def demurrage_calc(demurrage, berths, vessels, year, timestep):
+def demurrage_calc(demurrage, berths, cranes, commodities, vessels, operational_hours, timestep, year):
     demurrage.append(demurrage_class())
-    index = len(demurrage)-1
-    demurrage[index].year = year
-    demurrage[index].calc(berths, vessels, timestep)
-    return demurrage
+    cashflow = demurrage[-1]
+    cashflow.year = year
+    cashflow.total, vessels = cashflow.calc(berths, cranes, commodities, vessels, operational_hours, timestep, year)
+    return demurrage, vessels
 
 
 # ### Residual values

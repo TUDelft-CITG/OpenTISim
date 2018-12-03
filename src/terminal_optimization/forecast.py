@@ -48,9 +48,9 @@ class bulk_commodities(commodity_properties_mixin):
         self.years  = t
         self.demand = d
         
-    def random_scenario(self, year, window, historic_demand, rate, mu, sigma):
+    def random_scenario(self, year, window, historic_demand, rate, sigma):
         scenario = create_scenario(year, window, historic_demand)
-        t, d = scenario.random(rate, mu, sigma)
+        t, d = scenario.random(rate, sigma)
         self.years  = t
         self.demand = d
         
@@ -120,7 +120,7 @@ class create_scenario:
             demand = demand * rate    
         return t, d
     
-    def random(self, rate, mu, sigma):
+    def random(self, rate, sigma):
         """trend generated from random growth rate increments"""
         # package(s) used for probability
         years  = range(self.year, self.year + self.window)
@@ -138,8 +138,8 @@ class create_scenario:
         for year in years:
             t.append(int(year))
             d.append(int(demand))
-            change = np.random.normal(mu, sigma, 1000)
-            new_rate = rate + change[0]
+            change = np.random.normal(rate, sigma, 1000)
+            new_rate = change[0]
             demand = demand * new_rate  
         return t, d
     
@@ -163,96 +163,80 @@ class create_scenario:
 
 
 # # Forecast generator
+# - Perfect foresight method 
+# - Current performance method
 
-# In[ ]:
+# In[2]:
 
 
-class create_forecast:
+def forecaster(forecast_type, commodities, forecast_t, hindcast_t, timestep):
+    
+    maize = commodities[0]
+    index = len(maize.historic) + timestep
 
-    def __init__(self, commodities, foresight, hindsight, timestep, year):
-        """initialization"""
-        self.foresight = foresight
-        self.hindsight = hindsight
-        self.year      = year
+    # Forecast and hindcast data
+    hindcast_volumes = maize.demand[index-hindcast_t:index+1]
+    hindcast_years   = maize.years[index-hindcast_t:index+1]
+    forecast_years   = maize.years[index:index+forecast_t+1]
 
+    # Create forecast (linear approach)
+    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 1)
+    trendline = []
+    for t in forecast_years:
+        if t == forecast_years[0]:
+            trendline.append(maize.demand[index])
+        else:
+            trendline.append(int(coefficients[0]*t + coefficients[1]))
+    forecastlinear = trendline
+
+    # Create 2nd order polynomial trendline
+    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 2)
+    trendline = []
+    for t in forecast_years:
+        if t == forecast_years[0]:
+            trendline.append(maize.demand[index])
+        else:
+            trendline.append(int(coefficients[0]*t**2 + coefficients[1]*t + coefficients[2]))
+    forecastpoly2 = trendline
+
+    # Create 3rd order polynomial trendline
+    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 3)
+    trendline = []
+    for t in forecast_years:
+        if t == forecast_years[0]:
+            trendline.append(maize.demand[index])
+        else:
+            trendline.append(int(coefficients[0]*t**3 + coefficients[1]*t**2 + coefficients[2]*t + coefficients[3]))
+    forecastpoly3 = trendline
+
+    # Create 4th order polynomial trendline
+    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 4)
+    trendline = []
+    for t in forecast_years:
+        if t == forecast_years[0]:
+            trendline.append(maize.demand[index])
+        else:
+            trendline.append(int(coefficients[0]*t**4 + coefficients[1]*t**3 + coefficients[2]*t**2 + coefficients[3]*t + coefficients[4]))
+    forecastpoly4 = trendline
+    
+    # When assuming perfect foresight, the forecast is identical to the guaranteed future traffic volumes
+    if forecast_type == 'Perfect foresight method':
+        maize.forecast = maize.demand[index:index+forecast_t+1]
         
-        foresight = 5
-        hindsight = 5
-        year = 2030
-        start_year = 2018
-        timestep = year - start_year
+    else:
+        # Choose trendline type 
+        maize.forecast = forecastpoly4
 
-        # List historic demand
-        if self.hindsight > len(commodities[0].years[timestep-self.hindsight:timestep]):
-            self.hindsight = len(commodities[0].years[timestep-self.hindsight:timestep])
-        historic_years = commodities[0].years[timestep-self.hindsight:timestep]
-        historic_data = []
-        for i in range (len(commodities)):
-            historic_data.append(commodities[i].demand[timestep-self.hindsight:timestep])
-
-        # Create linear trendline
-        #trendlines = []
-        #trendline_years = range (historic_years[0], historic_years[-1]+self.foresight+1, 1)
-        #for i in range (len(commodities)):
-        #    coefficients = np.polyfit(historic_years, historic_data[i], 1)
-        #    trendline = []
-        #    for t in trendline_years:
-        #        trendline.append(int(t*coefficients[0] + coefficients[1]))
-        #   trendlines.append(trendline)
-
-        # Create 2nd order polynomial trendline
-        trendlines = []
-        trendline_years = range (historic_years[0], historic_years[-1]+self.foresight+1)
-        for i in range (len(commodities)):
-            coefficients = np.polyfit(historic_years, historic_data[i], 2)
-            trendline = []
-            for t in trendline_years:
-                trendline.append(z[0]*t**2+z[1]*t+z[2])
-            trendlines.append(trendline)
+    # Log forecats
+    if timestep == 0:
+        maize.forecastlog = []
+        maize.forecastyears = []
+    maize.forecastlog.append(maize.forecast[-1])
+    maize.forecastyears.append(forecast_years[-1])
     
+    commodities[0] = maize
     
-    
-        
-    def create_trendline(self):
-        """trend generated from constant growth increments"""
-        years  = range(self.year, self.year + self.window)
-        demand = self.demand
-        t = []
-        d = []
-        for year in years:
-            t.append(year)
-            d.append(demand)
-            demand = demand + growth    
-        return t, d
-    
-    def constant(self, rate):
-        """trend generated from constant growth rate increments"""
-        years  = range(self.year, self.year + self.window)
-        demand = self.demand
-        t = []
-        d = []
-        for year in years:
-            t.append(year)
-            d.append(demand)
-            demand = demand * rate    
-        return t, d
-    
-    def random(self, rate, mu, sigma):
-        """trend generated from random growth rate increments"""
-        # package(s) used for probability
-        years  = range(self.year, self.year + self.window)
-        demand = self.demand
-        rate   = rate
-        t = []
-        d = []
-        for year in years:
-            t.append(year)
-            d.append(demand)
-            
-            change = np.random.normal(mu, sigma, 1000)
-            new_rate = rate + change[0]
-            demand = demand * new_rate  
-        return t, d
+    return commodities
 
 
 # # Vessel classes
@@ -278,7 +262,7 @@ class vessel_properties_mixin(object):
 # Initial data set, data from Excel_input.xlsx
 handysize_data = {"vessel_type": 'Handysize', "call_size": 35000, 
                   "LOA": 130, "draft": 10, "beam": 24, "max_cranes": 2, 
-                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 600}
+                  "all_turn_time": 10, "mooring_time": 3, "demurrage_rate": 600}
 
 handymax_data = {"vessel_type": 'Handymax', "call_size": 50000, 
                   "LOA": 180, "draft": 11.5, "beam": 28, "max_cranes": 2, 
@@ -298,7 +282,7 @@ class vessel(vessel_properties_mixin):
         pass
 
 
-# In[ ]:
+# In[1]:
 
 
 def vessel_call_calc(vessels, commodities, simulation_window):
@@ -316,6 +300,28 @@ def vessel_call_calc(vessels, commodities, simulation_window):
                     percentage = commodities[j].panamax_perc/100  
                 commodity_specific_demand.append(commodities[j].demand[t] * percentage)
             calls.append(int(np.ceil(np.sum(commodity_specific_demand)/vessels[i].call_size)))
+        vessels[i].calls = calls
+        
+    return vessels
+
+
+# In[ ]:
+
+
+def forecast_call_calc(vessels, commodities, simulation_window):
+    
+    for i in range (len(vessels)):
+        calls = []
+        for t in range(simulation_window):
+            if i == 0:
+                percentage = commodities[0].handysize_perc/100
+            if i == 1:
+                percentage = commodities[0].handymax_perc/100
+            if i == 2:
+                percentage = commodities[0].panamax_perc/100 
+        
+            calls.append(int(np.ceil(np.sum(commodities[0].forecast[-1]/vessels[i].call_size))))
+            
         vessels[i].calls = calls
         
     return vessels
