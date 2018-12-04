@@ -47,6 +47,98 @@ class throughput_class():
             # Calculate quay capacity
             ###############################################################################################
 
+            quay_capacity = []
+            for i in range(online_berths):
+                quay_capacity.append(int(berths[i].info[-1:]['Capacity']))
+            self.quay_capacity = np.sum(quay_capacity)
+
+            ###############################################################################################
+            # Calculate storage capacity
+            ###############################################################################################
+
+            storage_capacity = []
+            for i in range(2):
+                for j in range(len(storage[i])):
+                    storage_capacity.append(int(storage[i][j].info[-1:]['Capacity']))
+            self.storage_capacity = np.sum(storage_capacity)   
+
+            ###############################################################################################
+            # Calculate hinterland station capacity
+            ###############################################################################################
+
+            online_stations = []
+            for i in range(len(stations)):
+                if stations[i].online_date <= year:
+                    online_stations.append(1)
+            online_stations = np.sum(online_stations)
+            
+            if online_stations != 0:
+
+                station_capacity = []
+                for i in range(len(stations)):
+                    station_capacity.append(int(stations[i].info[-1:]['Capacity']))
+                self.station_capacity = np.sum(station_capacity)       
+            else:
+                self.station_capacity = 0
+
+            ###############################################################################################
+            # Calculate terminal capacity
+            ###############################################################################################
+
+            self.capacity = int(min(self.quay_capacity, self.storage_capacity, self.station_capacity))
+        
+        ###############################################################################################
+        # Calculate terminal throughput
+        ###############################################################################################
+
+        self.maize_throughput   = min(maize_demand, self.capacity)
+        self.soybean_throughput = min(soybean_demand, self.capacity - self.maize_throughput)
+        self.wheat_throughput   = min(wheat_demand, self.capacity - self.maize_throughput - self.soybean_throughput)
+        
+        return
+
+
+# In[ ]:
+
+
+class throughput_classxx():
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    def calcxx(self, terminal, commodities, vessels, trains, operational_hours, timestep, year):
+
+        berths = terminal.berths
+        cranes = terminal.cranes
+        storage = terminal.storage
+        stations = terminal.stations
+        quay_conveyors = terminal.quay_conveyors
+        hinterland_conveyors = terminal.hinterland_conveyors
+        
+        maize_demand   = commodities[0].demand[timestep]
+        soybean_demand = commodities[1].demand[timestep]
+        wheat_demand   = commodities[2].demand[timestep]
+        demand         = maize_demand + soybean_demand + wheat_demand
+             
+        online_berths = []
+        for i in range(len(berths)):
+            if berths[i].online_date <= year:
+                online_berths.append(1)
+        online_berths = np.sum(online_berths)
+        
+        if online_berths == 0:
+            self.capacity = 0
+        else:
+        
+            ###############################################################################################
+            # Calculate quay capacity
+            ###############################################################################################
+
+            quay_capacity = []
+            for i in range(online_berths):
+                quay_capacity.append(int(berths[i].info[-1:]['Capacity']))
+            quay_capacity = np.sum(quay_capacity)
+            
+            
             # Allowable waiting time to berth occupancy
             max_occupancy = berths[0].waitingfactor_to_occupancy(terminal.allowable_vessel_waiting_time, online_berths)
 
@@ -925,7 +1017,7 @@ class demurrage_class(demurrage_properties_mixin):
 
             total_costs = np.sum(demurrage_costs)
 
-        return total_costs, vessels
+        return total_costs
 
 
 # In[ ]:
@@ -933,10 +1025,9 @@ class demurrage_class(demurrage_properties_mixin):
 
 def demurrage_calc(demurrage, berths, cranes, commodities, vessels, operational_hours, timestep, year):
     demurrage.append(demurrage_class())
-    cashflow = demurrage[-1]
-    cashflow.year = year
-    cashflow.total, vessels = cashflow.calc(berths, cranes, commodities, vessels, operational_hours, timestep, year)
-    return demurrage, vessels
+    demurrage[-1].year = year
+    demurrage[-1].total = demurrage[-1].calc(berths, cranes, commodities, vessels, operational_hours, timestep, year)
+    return demurrage
 
 
 # ### Residual values

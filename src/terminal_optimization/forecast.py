@@ -262,7 +262,7 @@ class vessel_properties_mixin(object):
 # Initial data set, data from Excel_input.xlsx
 handysize_data = {"vessel_type": 'Handysize', "call_size": 35000, 
                   "LOA": 130, "draft": 10, "beam": 24, "max_cranes": 2, 
-                  "all_turn_time": 10, "mooring_time": 3, "demurrage_rate": 600}
+                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 600}
 
 handymax_data = {"vessel_type": 'Handymax', "call_size": 50000, 
                   "LOA": 180, "draft": 11.5, "beam": 28, "max_cranes": 2, 

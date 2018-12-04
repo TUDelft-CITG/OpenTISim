@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import numpy as np
@@ -14,7 +14,7 @@ import terminal_optimization.infrastructure as infra
 # ### 2.1 Quay investment decision
 # In this setup, the decision to expand the quay is based on whether berth expansions are plannen or not. The length of the quay is defined as the sum of the length of the berths 
 
-# In[ ]:
+# In[2]:
 
 
 def quay_invest_decision(quays, berths, year, timestep):
@@ -30,6 +30,7 @@ def quay_invest_decision(quays, berths, year, timestep):
     for i in range(len(quays)):
         quays[i].online_length = int(np.sum(online_length))
         quays[i].offline_length = int(np.sum(offline_length))
+    online_length = int(np.sum(online_length))
 
     # for each time step, decide whether to invest in the quay
     if berths[0].offline != 0:
@@ -62,6 +63,28 @@ def quay_invest_decision(quays, berths, year, timestep):
     else:
         for i in range (len(quays)):
             quays[i].delta = 0
+            
+    for i in range(len(quays)):
+        # Register berth characteristics under the berth instance
+        matrix = np.zeros(shape=(1, 4))
+        # Year
+        matrix[-1,0] = int(round(year))
+        # Length
+        if online_length:
+            matrix[-1,1] = int(round(online_length))
+        else:
+            matrix[-1,1] = 0
+        # Depth
+        matrix[-1,1] = int(round(quays[i].depth))
+        # Freeboard 
+        matrix[-1,2] = int(round(quays[i].freeboard))
+        # Translate to dataframe
+        df = pd.DataFrame(matrix, columns=['Year', 'Quay length', 'Berth depth', 'Freeboard'])
+        # Register under vessel class
+        if 'info' in dir(quays[i]):
+            quays[i].info = quays[i].info.append(df)
+        if 'info' not in dir(quays[i]):
+            quays[i].info = df
     
     return quays
 
@@ -70,13 +93,22 @@ def quay_invest_decision(quays, berths, year, timestep):
 # 
 # Starting with a single berth and asuming that vessels are distributed equally between all berths, the berth occupancy is calculated by combining the combined effective unloading rate of the cranes. If the occupancy is above the set 'allowable berth occupancy' an extra crane is added and the calculation is iterated. If there are not enough slots to harbour an extra crane, an extra berth is added. The length of each berth is related to the maximum LOA expected to call at port
 
-# In[ ]:
+# In[3]:
 
 
 def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waiting_factor, year, timestep, operational_hours):
-
     
-    demand = commodities[0].demand[timestep]
+    # Calculate demand and resulting number of vessel calls
+    demand = commodities[0].demand[len(commodities[0].historic) + timestep]
+
+    for i in range (3):
+        if i == 0:
+            percentage = commodities[0].handysize_perc/100
+        if i == 1:
+            percentage = commodities[0].handymax_perc/100
+        if i == 2:
+            percentage = commodities[0].panamax_perc/100  
+        vessels[i].n_calls = demand * percentage / vessels[i].call_size
     
     # for each time step, check whether pending berths come online
     online = []
@@ -113,30 +145,32 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
             for k in range(len(cranes[j])):
                 if cranes[j][k].berth == i+1:
                     service_rate.append(cranes[j][k].effective_capacity)                  
-        pending_berth_service_rate.append(int(np.sum(service_rate)))
-    total_service_rate = np.sum(pending_berth_service_rate)
+        if service_rate:
+            pending_berth_service_rate.append(int(np.sum(service_rate)))
+    if pending_berth_service_rate:
+        total_service_rate = np.sum(pending_berth_service_rate)
 
     # Traffic distribution according to ratio service rate of each berth
     traffic_ratio = []
-    for i in range (len(berths)):
-        traffic_ratio.append(pending_berth_service_rate[i]/total_service_rate)
+    if pending_berth_service_rate:
+        for i in range (len(pending_berth_service_rate)):
+            traffic_ratio.append(pending_berth_service_rate[i]/total_service_rate)
+    else:
+        traffic_ratio = 0
 
     # Determine total time that vessels are at each berth
     pending_occupancy = []
-    for i in range (len(berths)):            
+    for i in range (len(pending_berth_service_rate)):            
         berth_time = []
-        if pending_berth_service_rate[i] == 0:
-            pending_occupancy.append(0)
-        else:
-            for j in range (3):
-                calls          = vessels[j].calls[timestep] * traffic_ratio[i]
-                service_time   = vessels[j].call_size / pending_berth_service_rate[i]
-                mooring_time   = vessels[j].mooring_time
-                time_at_berth  = service_time + mooring_time
-                berth_time.append(time_at_berth * calls)
-            berth_time = np.sum(berth_time)
-            pending_occupancy.append(berth_time / operational_hours)
-        
+        for j in range (3):
+            calls          = vessels[j].n_calls * traffic_ratio[i]
+            service_time   = vessels[j].call_size / pending_berth_service_rate[i]
+            mooring_time   = vessels[j].mooring_time
+            time_at_berth  = service_time + mooring_time
+            berth_time.append(time_at_berth * calls)
+        berth_time = np.sum(berth_time)
+        pending_occupancy.append(berth_time / operational_hours)
+
     # Determine how many crane slots are available at each berth
     available_slots = []
     for i in range (len(berths)):
@@ -149,20 +183,28 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
         available_slots.append(int(berths[i].max_cranes - used_slots))
 
     # Determine and register new berth characteristics                   
-    for i in range (len(berths)):    
-        berth_occupancy   = pending_occupancy[i]
-        eff_unloading_cap = pending_berth_service_rate[i]
-        waiting_factor    = berths[0].occupancy_to_waitingfactor(berth_occupancy, len(berths))
+    for i in range (len(berths)):
+        if i < len(pending_berth_service_rate):
+            berth_occupancy   = pending_occupancy[i]
+            eff_unloading_cap = pending_berth_service_rate[i]
+            waiting_factor    = berths[i].occupancy_to_waitingfactor(berth_occupancy, len(pending_berth_service_rate))
+        else:
+            berth_occupancy   = 0
+            eff_unloading_cap = 0
+            waiting_factor    = 0
         slots_available   = available_slots[i]
-        
+
         # Register berth characteristics under the berth class
-        matrix = np.zeros(shape=(1, 7))
+        matrix = np.zeros(shape=(1, 8))
         # Year
         matrix[-1,0] = int(year)
         # Commodity demand
         matrix[-1,1] = int(demand)
         # Capcity
-        matrix[-1,2] = 0
+        if online_berths == 0:
+            matrix[-1,2] = 0
+        if online_berths != 0:
+            matrix[-1,2] = int(eff_unloading_cap * operational_hours * berths[0].waitingfactor_to_occupancy(allowable_waiting_factor, online_berths))
         # Occupancy
         matrix[-1,3] = round(berth_occupancy,2)
         # Effective unloading capacity
@@ -171,21 +213,24 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
         matrix[-1,5] = round(waiting_factor,2)
         # Crane slots available
         matrix[-1,6] = slots_available
+        # Number of berths
+        matrix[-1,7] = len(berths)
         # Translate to dataframe
-        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Capacity', 'Occupancy', 'Eff unloading capacity', 'Waiting factor', 'Available crane slots'])
-        # Register under vessel class
+        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Capacity', 'Occupancy', 'Eff unloading capacity', 'Waiting factor', 'Available crane slots', 'Nr of berths'])
+        # Register under berth instance
         if 'info' in dir(berths[i]):
-            berths[i].info = berths[i].info.append(df)
+            if int(berths[i].info[-1:]['Year']) == year:
+                berths[i].info[-1:].update(df)
+            else:
+                berths[i].info = berths[i].info.append(df, sort=False)
         if 'info' not in dir(berths[i]):
-            berths[i].info = df
+            berths[i].info = df  
             
     waiting_factors = []
     for i in range (len(berths)):
         waiting_factors.append(int(100*berths[i].info[-1:]['Waiting factor']))
-    if np.sum(waiting_factors) != 0:
+    if waiting_factors:
         max_waiting_factor = max(waiting_factors)/100
-    if np.sum(waiting_factors) == 0:
-        max_waiting_factor = 100
             
     # for each time step, decide whether to invest in the quay side
     if len(berths) == 0 or max_waiting_factor > allowable_waiting_factor:
@@ -194,14 +239,13 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
         invest_decision = 'Do not invest in berths or cranes'
     
     # If investments are needed, calculate how much cranes should be added and whether an extra berth should be added
+    berths_added          = []
+    gantry_cranes_added   = []
+    harbour_cranes_added  = []
+    mobile_cranes_added   = []
+    screw_unloaders_added = []
+    
     if invest_decision == 'Invest in berths or cranes':
-        print ('year:', year)
-        print (invest_decision)
-        berths_added          = []
-        gantry_cranes_added   = []
-        harbour_cranes_added  = []
-        mobile_cranes_added   = []
-        screw_unloaders_added = []
                 
         # Add cranes untill berth occupancy is sufficiently reduced
         max_iterations = 10
@@ -218,10 +262,6 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                 berths[-1].purchase_date = year
                 berths[-1].online_date = year + berths[0].delivery_time
                 berths[-1].remaining_calcs(berths, vessels, timestep)
-                
-            print ('iteration', iteration)
-            print ('nr of berths:', len(berths))
-            print ('number of slots available!!', available_slots)
             
             # Determine the unloading capacity of each berth (including upcoming berths)
             pending_berth_service_rate = []
@@ -231,29 +271,34 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                     for k in range(len(cranes[j])):
                         if cranes[j][k].berth == i+1:
                             service_rate.append(cranes[j][k].effective_capacity)                  
-                pending_berth_service_rate.append(int(np.sum(service_rate)))
-            total_service_rate = np.sum(pending_berth_service_rate)
+                if service_rate:
+                    pending_berth_service_rate.append(int(np.sum(service_rate)))
+            if pending_berth_service_rate:
+                total_service_rate = np.sum(pending_berth_service_rate)
 
             # Traffic distribution according to ratio service rate of each berth
             traffic_ratio = []
-            for i in range (len(berths)):
-                traffic_ratio.append(pending_berth_service_rate[i]/total_service_rate)
+            if pending_berth_service_rate:
+                for i in range (len(pending_berth_service_rate)):
+                    traffic_ratio.append(pending_berth_service_rate[i]/total_service_rate)
+            else:
+                traffic_ratio = 0
 
             # Determine total time that vessels are at each berth
             pending_occupancy = []
             for i in range (len(berths)):            
                 berth_time = []
-                if pending_berth_service_rate[i] == 0:
-                    pending_occupancy.append(0)
-                else:
+                if pending_berth_service_rate:
                     for j in range (3):
-                        calls          = vessels[j].calls[timestep] * traffic_ratio[i]
+                        calls          = vessels[j].n_calls * traffic_ratio[i]
                         service_time   = vessels[j].call_size / pending_berth_service_rate[i]
                         mooring_time   = vessels[j].mooring_time
                         time_at_berth  = service_time + mooring_time
                         berth_time.append(time_at_berth * calls)
                     berth_time = np.sum(berth_time)
                     pending_occupancy.append(berth_time / operational_hours)
+                else:
+                    pending_occupancy.append(0)
 
             # Determine how many crane slots are available at each berth
             available_slots = []
@@ -269,18 +314,25 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
             # Determine and register new berth characteristics                   
             for i in range (len(berths)):    
                 berth_occupancy   = pending_occupancy[i]
-                eff_unloading_cap = pending_berth_service_rate[i]
+                if pending_berth_service_rate:
+                    eff_unloading_cap = pending_berth_service_rate[i]
+                else:
+                    eff_unloading_cap = 0
                 waiting_factor    = berths[0].occupancy_to_waitingfactor(berth_occupancy, len(berths))
                 slots_available   = available_slots[i]
 
                 # Register berth characteristics under the berth class
+                sort=False
                 matrix = np.zeros(shape=(1, 7))
                 # Year
                 matrix[-1,0] = int(year)
                 # Commodity demand
                 matrix[-1,1] = int(demand)
                 # Capcity
-                matrix[-1,2] = 0
+                if online_berths == 0:
+                    matrix[-1,2] = 0
+                if online_berths != 0:
+                    matrix[-1,2] = int(eff_unloading_cap * operational_hours * berths[0].waitingfactor_to_occupancy(allowable_waiting_factor, online_berths))
                 # Occupancy
                 matrix[-1,3] = round(berth_occupancy,2)
                 # Effective unloading capacity
@@ -294,9 +346,10 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                 # Register under berth instance
                 if 'info' in dir(berths[i]):
                     if int(berths[i].info[-1:]['Year']) == year:
+                        berths[i].info = berths[i].info.iloc[:, ::-1]
                         berths[i].info[-1:].update(df)
                     else:
-                        berths[i].info = berths[i].info.append(df)
+                        berths[i].info = berths[i].info.append(df, sort=False)
                 if 'info' not in dir(berths[i]):
                     berths[i].info = df
             
@@ -351,24 +404,27 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
 
             # Traffic distribution according to ratio service rate of each berth
             traffic_ratio = []
-            for i in range (len(berths)):
-                traffic_ratio.append(pending_berth_service_rate[i]/total_service_rate)
+            if pending_berth_service_rate:
+                for i in range (len(pending_berth_service_rate)):
+                    traffic_ratio.append(pending_berth_service_rate[i]/total_service_rate)
+            else:
+                traffic_ratio = 0
 
             # Determine total time that vessels are at each berth
             pending_occupancy = []
             for i in range (len(berths)):            
                 berth_time = []
-                if pending_berth_service_rate[i] == 0:
-                    pending_occupancy.append(0)
-                else:
+                if pending_berth_service_rate:
                     for j in range (3):
-                        calls          = vessels[j].calls[timestep] * traffic_ratio[i]
+                        calls          = vessels[j].n_calls * traffic_ratio[i]
                         service_time   = vessels[j].call_size / pending_berth_service_rate[i]
                         mooring_time   = vessels[j].mooring_time
                         time_at_berth  = service_time + mooring_time
                         berth_time.append(time_at_berth * calls)
                     berth_time = np.sum(berth_time)
                     pending_occupancy.append(berth_time / operational_hours)
+                else:
+                     pending_occupancy.append(0)
 
             # Determine how many crane slots are available at each berth
             available_slots = []
@@ -384,22 +440,23 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
             # Determine and register new berth characteristics                   
             for i in range (len(berths)):    
                 berth_occupancy   = pending_occupancy[i]
-                eff_unloading_cap = pending_berth_service_rate[i]
-                waiting_factor    = berths[0].occupancy_to_waitingfactor(berth_occupancy, len(berths))
+                if pending_berth_service_rate:
+                    eff_unloading_cap = pending_berth_service_rate[i]
+                else:
+                    eff_unloading_cap = 0
+                waiting_factor    = berths[i].occupancy_to_waitingfactor(berth_occupancy, len(berths))
                 slots_available   = available_slots[i]
                 max_occupancy     = berths[0].occupancy_to_waitingfactor(berth_occupancy, len(berths))
 
                 # Register berth characteristics under the berth instance
+                sort=False
                 matrix = np.zeros(shape=(1, 7))
                 # Year
                 matrix[-1,0] = int(year)
                 # Commodity demand
                 matrix[-1,1] = int(demand)
                 # Capcity
-                if online_berths == 0:
-                    matrix[-1,2] = 0
-                if online_berths != 0:
-                    matrix[-1,2] = int(eff_unloading_cap * operational_hours * berths[0].waitingfactor_to_occupancy(allowable_waiting_factor, online_berths))
+                matrix[-1,2] = 0
                 # Occupancy
                 matrix[-1,3] = round(berth_occupancy,2)
                 # Effective unloading capacity
@@ -413,11 +470,12 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                 # Register under vessel class
                 if 'info' in dir(berths[i]):
                     if int(berths[i].info[-1:]['Year']) == year:
+                        berths[i].info = berths[i].info.iloc[:, ::-1]
                         berths[i].info[-1:].update(df)
                     else:
-                        berths[i].info = berths[i].info.append(df)
+                        berths[i].info = berths[i].info.append(df, sort=False)
                 if 'info' not in dir(berths[i]):
-                    berths[i].info = df   
+                    berths[i].info = df  
 
             iteration = iteration + 1
 
@@ -425,88 +483,83 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
             for i in range (len(berths)):
                 waiting_factors.append(int(100*berths[i].info[-1:]['Waiting factor']))
             max_waiting_factor = max(waiting_factors)/100
-                
-            print ('end of iteration')
-            print ('max_waiting_factor: ', max_waiting_factor)
-            print()
                     
             if max_waiting_factor < allowable_waiting_factor:
                 break
-        
-        # Once performance trigger is satisfied, redefine occupancy using only existing online assets
-        # Determine the unloading capacity of each online berth
-        print ('STAGE 4')
-        online_berth_service_rate = []
-        for i in range (online_berths):
-            service_rate = []
-            for j in range(4):
-                for k in range(len(cranes[j])):
-                    if cranes[j][k].berth == i+1 and cranes[j][k].online_date <= year:
-                        service_rate.append(cranes[j][k].effective_capacity)                  
-            online_berth_service_rate.append(int(np.sum(service_rate)))
-        total_service_rate = np.sum(online_berth_service_rate)
+    
+    # Once performance trigger is satisfied, redefine occupancy using only existing online assets
+    # Determine the unloading capacity of each online berth
+    online_berth_service_rate = []
+    for i in range (online_berths):
+        service_rate = []
+        for j in range(4):
+            for k in range(len(cranes[j])):
+                if cranes[j][k].berth == i+1 and cranes[j][k].online_date <= year:
+                    service_rate.append(cranes[j][k].effective_capacity)                  
+        online_berth_service_rate.append(int(np.sum(service_rate)))
+    total_service_rate = np.sum(online_berth_service_rate)
 
-        # Traffic distribution according to ratio service rate of each berth
-        traffic_ratio = []
-        for i in range (online_berths):
-            traffic_ratio.append(online_berth_service_rate[i]/total_service_rate)
+    # Traffic distribution according to ratio service rate of each berth
+    traffic_ratio = []
+    for i in range (online_berths):
+        traffic_ratio.append(online_berth_service_rate[i]/total_service_rate)
 
-        # Determine total time that vessels are at each berth
-        occupancy = []
-        for i in range (online_berths):            
-            berth_time = []
-            for j in range (3):
-                calls          = vessels[j].calls[timestep] * traffic_ratio[i]
-                service_time   = vessels[j].call_size / online_berth_service_rate[i]
-                mooring_time   = vessels[j].mooring_time
-                time_at_berth  = service_time + mooring_time
-                berth_time.append(time_at_berth * calls)
-            berth_time = np.sum(berth_time)
-            occupancy.append(berth_time / operational_hours)
+    # Determine total time that vessels are at each berth
+    occupancy = []
+    for i in range (online_berths):            
+        berth_time = []
+        for j in range (3):
+            calls          = vessels[j].n_calls * traffic_ratio[i]
+            service_time   = vessels[j].call_size / online_berth_service_rate[i]
+            mooring_time   = vessels[j].mooring_time
+            time_at_berth  = service_time + mooring_time
+            berth_time.append(time_at_berth * calls)
+        berth_time = np.sum(berth_time)
+        occupancy.append(berth_time / operational_hours)
 
-        # Determine and register new berth characteristics                   
-        for i in range (len(berths)):
-            if berths[i].online_date <= year:
-                berth_occupancy   = occupancy[i]
-                eff_unloading_cap = online_berth_service_rate[i]
-                waiting_factor    = berths[0].occupancy_to_waitingfactor(berth_occupancy, online_berths)
-                slots_available   = available_slots[i]
-                
-            if berths[i].online_date > year:
-                berth_occupancy   = 0
-                eff_unloading_cap = 0
-                waiting_factor    = 0
-                slots_available   = available_slots[i]
+    # Determine and register new berth characteristics                   
+    for i in range (len(berths)):
+        if berths[i].online_date <= year:
+            berth_occupancy   = occupancy[i]
+            eff_unloading_cap = online_berth_service_rate[i]
+            waiting_factor    = berths[0].occupancy_to_waitingfactor(berth_occupancy, online_berths)
+            slots_available   = available_slots[i]
+            capacity          = int(eff_unloading_cap * operational_hours * berths[0].waitingfactor_to_occupancy(allowable_waiting_factor, online_berths))
+        if berths[i].online_date > year:
+            berth_occupancy   = 0
+            eff_unloading_cap = 0
+            waiting_factor    = 0
+            slots_available   = available_slots[i]
+            capacity          = 0
 
-            # Register berth characteristics under the berth instance
-            matrix = np.zeros(shape=(1, 7))
-            # Year
-            matrix[-1,0] = int(round(year))
-            # Commodity demand
-            matrix[-1,1] = int(round(demand))
-            # Capcity
-            if online_berths == 0:
-                matrix[-1,2] = 0
-            if online_berths != 0:
-                matrix[-1,2] = int(eff_unloading_cap * operational_hours * berths[0].waitingfactor_to_occupancy(allowable_waiting_factor, online_berths))
-            # Occupancy
-            matrix[-1,3] = round(berth_occupancy,2)
-            # Effective unloading capacity
-            matrix[-1,4] = int(round(eff_unloading_cap))
-            # Waiting factor
-            matrix[-1,5] = round(waiting_factor,2)
-            # Crane slots available
-            matrix[-1,6] = round(slots_available)
-            # Translate to dataframe
-            df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Capacity', 'Occupancy', 'Eff unloading capacity', 'Waiting factor', 'Available crane slots'])
-            # Register under vessel class
-            if 'info' in dir(berths[i]):
-                if int(berths[i].info[-1:]['Year']) == year:
-                    berths[i].info[-1:].update(df)
-                else:
-                    berths[i].info = berths[i].info.append(df)
-            if 'info' not in dir(berths[i]):
-                berths[i].info = df
+        # Register berth characteristics under the berth instance
+        sort=False
+        matrix = np.zeros(shape=(1, 7))
+        # Year
+        matrix[-1,0] = int(round(year))
+        # Commodity demand
+        matrix[-1,1] = int(round(demand))
+        # Capcity
+        matrix[-1,2] = int(round(capacity))
+        # Occupancy
+        matrix[-1,3] = round(berth_occupancy,2)
+        # Effective unloading capacity
+        matrix[-1,4] = int(round(eff_unloading_cap))
+        # Waiting factor
+        matrix[-1,5] = round(waiting_factor,2)
+        # Crane slots available
+        matrix[-1,6] = round(slots_available)
+        # Translate to dataframe
+        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Capacity', 'Occupancy', 'Eff unloading capacity', 'Waiting factor', 'Available crane slots'])
+        # Register under vessel class
+        if 'info' in dir(berths[i]):
+            if int(berths[i].info[-1:]['Year']) == year:
+                berths[i].info = berths[i].info.iloc[:, ::-1]
+                berths[i].info[-1:].update(df)
+            else:
+                berths[i].info = berths[i].info.append(df, sort=False)
+        if 'info' not in dir(berths[i]):
+            berths[i].info = df
                 
         cranes_added = [int(np.sum(gantry_cranes_added)), int(np.sum(harbour_cranes_added)),
                         int(np.sum(mobile_cranes_added)), int(np.sum(screw_unloaders_added))]        
@@ -542,7 +595,7 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
 # ### Storage investment decision
 # In this setup, the storage investment is triggered whenever the storage capacity equals 10% of yearly demand. Once triggered, the storage is expanded to accomodate 20% of yearly throughput
 
-# In[ ]:
+# In[4]:
 
 
 def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput_perc, storage_type, commodities, year, timestep):
@@ -638,7 +691,10 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
             else:
                 matrix[-1,3] = 0
             # Utilization
-            matrix[-1,4] = round(matrix[-1,1]/matrix[-1,3],2)
+            if matrix[-1,3]:
+                matrix[-1,4] = round(matrix[-1,1]/matrix[-1,3],2)
+            else:
+                matrix[-1,4] = 0
             # Translate to dataframe
             df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Storage', 'Capacity', 'Utilization'])
             # Register under vessel class
@@ -653,7 +709,7 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
 # ### Loading station investment decision
 # In this setup, it is assumed that the loading station has a utilisation rate of 60%. The loading station investment is triggered whenever the yearly loading capacity equals 80% of yearly demand, taking the utilisation rate into account. Once triggered, the loading rate is expanded to accomodate 120% of yearly throughput.
 
-# In[ ]:
+# In[5]:
 
 
 def station_invest_decision(stations, trains, allowable_waiting_factor, commodities, timestep, year, operational_hours):
@@ -735,16 +791,16 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
             stations[i].delta = 0
     
     # Register station characteristics under the station instance
-    for i in range(online_stations):
+    for i in range(len(stations)):
         
         # Determine total time that trains are at each station
-        calls           = int(np.ceil(demand / trains.call_size / online_stations))
+        calls           = int(np.ceil(demand / trains.call_size / len(stations)))
         service_time    = trains.call_size / stations[i].production
         prep_time       = trains.prep_time
         time_at_station = service_time + prep_time
         cumulative_time = time_at_station * calls
         occupancy       = cumulative_time / operational_hours
-        waiting_factor  = trains.occupancy_to_waitingfactor(occupancy, online_stations)
+        waiting_factor  = trains.occupancy_to_waitingfactor(occupancy, len(stations))
             
         matrix = np.zeros(shape=(1, 6))
         # Year
@@ -754,8 +810,8 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
         # Capacity
         if online_stations == 0:
             matrix[-1,2] = 0 
-        if online_stations == 0:
-            matrix[-1,2] = int(round(stations[-1].production * operational_hours * trains[0].waitingfactor_to_occupancy(allowable_waiting_factor, online_stations)))
+        if online_stations != 0:
+            matrix[-1,2] = int(round(stations[-1].production * operational_hours * trains.waitingfactor_to_occupancy(allowable_waiting_factor, online_stations)))
         # Occupancy
         matrix[-1,3] = round(occupancy,2)
         # Effective unloading capacity
@@ -777,7 +833,7 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
 # #### Quay conveyor
 # In this setup, the quay-side conveyor investment dicision is triggered whenever the the crane investment is triggered. The conveyor capacity is always sufficient to cope with the combined cranes' peak unloading capacity.
 
-# In[ ]:
+# In[6]:
 
 
 def quay_conveyor_invest_decision(q_conveyors, berths, year, timestep, operational_hours):
@@ -840,8 +896,8 @@ def quay_conveyor_invest_decision(q_conveyors, berths, year, timestep, operation
         matrix[-1,0] = int(round(year))
         # Quay demand
         berth_demands = []            
-        for i in range(len(berths)):
-            eff_unloading = int(berths[i].info[-1:]['Eff unloading capacity'])
+        for j in range(len(berths)):
+            eff_unloading = int(berths[j].info[-1:]['Eff unloading capacity'])
             ratio = 2
             berth_demand = ratio * eff_unloading
             berth_demands.append(berth_demand)
@@ -865,7 +921,7 @@ def quay_conveyor_invest_decision(q_conveyors, berths, year, timestep, operation
 # #### 2.7.2 Hinterland conveyor
 # In this setup, the hinterland conveyor investment dicision is triggered in order to always live up to loading station demand.
 
-# In[ ]:
+# In[7]:
 
 
 def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, operational_hours):
@@ -918,7 +974,7 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, o
         for i in range(len(h_conveyors)):
             h_conveyors[i].delta = 0
             
-    for i in range(online_assets):
+    for i in range(len(stations)):
         
         # Register berth characteristics under the berth instance
         matrix = np.zeros(shape=(1, 4))
@@ -927,7 +983,7 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, o
         # Station demand
         station_demand = []            
         for j in range(len(stations)):
-            eff_unloading = int(stations[j].info[-1:]['Eff loading capacity'])
+            eff_unloading = int(stations[j].production)
             station_demand.append(eff_unloading)
         station_demand = np.sum(station_demand)
         matrix[-1,1] = int(round(station_demand))
