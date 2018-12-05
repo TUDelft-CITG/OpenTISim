@@ -147,7 +147,7 @@ class berth_class(berth_properties_mixin):
 
         def berth3_trend(occupancy):
             return (coefficients3[0]*occupancy**6+coefficients3[1]*occupancy**5+coefficients3[2]*occupancy**4+
-                    coefficients3[3]*occupancy**3+coefficients3[4]*occupancy**3+coefficients3[5]*occupancy+coefficients3[6])
+                    coefficients3[3]*occupancy**3+coefficients3[4]*occupancy**2+coefficients3[5]*occupancy+coefficients3[6])
 
         def berth4_trend(occupancy):
             return (coefficients4[0]*occupancy**6+coefficients4[1]*occupancy**5+coefficients4[2]*occupancy**4+

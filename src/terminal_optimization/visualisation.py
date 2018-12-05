@@ -1879,12 +1879,12 @@ def asset_trajectory(terminal, simulation_window, start_year):
     return
 
 
-# # Estimate or simulate project value
+# # Estimate project value
 
 # In[ ]:
 
 
-def NPV_distribution_designs(iterations):
+def NPV_distribution_estimated_designs(iterations):
 
     NPV_matrix = np.zeros(shape=(len(iterations), 2))
 
@@ -1894,30 +1894,31 @@ def NPV_distribution_designs(iterations):
 
     for i in range (len(iterations)):
 
-        # Iteration (Column 0)
-        iteration = i 
-        NPV_matrix[i,0] = iteration
+        # Iteration # (Column 0)
+        NPV_matrix[i,0] = i
         # NPV (Column 1)
         NPV_matrix[i,1] = iterations[i].NPV
 
     df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV'])
     
-    print (df['NPV'])
-    
     # Add histogram data
     hist_data = [df['NPV']]
-    group_labels = ['Terminal designs based<br>on traffic projections']
+    group_labels = ['Terminal designs based on<br>ex-ante traffic projections']
     
     NPV_estimation = np.average(df['NPV'])
     estimated_NPV = "$" + str('{:0,.0f}'.format(np.average(df['NPV'])))
+    standard_deviation = np.std(df['NPV'])
+    min_x = NPV_estimation - 4*standard_deviation
+    max_x = NPV_estimation + 4*standard_deviation
 
     # Create distplot with curve_type set to 'normal'
-    fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)'])
+    fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgb(214, 39, 40)'])
 
     fig['layout'].update(
         xaxis=dict(
             title='Project NPV',
-            tickprefix='$'
+            tickprefix='$',
+            range=[min_x, max_x]
         ),
         yaxis=dict(
             title='Probability distribution (%)',
@@ -1936,17 +1937,17 @@ def NPV_distribution_designs(iterations):
                 x=0.5,
                 y=1.25,
                 showarrow=False,
-                text='Project value of the various designs',
+                text='Estimating project value',
                 xref='paper',
                 yref='paper',
                 font=dict(
                     size=16)
             ),
             dict(
-                x=np.median(df['NPV']),
+                x=np.average(df['NPV']),
                 y=0.55,
                 showarrow=False,
-                text='Average project value<br>' + str("$" + str('{:0,.0f}'.format(np.average(df['NPV'])))),
+                text='Estimated project value:<br>' + str("$" + str('{:0,.0f}'.format(np.average(df['NPV'])))),
                 yref='paper',
                 font=dict(
                     size=13)
@@ -1984,12 +1985,12 @@ def NPV_distribution_designs(iterations):
     return fig
 
 
-# # Evaluate financial performance
+# # Simulate project value
 
 # In[ ]:
 
 
-def NPV_evaluation(chosen_method, iterations, NPV_estimation):
+def NPV_distribution_simulated_designs(iterations):
 
     NPV_matrix = np.zeros(shape=(len(iterations), 2))
 
@@ -1999,26 +2000,20 @@ def NPV_evaluation(chosen_method, iterations, NPV_estimation):
 
     for i in range (len(iterations)):
 
-        terminal = iterations[i]
-        NPV = terminal.NPV
-
-        # Iteration (Column 0)
-        iteration = i 
-        NPV_matrix[i,0] = iteration
-        # Estimated NPV (Column 1)
-        NPV_matrix[i,1] = NPV
+        # Iteration # (Column 0)
+        NPV_matrix[i,0] = i
+        # NPV (Column 1)
+        NPV_matrix[i,1] = iterations[i].NPV
 
     df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'NPV'])
-
+    
     # Add histogram data
     hist_data = [df['NPV']]
-    group_labels = ['Terminal designs based<br>on traffic simulations']
-
-    NPV_estimation = int(NPV_estimation)
-    NPV_average    = int(np.average(df['NPV']))
-    NPV_difference = "$" + str('{:0,.0f}'.format(abs(NPV_estimation - NPV_average)))
-    estimated_NPV  = "$" + str('{:0,.0f}'.format(NPV_estimation))
-    average_NPV    = "$" + str('{:0,.0f}'.format(NPV_average))
+    group_labels = ['Terminal designs based on<br>ex-post traffic simulations']
+    
+    standard_deviation = np.std(df['NPV'])
+    min_x = np.average(df['NPV']) - 4*standard_deviation
+    max_x = np.average(df['NPV']) + 4*standard_deviation
 
     # Create distplot with curve_type set to 'normal'
     fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)'])
@@ -2026,7 +2021,8 @@ def NPV_evaluation(chosen_method, iterations, NPV_estimation):
     fig['layout'].update(
         xaxis=dict(
             title='Project NPV',
-            tickprefix='$'
+            tickprefix='$',
+            range=[min_x, max_x]
         ),
         yaxis=dict(
             title='Probability distribution (%)',
@@ -2045,17 +2041,17 @@ def NPV_evaluation(chosen_method, iterations, NPV_estimation):
                 x=0.5,
                 y=1.25,
                 showarrow=False,
-                text='Evaluating financial performance',
+                text='Simulated project value',
                 xref='paper',
                 yref='paper',
                 font=dict(
                     size=16)
             ),
             dict(
-                x=NPV_average,
+                x=np.average(df['NPV']),
                 y=0.55,
                 showarrow=False,
-                text='Average realized project value<br>' + str(average_NPV),
+                text='Average project value<br> after simulations:<br>' + str("$" + str('{:0,.0f}'.format(np.average(df['NPV'])))),
                 yref='paper',
                 font=dict(
                     size=13)
@@ -2072,24 +2068,24 @@ def NPV_evaluation(chosen_method, iterations, NPV_estimation):
                      x0=np.average(df['NPV']),
                      y0=0.36,
                      x1=np.average(df['NPV']),
-                     y1=0.48,
+                     y1=0.45,
                      yref='paper',
                      line=dict(
-                         color='rgb(214, 39, 40)',
+                         color='rgba(55, 83, 109, 1)',
                          width=2,
                          dash='dot')),
                 dict(type='line',
                      x0=np.average(df['NPV']),
-                     y0=0.62,
+                     y0=0.65,
                      x1=np.average(df['NPV']),
                      y1=1,
                      yref='paper',
                      line=dict(
-                         color='rgb(214, 39, 40)',
+                         color='rgba(55, 83, 109, 1)',
                          width=2,
                          dash='dot'))]
-    )
-    
+)
+
     return fig
 
 
@@ -2123,12 +2119,12 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
         NPV_matrix[i,2] = estimate_NPV
 
     df = pd.DataFrame(NPV_matrix, columns=['Iteration', 'Simulations', 'Estimations'])
-    
+
     if chosen_method == 'Perfect foresight method':
         # Add histogram data
         hist_data    = [df['Simulations']]
         group_labels = ['Terminal designs based on<br>ex-post traffic simulations']
-        
+
     else:
         # Add histogram data
         hist_data = [df['Simulations'], df['Estimations']]
@@ -2139,6 +2135,17 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
     estimate_NPV   = int(np.average(df['Estimations']))
     NPV_difference = "$" + str('{:0,.0f}'.format(abs(simulation_NPV - estimate_NPV)))
     midway = 0.5 * abs(simulation_NPV - estimate_NPV) + min(simulation_NPV, estimate_NPV)
+    
+    standard_deviation = max(np.std(df['Simulations']), np.std(df['Estimations']))
+    min_x = min(simulation_NPV, estimate_NPV) - 4*standard_deviation
+    max_x = max(simulation_NPV, estimate_NPV) + 4*standard_deviation
+    
+    if simulation_NPV > estimate_NPV:
+        anchor_estimation = 'right'
+        anchor_simulation = 'left'
+    else:
+        anchor_estimation = 'left'
+        anchor_simulation = 'right'
 
     # Create distplot with curve_type set to 'normal'
     fig = ff.create_distplot(hist_data, group_labels, show_hist=False, colors=['rgba(55, 83, 109, 1)', 'rgb(214, 39, 40)'])
@@ -2146,7 +2153,8 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
     fig['layout'].update(
         xaxis=dict(
             title='Project NPV',
-            tickprefix='$'
+            tickprefix='$',
+            range=[min_x, max_x]
         ),
         yaxis=dict(
             title='Probability distribution (%)',
@@ -2165,7 +2173,7 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                 x=0.5,
                 y=1.25,
                 showarrow=False,
-                text='Assessing the design method',
+                text='Evaluating the design method',
                 xref='paper',
                 yref='paper',
                 font=dict(
@@ -2173,33 +2181,33 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
             ),
             dict(
                 x=midway,
-                y=0.65,
+                y=0.73,
                 showarrow=False,
-                text=u'Δ ' + str(NPV_difference),
+                text=u'Δ ' + 'NPV: ' + str(NPV_difference),
                 yref='paper',
                 font=dict(
                     size=13)
             ),
             dict(
-                x=simulation_NPV*0.98,
-                y=0.47,
+                x=np.average(df['Simulations']),
+                y=0.54,
                 showarrow=False,
-                text='Average realized<br>value',
-                xanchor = 'right',
+                text='Average simulated <br> value',
+                xanchor = anchor_simulation,
                 yref='paper',
                 font=dict(
-                    size=13,
+                    size=11,
                     color='rgba(55, 83, 109, 1)')
             ),
             dict(
-                x=estimate_NPV*1.02,
-                y=0.47,
+                x=np.average(df['Estimations']),
+                y=0.44,
                 showarrow=False,
-                text='Estimated<br>value',
-                xanchor = 'left',
+                text='Estimated value',
+                xanchor = anchor_estimation,
                 yref='paper',
                 font=dict(
-                    size=13,
+                    size=11,
                     color='rgb(214, 39, 40)')
             ),
             dict(
@@ -2214,7 +2222,7 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                      x0=np.average(df['Simulations']),
                      y0=0.36,
                      x1=np.average(df['Simulations']),
-                     y1=0.60,
+                     y1=0.65,
                      yref='paper',
                      line=dict(
                          color='rgba(55, 83, 109, 1)',
@@ -2223,7 +2231,7 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                     ),
                 dict(type='line',
                      x0=np.average(df['Simulations']),
-                     y0=0.70,
+                     y0=0.75,
                      x1=np.average(df['Simulations']),
                      y1=1,
                      yref='paper',
@@ -2236,7 +2244,7 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                      x0=np.average(df['Estimations']),
                      y0=0.36,
                      x1=np.average(df['Estimations']),
-                     y1=0.60,
+                     y1=0.65,
                      yref='paper',
                      line=dict(
                          color='rgb(214, 39, 40)',
@@ -2245,14 +2253,15 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                     ),
                 dict(type='line',
                      x0=np.average(df['Estimations']),
-                     y0=0.70,
+                     y0=0.74,
                      x1=np.average(df['Estimations']),
                      y1=1,
                      yref='paper',
                      line=dict(
                          color='rgb(214, 39, 40)',
                          width=2,
-                         dash='dot'))]
+                         dash='dot')
+                    )]
     )
 
     return fig

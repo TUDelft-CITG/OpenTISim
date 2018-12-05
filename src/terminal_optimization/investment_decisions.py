@@ -286,7 +286,7 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
 
             # Determine total time that vessels are at each berth
             pending_occupancy = []
-            for i in range (len(berths)):            
+            for i in range (len(pending_berth_service_rate)):            
                 berth_time = []
                 if pending_berth_service_rate:
                     for j in range (3):
@@ -312,13 +312,15 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                 available_slots.append(int(berths[i].max_cranes - used_slots))
 
             # Determine and register new berth characteristics                   
-            for i in range (len(berths)):    
-                berth_occupancy   = pending_occupancy[i]
-                if pending_berth_service_rate:
+            for i in range (len(berths)):
+                if i < len(pending_berth_service_rate):
+                    berth_occupancy   = pending_occupancy[i]
                     eff_unloading_cap = pending_berth_service_rate[i]
+                    waiting_factor    = berths[i].occupancy_to_waitingfactor(berth_occupancy, len(pending_berth_service_rate))
                 else:
+                    berth_occupancy   = 0
                     eff_unloading_cap = 0
-                waiting_factor    = berths[0].occupancy_to_waitingfactor(berth_occupancy, len(berths))
+                    waiting_factor    = 0
                 slots_available   = available_slots[i]
 
                 # Register berth characteristics under the berth class
@@ -447,7 +449,7 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                 waiting_factor    = berths[i].occupancy_to_waitingfactor(berth_occupancy, len(berths))
                 slots_available   = available_slots[i]
                 max_occupancy     = berths[0].occupancy_to_waitingfactor(berth_occupancy, len(berths))
-
+                
                 # Register berth characteristics under the berth instance
                 sort=False
                 matrix = np.zeros(shape=(1, 7))
@@ -714,15 +716,11 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
 
 def station_invest_decision(stations, trains, allowable_waiting_factor, commodities, timestep, year, operational_hours):
     
-    # Demand 
-    demand = []
-    for i in range (3):
-        demand.append(commodities[i].demand[timestep])
-    demand = int(np.sum(demand))
-
-    # Allowable waiting time --> max occupancy --> net loading time --> loading speed * nr of stations 
-
-    # for each time step, check whether pending berths come online
+    # Calculate demand and resulting number of vessel calls
+    demand = commodities[0].demand[len(commodities[0].historic) + timestep]
+    trains.calls = int(np.ceil(demand / trains.call_size))
+    
+    # for each time step, check whether pending stations come online
     online = []
     offline = []
     for i in range(len(stations)):
@@ -731,33 +729,86 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
         if stations[i].online_date > year:
             offline.append(1)
     online_stations = int(np.sum(online))
-    offline_stations = (np.sum(offline))
-    for i in range(len(stations)):
-        stations[i].online = int(online_stations)
-        stations[i].offline = int(offline_stations)
+    offline_stations = int(np.sum(offline))
+            
+    # Determine the unloading capacity of each berth (including upcoming stations)
+    pending_berth_service_rate = []
+    for i in range (len(stations)):
+        pending_berth_service_rate.append(stations[i].production)
 
-    # for each time step, decide whether to invest in hinterland loading stations
-    if len(stations) == 0:
-        invest_decision = 'Invest in stations'
-    else:    
-        occupancy = []
-        waiting_factors = []
-        for i in range(len(stations)):      
-            # Determine total time that trains are at each station
-            calls            = int(np.ceil(demand / trains.call_size / len(stations)))
-            service_time     = trains.call_size / stations[i].production
-            prep_time        = trains.prep_time
-            time_at_station  = service_time + prep_time
-            cumulative_time  = time_at_station * calls
-            occupancy.append(cumulative_time / operational_hours)
-            waiting_factors.append(trains.occupancy_to_waitingfactor(occupancy[i], len(stations)))
-        
-        max_waiting_factor = int(max(waiting_factors))
-        
-        if max_waiting_factor > allowable_waiting_factor:
-            invest_decision = 'Invest in stations'
+    # Traffic distribution according to ratio service rate of each station
+    traffic_ratio = []
+    if pending_berth_service_rate:
+        for i in range (len(pending_berth_service_rate)):
+            traffic_ratio.append(1/len(pending_berth_service_rate))
+    else:
+        traffic_ratio = 0
+ 
+    # Determine total time that trains are at each berth
+    pending_occupancy = []
+    for i in range (len(pending_berth_service_rate)):            
+        calls            = trains.calls / len(stations)
+        service_time     = trains.call_size / stations[i].production
+        prep_time        = trains.prep_time
+        time_at_station  = service_time + prep_time
+        cumulative_time  = time_at_station * calls
+        pending_occupancy.append(cumulative_time / operational_hours)
+
+    # Determine and register new berth characteristics                   
+    for i in range (len(stations)):
+        if i < len(pending_berth_service_rate):
+            demand         = int(round(demand))
+            capacity       = int(round(operational_hours * stations[i].production * trains.waitingfactor_to_occupancy(allowable_waiting_factor, len(pending_berth_service_rate))))
+            occupancy      = round(pending_occupancy[i],2)
+            loading_rate   = int(round(pending_berth_service_rate[i]))
+            waiting_factor = round(trains.occupancy_to_waitingfactor(occupancy, len(stations)),2)
+            n_stations     = int(round(len(pending_berth_service_rate)))
         else:
-            invest_decision = 'Do not invest in stations'
+            demand         = int(round(demand))
+            capacity       = 0
+            occupancy      = 0
+            loading_rate   = 0
+            waiting_factor = 0
+            n_stations     = int(round(len(pending_berth_service_rate)))
+
+        # Register berth characteristics under the berth class
+        matrix = np.zeros(shape=(1, 7))
+        # Year
+        matrix[-1,0] = int(round(year))
+        # Commodity demand
+        matrix[-1,1] = demand
+        # Capacity
+        matrix[-1,2] = capacity
+        # Occupancy
+        matrix[-1,3] = occupancy
+        # Effective loading capacity
+        matrix[-1,4] = loading_rate
+        # Waiting factor
+        matrix[-1,5] = waiting_factor
+        # Number of stations
+        matrix[-1,6] = n_stations
+        # Translate to dataframe
+        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Total yearly loading capacity', 'Occupancy', 'Loading capacity', 'Waiting factor', 'Nr of stations'])
+        # Register under berth instance
+        if 'info' in dir(stations[i]):
+            if int(stations[i].info[-1:]['Year']) == year:
+                stations[i].info[-1:].update(df)
+            else:
+                stations[i].info = stations[i].info.append(df, sort=False)
+        if 'info' not in dir(stations[i]):
+            stations[i].info = df  
+            
+    waiting_factors = []
+    for i in range (len(stations)):
+        waiting_factors.append(int(100*stations[i].info[-1:]['Waiting factor']))
+    if waiting_factors:
+        max_waiting_factor = max(waiting_factors)/100
+            
+    # for each time step, decide whether to invest in stations
+    if len(stations) == 0 or max_waiting_factor > allowable_waiting_factor:
+        invest_decision = 'Invest in stations'
+    else:
+        invest_decision = 'Do not invest in stations'
         
     # If investments are needed, add stations until waiting time is sufficiently reduced
     if invest_decision == 'Invest in stations':
@@ -770,18 +821,74 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
             stations[-1].purchase_date = year
             stations[-1].online_date = year + stations[-1].delivery_time
             
-            # Determine total time that trains are at each station
-            calls           = int(np.ceil(demand / trains.call_size / len(stations)))
-            service_time    = trains.call_size / stations[-1].production
-            prep_time       = trains.prep_time
-            time_at_station = service_time + prep_time
-            cumulative_time = time_at_station * calls
-            occupancy       = cumulative_time / operational_hours
-            waiting_factor  = trains.occupancy_to_waitingfactor(occupancy, len(stations))
-            
-            if waiting_factor < allowable_waiting_factor:
-                break
+            # Determine the unloading capacity of each berth (including upcoming stations)
+            pending_berth_service_rate = []
+            for i in range (len(stations)):
+                pending_berth_service_rate.append(stations[i].production)
 
+            # Traffic distribution according to ratio service rate of each station
+            traffic_ratio = []
+            if pending_berth_service_rate:
+                for i in range (len(pending_berth_service_rate)):
+                    traffic_ratio.append(1/len(pending_berth_service_rate))
+
+            # Determine total time that trains are at each berth
+            pending_occupancy = []
+            for i in range (len(pending_berth_service_rate)):            
+                calls            = trains.calls / len(stations)
+                service_time     = trains.call_size / stations[i].production
+                prep_time        = trains.prep_time
+                time_at_station  = service_time + prep_time
+                cumulative_time  = time_at_station * calls
+                pending_occupancy.append(cumulative_time / operational_hours)
+
+            # Determine and register new berth characteristics                   
+            for i in range (len(stations)):
+                
+                demand         = int(round(demand))
+                capacity       = int(round(operational_hours * stations[i].production * trains.waitingfactor_to_occupancy(allowable_waiting_factor, len(pending_berth_service_rate))))
+                occupancy      = round(pending_occupancy[i],2)
+                loading_rate   = int(round(pending_berth_service_rate[i]))
+                waiting_factor = round(trains.occupancy_to_waitingfactor(occupancy, len(stations)),2)
+                n_stations     = int(round(len(pending_berth_service_rate)))
+
+                # Register berth characteristics under the berth class
+                matrix = np.zeros(shape=(1, 7))
+                # Year
+                matrix[-1,0] = int(round(year))
+                # Commodity demand
+                matrix[-1,1] = demand
+                # Capacity
+                matrix[-1,2] = capacity
+                # Occupancy
+                matrix[-1,3] = occupancy
+                # Effective loading capacity
+                matrix[-1,4] = loading_rate
+                # Waiting factor
+                matrix[-1,5] = waiting_factor
+                # Number of stations
+                matrix[-1,6] = n_stations
+                # Translate to dataframe
+                df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Total yearly loading capacity', 'Occupancy', 'Loading capacity', 'Waiting factor', 'Nr of stations'])
+                # Register under berth instance
+                if 'info' in dir(stations[i]):
+                    if int(stations[i].info[-1:]['Year']) == year:
+                        stations[i].info[-1:].update(df)
+                    else:
+                        stations[i].info = stations[i].info.append(df, sort=False)
+                if 'info' not in dir(stations[i]):
+                    stations[i].info = df  
+
+            waiting_factors = []
+            for i in range (len(stations)):
+                waiting_factors.append(int(100*stations[i].info[-1:]['Waiting factor']))
+            if waiting_factors:
+                max_waiting_factor = max(waiting_factors)/100
+
+            # for each time step, decide whether to invest in stations
+            if max_waiting_factor < allowable_waiting_factor:
+                break
+            
         # Evaluate how many stations have been added
         for i in range(len(stations)):
             stations[i].delta = np.sum(stations_added)
@@ -790,39 +897,70 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
         for i in range(len(stations)):
             stations[i].delta = 0
     
-    # Register station characteristics under the station instance
-    for i in range(len(stations)):
-        
-        # Determine total time that trains are at each station
-        calls           = int(np.ceil(demand / trains.call_size / len(stations)))
-        service_time    = trains.call_size / stations[i].production
-        prep_time       = trains.prep_time
-        time_at_station = service_time + prep_time
-        cumulative_time = time_at_station * calls
-        occupancy       = cumulative_time / operational_hours
-        waiting_factor  = trains.occupancy_to_waitingfactor(occupancy, len(stations))
-            
-        matrix = np.zeros(shape=(1, 6))
+    # Determine the unloading capacity of each online station
+    online_berth_service_rate = []
+    for i in range (online_stations):
+        online_berth_service_rate.append(stations[i].production)
+
+    # Traffic distribution according to ratio service rate of each station
+    traffic_ratio = []
+    if online_berth_service_rate:
+        for i in range (len(online_berth_service_rate)):
+            traffic_ratio.append(1/online_stations)
+    else:
+        traffic_ratio = 0
+ 
+    # Determine total time that trains are at each berth
+    online_occupancy = []
+    for i in range (len(online_berth_service_rate)):            
+        calls            = trains.calls / online_stations
+        service_time     = trains.call_size / stations[i].production
+        prep_time        = trains.prep_time
+        time_at_station  = service_time + prep_time
+        cumulative_time  = time_at_station * calls
+        online_occupancy.append(cumulative_time / operational_hours)
+    
+    # Determine and register new berth characteristics                   
+    for i in range (len(stations)):
+        if i < online_stations:
+            demand         = int(round(demand))
+            capacity       = int(round(operational_hours * stations[i].production * trains.waitingfactor_to_occupancy(allowable_waiting_factor, online_stations)))
+            occupancy      = round(online_occupancy[i],2)
+            loading_rate   = int(round(online_berth_service_rate[i]))
+            waiting_factor = round(trains.occupancy_to_waitingfactor(occupancy, online_stations),2)
+            n_stations     = int(round(len(pending_berth_service_rate)))
+        else:
+            demand         = int(round(demand))
+            capacity       = 0
+            occupancy      = 0
+            loading_rate   = 0
+            waiting_factor = 0
+            n_stations     = int(round(len(pending_berth_service_rate)))
+
+        # Register berth characteristics under the berth class
+        matrix = np.zeros(shape=(1, 7))
         # Year
         matrix[-1,0] = int(round(year))
         # Commodity demand
-        matrix[-1,1] = int(round(demand))
+        matrix[-1,1] = demand
         # Capacity
-        if online_stations == 0:
-            matrix[-1,2] = 0 
-        if online_stations != 0:
-            matrix[-1,2] = int(round(stations[-1].production * operational_hours * trains.waitingfactor_to_occupancy(allowable_waiting_factor, online_stations)))
+        matrix[-1,2] = capacity
         # Occupancy
-        matrix[-1,3] = round(occupancy,2)
-        # Effective unloading capacity
-        matrix[-1,4] = int(round(stations[-1].production))
+        matrix[-1,3] = occupancy
+        # Effective loading capacity
+        matrix[-1,4] = loading_rate
         # Waiting factor
-        matrix[-1,5] = round(waiting_factor,2)
+        matrix[-1,5] = waiting_factor
+        # Number of stations
+        matrix[-1,6] = n_stations
         # Translate to dataframe
-        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Capacity', 'Occupancy', 'Eff loading capacity', 'Waiting factor'])
-        # Register under station class
+        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Total yearly loading capacity', 'Occupancy', 'Loading capacity', 'Waiting factor', 'Nr of stations'])
+        # Register under berth instance
         if 'info' in dir(stations[i]):
-            stations[i].info = stations[i].info.append(df)
+            if int(stations[i].info[-1:]['Year']) == year:
+                stations[i].info[-1:].update(df)
+            else:
+                stations[i].info = stations[i].info.append(df, sort=False)
         if 'info' not in dir(stations[i]):
             stations[i].info = df
 
@@ -906,7 +1044,10 @@ def quay_conveyor_invest_decision(q_conveyors, berths, year, timestep, operation
         # Capacity
         matrix[-1,2] = int(round(online))
         # Utilization
-        matrix[-1,3] = round(quay_demand/online,2)
+        if online:
+            matrix[-1,3] = round(quay_demand/online,2)
+        else:
+            matrix[-1,3] = 0
         # Translate to dataframe
         df = pd.DataFrame(matrix, columns=['Year', 'Quay capacity demand', 'Capacity', 'Utilization'])
         # Register under station class
@@ -974,7 +1115,7 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, o
         for i in range(len(h_conveyors)):
             h_conveyors[i].delta = 0
             
-    for i in range(len(stations)):
+    for i in range(len(h_conveyors)):
         
         # Register berth characteristics under the berth instance
         matrix = np.zeros(shape=(1, 4))
@@ -990,7 +1131,10 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, o
         # Capacity
         matrix[-1,2] = int(round(online))
         # Utilization
-        matrix[-1,3] = round(station_demand/online,2)
+        if online:
+            matrix[-1,3] = round(station_demand/online,2)
+        else:
+            matrix[-1,3] = 0
         # Translate to dataframe
         df = pd.DataFrame(matrix, columns=['Year', 'Quay capacity demand', 'Capacity', 'Utilization'])
         # Register under station class

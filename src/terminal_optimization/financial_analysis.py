@@ -76,7 +76,7 @@ class throughput_class():
 
                 station_capacity = []
                 for i in range(len(stations)):
-                    station_capacity.append(int(stations[i].info[-1:]['Capacity']))
+                    station_capacity.append(int(stations[i].info[-1:]['Total yearly loading capacity']))
                 self.station_capacity = np.sum(station_capacity)       
             else:
                 self.station_capacity = 0
