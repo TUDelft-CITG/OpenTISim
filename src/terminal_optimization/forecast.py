@@ -22,9 +22,9 @@ class commodity_properties_mixin(object):
         self.handymax_perc  = handymax_perc
         self.panamax_perc   = panamax_perc
     
-maize_data   = {"commodity_name": 'Maize',    "handling_fee": 5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 5, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 5, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
+maize_data   = {"commodity_name": 'Maize',    "handling_fee": 7.50, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 7.50, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
+wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 7.50, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
 
 
 # In[ ]:
@@ -169,7 +169,7 @@ class create_scenario:
 # In[2]:
 
 
-def forecaster(forecast_type, commodities, forecast_t, hindcast_t, timestep):
+def forecaster(design_method, forecast_type, commodities, forecast_t, hindcast_t, timestep):
     
     maize = commodities[0]
     index = len(maize.historic) + timestep
@@ -220,13 +220,18 @@ def forecaster(forecast_type, commodities, forecast_t, hindcast_t, timestep):
     forecastpoly4 = trendline
     
     # When assuming perfect foresight, the forecast is identical to the guaranteed future traffic volumes
-    if forecast_type == 'Perfect foresight method':
+    if design_method == 'Perfect foresight method':
         maize.forecast = maize.demand[index:index+forecast_t+1]
-        
     else:
-        # Choose trendline type 
-        maize.forecast = forecastpoly4
-
+        if forecast_type == 'Linear':
+            maize.forecast = forecastlinear
+        if forecast_type == '2nd polynomial':
+            maize.forecast = forecastpoly2
+        if forecast_type == '3rd polynomial':
+            maize.forecast = forecastpoly3
+        if forecast_type == '4th polynomial':
+            maize.forecast = forecastpoly4
+        
     # Log forecats
     if timestep == 0:
         maize.forecastlog = []
@@ -262,15 +267,15 @@ class vessel_properties_mixin(object):
 # Initial data set, data from Excel_input.xlsx
 handysize_data = {"vessel_type": 'Handysize', "call_size": 35000, 
                   "LOA": 130, "draft": 10, "beam": 24, "max_cranes": 2, 
-                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 355}
+                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 1}
 
 handymax_data = {"vessel_type": 'Handymax', "call_size": 50000, 
                   "LOA": 180, "draft": 11.5, "beam": 28, "max_cranes": 2, 
-                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 417}
+                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 1}
 
 panamax_data = {"vessel_type": 'Panamax', "call_size": 65000, 
                   "LOA": 220, "draft": 13, "beam": 32.2, "max_cranes": 3, 
-                  "all_turn_time": 36, "mooring_time": 3, "demurrage_rate": 480} 
+                  "all_turn_time": 36, "mooring_time": 3, "demurrage_rate": 1} 
 
 
 # In[ ]:

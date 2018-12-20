@@ -12,7 +12,7 @@ import decimal
 
 # # Terminal Throughput class
 
-# In[ ]:
+# In[2]:
 
 
 class throughput_class():
@@ -40,7 +40,11 @@ class throughput_class():
         online_berths = np.sum(online_berths)
         
         if online_berths == 0:
-            self.capacity = 0
+            quay_capacity     = 0
+            storage_capacity  = 0
+            station_capacity  = 0
+            terminal_capacity = 0
+            self.capacity     = terminal_capacity
         else:
         
             ###############################################################################################
@@ -50,7 +54,8 @@ class throughput_class():
             quay_capacity = []
             for i in range(online_berths):
                 quay_capacity.append(int(berths[i].info[-1:]['Capacity']))
-            self.quay_capacity = np.sum(quay_capacity)
+            quay_capacity = np.sum(quay_capacity)
+            self.quay_capacity = quay_capacity
 
             ###############################################################################################
             # Calculate storage capacity
@@ -58,9 +63,10 @@ class throughput_class():
 
             storage_capacity = []
             for i in range(2):
-                for j in range(len(storage[i])):
-                    storage_capacity.append(int(storage[i][j].info[-1:]['Capacity']))
-            self.storage_capacity = np.sum(storage_capacity)   
+                if storage[i]:
+                    storage_capacity.append(int(storage[i][0].info[-1:]['Capacity']))
+            storage_capacity = np.sum(storage_capacity)
+            self.storage_capacity = storage_capacity  
 
             ###############################################################################################
             # Calculate hinterland station capacity
@@ -73,19 +79,21 @@ class throughput_class():
             online_stations = np.sum(online_stations)
             
             if online_stations != 0:
-
                 station_capacity = []
                 for i in range(len(stations)):
-                    station_capacity.append(int(stations[i].info[-1:]['Total yearly loading capacity']))
-                self.station_capacity = np.sum(station_capacity)       
+                    station_capacity.append(int(stations[i].info[-1:]['Total yearly loading capacity']))   
+                station_capacity = np.sum(station_capacity)
+                self.station_capacity = station_capacity 
             else:
+                station_capacity = 0
                 self.station_capacity = 0
 
             ###############################################################################################
             # Calculate terminal capacity
             ###############################################################################################
 
-            self.capacity = int(min(self.quay_capacity, self.storage_capacity, self.station_capacity))
+            terminal_capacity = int(round(min(self.quay_capacity, self.storage_capacity, self.station_capacity)))
+            self.capacity = terminal_capacity
         
         ###############################################################################################
         # Calculate terminal throughput
@@ -95,171 +103,50 @@ class throughput_class():
         self.soybean_throughput = min(soybean_demand, self.capacity - self.maize_throughput)
         self.wheat_throughput   = min(wheat_demand, self.capacity - self.maize_throughput - self.soybean_throughput)
         
-        return
-
-
-# In[ ]:
-
-
-class throughput_classxx():
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        # Register findings under the temrinal instance
+        matrix = np.zeros(shape=(1, 7))
+        # Year
+        matrix[-1,0] = int(round(year))
+        # Commodity demand
+        matrix[-1,1] = int(round(demand))
+        # Terminal capacity
+        matrix[-1,2] = int(round(terminal_capacity))
+        # Terminal throughput
+        matrix[-1,3] = int(round(min(demand, terminal_capacity)))
+        # Quay capacity
+        matrix[-1,4] = int(round(quay_capacity))
+        # Storage capacity
+        matrix[-1,5] = int(round(storage_capacity))
+        # Loading station capacity
+        matrix[-1,6] = int(round(station_capacity))
         
-    def calcxx(self, terminal, commodities, vessels, trains, operational_hours, timestep, year):
-
-        berths = terminal.berths
-        cranes = terminal.cranes
-        storage = terminal.storage
-        stations = terminal.stations
-        quay_conveyors = terminal.quay_conveyors
-        hinterland_conveyors = terminal.hinterland_conveyors
+        # Translate to dataframe
+        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Terminal capacity', 'Terminal throughput', 'Quay capacity', 'Storage capacity', 'Loading station capacity'])
+        # Register under berth instance
+        if 'capacity' in dir(terminal):
+            terminal.capacity = terminal.capacity.append(df, sort=False)
+        if 'capacity' not in dir(terminal):
+            terminal.capacity = df 
         
-        maize_demand   = commodities[0].demand[timestep]
-        soybean_demand = commodities[1].demand[timestep]
-        wheat_demand   = commodities[2].demand[timestep]
-        demand         = maize_demand + soybean_demand + wheat_demand
-             
-        online_berths = []
-        for i in range(len(berths)):
-            if berths[i].online_date <= year:
-                online_berths.append(1)
-        online_berths = np.sum(online_berths)
-        
-        if online_berths == 0:
-            self.capacity = 0
-        else:
-        
-            ###############################################################################################
-            # Calculate quay capacity
-            ###############################################################################################
-
-            quay_capacity = []
-            for i in range(online_berths):
-                quay_capacity.append(int(berths[i].info[-1:]['Capacity']))
-            quay_capacity = np.sum(quay_capacity)
-            
-            
-            # Allowable waiting time to berth occupancy
-            max_occupancy = berths[0].waitingfactor_to_occupancy(terminal.allowable_vessel_waiting_time, online_berths)
-
-            # Effective service time per berth
-            max_berth_time = int(operational_hours * max_occupancy - (vessels[0].mooring_time * demand/ 
-                                                                     (online_berths * vessels[2].call_size)))
-            
-            # Effective service rate per berth
-            berth_service_rate = []
-            for i in range (len(berths)):
-                service_rate = []
-                for j in range(4):
-                    for k in range(len(cranes[j])):
-                        if cranes[j][k].online_date <= year and cranes[j][k].berth == i+1:
-                            service_rate.append(cranes[j][k].effective_capacity)                  
-                berth_service_rate.append(np.sum(service_rate))
-                berths[i].online_service_rate = int(np.sum(service_rate))
-                berths[i].capacity = int(max_berth_time * np.sum(service_rate))
-            total_service_rate = np.sum(berth_service_rate)
-
-            # Quay capacity
-            quay_capacity = []
-            for i in range (online_berths):
-                quay_capacity.append(berths[i].capacity)
-            self.quay_capacity = np.sum(quay_capacity)
-
-            ###############################################################################################
-            # Calculate quay conveyor capacity
-            ###############################################################################################
-
-            quay_conveyor_capacity = []
-            for i in range(len(quay_conveyors)):            
-                if quay_conveyors[i].online_date <= year:
-                    quay_conveyor_capacity.append(quay_conveyors[i].capacity * max_berth_time)  
-            self.quay_conveyor_capacity = np.sum(quay_conveyor_capacity)
-
-            ###############################################################################################
-            # Calculate storage capacity
-            ###############################################################################################
-
-            # Assuming silo capacity should always be large enough to accomodate 10% of yearly throughput
-            storage_capacity = []
-            for i in range(2):
-                for j in range(len(storage[i])):            
-                    if storage[i][j].online_date <= year:
-                        storage_capacity.append(storage[i][j].capacity)     
-            self.storage_capacity = np.sum(storage_capacity)/terminal.required_storage_factor
-
-            ###############################################################################################
-            # Calculate hinterland station capacity
-            ###############################################################################################
-
-            # Number of online loading stations
-            station_capacity = []
-            online_stations  = []
-            for i in range(len(stations)):            
-                if stations[i].online_date <= year:
-                    online_stations.append(1)
-            online_stations = np.sum(online_stations)
-
-            # Allowable waiting time to station occupancy
-            max_occupancy = berths[0].waitingfactor_to_occupancy(terminal.allowable_train_waiting_time, online_stations)
-
-            # Effective loading time per berth
-            prep_time = trains.prep_time
-            call_size = trains.call_size
-            max_loading_time = int(operational_hours * max_occupancy - (prep_time * demand / (online_stations * call_size)))
-            
-            # Effective service rate per berth
-            loading_rate = []
-            for i in range (len(stations)):
-                if stations[i].online_date <= year:
-                    loading_rate.append(stations[i].production)
-
-            # Station capcacity
-            self.station_capacity = max_loading_time * np.sum(loading_rate)
-
-            ###############################################################################################
-            # Calculate hinterland conveyor capacity
-            ###############################################################################################
-
-            hinterland_conveyor_capacity = []
-            for i in range(len(hinterland_conveyors)):            
-                if hinterland_conveyors[i].online_date <= year:
-                    hinterland_conveyor_capacity.append(hinterland_conveyors[i].capacity * max_loading_time)  
-            self.hinterland_conveyor_capacity = np.sum(hinterland_conveyor_capacity)
-
-            ###############################################################################################
-            # Calculate terminal capacity
-            ###############################################################################################
-
-            self.capacity = int(min(self.quay_capacity, self.quay_conveyor_capacity, self.storage_capacity, 
-                                    self.hinterland_conveyor_capacity, self.station_capacity))
-        
-        ###############################################################################################
-        # Calculate terminal throughput
-        ###############################################################################################
-
-        self.maize_throughput   = min(maize_demand, self.capacity)
-        self.soybean_throughput = min(soybean_demand, self.capacity - self.maize_throughput)
-        self.wheat_throughput   = min(wheat_demand, self.capacity - self.maize_throughput - self.soybean_throughput)
-        
-        return
+        return terminal
 
 
-# In[ ]:
+# In[3]:
 
 
 def throughput_calc(terminal, commodities, vessels, trains, operational_hours, timestep, year):
     throughputs = terminal.throughputs
     throughputs.append(throughput_class())
     throughputs[-1].year = year
-    throughputs[-1].calc(terminal, commodities, vessels, trains, operational_hours, timestep, year)
+    terminal = throughputs[-1].calc(terminal, commodities, vessels, trains, operational_hours, timestep, year)
     terminal.throughputs = throughputs
-    return terminal.throughputs
+    return terminal
 
 
 # # Business Logic classes
 # ### Revenue
 
-# In[2]:
+# In[4]:
 
 
 # create revenue class
@@ -269,7 +156,7 @@ class revenue_properties_mixin(object):
         pass
 
 
-# In[ ]:
+# In[5]:
 
 
 # define revenue class functions 
@@ -288,7 +175,7 @@ class revenue_class(revenue_properties_mixin):
         self.total   = int(self.maize + self.soybean + self.wheat)
 
 
-# In[ ]:
+# In[6]:
 
 
 def revenue_calc(revenues, throughputs, commodities, year, timestep):
@@ -301,7 +188,7 @@ def revenue_calc(revenues, throughputs, commodities, year, timestep):
 
 # ### Capex
 
-# In[4]:
+# In[7]:
 
 
 # create capex class
@@ -310,7 +197,7 @@ class capex_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[8]:
 
 
 # define capex class functions 
@@ -441,7 +328,7 @@ class capex_class(capex_properties_mixin):
         self.conveyors = -1*int(self.quay_conveyors + self.hinterland_conveyors)
 
 
-# In[ ]:
+# In[9]:
 
 
 def capex_calc(terminal, year, timestep):
@@ -455,7 +342,7 @@ def capex_calc(terminal, year, timestep):
 
 # ### Labour
 
-# In[5]:
+# In[10]:
 
 
 # create labour class 
@@ -475,7 +362,7 @@ labour_data =  {"international_salary": 105000, "international_staff": 4, "local
                 "operational_salary": 16750, "shift_length": 6.5, "annual_shifts": 200}
 
 
-# In[ ]:
+# In[11]:
 
 
 # define labour class functions 
@@ -525,7 +412,7 @@ class labour_class(labour_properties_mixin):
         self.total = int(self.international_salary * self.international_staff + self.local_salary * self.local_staff +                           self.operational_salary   * self.operational_staff)
 
 
-# In[ ]:
+# In[12]:
 
 
 def labour_calc(terminal, year, timestep, operational_hours):
@@ -539,7 +426,7 @@ def labour_calc(terminal, year, timestep, operational_hours):
 
 # ### Maintenance
 
-# In[7]:
+# In[13]:
 
 
 # create maintenance class 
@@ -548,7 +435,7 @@ class maintenance_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[14]:
 
 
 # define maintenance class functions 
@@ -626,7 +513,7 @@ class maintenance_class(maintenance_properties_mixin):
         self.total = int(self.quay + self.cranes + self.storage + self.loading_stations + self.conveyors)
 
 
-# In[ ]:
+# In[15]:
 
 
 def maintenance_calc(terminal, year, timestep):
@@ -640,7 +527,7 @@ def maintenance_calc(terminal, year, timestep):
 
 # ### Energy costs
 
-# In[ ]:
+# In[16]:
 
 
 # create energy consumption class 
@@ -653,7 +540,7 @@ class energy_properties_mixin(object):
 energy_data = {"price": 0.10}
 
 
-# In[ ]:
+# In[17]:
 
 
 # define energy consumption class functions 
@@ -734,7 +621,7 @@ class energy_class(energy_properties_mixin):
         self.total = int(self.cranes + self.storage + self.stations + self.conveyors)
 
 
-# In[ ]:
+# In[18]:
 
 
 def energy_calc(terminal, year, operational_hours, timestep):
@@ -748,7 +635,7 @@ def energy_calc(terminal, year, operational_hours, timestep):
 
 # ### Insurance costs
 
-# In[ ]:
+# In[19]:
 
 
 # create insurance cost class 
@@ -757,7 +644,7 @@ class insurance_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[20]:
 
 
 # define insurance cost class functions 
@@ -847,7 +734,7 @@ class insurance_class(insurance_properties_mixin):
         self.total = int(self.quay + self.cranes + self.storage + self.stations + self.conveyors)
 
 
-# In[ ]:
+# In[21]:
 
 
 def insurance_calc(terminal, year, timestep):
@@ -861,7 +748,7 @@ def insurance_calc(terminal, year, timestep):
 
 # ### Lease costs
 
-# In[5]:
+# In[22]:
 
 
 # create energy consumption class 
@@ -870,7 +757,7 @@ class lease_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[23]:
 
 
 # define lease cost class functions 
@@ -882,7 +769,7 @@ class lease_class(lease_properties_mixin):
         self.total = 0 
 
 
-# In[ ]:
+# In[24]:
 
 
 def lease_calc(terminal, year, timestep):
@@ -896,7 +783,7 @@ def lease_calc(terminal, year, timestep):
 
 # ### Demurrage costs
 
-# In[ ]:
+# In[25]:
 
 
 # create demurrage class
@@ -905,7 +792,7 @@ class demurrage_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[26]:
 
 
 # define demurrage class functions 
@@ -1020,7 +907,7 @@ class demurrage_class(demurrage_properties_mixin):
         return total_costs
 
 
-# In[ ]:
+# In[27]:
 
 
 def demurrage_calc(demurrage, berths, cranes, commodities, vessels, operational_hours, timestep, year):
@@ -1032,7 +919,7 @@ def demurrage_calc(demurrage, berths, cranes, commodities, vessels, operational_
 
 # ### Residual values
 
-# In[ ]:
+# In[28]:
 
 
 # create residual value class 
@@ -1041,7 +928,7 @@ class residual_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[29]:
 
 
 # define residual value class functions 
@@ -1147,7 +1034,7 @@ class residual_class(residual_properties_mixin):
         self.total = int(self.quay + self.cranes + self.storage + self.stations + self.conveyors)
 
 
-# In[ ]:
+# In[30]:
 
 
 def residual_calc(terminal, year, timestep):
@@ -1161,7 +1048,7 @@ def residual_calc(terminal, year, timestep):
 
 # ### Profits
 
-# In[ ]:
+# In[31]:
 
 
 # create profit class 
@@ -1170,7 +1057,7 @@ class profit_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[32]:
 
 
 # define profit class functions 
@@ -1199,7 +1086,7 @@ class profit_class(profit_properties_mixin):
                          self.lease + self.demurrage + self.residuals)
 
 
-# In[ ]:
+# In[33]:
 
 
 def profit_calc(terminal, window, timestep, year, start_year):
@@ -1213,7 +1100,7 @@ def profit_calc(terminal, window, timestep, year, start_year):
 
 # ### OPEX
 
-# In[1]:
+# In[34]:
 
 
 # create opex class 
@@ -1222,7 +1109,7 @@ class opex_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[35]:
 
 
 # define opex class functions 
@@ -1244,7 +1131,7 @@ class opex_class(opex_properties_mixin):
         self.total = int(self.labour + self.maintenance + self.energy + self.insurance + self.lease + self.demurrage)
 
 
-# In[ ]:
+# In[36]:
 
 
 def opex_calc(terminal, year, timestep):
@@ -1258,7 +1145,7 @@ def opex_calc(terminal, year, timestep):
 
 # ### Combining all cashflow 
 
-# In[1]:
+# In[37]:
 
 
 def cashflow_calc(terminal, simulation_window, start_year):
@@ -1347,7 +1234,7 @@ def cashflow_calc(terminal, simulation_window, start_year):
 
 # ### Escalation
 
-# In[ ]:
+# In[38]:
 
 
 # create WACC class 
@@ -1356,7 +1243,7 @@ class escalation_properties_mixin(object):
         super().__init__(*args, **kwargs)
 
 
-# In[ ]:
+# In[39]:
 
 
 # define escalation class functions 
@@ -1369,7 +1256,7 @@ class escalation_class(escalation_properties_mixin):
 
 # ### WACC
 
-# In[ ]:
+# In[40]:
 
 
 # define WACC class functions 
@@ -1416,7 +1303,7 @@ class WACC_class():
         self.opex = PV_opex
 
 
-# In[ ]:
+# In[41]:
 
 
 def WACC_calc(WACC, profits, revenues, capex, opex, window, start_year):
@@ -1430,7 +1317,7 @@ def WACC_calc(WACC, profits, revenues, capex, opex, window, start_year):
 
 # ### NPV
 
-# In[ ]:
+# In[42]:
 
 
 def NPV_calc(WACC_cashflows):
@@ -1438,4 +1325,87 @@ def NPV_calc(WACC_cashflows):
     NPV = int(np.sum(profits))
     #NPV = '${:0,.0f}'.format(NPV)
     return NPV
+
+
+# # Evaluate financial performance of static design
+
+# In[43]:
+
+
+def evaluate_perfect_foresight(terminal, commodities, vessels, simulation_window, start_year, operational_hours):
+    
+    terminal_capacity = []
+    terminal_throughputs = []
+    terminal_revenues = []
+    demurrage_costs = []
+    profits = []
+    
+    for timestep in range(len(terminal.throughputs)):
+        
+        year = start_year + timestep
+        
+        # Traffic demand
+        demand = commodities[0].demand[timestep]
+        
+        # Register findings under the terminal instance
+        matrix = np.zeros(shape=(1, 7))
+        # Year
+        matrix[-1,0] = int(round(terminal.capacity['Year'][timestep:timestep+1]))
+        # Commodity demand
+        matrix[-1,1] = int(round(demand))
+        # Terminal capacity
+        matrix[-1,2] = int(round(terminal.capacity['Terminal capacity'][timestep:timestep+1]))
+        # Terminal throughput
+        matrix[-1,3] = int(round(min(int(demand), int(terminal.capacity['Terminal capacity'][timestep:timestep+1]))))
+        # Quay capacity
+        matrix[-1,4] = int(round(terminal.capacity['Quay capacity'][timestep:timestep+1]))
+        # Storage capacity
+        matrix[-1,5] = int(round(terminal.capacity['Storage capacity'][timestep:timestep+1]))
+        # Loading station capacity
+        matrix[-1,6] = int(round(terminal.capacity['Loading station capacity'][timestep:timestep+1]))
+        
+        # Translate to dataframe
+        df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Terminal capacity', 'Terminal throughput', 'Quay capacity', 'Storage capacity', 'Loading station capacity'])
+        
+        # Update figures
+        terminal.capacity[timestep:timestep+1].update(df)
+
+        # Terminal revenues
+        throughput = int(terminal.capacity['Terminal throughput'][timestep:timestep+1])
+        revenues   = int(throughput * commodities[0].handling_fee)
+        terminal_revenues.append(revenues)
+        
+        # Demurrage costs
+        costs = terminal.demurrage[0].calc(terminal.berths, terminal.cranes, commodities, vessels, operational_hours, timestep, year)
+        demurrage_costs.append(costs)
+        
+        # Profits
+        revenues    = terminal_revenues[-1]
+        capex       = terminal.capex[timestep].total
+        labour      = terminal.labour[timestep].total
+        maintenance = terminal.maintenance[timestep].total
+        energy      = terminal.energy[timestep].total
+        insurance   = terminal.insurance[timestep].total
+        demurrage   = demurrage_costs[-1]
+        if timestep == len(terminal.throughputs)-1:
+            residuals = terminal.residuals[timestep].total
+        else:
+            residuals = 0
+        profits.append(int(revenues + capex - labour - maintenance - energy - insurance - demurrage + residuals))
+        
+        # Overwrite terminal cashflow data
+        terminal.revenues[timestep].total = terminal_revenues[-1]
+        terminal.demurrage[timestep].total = demurrage_costs[-1]
+        terminal.profits[timestep].total = profits[-1]
+    
+    #WACC depreciated profits
+    terminal.WACC_cashflows = WACC_calc(terminal.project_WACC, terminal.profits, terminal.revenues, terminal.capex, terminal.opex, simulation_window, start_year)
+
+    # Combine all cashflows
+    terminal.cashflows = cashflow_calc(terminal, simulation_window, start_year) 
+
+    #NPV 
+    terminal.NPV = NPV_calc(terminal.WACC_cashflows)
+    
+    return terminal
 

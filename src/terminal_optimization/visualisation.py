@@ -131,7 +131,291 @@ def scenario(traffic_projections, commodities):
                             dash='dashdot'))]
     )
     
-    return [data, layout]
+    fig = dict(data=data, layout=layout)
+    
+    return fig
+
+
+# In[ ]:
+
+
+def forecast_visualization(traffic_scenario, forecast, commodities):
+    
+    maize = commodities[0]
+       
+    # Visualize the yearly forecasted traffic projection
+    data = []
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = traffic_scenario,
+            name = 'Traffic scenario',
+            line = dict(
+               color = ('rgb(214, 39, 40)'),
+                width = 2)))
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = forecast,
+            name = 'Forecasted volumes',
+            line = dict(
+               color = 'rgb(215, 215, 215)',
+                width = 2)))
+
+    # Edit the layout
+    layout = dict(
+                title = 'Traffic forecasts',
+                yaxis = dict(title = 'Maize throughput (t/year)'),
+                legend=dict(
+                    x=1.05,
+                    y=1),
+                annotations=[
+                    dict(
+                        x=1,
+                        y=-0.12,
+                        showarrow=False,
+                        text='Source: Own work',
+                        xref='paper',
+                        yref='paper'),
+                    dict(
+                        x=2018.7,
+                        y=1,
+                        showarrow=False,
+                        text='Interim forecasts',
+                        yref='paper',
+                        textangle=90,
+                        font=dict(
+                            size=13)),
+                    dict(
+                        x=2017.3,
+                        y=1,
+                        showarrow=False,
+                        text='Historic traffic',
+                        yref='paper',
+                        textangle=90,
+                        font=dict(
+                            size=13))],
+                shapes=[
+                    dict(
+                        type='line',
+                        x0=2018,
+                        y0=-0.05,
+                        x1=2018,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dashdot'))]
+    )
+    
+    fig = dict(data=data, layout=layout)
+    
+    return fig
+
+
+# In[2]:
+
+
+def terminal_design(commodities):
+
+    maize   = commodities[0]
+    soybean = commodities[1]
+    wheat   = commodities[2]
+
+    # Visualize median traffic projections
+    data = []
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = maize.demand,
+            name = 'Traffic projection',
+            line = dict(
+               color = ('rgb(214, 39, 40)'),
+                width = 2)))
+
+    # Edit the layout
+    layout = dict(
+                title = 'Terminal design',
+                yaxis = dict(title = 'Maize throughput (t/year)'),
+                xaxis = dict(
+                            range=[2016,2037],
+                            dtick=1,
+                            tickangle=315),
+                legend=dict(
+                    x=1.05,
+                    y=1),
+                annotations=[
+                    dict(
+                        x=1,
+                        y=-0.2,
+                        showarrow=False,
+                        text='Arbitrary (simplified) example',
+                        xref='paper',
+                        yref='paper')],
+                shapes=[
+                    dict(
+                        type='line',
+                        x0=2018,
+                        y0=0,
+                        x1=2018,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dot')),
+                    dict(
+                        type='line',
+                        x0=2019,
+                        y0=0,
+                        x1=2019,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dot')),
+                    dict(
+                        type='line',
+                        x0=2021,
+                        y0=0,
+                        x1=2021,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dot')),
+                    dict(
+                        type='line',
+                        x0=2028,
+                        y0=0,
+                        x1=2028,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dot')),
+                    dict(
+                        type='line',
+                        x0=2032,
+                        y0=0,
+                        x1=2032,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dot'))]
+                    )
+
+    fig = dict(data=data, layout=layout)
+
+    return fig
+
+
+# In[ ]:
+
+
+def forecast_methods(traffic_scenario, linear, forecastpoly2, forecastpoly3, forecastpoly4, commodities):
+    
+    maize = commodities[0]
+       
+    # Visualize the yearly forecasted traffic projection
+    data = []
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = traffic_scenario,
+            name = 'Traffic scenario',
+            line = dict(
+               color = ('rgb(214, 39, 40)'),
+                width = 2)))
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = linear,
+            name = 'Linear forecasts',
+            line = dict(
+               color = colors[0],
+                width = 2)))
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = forecastpoly2,
+            name = '2nd poly forecasts',
+            line = dict(
+               color = colors[1],
+                width = 2)))
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = forecastpoly3,
+            name = '3rd poly forecasts',
+            line = dict(
+               color = colors[3],
+                width = 2)))
+    data.append(
+        go.Scatter(
+            x = maize.years,
+            y = forecastpoly4,
+            name = '4th poly forecasts',
+            line = dict(
+               color = colors[4],
+                width = 2)))
+
+    # Edit the layout
+    layout = dict(
+                title = 'Traffic forecasts',
+                yaxis = dict(title = 'Maize throughput (t/year)'),
+                legend=dict(
+                    x=1.05,
+                    y=1),
+                annotations=[
+                    dict(
+                        x=1,
+                        y=-0.12,
+                        showarrow=False,
+                        text='Source: Own work',
+                        xref='paper',
+                        yref='paper'),
+                    dict(
+                        x=2018.7,
+                        y=1,
+                        showarrow=False,
+                        text='Interim forecasts',
+                        yref='paper',
+                        textangle=90,
+                        font=dict(
+                            size=13)),
+                    dict(
+                        x=2017.3,
+                        y=1,
+                        showarrow=False,
+                        text='Historic traffic',
+                        yref='paper',
+                        textangle=90,
+                        font=dict(
+                            size=13))],
+                shapes=[
+                    dict(
+                        type='line',
+                        x0=2018,
+                        y0=-0.05,
+                        x1=2018,
+                        y1=1.05,
+                        yref='paper',
+                        line=dict(
+                            color='rgb(60, 60, 60)',
+                            width=3,
+                            dash='dashdot'))]
+    )
+    
+    fig = dict(data=data, layout=layout)
+    
+    return fig
 
 
 # In[5]:
@@ -419,116 +703,6 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
 # - Revenues + Capex + Opex (nominal value)
 # - NPV distribution
 # - Risk sensitivity
-
-# In[7]:
-
-
-def revenue_capex_opexxx(terminal):
-    
-    cashflows = terminal.cashflows
-    
-    # Determine payback timestep
-    payback_t = cashflows['Compounded profit'].loc[cashflows['Compounded profit'] == min(cashflows['Compounded profit'], key=abs)].index[0]
-    
-    # Construct data for underlying profit/loss area chart
-    loss = []
-    profit = []
-    for t in range (len(cashflows['Compounded profit'])):
-        if t < payback_t:
-            loss.append(cashflows['Compounded profit'][t])
-            profit.append(0)
-        if t == payback_t:
-            loss.append(0)
-            profit.append(0)
-        if t > payback_t:
-            loss.append(0)
-            profit.append(cashflows['Compounded profit'][t])
-
-    # Plot bars
-    trace1 = go.Bar(
-        x=cashflows['Year'],
-        y=cashflows['Revenues'],
-        name='Revenues',
-        marker=dict(
-            color='#025928'
-        )
-    )
-    trace2 = go.Bar(
-        x=cashflows['Year'],
-        y=cashflows['Capex'],
-        name='Capex',
-        marker=dict(
-            color='#8c1c03'
-        )
-    )
-    trace3 = go.Bar(
-        x=cashflows['Year'],
-        y=cashflows['Opex'],
-        name='Opex',
-        marker=dict(
-            color='rgb(55, 83, 109)'
-        )
-    )
-    trace4 = go.Scatter(
-        x=cashflows['Year'],
-        y=loss,
-        name='Loss',
-        mode='none',
-        line=dict(
-            color='#8c1c03',
-            shape='spline'),
-        fill='tozeroy'
-    )
-    trace5 = go.Scatter(
-        x=cashflows['Year'],
-        y=profit,
-        name='Profit',
-        mode='none',
-        line=dict(
-            color='rgb(44, 160, 44)',
-            shape='spline'),
-        fill='tozeroy',
-    )
-    data = [trace1, trace2, trace3, trace4, trace5]
-    layout = go.Layout(
-        title='Terminal cashflows',
-
-        xaxis=dict(
-            tickfont=dict(
-                size=24,
-                color='rgb(107, 107, 107)'
-            )
-        ),
-        yaxis=dict(
-            title='Cashflows in USD ($)',
-            titlefont=dict(
-                size=27,
-                color='rgb(107, 107, 107)'
-            ),
-            tickfont=dict(
-                size=24,
-                color='rgb(107, 107, 107)'
-            )
-        ),       
-        legend=dict(
-            x=0,
-            y=1.0,
-            bgcolor='rgba(255, 255, 255, 0)',
-            bordercolor='rgba(255, 255, 255, 0)',
-            font=dict(
-                size=25,
-                color='rgb(107, 107, 107)'
-            )
-        ),
-        barmode='group',
-        bargap=0.05,
-        bargroupgap=0.1
-    )
-    
-    get_ipython().run_line_magic('matplotlib', 'inline')
-    fig = go.Figure(data=data, layout=layout)
-    py.iplot(fig, filename='Revenue, Capex and Opex')
-
 
 # In[ ]:
 
@@ -1093,33 +1267,36 @@ def capacity(terminal, commodities):
     maize   = commodities[0]
     soybean = commodities[1]
     wheat   = commodities[2]
-    
+
     terminal_capacity = []
     quay_capacity = []
     storage_capacity = []
     station_capacity = []
-    quay_conveyor_capacity = []
-    hinterland_conveyor_capacity = []
-    
-    for i in range(len(terminal.throughputs)):
-        terminal_capacity.append(terminal.throughputs[i].capacity)
-        if terminal_capacity[-1] != 0:
-            quay_capacity.append(terminal.throughputs[i].quay_capacity)
-            storage_capacity.append(terminal.throughputs[i].storage_capacity)
-            station_capacity.append(terminal.throughputs[i].station_capacity)
-            quay_conveyor_capacity.append(terminal.throughputs[i].quay_conveyor_capacity)
-            hinterland_conveyor_capacity.append(terminal.throughputs[i].hinterland_conveyor_capacity)
+
+    for i in range(len(terminal.berths[0].info['Capacity'])):
+        
+        if quay_capacity:
+            quay_capacity.append(terminal.berths[0].info['Capacity'].values[i])
         else:
             quay_capacity.append(0)
+            
+        if station_capacity:
+            station_capacity.append(terminal.stations[0].info['Total yearly loading capacity'].values[i])
+        else:station_capacity.append(0)
+            
+        if storage_capacity:
+            storage_capacity.append(terminal.storage[0][0].info['Capacity'].values[i])
+        else:
             storage_capacity.append(0)
-            station_capacity.append(0)
-            quay_conveyor_capacity.append(0)
-            hinterland_conveyor_capacity.append(0)
-
+            
+        if terminal_capacity:
+            terminal_capacity.append(min(quay_capacity[-1], storage_capacity[-1], station_capacity[-1]))
+        else:
+            terminal_capacity.append(0)
+            
     x = maize.years[5:]
     demand = maize.demand[5:]
-    terminal_capacity = terminal_capacity
-   
+
     trace1 = go.Scatter(
         name='Terminal capacity',
         x=x,
@@ -1157,23 +1334,7 @@ def capacity(terminal, commodities):
       'marker': dict(color=colors[3])
     };
 
-    trace5 = {
-      'x': x,
-      'y': quay_conveyor_capacity,
-      'name': 'Quay conveyor<br>capacity',
-      'type': 'bar',
-      'marker': dict(color=colors[4])
-    };
-
-    trace6 = {
-      'x': x,
-      'y': hinterland_conveyor_capacity,
-      'name': 'Hinterland conveyor<br>capacity',
-      'type': 'bar',
-      'marker': dict(color=colors[5])
-    };
-    
-    trace7 = go.Scatter(
+    trace5 = go.Scatter(
         name='Traffic projection',
         x=x,
         y=demand,
@@ -1184,7 +1345,7 @@ def capacity(terminal, commodities):
         )
     )
 
-    data = [trace1, trace2, trace3, trace4, trace7];
+    data = [trace1, trace2, trace3, trace4, trace5];
     layout = {
         'xaxis': dict(
                 tick0=0,
@@ -1205,7 +1366,9 @@ def capacity(terminal, commodities):
                         xref='paper',
                         yref='paper')]
     }
-    return [data, layout]
+    fig = {'data': data, 'layout': layout}
+    
+    return fig
 
 
 # # Trigger Iteration
@@ -1254,11 +1417,13 @@ def NPV_distribution_vessel_waiting_times(iterations):
     layout = dict(
                 xaxis= dict(
                     title='Allowable waiting time as factor of service time',
-                    ticksuffix='%'
+                    ticksuffix='%',
+                    range = [9, 145]
                 ),
                 yaxis= dict(
                     title='Terminal NPV',
-                    tickprefix='$'
+                    tickprefix='$',
+                    range = [-51000000,20000000]
                 ),
                 title= 'Financial impact of the allowable<br>vessel waiting time',
                 showlegend=False,
@@ -2098,6 +2263,13 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
 
     NPV_matrix = np.zeros(shape=(len(evaluate_designs), 3))
 
+    if chosen_method == 'Perfect foresight method':
+        title = 'Evaluation of the perfect foresight method'
+    if chosen_method == 'Current performance method':
+        title = 'Evaluation of the current performance method'
+    if chosen_method == 'Forecast based method':
+        title = 'Evaluation of the interim forecast method'
+
     ############################################################################################################
     # For each run, register the terminal's NPV 
     ############################################################################################################
@@ -2135,11 +2307,11 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
     estimate_NPV   = int(np.average(df['Estimations']))
     NPV_difference = "$" + str('{:0,.0f}'.format(abs(simulation_NPV - estimate_NPV)))
     midway = 0.5 * abs(simulation_NPV - estimate_NPV) + min(simulation_NPV, estimate_NPV)
-    
+
     standard_deviation = max(np.std(df['Simulations']), np.std(df['Estimations']))
     min_x = min(simulation_NPV, estimate_NPV) - 4*standard_deviation
     max_x = max(simulation_NPV, estimate_NPV) + 4*standard_deviation
-    
+
     if simulation_NPV > estimate_NPV:
         anchor_estimation = 'right'
         anchor_simulation = 'left'
@@ -2173,7 +2345,7 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                 x=0.5,
                 y=1.25,
                 showarrow=False,
-                text='Evaluating the design method',
+                text=title,
                 xref='paper',
                 yref='paper',
                 font=dict(
@@ -2183,16 +2355,16 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                 x=midway,
                 y=0.73,
                 showarrow=False,
-                text=u'Δ ' + 'NPV: ' + str(NPV_difference),
+                text=u'Δ ' + 'NPV: ' + str(round(100*abs(simulation_NPV - estimate_NPV)/midway,1)) + '%',
                 yref='paper',
                 font=dict(
                     size=13)
             ),
             dict(
                 x=np.average(df['Simulations']),
-                y=0.54,
+                y=0.56,
                 showarrow=False,
-                text='Average simulated <br> value',
+                text='Average simulated value<br>'+ "$" + str('{:0,.0f}'.format(abs(simulation_NPV))),
                 xanchor = anchor_simulation,
                 yref='paper',
                 font=dict(
@@ -2201,9 +2373,9 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
             ),
             dict(
                 x=np.average(df['Estimations']),
-                y=0.44,
+                y=0.49,
                 showarrow=False,
-                text='Estimated value',
+                text='Estimated value<br>'+ "$" + str('{:0,.0f}'.format(abs(estimate_NPV))),
                 xanchor = anchor_estimation,
                 yref='paper',
                 font=dict(
