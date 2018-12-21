@@ -96,7 +96,7 @@ def scenario(traffic_projections, commodities):
                         x=1,
                         y=-0.12,
                         showarrow=False,
-                        text='Source: Own work',
+                        text='Source: Computer model',
                         xref='paper',
                         yref='paper'),
                     dict(
@@ -174,7 +174,7 @@ def forecast_visualization(traffic_scenario, forecast, commodities):
                         x=1,
                         y=-0.12,
                         showarrow=False,
-                        text='Source: Own work',
+                        text='Source: Computer model',
                         xref='paper',
                         yref='paper'),
                     dict(
@@ -378,7 +378,7 @@ def forecast_methods(traffic_scenario, linear, forecastpoly2, forecastpoly3, for
                         x=1,
                         y=-0.12,
                         showarrow=False,
-                        text='Source: Own work',
+                        text='Source: Computer model',
                         xref='paper',
                         yref='paper'),
                     dict(
@@ -761,12 +761,97 @@ def revenue_capex_opex(terminal):
       'marker': dict(color=colors[0])
     };
 
+    data = [trace1, trace2, trace3];
+    layout = {
+        'xaxis': {'tickangle': 315,
+                  'dtick': 1},
+        'yaxis': {'title': 'Cashflows',
+                  'tickprefix': '$',
+                  'range':[min(cashflows['Capex'])*1.1, max(cashflows['Revenues'])]},
+        'title': 'Terminal cashflows',
+        'legend': dict(x=1,
+                     y=1),
+        'bargap': 0.35,
+        'bargroupgap' :0.05,
+        'annotations' :[dict(
+                        x=1,
+                        y=-0.18,
+                        showarrow=False,
+                        text='Source: Computer model',
+                        xanchor='right',
+                        xref='paper',
+                        yref='paper')]
+    }
+    
+    fig = {'data': data, 'layout': layout}
+    
+    return fig
+
+
+# In[ ]:
+
+
+def discounted_revenue_capex_opex(terminal):
+
+    cashflows = terminal.cashflows
+
+    x = cashflows['Year']
+
+    trace1 = {
+      'x': x,
+      'y': cashflows['Revenues'],
+      'name': 'Revenues',
+      'type': 'bar',
+      'marker': dict(color=colors[3])
+    };
+
+    trace2 = {
+      'x': x,
+      'y': cashflows['Capex'],
+      'name': 'Capex',
+      'type': 'bar',
+      'marker': dict(color='rgb(214, 39, 40)')
+    };
+
+    trace3 = {
+      'x': x,
+      'y': cashflows['Opex'],
+      'name': 'Opex',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
+    trace4 = {
+      'x': x,
+      'y': cashflows['Revenues (discounted)'],
+      'name': 'Revenues (discounted)',
+      'type': 'bar',
+      'marker': dict(color=colors[3])
+    };
+
+    trace5 = {
+      'x': x,
+      'y': cashflows['Capex (discounted)'],
+      'name': 'Capex (discounted)',
+      'type': 'bar',
+      'marker': dict(color='rgb(214, 39, 40)')
+    };
+
+    trace6 = {
+      'x': x,
+      'y': cashflows['Opex (discounted)'],
+      'name': 'Opex (discounted)',
+      'type': 'bar',
+      'marker': dict(color=colors[0])
+    };
+
     data = [trace4, trace5, trace6];
     layout = {
         'xaxis': {'tickangle': 315,
                   'dtick': 1},
         'yaxis': {'title': 'Cashflows',
-                  'tickprefix': '$'},
+                  'tickprefix': '$',
+                  'range':[min(cashflows['Capex'])*1.1, max(cashflows['Revenues'])]},
         'title': 'Discounted terminal cashflows',
         'legend': dict(x=1,
                      y=1),
@@ -776,13 +861,15 @@ def revenue_capex_opex(terminal):
                         x=1,
                         y=-0.18,
                         showarrow=False,
-                        text='Source: Own work',
+                        text='Source: Computer model',
                         xanchor='right',
                         xref='paper',
                         yref='paper')]
     }
     
-    return [data, layout]
+    fig = {'data': data, 'layout': layout}
+    
+    return fig
 
 
 # ### Profit / Loss (nominal value)
@@ -1105,7 +1192,7 @@ def NPV_distribution_WACC(iterations):
                                 x=1,
                                 y=-0.13,
                                 showarrow=False,
-                                text='Source: Own work',
+                                text='Source: Computer model',
                                 xanchor='right',
                                 xref='paper',
                                 yref='paper')]
@@ -1272,30 +1359,32 @@ def capacity(terminal, commodities):
     quay_capacity = []
     storage_capacity = []
     station_capacity = []
-
-    for i in range(len(terminal.berths[0].info['Capacity'])):
         
-        if quay_capacity:
-            quay_capacity.append(terminal.berths[0].info['Capacity'].values[i])
-        else:
-            quay_capacity.append(0)
-            
-        if station_capacity:
-            station_capacity.append(terminal.stations[0].info['Total yearly loading capacity'].values[i])
-        else:station_capacity.append(0)
-            
-        if storage_capacity:
-            storage_capacity.append(terminal.storage[0][0].info['Capacity'].values[i])
-        else:
+    df = terminal.berths[0].info   
+    for x in df['Year'].values:
+        
+        # Quay
+        df = terminal.berths[0].info 
+        quay_capacity.append(int(round(df.loc[df['Year'] == x]['Capacity'])))  
+        
+        # Storage
+        df = terminal.storage[0][0].info
+        if df['Year'].values[0] > x:
             storage_capacity.append(0)
-            
-        if terminal_capacity:
-            terminal_capacity.append(min(quay_capacity[-1], storage_capacity[-1], station_capacity[-1]))
         else:
-            terminal_capacity.append(0)
+            storage_capacity.append(int(round(df.loc[df['Year'] == x]['Capacity'])))
             
-    x = maize.years[5:]
-    demand = maize.demand[5:]
+        # Stations
+        df = terminal.stations[0].info
+        if df['Year'].values[0] > x:
+            station_capacity.append(0)
+        else:
+            station_capacity.append(int(round(df.loc[df['Year'] == x]['Total yearly loading capacity'])))
+            
+        terminal_capacity.append(int(round(min(quay_capacity[-1],storage_capacity[-1],station_capacity[-1]))))
+            
+    x = maize.years[len(commodities[0].historic):]
+    demand = maize.demand[len(commodities[0].historic):]
 
     trace1 = go.Scatter(
         name='Terminal capacity',
@@ -1303,11 +1392,10 @@ def capacity(terminal, commodities):
         y=terminal_capacity,
         mode='lines',
         line=dict(
-            color='rgb(200, 200, 200, 0.2)', 
-            width=0,
-            shape='hv'),
-        fill='tozeroy',
-        fillcolor='rgba(200, 200, 200, 0.4)',
+            color='rgba(60, 60, 60, 1)', 
+            width=3,
+            shape='hv',
+            dash='dot'),
     )
 
     trace2 = {
@@ -1323,7 +1411,7 @@ def capacity(terminal, commodities):
       'y': storage_capacity,
       'name': 'Storage capacity',
       'type': 'bar',
-      'marker': dict(color=colors[2])
+      'marker': dict(color='rgba(170, 170, 170, 0.6)')
     };
 
     trace4 = {
@@ -1333,7 +1421,7 @@ def capacity(terminal, commodities):
       'type': 'bar',
       'marker': dict(color=colors[3])
     };
-
+    
     trace5 = go.Scatter(
         name='Traffic projection',
         x=x,
@@ -1341,7 +1429,7 @@ def capacity(terminal, commodities):
         mode='lines',
         line=dict(
             color='rgb(214, 39, 40)', 
-            width=3
+            width=2
         )
     )
 
@@ -1352,16 +1440,22 @@ def capacity(terminal, commodities):
                 dtick=1,
                 tickangle=315),
         'yaxis': {'title': 'Terminal throughput (t/year)'},
-        'title': 'Temporal asset development',
+        'yaxis2':dict(
+                    title='Traffic projection (t/year)',
+                    overlaying='y',
+                    side='right',
+                    showgrid=False,
+                    ),
+        'title': 'Terminal capacity over the years',
         'legend': dict(x=1,
                      y=1),
         'bargap': 0.15,
         'bargroupgap' :0.1,
         'annotations' :[dict(
                         x=1,
-                        y=-0.14,
+                        y=-0.18,
                         showarrow=False,
-                        text='Source: Own work',
+                        text='Source: Computer model',
                         xanchor='right',
                         xref='paper',
                         yref='paper')]
@@ -1431,7 +1525,7 @@ def NPV_distribution_vessel_waiting_times(iterations):
                                 x=1,
                                 y=-0.13,
                                 showarrow=False,
-                                text='Source: Own work',
+                                text='Source: Computer model',
                                 xanchor='right',
                                 xref='paper',
                                 yref='paper')]
@@ -1496,7 +1590,7 @@ def NPV_distribution_required_storage(iterations):
                                 x=1,
                                 y=-0.13,
                                 showarrow=False,
-                                text='Source: Own work',
+                                text='Source: Computer model',
                                 xanchor='right',
                                 xref='paper',
                                 yref='paper')]
@@ -1560,7 +1654,7 @@ def NPV_distribution_aspired_storage(iterations):
                                 x=1,
                                 y=-0.13,
                                 showarrow=False,
-                                text='Source: Own work',
+                                text='Source: Computer model',
                                 xanchor='right',
                                 xref='paper',
                                 yref='paper')]
@@ -1624,7 +1718,7 @@ def NPV_distribution_train_waiting_times(iterations):
                                 x=1,
                                 y=-0.13,
                                 showarrow=False,
-                                text='Source: Own work',
+                                text='Source: Computer model',
                                 xanchor='right',
                                 xref='paper',
                                 yref='paper')]
@@ -1641,28 +1735,32 @@ def NPV_distribution_train_waiting_times(iterations):
 
 def berth_cranes(terminal, commodities):
 
+    colors = ['rgba(55, 83, 109, 1)', 'rgba(55, 83, 109, 0.8)', 'rgba(55, 83, 109, 0.5)',
+          'rgb(129, 180, 179, 1)', 'rgb(79, 127, 127, 1)', 'rgb(110,110,110)']  
+
     maize   = commodities[0]
     soybean = commodities[1]
     wheat   = commodities[2]
-    
+
     x  = maize.years[5:]
     demand = maize.demand[5:]
     n_berths, n_cranes = [], []
-    
+
     for year in x:
-        
+
         # Number of berths online
         online = []
         for i in range(len(terminal.berths)):
             if year >= terminal.berths[i].online_date:
                 online.append(1)
         n_berths.append(np.sum(online))
-        
+
         # Number of cranes online
         online = []
-        for i in range(len(terminal.cranes[2])):
-            if year >= terminal.cranes[2][i].online_date:
-                online.append(1)
+        for i in range(4):
+            for j in range(len(terminal.cranes[i])):
+                if year >= terminal.cranes[i][j].online_date:
+                    online.append(1)
         n_cranes.append(np.sum(online))
 
     trace1 = {
@@ -1672,13 +1770,13 @@ def berth_cranes(terminal, commodities):
       'type': 'bar',
       'marker': dict(color=colors[0])
     };
-    
+
     trace2 = {
       'x': x,
       'y': n_cranes,
       'name': 'Mobile cranes',
       'type': 'bar',
-      'marker': dict(color=colors[2])
+      'marker': dict(color='rgba(170, 170, 170, 0.6)')
     };
 
     trace3 = go.Scatter(
@@ -1689,30 +1787,43 @@ def berth_cranes(terminal, commodities):
         mode='lines',
         line=dict(
             color='rgb(214, 39, 40)', 
-            width=3
+            width=2
         )
     )
 
-    data = [trace1, trace2, trace2];
+    data = [trace1, trace2, trace3];
     layout = {
         'xaxis': dict(
                 tick0=0,
                 dtick=1,
                 tickangle=315),
-        'yaxis': {'title': 'Number of assets'},
-                #'range':[1000000,2400000]},
+        'yaxis': dict(
+                    title='Number of assets',
+                    dtick=1),
         'yaxis2':dict(
-                    title='Terminal throughput (t/year)',
+                    title='Traffic projection (t/year)',
                     overlaying='y',
-                    side='right'
+                    side='right',
+                    showgrid=False,
                     ),
-        'title': 'Temporal berth development',
+        'title': 'Berth configuration over the years',
+        'annotations': [dict(
+                            x=1,
+                            y=-0.15,
+                            showarrow=False,
+                            text='Source: Computer model',
+                            xref='paper',
+                            yref='paper'
+                            )],
         'legend': dict(x=1.1,
                      y=1),
-        'bargap': 0.15,
+        'bargap': 0.18,
         'bargroupgap' :0.1,
         };
-    return [data, layout]
+
+    fig = dict(data=data, layout=layout)
+    
+    return fig
 
 
 # ### Determine development trajectory of terminals assets
@@ -2121,7 +2232,7 @@ def NPV_distribution_estimated_designs(iterations):
                 x=1,
                 y=-0.12,
                 showarrow=False,
-                text='Source: Own work',
+                text='Source: Computer model',
                 xref='paper',
                 yref='paper'
             )],
@@ -2225,7 +2336,7 @@ def NPV_distribution_simulated_designs(iterations):
                 x=1,
                 y=-0.12,
                 showarrow=False,
-                text='Source: Own work',
+                text='Source: Computer model',
                 xref='paper',
                 yref='paper'
             )],
@@ -2386,7 +2497,7 @@ def method_evaluation(chosen_method, estimate_designs, evaluate_designs):
                 x=1,
                 y=-0.12,
                 showarrow=False,
-                text='Source: Own work',
+                text='Source: Computer model',
                 xref='paper',
                 yref='paper'
             )],
