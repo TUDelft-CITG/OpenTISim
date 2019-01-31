@@ -1,10 +1,7 @@
 [![CircleCI](https://circleci.com/gh/TUDelft-CITG/Terminal-Optimization.svg?style=svg&circle-token=e80be990a1415185a3aee7c7304e86bbef094eb5)](https://circleci.com/gh/TUDelft-CITG/Terminal-Optimization)
-
 [ ![Coverage](https://oedm.vanoord.com/proxy/circleci_no_redirect/github/TUDelft-CITG/Terminal-Optimization/master/latest/07f3adf51970049c681fce29419db5d9f7aa596d/tmp/artifacts/coverage.svg)](https://oedm.vanoord.com/proxy/circleci_no_redirect/github/TUDelft-CITG/Terminal-Optimization/master/latest/07f3adf51970049c681fce29419db5d9f7aa596d/tmp/artifacts/index.html) 
-
 [ ![Documentation](https://img.shields.io/badge/sphinx-documentation-brightgreen.svg)](https://oedm.vanoord.com/proxy/circleci_no_redirect/github/TUDelft-CITG/Terminal-Optimization/master/latest/07f3adf51970049c681fce29419db5d9f7aa596d/tmp/artifacts/docs/index.html)
 
-=====================
 terminal_optimization
 =====================
 
