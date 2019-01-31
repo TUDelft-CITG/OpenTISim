@@ -1,19 +1,9 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import pandas as pd
 
 
 # # Terminal Infrastructure classes
-
 # ### Quay wall
-
-# In[1]:
-
 
 # create quay wall class
 class quay_wall_properties_mixin(object):
@@ -40,28 +30,15 @@ quay_data = {"t0_length": 0, "ownership": 'Port authority', "delivery_time": 2, 
              "mobilisation_perc": 0.02, "maintenance_perc": 0.01, "insurance_perc": 0.01,"length": 400, "depth": 14,
              "freeboard": 4, "Gijt_constant": 757.20, "Gijt_coefficient": 1.2878} 
 
-
-# In[2]:
-
-
 # define quay wall class functions
 class quay_wall_class(quay_wall_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
-# In[3]:
-
-
 # create quay object
 quay_object = quay_wall_class(**quay_data)
 
-
 # ### Berths
-
-# In[6]:
-
-
 # create berth class
 class berth_properties_mixin(object):
     def __init__(self, t0_quantity, crane_type, max_cranes, *args, **kwargs):
@@ -74,10 +51,6 @@ class berth_properties_mixin(object):
         
 # Initial data set, data from Excel_input.xlsx
 berth_data = {"t0_quantity": 0, "crane_type": 'Mobile cranes', "max_cranes": 3}
-
-
-# In[7]:
-
 
 # define berth functions 
 class berth_class(berth_properties_mixin):
@@ -122,19 +95,10 @@ class berth_class(berth_properties_mixin):
         self.length             = self.length_calc(max_LOA, berths)     # assign length of each berth
         self.depth              = self.depth_calc(max_draft)            # assign depth of each berth
 
-
-# In[8]:
-
-
 # create berth objects
 berth_object = berth_class(**berth_data)
 
-
 # ## Cranes (cyclic)
-
-# In[9]:
-
-
 # create cyclic unloader class **will ultimately be placed in package**
 class cyclic_properties_mixin(object):
     def __init__(self, t0_quantity, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc, 
@@ -176,10 +140,6 @@ mobile_crane_data  = {"t0_quantity":0, "ownership": 'Terminal operator', "delive
                       "crane_type": 'Mobile crane',"lifting_capacity": 60, "hourly_cycles": 30, "eff_fact": 0.55,
                       "utilisation": 0.80}
 
-
-# In[10]:
-
-
 # define cyclic unloader class functions **will ultimately be placed in package**
 class cyclic_unloader(cyclic_properties_mixin): 
     def __init__(self, *args, **kwargs):
@@ -190,21 +150,12 @@ class cyclic_unloader(cyclic_properties_mixin):
         else:
             self.consumption = 485
 
-
-# In[11]:
-
-
 # create crane objects
 gantry_crane_object  = cyclic_unloader(**gantry_crane_data)
 harbour_crane_object = cyclic_unloader(**harbour_crane_data)
 mobile_crane_object  = cyclic_unloader(**mobile_crane_data)  
 
-
 # ## Cranes (continuous)
-
-# In[12]:
-
-
 # create continuous unloader class **will ultimately be placed in package**
 class continuous_properties_mixin(object):
     def __init__(self, t0_quantity, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc, 
@@ -232,29 +183,16 @@ continuous_screw_data = {"t0_quantity": 0, "ownership": 'Terminal operator', "de
                          "maintenance_perc": 0.02, "insurance_perc": 0.01, "crew": 2,"crane_type": 'Screw unloader', 
                          "peak_capacity": 700, "eff_fact": 0.55, "utilisation": 0.80}
 
-
-# In[13]:
-
-
 # define continuous unloader class functions **will ultimately be placed in package**
 class continuous_unloader(continuous_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
-# In[14]:
-
-
 # create screw unloader objects
 screw_unloader_object = continuous_unloader(**continuous_screw_data)
 cranes_object = [gantry_crane_object, harbour_crane_object, mobile_crane_object, screw_unloader_object]
 
-
 # ## Storage
-
-# In[15]:
-
-
 # create storage class **will ultimately be placed in package**
 class storage_properties_mixin(object):
     def __init__(self, t0_capacity, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, 
@@ -283,30 +221,17 @@ warehouse_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_
                   "mobilisation_min": 200000, "mobilisation_perc": 0.001, "maintenance_perc": 0.01, "crew": 3, 
                   "insurance_perc": 0.01, "storage_type": 'Warehouse', "consumption": 0.002, "silo_capacity": 'n/a'}
 
-
-# In[16]:
-
-
 # define storage class functions **will ultimately be placed in package**
 class storage(storage_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[17]:
-
 
 # create storage objects
 silo_object = storage(**silo_data)
 warehouse_object = storage(**warehouse_data)
 storage_object = [silo_object, warehouse_object]
 
-
 # ## Loading Station
-
-# In[18]:
-
-
 # create loading station class **will ultimately be placed in package**
 class hinterland_station_properties_mixin(object):
     def __init__(self, t0_capacity, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, 
@@ -330,28 +255,16 @@ class hinterland_station_properties_mixin(object):
 hinterland_station_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 15, "unit_rate": 4000, "mobilisation": 100000, 
                            "maintenance_perc": 0.02, "consumption": 0.25, "insurance_perc": 0.01, "crew": 2, "utilisation": 0.80, "capacity_steps": 300}
 
-
-# In[19]:
-
-
 # define loading station class functions **will ultimately be placed in package**
 class hinterland_station(hinterland_station_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[20]:
-
 
 # create loading station objects
 station_object = hinterland_station(**hinterland_station_data)
 
 
 # ## Conveyors
-
-# In[21]:
-
-
 # create conveyor class **will ultimately be placed in package**
 class conveyor_properties_mixin(object):
     def __init__(self, t0_capacity, length, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, 
@@ -383,20 +296,11 @@ hinterland_conveyor_data = {"t0_capacity": 0, "length": 500, "ownership": 'Termi
                             "unit_rate": 6, "maintenance_perc": 0.10, "insurance_perc": 0.01, "consumption_constant": 81, 
                             "consumption_coefficient":0.08, "crew": 1, "utilisation": 0.80, "capacity_steps": 400}
 
-
-# In[22]:
-
-
 # define conveyor class functions **will ultimately be placed in package**
 class conveyor(conveyor_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
-# In[23]:
-
-
 # create loading station objects
 quay_conveyor_object = conveyor(**quay_conveyor_data)
 hinterland_conveyor_object = conveyor(**hinterland_conveyor_data)
-

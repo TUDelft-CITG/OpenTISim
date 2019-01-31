@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 import os
 import math
 import numpy as np
@@ -12,9 +6,6 @@ import matplotlib.pyplot as plt
 
 
 # ### Plot colours
-
-# In[2]:
-
 
 # Applied colours within the plots
 tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),    
@@ -28,12 +19,7 @@ for i in range(len(tableau20)):
     r, g, b = tableau20[i]    
     tableau20[i] = (r / 255., g / 255., b / 255.) 
 
-
 # ### Import Plotly packages
-
-# In[3]:
-
-
 # Log in to Plotly servers
 import plotly
 #plotly.tools.set_credentials_file(username='wijzermans', api_key='FKGDvSah3z5WCNREBZEq')
@@ -48,10 +34,6 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # # Scenarios
-
-# In[4]:
-
-
 def scenario(commodities, simulation_window, start_year):
     
     maize   = commodities[0]
@@ -178,10 +160,6 @@ def scenario(commodities, simulation_window, start_year):
 
     return
 
-
-# In[5]:
-
-
 def consecutive_reative_trend(commodities, simulation_window, start_year):
     
     maize   = commodities[0]
@@ -287,10 +265,6 @@ def consecutive_reative_trend(commodities, simulation_window, start_year):
         plt.savefig(str(file), bbox_inches="tight") 
 
     return
-
-
-# In[6]:
-
 
 def consecutive_predictive_trend(commodities, simulation_window, start_year):
 
@@ -465,9 +439,6 @@ def consecutive_predictive_trend(commodities, simulation_window, start_year):
 # - NPV distribution
 # - Risk sensitivity
 
-# In[7]:
-
-
 def revenue_capex_opex(terminal):
     
     cashflows = terminal.cashflows
@@ -576,10 +547,6 @@ def revenue_capex_opex(terminal):
 
 
 # ### Profit / Loss (nominal value)
-
-# In[8]:
-
-
 def profit_loss(terminal):
     
     cashflows = terminal.cashflows
@@ -647,10 +614,6 @@ def profit_loss(terminal):
 
 
 # ### Profit / Loss (present value)
-
-# In[9]:
-
-
 def profit_loss_pv(terminal):
     
     cashflows = terminal.cashflows
@@ -758,10 +721,6 @@ def profit_loss_pv(terminal):
 
 
 # ### Revenues
-
-# In[10]:
-
-
 def revenues(terminal):
     
     cashflows = terminal.cashflows
@@ -834,16 +793,7 @@ def revenues(terminal):
 
 
 # ### NPV distribution
-
-# In[ ]:
-
-
 from IPython.display import display, HTML
-
-
-# In[11]:
-
-
 def NPV_distribution_waiting_times(iterations):
 
     NPV_matrix = np.zeros(shape=(len(iterations), 3))
@@ -933,10 +883,6 @@ def NPV_distribution_waiting_times(iterations):
 
     # Show graphic
     plt.show()
-
-
-# In[ ]:
-
 
 def NPV_distribution_WACC(iterations):
 
@@ -1034,10 +980,6 @@ def NPV_distribution_WACC(iterations):
 
 
 # ### Risk Sensitivity
-
-# In[12]:
-
-
 def risk_sensitivity(cashflow_list, WACC_list):
     
     revenues_list = []
@@ -1177,10 +1119,6 @@ def risk_sensitivity(cashflow_list, WACC_list):
 
 
 # ### Demand vs Capacity
-
-# In[13]:
-
-
 def throughput(terminal):
     
     throughputs = terminal.throughputs
@@ -1288,10 +1226,6 @@ def throughput(terminal):
 # # Terminal Assets
 
 # ### Determine development trajectory of terminals assets
-
-# In[14]:
-
-
 # Line plots of the development trajectory of all terminal assets
 
 def asset_trajectory(terminal, simulation_window, start_year):
@@ -1614,4 +1548,3 @@ def asset_trajectory(terminal, simulation_window, start_year):
     conveyor_plot = line_plot(conveyors, 'Conveyors trajectory')
     
     return
-

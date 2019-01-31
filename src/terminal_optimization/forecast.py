@@ -1,18 +1,7 @@
-
-# coding: utf-8
-
-# In[2]:
-
-
 import numpy as np
 import pandas as pd
 
-
-# # Commodity classes
-
-# In[ ]:
-
-
+## Commodity classes
 # create commodity class **will ultimately be placed in package**
 class commodity_properties_mixin(object):
     def __init__(self, commodity_name, handling_fee, handysize_perc, handymax_perc,panamax_perc):
@@ -25,10 +14,6 @@ class commodity_properties_mixin(object):
 maize_data   = {"commodity_name": 'Maize',    "handling_fee": 3, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
 soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 3, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
 wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 3, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
-
-
-# In[ ]:
-
 
 class bulk_commodities(commodity_properties_mixin):
     def __init__(self, *args, **kwargs):
@@ -66,9 +51,6 @@ class bulk_commodities(commodity_properties_mixin):
 # - Exponential
 # - Exponential using standard deviation
 # - Predefined
-
-# In[ ]:
-
 
 class create_scenario:
 
@@ -163,10 +145,6 @@ class create_scenario:
 
 
 # # Forecast generator
-
-# In[ ]:
-
-
 class create_forecast:
 
     def __init__(self, commodities, foresight, hindsight, timestep, year):
@@ -210,9 +188,6 @@ class create_forecast:
                 trendline.append(z[0]*t**2+z[1]*t+z[2])
             trendlines.append(trendline)
     
-    
-    
-        
     def create_trendline(self):
         """trend generated from constant growth increments"""
         years  = range(self.year, self.year + self.window)
@@ -256,10 +231,6 @@ class create_forecast:
 
 
 # # Vessel classes
-
-# In[1]:
-
-
 # create vessel class **will ultimately be placed in package**
 class vessel_properties_mixin(object):
     def __init__(self, vessel_type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, *args, **kwargs):
@@ -289,17 +260,10 @@ panamax_data = {"vessel_type": 'Panamax', "call_size": 65000,
                   "all_turn_time": 36, "mooring_time": 3, "demurrage_rate": 730} 
 
 
-# In[ ]:
-
-
 class vessel(vessel_properties_mixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         pass
-
-
-# In[ ]:
-
 
 def vessel_call_calc(vessels, commodities, simulation_window):
     
@@ -319,4 +283,3 @@ def vessel_call_calc(vessels, commodities, simulation_window):
         vessels[i].calls = calls
         
     return vessels
-

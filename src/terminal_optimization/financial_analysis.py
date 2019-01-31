@@ -1,20 +1,9 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import pandas as pd
 import babel.numbers 
 import decimal
 
-
-# # Terminal Throughput class
-
-# In[1]:
-
-
+# Terminal Throughput class
 class throughput_class():
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -101,10 +90,6 @@ class throughput_class():
 
         return terminal
 
-
-# In[ ]:
-
-
 def throughput_calc(terminal, vessels,commodities, allowable_berth_occupancy, year, start_year, timestep, operational_hours):
     throughputs = terminal.throughputs
     throughputs.append(throughput_class())
@@ -115,21 +100,12 @@ def throughput_calc(terminal, vessels,commodities, allowable_berth_occupancy, ye
     return terminal
 
 
-# # Business Logic classes
-# ### Revenue
-
-# In[2]:
-
-
+# Business Logic classes
 # create revenue class
 class revenue_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         pass
-
-
-# In[ ]:
-
 
 # define revenue class functions 
 class revenue_class(revenue_properties_mixin):
@@ -150,10 +126,6 @@ class revenue_class(revenue_properties_mixin):
         self.wheat   = int(wheat_throughput   * wheat.handling_fee)
         self.total   = int(self.maize + self.soybean + self.wheat)
 
-
-# In[ ]:
-
-
 def revenue_calc(revenues, throughputs, commodities, year, timestep):
     revenues.append(revenue_class())
     index = len(revenues)-1
@@ -161,20 +133,11 @@ def revenue_calc(revenues, throughputs, commodities, year, timestep):
     revenues[index].calc(commodities, throughputs, timestep)
     return revenues
 
-
-# ### Capex
-
-# In[4]:
-
-
+### Capex
 # create capex class
 class capex_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define capex class functions 
 class capex_class(capex_properties_mixin):
@@ -202,7 +165,6 @@ class capex_class(capex_properties_mixin):
             self.quay = 0
         
         # Capex associated with the gantry cranes
-        
         if len(cranes[0]) != 0 and cranes[0][0].delta != 0:
             crane        = terminal.cranes[0][0]
             delta        = crane.delta
@@ -303,10 +265,6 @@ class capex_class(capex_properties_mixin):
         self.storage   = -1*int(self.silos + self.warehouses)
         self.conveyors = -1*int(self.quay_conveyors + self.hinterland_conveyors)
 
-
-# In[ ]:
-
-
 def capex_calc(terminal, year, timestep):
     capex = terminal.capex
     capex.append(capex_class())
@@ -316,11 +274,7 @@ def capex_calc(terminal, year, timestep):
     return capex
 
 
-# ### Labour
-
-# In[5]:
-
-
+### Labour
 # create labour class 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary, 
@@ -336,10 +290,6 @@ class labour_properties_mixin(object):
 
 labour_data =  {"international_salary": 105000, "international_staff": 4, "local_salary": 18850, "local_staff": 10, 
                 "operational_salary": 16750, "shift_length": 6.5, "annual_shifts": 200}
-
-
-# In[ ]:
-
 
 # define labour class functions 
 class labour_class(labour_properties_mixin):
@@ -387,10 +337,6 @@ class labour_class(labour_properties_mixin):
         
         self.total = int(self.international_salary * self.international_staff + self.local_salary * self.local_staff +                           self.operational_salary   * self.operational_staff)
 
-
-# In[ ]:
-
-
 def labour_calc(terminal, year, timestep, operational_hours):
     labour = terminal.labour
     labour.append(labour_class(**labour_data))
@@ -401,18 +347,10 @@ def labour_calc(terminal, year, timestep, operational_hours):
 
 
 # ### Maintenance
-
-# In[7]:
-
-
 # create maintenance class 
 class maintenance_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define maintenance class functions 
 class maintenance_class(maintenance_properties_mixin):
@@ -486,10 +424,6 @@ class maintenance_class(maintenance_properties_mixin):
         
         self.total = int(self.quay + self.cranes + self.storage + self.loading_stations + self.conveyors)
 
-
-# In[ ]:
-
-
 def maintenance_calc(terminal, year, timestep):
     maintenance = terminal.maintenance
     maintenance.append(maintenance_class())
@@ -500,10 +434,6 @@ def maintenance_calc(terminal, year, timestep):
 
 
 # ### Energy costs
-
-# In[ ]:
-
-
 # create energy consumption class 
 class energy_properties_mixin(object):
     def __init__(self, price, *args, **kwargs):
@@ -512,10 +442,6 @@ class energy_properties_mixin(object):
 
 # Initial data
 energy_data = {"price": 0.10}
-
-
-# In[ ]:
-
 
 # define energy consumption class functions 
 class energy_class(energy_properties_mixin):
@@ -587,10 +513,6 @@ class energy_class(energy_properties_mixin):
 
         self.total = int(self.cranes + self.storage + self.stations + self.conveyors)
 
-
-# In[ ]:
-
-
 def energy_calc(terminal, year, operational_hours, timestep):
     energy = terminal.energy
     energy.append(energy_class(**energy_data))
@@ -601,18 +523,10 @@ def energy_calc(terminal, year, operational_hours, timestep):
 
 
 # ### Insurance costs
-
-# In[ ]:
-
-
 # create insurance cost class 
 class insurance_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define insurance cost class functions 
 class insurance_class(insurance_properties_mixin):
@@ -701,10 +615,6 @@ class insurance_class(insurance_properties_mixin):
         
         self.total = int(self.quay + self.cranes + self.storage + self.stations + self.conveyors)
 
-
-# In[ ]:
-
-
 def insurance_calc(terminal, year, timestep):
     insurance = terminal.insurance
     insurance.append(insurance_class())
@@ -715,18 +625,10 @@ def insurance_calc(terminal, year, timestep):
 
 
 # ### Lease costs
-
-# In[5]:
-
-
 # create energy consumption class 
 class lease_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define lease cost class functions 
 class lease_class(lease_properties_mixin):
@@ -735,10 +637,6 @@ class lease_class(lease_properties_mixin):
         
     def calc(self):
         self.total = 0 
-
-
-# In[ ]:
-
 
 def lease_calc(terminal, year, timestep):
     lease = terminal.lease
@@ -750,18 +648,10 @@ def lease_calc(terminal, year, timestep):
 
 
 # ### Demurrage costs
-
-# In[ ]:
-
-
 # create demurrage class
 class demurrage_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define demurrage class functions 
 class demurrage_class(demurrage_properties_mixin):
@@ -814,10 +704,6 @@ class demurrage_class(demurrage_properties_mixin):
 
             self.total = np.sum(costs)
 
-
-# In[ ]:
-
-
 def demurrage_calc(demurrage, berths, vessels, year, timestep):
     demurrage.append(demurrage_class())
     index = len(demurrage)-1
@@ -827,18 +713,10 @@ def demurrage_calc(demurrage, berths, vessels, year, timestep):
 
 
 # ### Residual values
-
-# In[ ]:
-
-
 # create residual value class 
 class residual_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define residual value class functions 
 class residual_class(residual_properties_mixin):
@@ -944,10 +822,6 @@ class residual_class(residual_properties_mixin):
         
         self.total = int(self.quay + self.cranes + self.storage + self.stations + self.conveyors)
 
-
-# In[ ]:
-
-
 def residual_calc(terminal, year, timestep):
     residuals = terminal.residuals
     residuals.append(residual_class())
@@ -958,18 +832,10 @@ def residual_calc(terminal, year, timestep):
 
 
 # ### Profits
-
-# In[ ]:
-
-
 # create profit class 
 class profit_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define profit class functions 
 class profit_class(profit_properties_mixin):
@@ -996,10 +862,6 @@ class profit_class(profit_properties_mixin):
         self.total = int(self.revenues + self.capex + self.labour + self.maintenance + self.energy + self.insurance +
                          self.lease + self.demurrage + self.residuals)
 
-
-# In[ ]:
-
-
 def profit_calc(terminal, window, timestep, year, start_year):
     profits = terminal.profits
     profits.append(profit_class())
@@ -1010,18 +872,10 @@ def profit_calc(terminal, window, timestep, year, start_year):
 
 
 # ### OPEX
-
-# In[1]:
-
-
 # create opex class 
 class opex_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define opex class functions 
 class opex_class(opex_properties_mixin):
@@ -1041,10 +895,6 @@ class opex_class(opex_properties_mixin):
             
         self.total = int(self.labour + self.maintenance + self.energy + self.insurance + self.lease + self.demurrage)
 
-
-# In[ ]:
-
-
 def opex_calc(terminal, year, timestep):
     opex = terminal.opex
     opex.append(opex_class())
@@ -1055,10 +905,6 @@ def opex_calc(terminal, year, timestep):
 
 
 # ### Combining all cashflow 
-# - 
-
-# In[1]:
-
 
 def cashflow_calc(terminal, simulation_window, start_year):
 
@@ -1135,18 +981,10 @@ def cashflow_calc(terminal, simulation_window, start_year):
 
 
 # ### Escalation
-
-# In[ ]:
-
-
 # create WACC class 
 class escalation_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[ ]:
-
 
 # define escalation class functions 
 class escalation_class(escalation_properties_mixin):
@@ -1156,41 +994,6 @@ class escalation_class(escalation_properties_mixin):
     #def calc(self, window):
 
 
-# In[ ]:
-
-
-# Revenues (always terminal operator)
-#self.profits = profits * real_WACC
-
-# Capex
-
-
-
-# Labour costs (always terminal operator)
-
-
-# Maintenance costs
-
-# Energy costs (always terminal operator)
-
-# Insurance costs (always terminal operator)
-
-# Lease costs 
-
-# Demurrage costs
-
-# Residual value calculations 
-
-# Profits
-
-# Opex
-
-
-# ### WACC
-
-# In[ ]:
-
-
 # create WACC class 
 class WACC_properties_mixin(object):
     def __init__(self, real_WACC, *args, **kwargs):
@@ -1198,10 +1001,6 @@ class WACC_properties_mixin(object):
         self.real_WACC = real_WACC
         
 WACC_data = {"real_WACC": 0.09}
-
-
-# In[ ]:
-
 
 # define WACC class functions 
 class WACC_class(WACC_properties_mixin):
@@ -1226,10 +1025,6 @@ class WACC_class(WACC_properties_mixin):
         
         return 
 
-
-# In[ ]:
-
-
 def WACC_calc(WACC, profits, window, start_year):
     WACC_cashflows = WACC_class(**WACC_data)
     WACC_cashflows.profits_calc(WACC, profits, window, start_year)
@@ -1237,13 +1032,8 @@ def WACC_calc(WACC, profits, window, start_year):
 
 
 # ### NPV
-
-# In[ ]:
-
-
 def NPV_calc(WACC_cashflows):
     profits = WACC_cashflows.profits
     NPV = int(np.sum(profits))
     #NPV = '${:0,.0f}'.format(NPV)
     return NPV
-

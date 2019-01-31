@@ -1,24 +1,10 @@
-
-# coding: utf-8
-
-# In[4]:
-
-
 import numpy as np
 import terminal_optimization.infrastructure as infra
-
-
-# In[5]:
-
 
 # create profit class 
 class terminal_properties_mixin(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# In[8]:
-
 
 class terminal(terminal_properties_mixin):
     def __init__(self, project_WACC, allowable_berth_occupancy, allowable_waiting_time, *args, **kwargs):
@@ -152,4 +138,3 @@ class terminal(terminal_properties_mixin):
         self.project_WACC = project_WACC
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_waiting_time = allowable_waiting_time
-

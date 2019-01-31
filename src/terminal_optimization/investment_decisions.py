@@ -1,22 +1,10 @@
-
-# coding: utf-8
-
-# In[ ]:
-
-
 import numpy as np
 import pandas as pd
 import terminal_optimization.infrastructure as infra
 
-
 # # 2 Investment functions
-
 # ### 2.1 Quay investment decision
 # In this setup, the decision to expand the quay is based on whether berth expansions are plannen or not. The length of the quay is defined as the sum of the length of the berths 
-
-# In[ ]:
-
-
 def quay_invest_decision(quays, berths, year, timestep):
 
     # for each time step, check whether pending assets come online
@@ -65,13 +53,8 @@ def quay_invest_decision(quays, berths, year, timestep):
     
     return quays
 
-
 # ### Berth and crane investment decision
-# 
 # Starting with a single berth and asuming that vessels are distributed equally between all berths, the berth occupancy is calculated by combining the combined effective unloading rate of the cranes. If the occupancy is above the set 'allowable berth occupancy' an extra crane is added and the calculation is iterated. If there are not enough slots to harbour an extra crane, an extra berth is added. The length of each berth is related to the maximum LOA expected to call at port
-
-# In[4]:
-
 
 def berth_invest_decision(berths, cranes, vessels, allowable_berth_occupancy, year, timestep, operational_hours):
 
@@ -283,10 +266,6 @@ def berth_invest_decision(berths, cranes, vessels, allowable_berth_occupancy, ye
                 cranes[i][j].delta = 0
 
     return berths, cranes
-
-
-# In[ ]:
-
 
 def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_time, year, timestep, operational_hours):
 
@@ -535,10 +514,6 @@ def berth_invest_decision_waiting(berths, cranes, vessels, allowable_waiting_tim
 
     return berths, cranes
 
-
-# In[ ]:
-
-
 # Waiting time factor (E2/E2/n quing theory using 6th order polynomial regression)
 x = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 berth1 = [0.055555556,0.125, 0.214285714, 0.333333333, 0.5, 0.75, 1.1667, 2.0, 4.5] 
@@ -586,10 +561,6 @@ def waiting_factor(occupancy, n_berths):
         return max(0, berth3_trend(x))
     if online == 4:
         return max(0, berth4_trend(x))
-
-
-# In[ ]:
-
 
 def berth_invest_decision2(berths, cranes, vessels, allowable_berth_occupancy, year, timestep, operational_hours):
 
@@ -807,10 +778,6 @@ def berth_invest_decision2(berths, cranes, vessels, allowable_berth_occupancy, y
 
 # ### Storage investment decision
 # In this setup, the storage investment is triggered whenever the storage capacity equals 10% of yearly demand. Once triggered, the storage is expanded to accomodate 20% of yearly throughput
-
-# In[ ]:
-
-
 def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput_perc, storage_type, commodities, year, timestep):
     
     maize   = commodities[0]
@@ -890,10 +857,6 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
 
 # ### Loading station investment decision
 # In this setup, it is assumed that the loading station has a utilisation rate of 60%. The loading station investment is triggered whenever the yearly loading capacity equals 80% of yearly demand, taking the utilisation rate into account. Once triggered, the loading rate is expanded to accomodate 120% of yearly throughput.
-
-# In[ ]:
-
-
 def station_invest_decision(stations, station_utilisation, trigger_throughput_perc, aspired_throughput_perc, 
                             commodities, year, timestep, operational_hours):
 
@@ -949,10 +912,6 @@ def station_invest_decision(stations, station_utilisation, trigger_throughput_pe
 # ### Conveyor investment decision
 # #### Quay conveyor
 # In this setup, the quay-side conveyor investment dicision is triggered whenever the the crane investment is triggered. The conveyor capacity is always sufficient to cope with the combined cranes' peak unloading capacity.
-
-# In[ ]:
-
-
 def quay_conveyor_invest_decision(q_conveyors, cranes, year, timestep, operational_hours):
 
     # For each time step, check whether pending assets come online
@@ -1005,10 +964,6 @@ def quay_conveyor_invest_decision(q_conveyors, cranes, year, timestep, operation
 
 # #### 2.7.2 Hinterland conveyor
 # In this setup, the hinterland conveyor investment dicision is triggered in order to always live up to loading station demand.
-
-# In[ ]:
-
-
 def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, operational_hours):
 
     # For each time step, check whether pending assets come online
@@ -1055,4 +1010,3 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, year, timestep, o
             h_conveyors[i].delta = 0
     
     return h_conveyors
-
