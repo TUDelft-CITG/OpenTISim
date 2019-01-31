@@ -1,5 +1,12 @@
-============
-Contributors
-============
+=======
+Credits
+=======
 
-* VANOORD\MRV <mark.vankoningsveld@vanoord.com>
+Development Lead
+----------------
+* Mark van Koningsveld <m.vankoningsveld@tudelft.nl>
+
+Contributors
+------------
+
+Various MSc projects
