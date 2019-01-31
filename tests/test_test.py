@@ -4,4 +4,7 @@
 """Tests for `digital_twin` package."""
 
 def test_test():
-	assert 1+1==2
+	import terminal_optimization.forecast as forecast
+	forecast = forecast.create_scenario(2020,10,range(10))
+	
+	assert len(forecast.historic_years)==10
