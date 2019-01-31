@@ -24,7 +24,7 @@ jobs:
           command: |
             docker exec -it terminal_optimization bash -c "pip install sphinx"
             docker exec -it terminal_optimization bash -c "python setup.py docs"
-            docker cp terminzal_optimization:/Terminal-Optimization/docs/_build/html /tmp/artifacts/docs
+            docker cp terminal_optimization:/Terminal-Optimization/docs/_build/html /tmp/artifacts/docs
       
       - run:
           name: Generate coverage badge
