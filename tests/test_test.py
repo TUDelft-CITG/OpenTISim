@@ -4,4 +4,5 @@
 """Tests for `digital_twin` package."""
 
 def test_test():
-	assert 1+1==2
+	a=1+1
+	assert a==2
