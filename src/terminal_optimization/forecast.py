@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 import numpy as np
@@ -10,24 +10,25 @@ import pandas as pd
 
 # # Commodity classes
 
-# In[ ]:
+# In[2]:
 
 
 # create commodity class **will ultimately be placed in package**
 class commodity_properties_mixin(object):
-    def __init__(self, commodity_name, handling_fee, handysize_perc, handymax_perc,panamax_perc):
+    def __init__(self, commodity_name, handling_fee, handysize_perc, handymax_perc, panamax_perc, utilization):
         self.commodity_name = commodity_name
         self.handling_fee   = handling_fee
         self.handysize_perc = handysize_perc
         self.handymax_perc  = handymax_perc
         self.panamax_perc   = panamax_perc
+        self.utilization    = utilization
     
-maize_data   = {"commodity_name": 'Maize',    "handling_fee": 13, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 13, "handysize_perc": 50, "handymax_perc": 50, "panamax_perc": 0}
-wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 13, "handysize_perc": 0, "handymax_perc": 0, "panamax_perc": 100}
+maize_data   = {"commodity_name": 'Maize',    "handling_fee": 9.80, "handysize_perc": 0, "handymax_perc": 100, "panamax_perc": 0, "utilization": 0.85}
+soybean_data = {"commodity_name": 'Soybeans', "handling_fee": 9.80, "handysize_perc": 0, "handymax_perc": 100, "panamax_perc": 0, "utilization": 0.85}
+wheat_data   = {"commodity_name": 'Wheat',    "handling_fee": 9.80, "handysize_perc": 0, "handymax_perc": 100, "panamax_perc": 0, "utilization": 0.85}
 
 
-# In[ ]:
+# In[3]:
 
 
 class bulk_commodities(commodity_properties_mixin):
@@ -67,7 +68,7 @@ class bulk_commodities(commodity_properties_mixin):
 # - Exponential using standard deviation
 # - Predefined
 
-# In[ ]:
+# In[4]:
 
 
 class create_scenario:
@@ -166,87 +167,102 @@ class create_scenario:
 # - Perfect foresight method 
 # - Current performance method
 
-# In[2]:
+# In[5]:
 
 
 def forecaster(design_method, forecast_type, commodities, forecast_t, hindcast_t, timestep):
     
     maize = commodities[0]
     index = len(maize.historic) + timestep
-
-    # Forecast and hindcast data
-    hindcast_volumes = maize.demand[index-hindcast_t:index+1]
-    hindcast_years   = maize.years[index-hindcast_t:index+1]
-    forecast_years   = maize.years[index:index+forecast_t+1]
-
-    # Create forecast (linear approach)
-    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 1)
-    trendline = []
-    for t in forecast_years:
-        if t == forecast_years[0]:
-            trendline.append(maize.demand[index])
-        else:
-            trendline.append(int(coefficients[0]*t + coefficients[1]))
-    forecastlinear = trendline
-
-    # Create 2nd order polynomial trendline
-    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 2)
-    trendline = []
-    for t in forecast_years:
-        if t == forecast_years[0]:
-            trendline.append(maize.demand[index])
-        else:
-            trendline.append(int(coefficients[0]*t**2 + coefficients[1]*t + coefficients[2]))
-    forecastpoly2 = trendline
-
-    # Create 3rd order polynomial trendline
-    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 3)
-    trendline = []
-    for t in forecast_years:
-        if t == forecast_years[0]:
-            trendline.append(maize.demand[index])
-        else:
-            trendline.append(int(coefficients[0]*t**3 + coefficients[1]*t**2 + coefficients[2]*t + coefficients[3]))
-    forecastpoly3 = trendline
-
-    # Create 4th order polynomial trendline
-    coefficients = np.polyfit(hindcast_years, hindcast_volumes, 4)
-    trendline = []
-    for t in forecast_years:
-        if t == forecast_years[0]:
-            trendline.append(maize.demand[index])
-        else:
-            trendline.append(int(coefficients[0]*t**4 + coefficients[1]*t**3 + coefficients[2]*t**2 + coefficients[3]*t + coefficients[4]))
-    forecastpoly4 = trendline
+    year  = maize.years[index]
+    start_year = maize.years[index - timestep]
     
-    # When assuming perfect foresight, the forecast is identical to the guaranteed future traffic volumes
-    if design_method == 'Perfect foresight method':
-        maize.forecast = maize.demand[index:index+forecast_t+1]
-    else:
-        if forecast_type == 'Linear':
+    if year >= start_year:
+
+        # Forecast and hindcast data
+        hindcast_volumes = maize.demand[index-hindcast_t:index+1]
+        hindcast_years   = maize.years[index-hindcast_t:index+1]
+        forecast_years   = maize.years[index:index+forecast_t+1]
+
+        # Create forecast (linear approach)
+        coefficients = np.polyfit(hindcast_years, hindcast_volumes, 1)
+        trendline = []
+        for t in forecast_years:
+            if t == forecast_years[0]:
+                trendline.append(maize.demand[index])
+            else:
+                trendline.append(int(coefficients[0]*t + coefficients[1]))
+        forecastlinear = trendline
+
+        # When assuming perfect foresight, the forecast is identical to the guaranteed future traffic volumes
+        if design_method == 'Perfect foresight method':   
+            maize.forecast = maize.demand[index:index+forecast_t+1]
+        else:
             maize.forecast = forecastlinear
-        if forecast_type == '2nd polynomial':
-            maize.forecast = forecastpoly2
-        if forecast_type == '3rd polynomial':
-            maize.forecast = forecastpoly3
-        if forecast_type == '4th polynomial':
-            maize.forecast = forecastpoly4
-        
-    # Log forecats
-    if timestep == 0:
-        maize.forecastlog = []
-        maize.forecastyears = []
-    maize.forecastlog.append(maize.forecast[-1])
-    maize.forecastyears.append(forecast_years[-1])
+
+        # Log forecats
+        if timestep == 0:
+            maize.forecastlog = []
+            maize.forecastyears = []
+            for i in range(forecast_t+1):
+                maize.forecastlog.append(maize.forecast[i])
+                maize.forecastyears.append(forecast_years[i])   
+        if timestep != 0:
+            maize.forecastlog.append(maize.forecast[-1])
+            maize.forecastyears.append(forecast_years[-1])
     
-    commodities[0] = maize
+    return commodities
+
+
+# In[6]:
+
+
+def ARIMA_forecaster(design_method, forecast_type, commodities, forecast_t, hindcast_t, timestep):
+    
+    maize = commodities[0]
+    index = len(maize.historic) + timestep
+    year  = maize.years[index]
+    start_year = maize.years[index - timestep]
+    
+    if year >= start_year:
+
+        # Forecast and hindcast data
+        hindcast_volumes = maize.demand[index-hindcast_t:index+1]
+        hindcast_years   = maize.years[index-hindcast_t:index+1]
+        forecast_years   = maize.years[index:index+forecast_t+1]
+
+        # Create forecast (linear approach)
+        coefficients = np.polyfit(hindcast_years, hindcast_volumes, 1)
+        trendline = []
+        for t in forecast_years:
+            if t == forecast_years[0]:
+                trendline.append(maize.demand[index])
+            else:
+                trendline.append(int(coefficients[0]*t + coefficients[1]))
+        forecastlinear = trendline
+
+        # When assuming perfect foresight, the forecast is identical to the guaranteed future traffic volumes
+        if design_method == 'Perfect foresight method':   
+            maize.forecast = maize.demand[index:index+forecast_t+1]
+        else:
+            maize.forecast = forecastlinear
+
+        # Log forecats
+        if timestep == 0:
+            maize.forecastlog = []
+            maize.forecastyears = []
+            for i in range(forecast_t+1):
+                maize.forecastlog.append(maize.forecast[i])
+                maize.forecastyears.append(forecast_years[i])   
+        maize.forecastlog.append(maize.forecast[-1])
+        maize.forecastyears.append(forecast_years[-1])
     
     return commodities
 
 
 # # Vessel classes
 
-# In[1]:
+# In[7]:
 
 
 # create vessel class **will ultimately be placed in package**
@@ -267,18 +283,18 @@ class vessel_properties_mixin(object):
 # Initial data set, data from Excel_input.xlsx
 handysize_data = {"vessel_type": 'Handysize', "call_size": 35000, 
                   "LOA": 130, "draft": 10, "beam": 24, "max_cranes": 2, 
-                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 1}
+                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 333}
 
-handymax_data = {"vessel_type": 'Handymax', "call_size": 50000, 
+handymax_data = {"vessel_type": 'Handymax', "call_size": 55000, 
                   "LOA": 180, "draft": 11.5, "beam": 28, "max_cranes": 2, 
-                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 1}
+                  "all_turn_time": 24, "mooring_time": 3, "demurrage_rate": 375}
 
-panamax_data = {"vessel_type": 'Panamax', "call_size": 65000, 
+panamax_data = {"vessel_type": 'Panamax', "call_size": 80000, 
                   "LOA": 220, "draft": 13, "beam": 32.2, "max_cranes": 3, 
-                  "all_turn_time": 36, "mooring_time": 3, "demurrage_rate": 1} 
+                  "all_turn_time": 36, "mooring_time": 3, "demurrage_rate": 460} 
 
 
-# In[ ]:
+# In[8]:
 
 
 class vessel(vessel_properties_mixin):
@@ -287,30 +303,29 @@ class vessel(vessel_properties_mixin):
         pass
 
 
-# In[1]:
+# In[9]:
 
 
 def vessel_call_calc(vessels, commodities, simulation_window):
     
-    for i in range (len(vessels)):
-        calls = []
-        for t in range(simulation_window):
-            commodity_specific_demand = []
-            for j in range(len(commodities)):
-                if i == 0:
-                    percentage = commodities[j].handysize_perc/100
-                if i == 1:
-                    percentage = commodities[j].handymax_perc/100
-                if i == 2:
-                    percentage = commodities[j].panamax_perc/100  
-                commodity_specific_demand.append(commodities[j].demand[t] * percentage)
-            calls.append(int(np.ceil(np.sum(commodity_specific_demand)/vessels[i].call_size)))
-        vessels[i].calls = calls
+    vessels[0].calls = []
+    vessels[1].calls = []
+    vessels[2].calls = []
+    
+    historic_years = len(commodities[0].historic)
+    
+    for t in range(simulation_window):
+        percentage = commodities[0].handysize_perc/100
+        vessels[0].calls.append(int(np.ceil(commodities[0].demand[t+historic_years]*percentage)))
+        percentage = commodities[0].handymax_perc/100
+        vessels[1].calls.append(int(np.ceil(commodities[0].demand[t+historic_years]*percentage)))
+        percentage = commodities[0].panamax_perc/100
+        vessels[2].calls.append(int(np.ceil(commodities[0].demand[t+historic_years]*percentage)))
         
     return vessels
 
 
-# In[ ]:
+# In[10]:
 
 
 def forecast_call_calc(vessels, commodities, simulation_window):
@@ -325,7 +340,7 @@ def forecast_call_calc(vessels, commodities, simulation_window):
             if i == 2:
                 percentage = commodities[0].panamax_perc/100 
         
-            calls.append(int(np.ceil(np.sum(commodities[0].forecast[-1]/vessels[i].call_size))))
+            calls.append(int(np.ceil(np.sum(commodities[0].forecast[-1]/vessels[i].call_size)*percentage)))
             
         vessels[i].calls = calls
         
@@ -334,7 +349,7 @@ def forecast_call_calc(vessels, commodities, simulation_window):
 
 # # Train class
 
-# In[ ]:
+# In[11]:
 
 
 # create vessel class **will ultimately be placed in package**
@@ -346,12 +361,13 @@ class train_properties_mixin(object):
         self.number_of_wagons = number_of_wagons 
         self.prep_time        = 2
         self.call_size        = wagon_payload * number_of_wagons
+        self.call_log         = []
         
 # Initial data set, data from Excel_input.xlsx
-train_data = {"wagon_payload": 30, "number_of_wagons": 40}
+train_data = {"wagon_payload": 60, "number_of_wagons": 60}
 
 
-# In[ ]:
+# In[12]:
 
 
 class train(train_properties_mixin):

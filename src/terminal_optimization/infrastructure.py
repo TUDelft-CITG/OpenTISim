@@ -70,7 +70,7 @@ class berth_properties_mixin(object):
         self.cranes_present = []
         
 # Initial data set, data from Excel_input.xlsx
-berth_data = {"t0_quantity": 0, "crane_type": 'Mobile cranes', "max_cranes": 3}
+berth_data = {"t0_quantity": 0, "crane_type": 'Screw unloaders', "max_cranes": 3}
 
 
 # In[ ]:
@@ -329,7 +329,7 @@ class storage_properties_mixin(object):
 # Initial data set, data from Excel_input.xlsx
 silo_data      = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 30, "unit_rate": 60, 
                   "mobilisation_min": 200000, "mobilisation_perc": 0.003, "maintenance_perc": 0.02, "crew": 1, 
-                  "insurance_perc": 0.01, "storage_type": 'Silos', "consumption": 0.002, "silo_capacity": 6000}
+                  "insurance_perc": 0.01, "storage_type": 'Silos', "consumption": 0.002, "silo_capacity": 5000}
 warehouse_data = {"t0_capacity": 0, "ownership": 'Terminal operator', "delivery_time": 1, "lifespan": 30, "unit_rate": 140,
                   "mobilisation_min": 200000, "mobilisation_perc": 0.001, "maintenance_perc": 0.01, "crew": 3, 
                   "insurance_perc": 0.01, "storage_type": 'Warehouse', "consumption": 0.002, "silo_capacity": 'n/a'}

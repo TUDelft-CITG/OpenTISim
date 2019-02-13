@@ -30,9 +30,8 @@ class terminal(terminal_properties_mixin):
     
         self.project_WACC = project_WACC       
         self.allowable_vessel_waiting_time = triggers[0][0]
-        self.required_storage_factor       = triggers[1][0]
-        self.aspired_storage_factor        = triggers[2][0]
-        self.allowable_train_waiting_time  = triggers[3][0]
+        self.dwell_time                    = triggers[1][0]
+        self.allowable_train_waiting_time  = triggers[2][0]
         
         #########################################
         # Import terminal infrastructure objects

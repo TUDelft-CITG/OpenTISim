@@ -127,7 +127,20 @@ class throughput_class():
             terminal.capacity = terminal.capacity.append(df, sort=False)
         if 'capacity' not in dir(terminal):
             terminal.capacity = df 
-        
+            
+        if year == commodities[0].years[-1]:
+            quay = []
+            cranes = []
+            storage = []
+            conveyors = []
+            for i in range (len(terminal.capex)):
+                quay.append(terminal.capex[i].quay)
+                cranes.append(terminal.capex[i].cranes)
+                storage.append(terminal.capex[i].storage)
+                conveyors.append(terminal.capex[i].conveyors)
+            terminal.capexinfo = pd.DataFrame({'Quay capex':np.asarray(quay),'Crane capex':np.asarray(cranes),
+                                               'Storage capex':np.asarray(storage),'Conveyor capex':np.asarray(conveyors)})
+
         return terminal
 
 
@@ -220,8 +233,8 @@ class capex_class(capex_properties_mixin):
             delta        = quay.delta
             unit_rate    = int(quay.Gijt_constant * (quay.depth*2 + quay.freeboard)**quay.Gijt_coefficient)
             mobilisation = int(max((delta * unit_rate * quay.mobilisation_perc), quay.mobilisation_min))
-            self.quay    = int(delta * unit_rate + mobilisation)
             terminal.quays[len(quays)-1].value = unit_rate * delta
+            self.quay    = int(delta * unit_rate + mobilisation)
         else:
             self.quay = 0
         
@@ -254,7 +267,7 @@ class capex_class(capex_properties_mixin):
             mobilisation = delta * unit_rate * crane.mobilisation_perc
             self.mobile_cranes = int(delta * unit_rate + mobilisation) 
         else:
-            self.mobile_cranes = 0
+            self.mobile_cranes = 0          
         
         # Capex associated with the screw unloaders
         if len(cranes[3]) != 0 and cranes[3][0].delta != 0:
@@ -594,8 +607,15 @@ class energy_class(energy_properties_mixin):
         if 'occupancy' in dir(berths[0]):
             berth_occupancy = []
             for i in range (len(berths)):
-                berth_occupancy.append(berths[i].info[-1:]['Occupancy'])
+                if berths[i].online_date <= year:
+                    berth_occupancy.append(berths[i].info[-1:]['Occupancy'])
+                else:
+                    berth_occupancy.append(0)
                 occupancy = np.average(berth_occupancy)
+        try:
+            occupancy
+        except NameError:
+            occupancy = 0
         for i in range(len(q_conveyors)):
             if q_conveyors[i].online_date <= year:
                 consumption = q_conveyors[i].capacity * q_conveyors[i].consumption_coefficient + q_conveyors[i].consumption_constant
@@ -825,7 +845,6 @@ class demurrage_class(demurrage_properties_mixin):
             total_costs = 0
 
         else:
-        
             # Determine the unloading capacity of each berth
             berth_service_rate = []
             for i in range (online_berths):
@@ -901,7 +920,6 @@ class demurrage_class(demurrage_properties_mixin):
                         vessels[i].demurrage_info = vessels[i].demurrage_info.append(df)
                     if 'demurrage_info' not in dir(vessels[i]):
                         vessels[i].demurrage_info = df
-
             total_costs = np.sum(demurrage_costs)
 
         return total_costs

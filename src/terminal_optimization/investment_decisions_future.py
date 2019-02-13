@@ -33,12 +33,8 @@ def quay_invest_decision(quays, berths, vessels, year, timestep):
     online_length = int(np.sum(online_length))
 
     # for each time step, decide whether to invest in the quay
-    if berths[0].offline != 0:
-        index = len(berths)-1
-        if berths[index].online_date == year + infra.quay_object.delivery_time:
-            invest_decision = 'Invest in quay'
-        else:
-            invest_decision = 'Do not invest in quay'
+    if berths[0].delta != 0:
+        invest_decision = 'Invest in quay'
     else:
         invest_decision = 'Do not invest in quay'
 
@@ -47,21 +43,20 @@ def quay_invest_decision(quays, berths, vessels, year, timestep):
         online_berths  = berths[0].online
         pending_berths = berths[0].offline
         berth_lengths  = []
-        for i in range (online_berths, online_berths + pending_berths):
+        for i in range (-1 * berths[0].delta, 0):
             berth_lengths.append(berths[i].length)
         # Add quay object
         quays.append(infra.quay_wall_class(**infra.quay_data))
-        index = len(quays)-1
-        quays[index].purchase_date = year
-        quays[index].online_date = year + quays[0].delivery_time
-        quays[index].length = np.sum(berth_lengths)
+        quays[-1].purchase_date = year
+        quays[-1].online_date = year + quays[0].delivery_time
+        quays[-1].length = np.sum(berth_lengths)
                 
         # Determine quay depth
         vessel_draft  = vessels[2].draft
         max_sinkage   = 0.5
         wave_motion   = 0.5
         safety_margin = 0.5
-        quays[index].depth = vessel_draft + max_sinkage + wave_motion + safety_margin
+        quays[-1].depth = vessel_draft + max_sinkage + wave_motion + safety_margin
         
         # Refresh pending lengths
         for i in range (len(quays)):
@@ -110,9 +105,9 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
     
     # Calculate demand and resulting number of vessel calls
     if len(commodities[0].forecast) == 3:
-        forecasted_demand = int(commodities[0].forecast[1])
+        forecasted_demand = int(commodities[0].forecast[1]) * commodities[0].utilization
     else:
-        forecasted_demand = demand
+        forecasted_demand = demand * commodities[0].utilization
     
     for i in range (3):
         if i == 0:
@@ -121,7 +116,7 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
             percentage = commodities[0].handymax_perc/100
         if i == 2:
             percentage = commodities[0].panamax_perc/100  
-        vessels[i].n_calls = forecasted_demand * percentage / vessels[i].call_size
+        vessels[i].n_calls = np.ceil(forecasted_demand * percentage / vessels[i].call_size)
     
     # for each time step, check whether pending berths come online
     online = []
@@ -380,34 +375,46 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
                 available_slots.append(int(berths[i].info[-1:]['Available crane slots']))
             
             for i in range(len(available_slots)):
-                if int(available_slots[i]) != 0:
+                if int(available_slots[i]) != 0:  
                     if berths[i].crane_type == 'Gantry cranes':
                         gantry_cranes_added.append(1)
                         cranes[0].append(infra.cyclic_unloader(**infra.gantry_crane_data))
                         cranes[0][len(cranes[0])-1].berth = i+1
                         cranes[0][len(cranes[0])-1].purchase_date = year
-                        cranes[0][len(cranes[0])-1].online_date = year + berths[0].delivery_time
+                        if int(available_slots[i]) != berths[i].max_cranes:
+                            cranes[0][-1].online_date = year + cranes[0][-1].delivery_time
+                        else:
+                            cranes[0][-1].online_date = year + berths[0].delivery_time
                         berths[i].cranes_present.append('Gantry crane')
                     elif berths[i].crane_type == 'Harbour cranes':
                         harbour_cranes_added.append(1)
                         cranes[1].append(infra.cyclic_unloader(**infra.harbour_crane_data))
                         cranes[1][len(cranes[1])-1].berth = i+1
                         cranes[1][len(cranes[1])-1].purchase_date = year
-                        cranes[1][len(cranes[1])-1].online_date = year + berths[0].delivery_time
+                        if int(available_slots[i]) != berths[i].max_cranes:
+                            cranes[1][-1].online_date = year + cranes[1][-1].delivery_time
+                        else:
+                            cranes[1][-1].online_date = year + berths[0].delivery_time
                         berths[i].cranes_present.append('Harbour crane')
                     elif berths[i].crane_type == 'Mobile cranes':
                         mobile_cranes_added.append(1)
                         cranes[2].append(infra.cyclic_unloader(**infra.mobile_crane_data))
                         cranes[2][len(cranes[2])-1].berth = i+1
                         cranes[2][len(cranes[2])-1].purchase_date = year
-                        cranes[2][len(cranes[2])-1].online_date = year + berths[0].delivery_time
+                        if int(available_slots[i]) != berths[i].max_cranes:
+                            cranes[2][-1].online_date = year + cranes[2][-1].delivery_time
+                        else:
+                            cranes[2][-1].online_date = year + berths[0].delivery_time
                         berths[i].cranes_present.append('Mobile crane')
                     elif berths[i].crane_type == 'Screw unloaders':
                         screw_unloaders_added.append(1)
                         cranes[3].append(infra.continuous_unloader(**infra.continuous_screw_data))
                         cranes[3][len(cranes[3])-1].berth = i+1
                         cranes[3][len(cranes[3])-1].purchase_date = year
-                        cranes[3][len(cranes[3])-1].online_date = year + berths[0].delivery_time
+                        if int(available_slots[i]) != berths[i].max_cranes:
+                            cranes[3][-1].online_date = year + cranes[3][-1].delivery_time
+                        else:
+                            cranes[3][-1].online_date = year + berths[0].delivery_time
                         berths[i].cranes_present.append('Screw unloader')
                     
                     available_slots[i] = available_slots[i] - 1
@@ -621,7 +628,7 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
             berths[i].online = online_berths
             berths[i].offline = int(np.sum(offline))
                 
-    else:
+    if invest_decision == 'Do not invest in berths or cranes':
         berths[0].delta = 0
         for i in range (4):
             for j in range (len(cranes[i])):
@@ -636,8 +643,8 @@ def berth_invest_decision(berths, cranes, commodities, vessels, allowable_waitin
 # In[ ]:
 
 
-def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput_perc, storage_type, commodities, year, timestep):
-    
+def storage_invest_decision(storage, dwell_time, vessels, storage_type, commodities, year, timestep, operational_hours):
+
     maize   = commodities[0]
     soybean = commodities[1]
     wheat   = commodities[2]
@@ -645,11 +652,12 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
     current_demand = commodities[0].demand[len(commodities[0].historic) + timestep]
     
     if year != commodities[0].years[-1]:
-        forecasted_demand = int(commodities[0].forecast[-1])
+        forecasted_demand = int(commodities[0].forecast[-1]) * commodities[0].utilization
     else:
-        forecasted_demand = current_demand
+        forecasted_demand = current_demand * commodities[0].utilization
     
-
+    # Convert dwell times to required capacity
+    throughput_perc = dwell_time * 24 / operational_hours
     
     # for each time step, check whether pending storage comes online
     online = []
@@ -674,15 +682,19 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
     total_offline_capacity = np.sum(offline)
     current_capacity       = total_online_capacity + total_offline_capacity
     
+    # Storage has to be able to store at least a single call_size of the largest vessel expected to call to port
+    call_size = vessels[1].call_size
+    throughput = max(call_size, forecasted_demand * throughput_perc)
+    
     # Determine whether to invest
-    if current_capacity < forecasted_demand * trigger_throughput_perc and year < commodities[0].years[-2] and timestep > 0:
+    if current_capacity < throughput and year < commodities[0].years[-2] and timestep > 0:
         invest_decision = 'Invest in storage'
     else:
         invest_decision = 'Do not invest in storage'
 
     # If investments are needed, calculate how much extra capacity should be added
     if invest_decision == 'Invest in storage':
-        shortcoming = forecasted_demand * aspired_throughput_perc - current_capacity
+        shortcoming = int(round((max(call_size, forecasted_demand * throughput_perc * 1.20) - current_capacity)))
 
         # Silo expansion method
         if storage_type == 'Silos':
@@ -717,34 +729,32 @@ def storage_invest_decision(storage, trigger_throughput_perc, aspired_throughput
         for i in range (2):
             for j in range (len(storage[i])):
                 storage[i][j].delta = 0
-                
+       
     for i in range(2):
         for j in range(len(storage[i])):
-            # Register berth characteristics under the berth instance
-            matrix = np.zeros(shape=(1, 6))
+            # Register storage characteristics under the storage instance
+            matrix = np.zeros(shape=(1, 5))
             # Year
             matrix[-1,0] = int(round(year))
             # Commodity demand
             matrix[-1,1] = int(round(current_demand))
-            # Forecasted demand
-            matrix[-1,2] = int(round(forecasted_demand))
             # Storage
             if storage[i][j].online_date <= year:
-                matrix[-1,3] = int(round(total_online_capacity))
+                matrix[-1,2] = int(round(total_online_capacity))
             else:
-                matrix[-1,3] = 0
+                matrix[-1,2] = 0
             # Capacity
             if storage[i][j].online_date <= year:
-                matrix[-1,4] = int(round(total_online_capacity/0.05))
+                matrix[-1,3] = int(round(total_online_capacity/throughput_perc))
+            else:
+                matrix[-1,3] = 0
+            # Utilization
+            if matrix[-1,3] != 0:
+                matrix[-1,4] = round(matrix[-1,1]/matrix[-1,3],2)
             else:
                 matrix[-1,4] = 0
-            # Forecasted utilization
-            if matrix[-1,4]:
-                matrix[-1,5] = round(matrix[-1,2]/matrix[-1,4],2)
-            else:
-                matrix[-1,5] = 0
             # Translate to dataframe
-            df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Forecasted demand', 'Storage', 'Capacity', 'Forecasted utilization'])
+            df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Storage', 'Capacity', 'Utilization'])
             # Register under storage instance
             if 'info' in dir(storage[i][j]):
                 storage[i][j].info = storage[i][j].info.append(df)
@@ -766,9 +776,9 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
     current_demand = commodities[0].demand[len(commodities[0].historic) + timestep]
     
     if year != commodities[0].years[-2] and year != commodities[0].years[-1]:
-        demand = int(commodities[0].forecast[1])
+        demand = int(commodities[0].forecast[1]) * commodities[0].utilization
     else:
-        demand = current_demand
+        demand = current_demand * commodities[0].utilization
         
     trains.calls = int(np.ceil(demand / trains.call_size))
     
@@ -833,7 +843,7 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
         # Waiting factor
         matrix[-1,6] = waiting_factor
         # Number of stations
-        matrix[-1,7] = n_stations
+        matrix[-1,7] = int(round(online_stations))
         # Translate to dataframe
         df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Forecasted demand', 'Total yearly loading capacity', 'Occupancy', 'Loading capacity', 'Waiting factor', 'Nr of stations'])
         # Register under berth instance
@@ -918,7 +928,7 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
                 # Waiting factor
                 matrix[-1,6] = waiting_factor
                 # Number of stations
-                matrix[-1,7] = n_stations
+                matrix[-1,7] = int(round(online_stations))
                 # Translate to dataframe
                 df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Forecasted demand', 'Total yearly loading capacity', 'Occupancy', 'Loading capacity', 'Waiting factor', 'Nr of stations'])
                 # Register under berth instance
@@ -1023,7 +1033,7 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
         # Waiting factor
         matrix[-1,6] = waiting_factor
         # Number of stations
-        matrix[-1,7] = n_stations
+        matrix[-1,7] = int(round(online_stations))
         # Translate to dataframe
         df = pd.DataFrame(matrix, columns=['Year', 'Commodity demand', 'Forecasted demand', 'Total yearly loading capacity', 'Occupancy', 'Loading capacity', 'Waiting factor', 'Nr of stations'])
         # Register under berth instance
@@ -1045,36 +1055,41 @@ def station_invest_decision(stations, trains, allowable_waiting_factor, commodit
 # In[ ]:
 
 
-def quay_conveyor_invest_decision(q_conveyors, berths, commodities, year, timestep, operational_hours):
-    
+def quay_conveyor_invest_decision(q_conveyors, berths, cranes, commodities, year, timestep, operational_hours):
     # For each time step, check whether pending assets come online
+    
     online_capacity = []
     offline_capacity = []
     online_assets = []
     for i in range(len(q_conveyors)):
-        if q_conveyors[i].online_date <= year:
+        if q_conveyors[i].online_date <= year+1:
             online_assets.append(1)
             online_capacity.append(q_conveyors[i].capacity)
-        if q_conveyors[i].online_date > year:
+        if q_conveyors[i].online_date > year+1:
             offline_capacity.append(q_conveyors[i].capacity)
     for i in range(len(q_conveyors)):
         q_conveyors[i].online = int(np.sum(online_capacity))
         q_conveyors[i].offline = int(np.sum(offline_capacity))
     online_assets = int(np.sum(online_assets))
 
+    # Determine the peak capacity of each berth (including upcoming berths)
+    pending_berth_service_rate = []
+    for i in range (len(berths)):
+        service_rate = []
+        for j in range(4):
+            for k in range(len(cranes[j])):
+                if cranes[j][k].berth == i+1 and cranes[j][k].online_date <= year+1:
+                    service_rate.append(cranes[j][k].peak_capacity)                  
+        pending_berth_service_rate.append(int(np.sum(service_rate)))
+    total_service_rate = np.sum(pending_berth_service_rate)
+    
     # for each time step, decide whether to invest in quay conveyors
     online = np.sum(online_capacity)
     pending = np.sum(offline_capacity)
-    capacity = online + pending 
-    berth_demands = []            
-    for i in range(len(berths)):
-        eff_unloading = int(berths[i].info[-1:]['Eff unloading capacity'])
-        ratio = 2
-        berth_demand = ratio * eff_unloading
-        berth_demands.append(berth_demand)
-    demand = np.sum(berth_demands)
+    capacity = online + pending         
+    quay_demand = int(round(total_service_rate))
     
-    if capacity < demand and year < commodities[0].years[-2]:
+    if capacity < quay_demand and year < commodities[0].years[-2]:
         invest_decision = 'Invest in quay conveyors'
     else:
         invest_decision = 'Do not invest in quay conveyors'
@@ -1085,7 +1100,7 @@ def quay_conveyor_invest_decision(q_conveyors, berths, commodities, year, timest
         q_conveyors.append(infra.conveyor(**infra.quay_conveyor_data))
         index = len(q_conveyors)-1
         capacity_steps = q_conveyors[index].capacity_steps
-        shortcoming = demand - capacity
+        shortcoming = quay_demand - capacity
         added_conveying_cap = int(np.ceil(shortcoming/capacity_steps)*capacity_steps)
         q_conveyors[index].purchase_date = year
         q_conveyors[index].online_date = year + q_conveyors[0].delivery_time
@@ -1094,9 +1109,19 @@ def quay_conveyor_invest_decision(q_conveyors, berths, commodities, year, timest
             q_conveyors[i].offline = added_conveying_cap
             q_conveyors[i].delta = added_conveying_cap
     
-    if invest_decision == 'Do not invest in quay conveyors':
-        for i in range(len(q_conveyors)):
-            q_conveyors[i].delta = 0
+    if len(q_conveyors) != 0 and invest_decision == 'Do not invest in quay conveyors':
+        q_conveyors[0].delta = 0
+        
+    online_service_rate = []
+    for i in range (len(berths)):
+        if berths[i].online_date <= year:
+            service_rate = []
+            for j in range(4):
+                for k in range(len(cranes[j])):
+                    if cranes[j][k].berth == i+1 and cranes[j][k].online_date <= year:
+                        service_rate.append(cranes[j][k].peak_capacity)                  
+            online_service_rate.append(int(np.sum(service_rate)))
+    total_service_rate = int(round(np.sum(online_service_rate)))
         
     for i in range(online_assets):    
         # Register berth characteristics under the berth instance
@@ -1104,14 +1129,7 @@ def quay_conveyor_invest_decision(q_conveyors, berths, commodities, year, timest
         # Year
         matrix[-1,0] = int(round(year))
         # Quay demand
-        berth_demands = []            
-        for j in range(len(berths)):
-            eff_unloading = int(berths[j].info[-1:]['Eff unloading capacity'])
-            ratio = 2
-            berth_demand = ratio * eff_unloading
-            berth_demands.append(berth_demand)
-        quay_demand = np.sum(berth_demands)
-        matrix[-1,1] = int(round(quay_demand))
+        matrix[-1,1] = total_service_rate
         # Capacity
         matrix[-1,2] = int(round(online))
         # Utilization
@@ -1159,8 +1177,7 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, commodities, year
     capacity = online + pending 
     demand = []
     for i in range(len(stations)):
-        if stations[i].online_date <= year:
-            demand.append(stations[i].production)
+        demand.append(stations[i].production)
     demand = np.sum(demand)               
     if capacity < demand and year < commodities[0].years[-2]:
         invest_decision = 'Invest in hinterland conveyors'
@@ -1205,7 +1222,7 @@ def hinterland_conveyor_invest_decision(h_conveyors, stations, commodities, year
         else:
             matrix[-1,3] = 0
         # Translate to dataframe
-        df = pd.DataFrame(matrix, columns=['Year', 'Quay capacity demand', 'Capacity', 'Utilization'])
+        df = pd.DataFrame(matrix, columns=['Year', 'Hinterland capacity demand', 'Capacity', 'Utilization'])
         # Register under station class
         if 'info' in dir(h_conveyors[i]):
             h_conveyors[i].info = h_conveyors[i].info.append(df)
