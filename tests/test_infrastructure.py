@@ -4,7 +4,7 @@
 """Tests for `terminal_optimization` package."""
 
 def test_quay():
-	"""Testing if object properties are properly processed while creating a quay class"""
+	"""Test to see if object initialisation works properly"""
 
 	import terminal_optimization.infrastructure as infra
 	
@@ -29,7 +29,7 @@ def test_quay():
 	assert quay.t0_length == 0
 
 def test_berth():
-	"""Testing if object properties are properly processed while creating a berth class"""
+	"""Test to see if object initialisation works properly"""
 
 	import terminal_optimization.infrastructure as infra
 	
@@ -42,6 +42,7 @@ def test_berth():
 	assert berth.max_cranes == 3
 
 def test_hinterland_station():
+	"""Test to see if object initialisation works properly"""
 	import terminal_optimization.infrastructure as infra
 
 	# Initial data set, data from Excel_input.xlsx
@@ -64,6 +65,7 @@ def test_hinterland_station():
 	assert hinterland_station.capacity_steps == 300
 
 def test_conveyor():
+	"""Test to see if object initialisation works properly"""
 	import terminal_optimization.infrastructure as infra
 	
 	quay_conveyor_data = {"t0_capacity": 0, "length": 500, "ownership": 'Terminal operator', 
