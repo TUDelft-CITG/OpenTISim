@@ -14,6 +14,18 @@ class identifiable_properties_mixin(object):
         # generate some id, in this case based on m
         self.id = id if id else str(uuid.uuid1())
 
+class history_properties_mixin(object):
+    """Something that has a name and id
+
+    purchase_date: year in which the decision was made to add another element
+    online_date: year by which the elements starts to perform"""
+
+    def __init__(self, year_purchase = [], year_online=[], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        """Initialization"""
+        self.year_purchase = year_purchase
+        self.year_online = year_online
+
 class hascapex_properties_mixin(object):
     """Something has CAPEX
 
@@ -123,7 +135,7 @@ class continuous_properties_mixin(object):
         self.utilisation          = utilisation
 
 class quay_wall_properties_mixin(object):
-    def __init__(self, t0_length, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc, 
+    def __init__(self, t0_length, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, 
                  maintenance_perc, insurance_perc, length, depth, freeboard, Gijt_constant, Gijt_coefficient, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -131,6 +143,7 @@ class quay_wall_properties_mixin(object):
         self.ownership            = ownership
         self.delivery_time        = delivery_time
         self.lifespan             = lifespan
+        self.unit_rate            = unit_rate
         self.mobilisation_min     = mobilisation_min
         self.mobilisation_perc    = mobilisation_perc
         self.maintenance_perc     = maintenance_perc

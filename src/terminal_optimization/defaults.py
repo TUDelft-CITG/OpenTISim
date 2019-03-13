@@ -1,8 +1,9 @@
 quay_data 	  = {"name": 'quay_01',
-                     "t0_length": 0, 
+                 "t0_length": 0, 
           	     "ownership": 'Port authority', 
           	     "delivery_time": 2, 
           	     "lifespan": 50, 
+                 "unit_rate": 16000000,
           	     "mobilisation_min": 2500000,
           	     "mobilisation_perc": 0.02, 
           	     "maintenance_perc": 0.01, 
@@ -14,7 +15,7 @@ quay_data 	  = {"name": 'quay_01',
           	     "Gijt_coefficient": 1.2878} 
 
 berth_data 	  = {"name": 'berth_01',
-                     "t0_quantity": 0, 
+                 "t0_quantity": 0, 
            	     "crane_type": 'Mobile cranes', 
            	     "max_cranes": 3}
 
