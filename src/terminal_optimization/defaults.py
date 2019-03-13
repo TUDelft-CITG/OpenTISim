@@ -1,4 +1,4 @@
-quay_data 	  = {"name": 'quay01',
+quay_data 	  = {"name": 'quay_01',
                      "t0_length": 0, 
           	     "ownership": 'Port authority', 
           	     "delivery_time": 2, 
@@ -13,12 +13,12 @@ quay_data 	  = {"name": 'quay01',
           	     "Gijt_constant": 757.20, 
           	     "Gijt_coefficient": 1.2878} 
 
-berth_data 	  = {"name": 'quay01',
+berth_data 	  = {"name": 'berth_01',
                      "t0_quantity": 0, 
            	     "crane_type": 'Mobile cranes', 
            	     "max_cranes": 3}
 
-gantry_crane_data = {"name": 'quay01',
+gantry_crane_data = {"name": 'gantry_crane_01',
                      "t0_quantity": 0, 
                      "ownership": 'Terminal operator', 
                      "delivery_time": 1, 
@@ -34,7 +34,7 @@ gantry_crane_data = {"name": 'quay01',
                      "eff_fact": 0.55,
                      "utilisation": 0.80}
 
-harbour_crane_data = {"name": 'quay01',
+harbour_crane_data = {"name": 'harbour_crane_01',
                       "t0_quantity": 0, 
                       "ownership": 'Terminal operator', 
                       "delivery_time": 1, 
@@ -50,7 +50,7 @@ harbour_crane_data = {"name": 'quay01',
                       "eff_fact": 0.55,
                       "utilisation": 0.80}
 
-mobile_crane_data  = {"name": 'quay01',
+mobile_crane_data  = {"name": 'mobile_crane_01',
                       "t0_quantity": 0, 
                       "ownership": 'Terminal operator', 
                       "delivery_time": 1, 
@@ -66,7 +66,7 @@ mobile_crane_data  = {"name": 'quay01',
                       "eff_fact": 0.55,
                       "utilisation": 0.80}
 
-continuous_screw_data = {"name": 'quay01',
+continuous_screw_data = {"name": 'continuous_loader_01',
                          "t0_quantity": 0, 
                          "ownership": 'Terminal operator', 
                          "delivery_time": 1, 
@@ -81,7 +81,7 @@ continuous_screw_data = {"name": 'quay01',
                          "eff_fact": 0.55, 
                          "utilisation": 0.80}
 
-silo_data      	   = {"name": 'quay01',
+silo_data      	   = {"name": 'silo_01',
                       "t0_capacity": 0, 
                       "ownership": 'Terminal operator',
                	      "delivery_time": 1, 
@@ -96,7 +96,7 @@ silo_data      	   = {"name": 'quay01',
                	      "consumption": 0.002, 
                	      "silo_capacity": 6000}
 
-warehouse_data 	   = {"name": 'quay01',
+warehouse_data 	   = {"name": 'warehouse_01',
                       "t0_capacity": 0, 
                	      "ownership": 'Terminal operator', 
                	      "delivery_time": 1, 
@@ -111,7 +111,7 @@ warehouse_data 	   = {"name": 'quay01',
                	      "consumption": 0.002, 
                	      "silo_capacity": 'n/a'}
 
-hinterland_station_data = {"name": 'quay01',
+hinterland_station_data = {"name": 'hinterland_station_01',
                            "t0_capacity": 0, 
                            "ownership": 'Terminal operator', 
                            "delivery_time": 1, 
@@ -125,7 +125,7 @@ hinterland_station_data = {"name": 'quay01',
                            "utilisation": 0.80, 
                            "capacity_steps": 300}
 
-quay_conveyor_data = {"name": 'quay01',
+quay_conveyor_data = {"name": 'quay_converyor_01',
                       "t0_capacity": 0, 
                       "length": 500, 
                       "ownership": 'Terminal operator', 
@@ -141,7 +141,7 @@ quay_conveyor_data = {"name": 'quay01',
                       "utilisation": 0.80, 
                       "capacity_steps": 400}
 
-hinterland_conveyor_data = {"name": 'quay01',
+hinterland_conveyor_data = {"name": 'hinterland_conveyor_01',
                             "t0_capacity": 0, 
                             "length": 500, 
                             "ownership": 'Terminal operator', 
