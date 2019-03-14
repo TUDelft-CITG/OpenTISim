@@ -12,9 +12,7 @@ import matplotlib.pyplot as plt
 from terminal_optimization import defaults
 from terminal_optimization import mixins
 
-
 # ## 1. Source
-
 # ### System classes
 # todo: we should move common properties to more general mixins
 
@@ -28,10 +26,6 @@ Berth = type('Berth', (mixins.identifiable_properties_mixin,      # Give it a na
                        mixins.hastriggers_properties_mixin),      # Give it investment triggers (lambda?)
             {})                         # The dictionary is empty because the site type is generic
 
-
-# In[69]:
-
-
 # The generic crane class
 Crane = type('Crane', (mixins.identifiable_properties_mixin,      # Give it a name
                        mixins.history_properties_mixin,           # Give it procurement history
@@ -41,10 +35,6 @@ Crane = type('Crane', (mixins.identifiable_properties_mixin,      # Give it a na
                        mixins.hasrevenue_properties_mixin,        # Give it revenue info
                        mixins.hastriggers_properties_mixin),      # Give it investment triggers (lambda?)
             {})                         # The dictionary is empty because the site type is generic
-
-
-# In[70]:
-
 
 # The generic storage class
 Storage = type('Storage', (mixins.identifiable_properties_mixin,  # Give it a name
@@ -56,10 +46,6 @@ Storage = type('Storage', (mixins.identifiable_properties_mixin,  # Give it a na
                        mixins.hastriggers_properties_mixin),      # Give it investment triggers (lambda?)
             {})                         # The dictionary is empty because the site type is generic
 
-
-# In[71]:
-
-
 # The generic quay class
 Quay = type('Quay', (mixins.identifiable_properties_mixin,        # Give it a name
                        mixins.history_properties_mixin,           # Give it procurement history
@@ -69,10 +55,6 @@ Quay = type('Quay', (mixins.identifiable_properties_mixin,        # Give it a na
                        mixins.hasrevenue_properties_mixin,        # Give it revenue info
                        mixins.hastriggers_properties_mixin),      # Give it investment triggers (lambda?)
             {})                         # The dictionary is empty because the site type is generic
-
-
-# In[72]:
-
 
 # The generic conveyor class
 Conveyor = type('Conveyor', (mixins.identifiable_properties_mixin,# Give it a name
@@ -84,39 +66,8 @@ Conveyor = type('Conveyor', (mixins.identifiable_properties_mixin,# Give it a na
                        mixins.hastriggers_properties_mixin),      # Give it investment triggers (lambda?)
             {})                         # The dictionary is empty because the site type is generic
 
-
-# In[73]:
-
-
-# online_quay_length = 0
-
-# for element in System.elements:
-#     if isinstance(element, Quay):
-#         online_quay_length += element.length
-        
-# print('a total of {} m of quay length is online'.format((online_quay_length)))
-
-
-# In[82]:
-
-
-startyear = 2019
-lifecycle = 20
-range(startyear,startyear+lifecycle)
-scenario = range(startyear,startyear+lifecycle)
-
-
-# In[83]:
-
-
-range(startyear,startyear+lifecycle) + 1
-
-
-# In[74]:
-
-
 class system:
-    def __init__(self, elements = [], startyear = 2019, lifecycle = 20, scenario = ):
+    def __init__(self, elements = [], startyear = 2019, lifecycle = 20, scenario = []):
         self.elements = elements
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -160,7 +111,7 @@ class system:
             quay.df = df
 
             self.elements.append(quay)
-            # to do: add cost to cost matrix
+            # todo: add cost to cost matrix
             
             quay_length += quay.length
 
@@ -301,30 +252,14 @@ class system:
     
     def NPV(self):
         pass
-    
-
-
-# In[75]:
-
-
-quay = Quay(**defaults.quay_data)
-
 
 # ## 2. Prepare simulation objects
-
-# In[76]:
-
-
 # start an empty system (green field terminal)
 System = []
 System = system(startyear = 2019, lifecycle = 20)
 
 
 # ## 3. Simulate 
-
-# In[77]:
-
-
 print(2020)
 System.quay_invest(2020, 400)
 System.storage_invest(2020, Storage, 0.1*100000)
@@ -343,237 +278,3 @@ System.storage_invest(2024, Storage, 0.1*140000)
 print(2025)
 System.quay_invest(2025, 1200)
 System.storage_invest(2025, Storage, 0.1*150000)
-
-
-# In[80]:
-
-
-System.elements[-1].__dict__
-
-
-# In[15]:
-
-
-System.elements[-2].__dict__
-
-
-# In[16]:
-
-
-System.elements[-3].__dict__
-
-
-# In[14]:
-
-
-System.simulate(2019, 20)
-
-
-# In[ ]:
-
-
-System.elements[2].__dict__
-
-
-# In[ ]:
-
-
-import pandas as pd
-
-
-# In[ ]:
-
-
-import pandas as pd
-capex = pd.DataFrame
-
-
-# In[ ]:
-
-
-# capex(years = System.elements[0].capex_years)
-
-
-# In[ ]:
-
-
-investment = 14_000_000
-crew = 3
-salary = 110_000
-lease_rate = 0.03 
-maintenance_rate = 0.02
-insurance_rate = 0.015
-energy_rate = 0.01
-
-df = pd.DataFrame(index=range(2019,2019+20))
-df['capex'] = 0
-df.at[2019, 'capex']=investment
-df['labour'] = crew * salary
-df['lease'] = investment * lease_rate
-df['maintenance'] = investment * maintenance_rate
-df['insurance'] = investment * insurance_rate
-df['energy'] = investment * energy_rate
-
-#  'demurrage': [],
-#  'labour': [],
-#  'lease': [],
-#  'renevue': [],
-#  'residual': [],
-#  'maintenance': [],
-#  'insurance': [],
-#  'energy': [],
-
-#  'crew': 3,
-#  'delivery_time': 1,
-#  'eff_fact': 0.55,
-#  'effective_capacity': 616,
-#  'hourly_cycles': 40,
-#  'id': 'f57a01b4-455b-11e9-9f09-60f677ba2ce0',
-#  'insurance_perc': 0.01,
-#  'lifespan': 40,
-#  'lifting_capacity': 40,
-#  'maintenance_perc': 0.02,
-#  'mobilisation_perc': 0.15,
-#  'name': 'harbour_crane_01',
-#  'ownership': 'Terminal operator',
-#  'payload': 28,
-#  'peak_capacity': 1120,
-#  't0_quantity': 0,
-#  'triggers': [],
-#  'unit_rate': 14000000,
-#  'utilisation': 0.8}
-
-
-# In[ ]:
-
-
-df
-
-
-# In[ ]:
-
-
-# def investment_decision(element, year):
-#     element.capex_years = set(list(range(year, year+element.lifespan)))
-#     element.capex = [None for i in element.capex_years]
-#     element.opex = [None for i in element.capex_years]
-
-
-# In[ ]:
-
-
-# investment_decision(System.elements[0], 2019)
-
-
-# In[ ]:
-
-
-# station_utilisation     = 0.60 # Loading station utilisation
-# trigger_throughput_perc = 80   # Percentage of hourly peak demand which triggers the investment in a new loading unit
-# aspired_throughput_perc = 120  # Aspired percentage of hourly peak demand which is realised due to the new loading unit
-# trigger_throughput_perc = 10   # Percentage of annual throughput which triggers the investment in a new storage unit
-# aspired_throughput_perc = 20   # Aspired of annual throughput which is realised due to the new storage unit
-# 'allowable_berth_occupancy': 0.4,
-# 'allowable_waiting_time': 0.4,
-
-
-# In[ ]:
-
-
-System.elements[0].__dict__
-
-
-# In[ ]:
-
-
-System.elements[0].__dict__
-
-
-# In[ ]:
-
-
-# for element in System.elements:
-#     try:
-#         element.cost_years
-#     except AttributeError:
-#         print('what')
-#         element.cost_years = System.years
-
-
-# In[ ]:
-
-
-System.elements[0].__dict__
-
-
-# ## sandbox
-
-# In[ ]:
-
-
-a = set(list(range(2020, 2020+20)))
-b = set(list(range(2030, 2030+20)))
-c = a.intersection(b)
-
-
-# In[ ]:
-
-
-print(year)
-for element in self.elements:
-    print(element.name)
-    # element.investment_decision()
-
-#                 salary = 110_000
-#                 lease_rate = 0.03 
-#                 maintenance_rate = 0.02
-#                 energy_rate = 0.01
-
-    df = pd.DataFrame(index=range(startyear,startyear+lifecycle))
-    df['capex'] = 0
-    df.at[2019, 'capex']=element.unit_rate
-#                 df['labour'] = element.crew * salary
-#                 df['lease'] = element.unit_rate * lease_rate
-    df['maintenance'] = element.unit_rate * element.maintenance_perc
-    df['insurance'] = element.unit_rate * element.insurance_perc
-#                 df['energy'] = element.unit_rate * energy_rate
-
-    element.df = df
-            
-
-
-# In[ ]:
-
-
-c
-
-
-# In[ ]:
-
-
-System.elements[0].df
-
-
-# In[ ]:
-
-
-import matplotlib.pyplot as plt
-
-
-# In[ ]:
-
-
-df.labour
-
-
-# In[ ]:
-
-
-plt.bar(df.index, df.labour)
-
-
-# In[ ]:
-
-
-#         self.years = set(list(range(startyear,startyear+interval)))
-
