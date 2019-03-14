@@ -15,12 +15,12 @@ class identifiable_properties_mixin(object):
         self.id = id if id else str(uuid.uuid1())
 
 class history_properties_mixin(object):
-    """Something that has a name and id
+    """Something that has a purchase history
 
     purchase_date: year in which the decision was made to add another element
     online_date: year by which the elements starts to perform"""
 
-    def __init__(self, year_purchase = [], year_online=[], *args, **kwargs):
+    def __init__(self, year_purchase=[], year_online=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.year_purchase = year_purchase
@@ -31,7 +31,7 @@ class hascapex_properties_mixin(object):
 
     capex: list with cost to be applied from investment year"""
 
-    def __init__(self, capex = [], *args, **kwargs):
+    def __init__(self, capex=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.capex = capex
@@ -41,8 +41,8 @@ class hasopex_properties_mixin(object):
 
     opex: list with cost to be applied from investment year"""
 
-    def __init__(self, labour = [], maintenance = [], energy = [], insurance = [], 
-                 lease = [], demurrage = [], residual = [], *args, **kwargs):
+    def __init__(self, labour=[], maintenance=[], energy=[], insurance=[],
+                 lease=[], demurrage=[], residual=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.labour = labour
@@ -58,7 +58,7 @@ class hasrevenue_properties_mixin(object):
 
     revenue: list with revenues to be applied from investment year"""
 
-    def __init__(self, renevue = [], *args, **kwargs):
+    def __init__(self, renevue=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.renevue = renevue        
@@ -68,7 +68,7 @@ class hastriggers_properties_mixin(object):
 
     triggers: list with revenues to be applied from investment year"""
 
-    def __init__(self, triggers = [], *args, **kwargs):
+    def __init__(self, triggers=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.triggers = triggers        
@@ -158,11 +158,11 @@ class berth_properties_mixin(object):
     def __init__(self, t0_quantity, crane_type, max_cranes, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
-        self.t0_quantity   = t0_quantity
-        self.crane_type    = crane_type
-        self.max_cranes    = max_cranes
-        self.delivery_time = quay_object.delivery_time
-        self.cranes_present = []
+        self.t0_quantity          = t0_quantity
+        self.crane_type           = crane_type
+        self.max_cranes           = max_cranes
+        self.delivery_time        = quay_object.delivery_time
+        self.cranes_present       = []
 
 class storage_properties_mixin(object):
     def __init__(self, t0_capacity, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, 
@@ -220,4 +220,3 @@ class conveyor_properties_mixin(object):
         self.crew                    = crew
         self.utilisation             = utilisation
         self.capacity_steps          = capacity_steps
-
