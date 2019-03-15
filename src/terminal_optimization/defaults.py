@@ -178,7 +178,7 @@ warehouse_data = {"name": 'Warehouse_01',
 
 # *** Default inputs: Unloading_station class ***
 
-hinterland_station_data = {"name": 'Hinterland station 01', "ownership": 'Terminal operator', "delivery_time": 1,
+hinterland_station_data = {"name": 'Hinterland_station_01', "ownership": 'Terminal operator', "delivery_time": 1,
                            "lifespan": 15,
                            "unit_rate": 4000, "mobilisation": 100000,
                            "maintenance_perc": 0.02, "consumption": 0.25, "insurance_perc": 0.01, "crew": 2,
