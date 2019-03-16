@@ -107,3 +107,12 @@ print('test Vessel: panamax')
 print(defaults.panamax_data)
 panamax = objects.Vessel(**defaults.panamax_data)
 print(panamax.__dict__)
+
+print('')
+print('*** Test general Labour class')
+print('')
+
+print('test Labour: labour')
+print(defaults.labour_data)
+labour = objects.Labour(**defaults.labour_data)
+print(labour.__dict__)
