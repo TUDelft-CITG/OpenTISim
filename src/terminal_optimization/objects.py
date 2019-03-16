@@ -24,6 +24,7 @@
     - Handysize
     - Handymax
     - Panamax
+- 9. Labour
 
 """
 
@@ -31,8 +32,8 @@ from terminal_optimization import mixins
 
 # The generic Quay_wall class
 Quay_wall = type('Quay_wall', (mixins.identifiable_properties_mixin,  # Give it a name
-                               mixins.history_properties_mixin,  # Give it procurement history
                                mixins.quay_wall_properties_mixin,
+                               mixins.history_properties_mixin,  # Give it procurement history
                                mixins.hascapex_properties_mixin,  # Give it capex info
                                mixins.hasopex_properties_mixin,  # Give it opex info
                                mixins.hasrevenue_properties_mixin,  # Give it revenue info
@@ -119,4 +120,9 @@ Commodity = type('Commodity', (mixins.identifiable_properties_mixin,  # Give it 
 # - Panamax
 Vessel = type('Vessel', (mixins.identifiable_properties_mixin,
                          mixins.vessel_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+# The general Labour class
+Labour = type('Labour', (mixins.identifiable_properties_mixin,
+                         mixins.labour_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
