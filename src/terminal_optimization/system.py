@@ -239,7 +239,65 @@ class System:
         pass
 
 
-def scenario_generator(startyear, lifecycle):
+def traffic_scenario(startyear=2019, lifecycle=20):
+    # Import commodities from package
+    maize = forecast.bulk_commodities(**forecast.maize_data)
+    soybean = forecast.bulk_commodities(**forecast.maize_data)
+    wheat = forecast.bulk_commodities(**forecast.wheat_data)
+
+    # Maize - Linear demand
+    historic_demand_maize = [1000000, 1100000, 1250000, 1400000, 1500000]  # demand at t=0
+    historic_demand_maize = [i * 3 for i in historic_demand_maize]
+
+    # Growth scenario
+    # predefined_demand_maize = [1600000, 1900000, 1900000, 1950000, 2000000, 2100000, 2150000, 2200000,
+    #                           2200000, 2250000, 2350000, 2400000, 2450000, 2550000, 2700000, 2900000,
+    #                           3000000, 3050000, 3150000, 3300000]
+
+    # Erratic growth scenario
+    # predefined_demand_maize = [1705000, 1883000, 1835000, 2090000, 2093000, 2100000, 2047000, 2341000,
+    #                           2549000, 2522000, 2670000, 2795000, 2717000, 2631000, 2561000, 2673000,
+    #                           2878000, 3105000, 3342000, 3323000]
+
+    # Crisis scenario
+    predefined_demand_maize = [1600000, 1900000, 1900000, 1950000, 1750000, 1600000, 1550000, 1530000,
+                               1570000, 1620000, 1700000, 1750000, 1800000, 1900000, 2050000, 2250000,
+                               2350000, 2400000, 2500000, 2650000]
+    predefined_demand_maize = [i * 3 for i in predefined_demand_maize]
+
+    # Soybean - Exponential demand
+    historic_demand_soybean = 5 * [0]
+    rate_soybean = 1.06  # year on year growth rate of demand (% points) - input for constant method and random method
+
+    # Wheat - Probabilistic demand
+    historic_demand_wheat = 5 * [0]
+    rate_wheat = 1.02
+    mu_wheat = 0.01  # avg bonus rate added to base rate (% points)  - input for random method
+    sigma_wheat = 0.065  # standard deviation of bonus rate (% points)   - input for random method
+
+    # Create demand scenario
+    # maize.linear_scenario      (start_year, simulation_window, historic_demand_maize  , growth_maize)
+    maize.predefined_scenario(start_year, simulation_window, historic_demand_maize, predefined_demand_maize)
+    soybean.exponential_scenario(start_year, simulation_window, historic_demand_soybean, rate_soybean)
+    wheat.random_scenario(start_year, simulation_window, historic_demand_wheat, rate_wheat, mu_wheat, sigma_wheat)
+    commodities = [maize, soybean, wheat]
+
+    # Import vessels from package
+    handysize = forecast.vessel(**forecast.handysize_data)
+    handymax = forecast.vessel(**forecast.handymax_data)
+    panamax = forecast.vessel(**forecast.panamax_data)
+    vessels = [handysize, handymax, panamax]
+
+    # Calculate yearly calls
+    vessels = forecast.vessel_call_calc(vessels, commodities, simulation_window)
+
+    # Plot forecast
+    visualisation.scenario(commodities, simulation_window, start_year)
+
+    return vessels, commodities
+
+
+def cargo_scenario(startyear=2019, lifecycle=20):
     # Import commodities from package
     maize = forecast.bulk_commodities(**forecast.maize_data)
     soybean = forecast.bulk_commodities(**forecast.maize_data)
