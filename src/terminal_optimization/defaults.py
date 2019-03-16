@@ -259,10 +259,18 @@ panamax_data = {"name": 'Panamax_1',
                 "mooring_time": 3,
                 "demurrage_rate": 730}
 
-labour_data = {"international_salary": 105_000,
+# *** Default inputs: Labour class ***
+
+labour_data = {"name": 'Labour',
+               "international_salary": 105_000,
                "international_staff": 4,
                "local_salary": 18_850,
                "local_staff": 10,
                "operational_salary": 16_750,
                "shift_length": 6.5,
                "annual_shifts": 200}
+
+# *** Default inputs: Energy class ***
+
+energy_data = {"name": 'Energy',
+               "price": 0.10}

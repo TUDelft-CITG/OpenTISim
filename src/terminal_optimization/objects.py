@@ -55,24 +55,26 @@ Berth = type('Berth', (mixins.identifiable_properties_mixin,  # Give it a name
 # - Harbour_crane
 # - Mobile_crane
 Cyclic_Unloader = type('Cyclic_Unloader', (mixins.identifiable_properties_mixin,  # Give it a name
-                             mixins.history_properties_mixin,  # Give it procurement history
-                             mixins.cyclic_properties_mixin,
-                             mixins.hascapex_properties_mixin,  # Give it capex info
-                             mixins.hasopex_properties_mixin,  # Give it opex info
-                             mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-                {})  # The dictionary is empty because the site type is generic
+                                           mixins.history_properties_mixin,  # Give it procurement history
+                                           mixins.cyclic_properties_mixin,
+                                           mixins.hascapex_properties_mixin,  # Give it capex info
+                                           mixins.hasopex_properties_mixin,  # Give it opex info
+                                           mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                                           mixins.hastriggers_properties_mixin),
+                       # Give it investment triggers (lambda?)
+                       {})  # The dictionary is empty because the site type is generic
 
 # The generic ContinuousUnloader class
 # - Continuous_screw
 Continuous_Unloader = type('Continuous_Unloader', (mixins.identifiable_properties_mixin,  # Give it a name
-                             mixins.history_properties_mixin,  # Give it procurement history
-                             mixins.continuous_properties_mixin,
-                             mixins.hascapex_properties_mixin,  # Give it capex info
-                             mixins.hasopex_properties_mixin,  # Give it opex info
-                             mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-                {})  # The dictionary is empty because the site type is generic
+                                                   mixins.history_properties_mixin,  # Give it procurement history
+                                                   mixins.continuous_properties_mixin,
+                                                   mixins.hascapex_properties_mixin,  # Give it capex info
+                                                   mixins.hasopex_properties_mixin,  # Give it opex info
+                                                   mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                                                   mixins.hastriggers_properties_mixin),
+                           # Give it investment triggers (lambda?)
+                           {})  # The dictionary is empty because the site type is generic
 
 # The generic Conveyor class
 # - Quay_conveyor
@@ -125,4 +127,9 @@ Vessel = type('Vessel', (mixins.identifiable_properties_mixin,
 # The general Labour class
 Labour = type('Labour', (mixins.identifiable_properties_mixin,
                          mixins.labour_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+# The general Energy class
+Energy = type('Energy', (mixins.identifiable_properties_mixin,
+                         mixins.energy_properties_mixin),
               {})  # The dictionary is empty because the site type is generic

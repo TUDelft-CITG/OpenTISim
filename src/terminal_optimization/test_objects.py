@@ -116,3 +116,12 @@ print('test Labour: labour')
 print(defaults.labour_data)
 labour = objects.Labour(**defaults.labour_data)
 print(labour.__dict__)
+
+print('')
+print('*** Test general Energy class')
+print('')
+
+print('test Energy: energy')
+print(defaults.energy_data)
+energy = objects.Energy(**defaults.energy_data)
+print(energy.__dict__)

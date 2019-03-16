@@ -280,6 +280,12 @@ class labour_properties_mixin(object):
         self.annual_shifts = annual_shifts
 
 
+class energy_properties_mixin(object):
+    def __init__(self, price, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.price = price
+
+
 class hasscenario_properties_mixin(object):
     """Something has a scenario
 
