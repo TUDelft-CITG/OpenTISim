@@ -21,6 +21,9 @@
 # package for unique identifiers
 import uuid
 
+import numpy as np
+import pandas as pd
+
 
 class identifiable_properties_mixin(object):
     """Something that has a name and id
@@ -257,3 +260,33 @@ class vessel_properties_mixin(object):
         self.all_turn_time = all_turn_time
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
+
+
+class hasscenario_properties_mixin(object):
+    """Something has a scenario
+
+    historic_data: observed demand
+    scenario_data: generated estimates of future demand"""
+
+    def __init__(self, historic_data=[], scenario_data=[], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        """Initialization"""
+        self.historic_data = historic_data
+        self.scenario_data = scenario_data
+
+    def scenario_random(self, startyear=2019, lifecycle=20, rate=1.02, mu=0.01, sigma=0.065):
+        """trend generated from random growth rate increments"""
+        # package(s) used for probability
+        years = range(startyear, startyear + lifecycle)
+        volume = self.historic_data[self.historic_data.year == startyear - 1].volume.item()
+
+        volumes = []
+        for year in years:
+            change = np.random.normal(mu, sigma, 1)
+            new_rate = rate + change
+            volume = volume * new_rate
+            volumes.append(np.int(volume))
+
+        scenario_data = {'year': years, 'volume': volumes}
+
+        self.scenario_data = pd.DataFrame(data=scenario_data)

@@ -109,7 +109,8 @@ Unloading_station = type('Unloading_station', (mixins.identifiable_properties_mi
 # - Soybean
 # - Wheat
 Commodity = type('Commodity', (mixins.identifiable_properties_mixin,  # Give it a name
-                               mixins.commodity_properties_mixin),
+                               mixins.commodity_properties_mixin,
+                               mixins.hasscenario_properties_mixin),
                  {})  # The dictionary is empty because the site type is generic
 
 # The general Vessel class

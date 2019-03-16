@@ -27,6 +27,9 @@
 
 """
 
+# package(s) for data handling
+import pandas as pd
+
 # *** Default inputs: Quay class ***
 
 quay_wall_data = {"name": 'Quay_01',
@@ -72,7 +75,7 @@ harbour_crane_data = {"name": 'Harbour_crane_01',
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 40,
-                      "unit_rate": 14000000,
+                      "unit_rate": 14_000_000,
                       "mobilisation_perc": 0.15,
                       "maintenance_perc": 0.02,
                       "insurance_perc": 0.01,
@@ -87,7 +90,7 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
                      "lifespan": 20,
-                     "unit_rate": 3325000,
+                     "unit_rate": 3_325_000,
                      "mobilisation_perc": 0.15,
                      "maintenance_perc": 0.031,
                      "insurance_perc": 0.01,
@@ -104,7 +107,7 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
                          "ownership": 'Terminal operator',
                          "delivery_time": 1,
                          "lifespan": 30,
-                         "unit_rate": 6900000,
+                         "unit_rate": 6_900_000,
                          "mobilisation_perc": 0.15,
                          "maintenance_perc": 0.02,
                          "insurance_perc": 0.01,
@@ -190,20 +193,24 @@ maize_data = {"name": 'Maize',
               "handling_fee": 3,
               "handysize_perc": 50,
               "handymax_perc": 50,
-              "panamax_perc": 0}
-
+              "panamax_perc": 0,
+              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+                                                  'volume': [1000000, 1100000, 1250000, 1400000, 1500000]})}
 soybean_data = {"name": 'Soybeans',
                 "handling_fee": 3,
                 "handysize_perc": 50,
                 "handymax_perc": 50,
-                "panamax_perc": 0}
+                "panamax_perc": 0,
+                "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+                                                    'volume': [1000000, 1100000, 1250000, 1400000, 1500000]})}
 
 wheat_data = {"name": 'Wheat',
               "handling_fee": 3,
               "handysize_perc": 0,
               "handymax_perc": 0,
-              "panamax_perc": 100}
-
+              "panamax_perc": 100,
+              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+                                                  'volume': [1000000, 1100000, 1250000, 1400000, 1500000]})}
 # *** Default inputs: Vessel class ***
 
 handysize_data = {"name": 'Handysize_1',
