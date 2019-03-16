@@ -24,6 +24,10 @@
     - Handysize
     - Handymax
     - Panamax
+- 9. Labour
+
+Default values are based on Claes 2018; Corbeau 2018; Daas 2018; Juha 2018;
+Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
 
 """
 
@@ -36,7 +40,7 @@ quay_wall_data = {"name": 'Quay_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
-                  "mobilisation_min": 2500000,
+                  "mobilisation_min": 2_500_000,
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
@@ -60,7 +64,7 @@ gantry_crane_data = {"name": 'Gantry_crane_01',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
                      "lifespan": 40,
-                     "unit_rate": 19500000,
+                     "unit_rate": 19_500_000,
                      "mobilisation_perc": 0.15,
                      "maintenance_perc": 0.02,
                      "insurance_perc": 0.01,
@@ -80,7 +84,7 @@ harbour_crane_data = {"name": 'Harbour_crane_01',
                       "maintenance_perc": 0.02,
                       "insurance_perc": 0.01,
                       "crew": 3,
-                      "crane_type": 'Harbour crane crane',
+                      "crane_type": 'Harbour crane',
                       "lifting_capacity": 40,
                       "hourly_cycles": 40,
                       "eff_fact": 0.55,
@@ -125,7 +129,7 @@ quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "delivery_time": 1,
                       "lifespan": 10,
                       "unit_rate": 6,
-                      "mobilisation": 30000,
+                      "mobilisation": 30_000,
                       "maintenance_perc": 0.10,
                       "insurance_perc": 0.01,
                       "consumption_constant": 81,
@@ -139,7 +143,7 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
                             "lifespan": 10,
-                            "mobilisation": 30000,
+                            "mobilisation": 30_000,
                             "unit_rate": 6,
                             "maintenance_perc": 0.10,
                             "insurance_perc": 0.01,
@@ -156,21 +160,21 @@ silo_data = {"name": 'Silo_01',
              "delivery_time": 1,
              "lifespan": 30,
              "unit_rate": 60,
-             "mobilisation_min": 200000,
+             "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.02,
              "crew": 1,
              "insurance_perc": 0.01,
              "storage_type": 'Silos',
              "consumption": 0.002,
-             "silo_capacity": 6000}
+             "capacity": 6_000}
 
 warehouse_data = {"name": 'Warehouse_01',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
                   "lifespan": 30,
                   "unit_rate": 140,
-                  "mobilisation_min": 200000,
+                  "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.001,
                   "maintenance_perc": 0.01,
                   "crew": 3,
@@ -181,11 +185,18 @@ warehouse_data = {"name": 'Warehouse_01',
 
 # *** Default inputs: Unloading_station class ***
 
-hinterland_station_data = {"name": 'Hinterland_station_01', "ownership": 'Terminal operator', "delivery_time": 1,
+hinterland_station_data = {"name": 'Hinterland_station_01',
+                           "ownership": 'Terminal operator',
+                           "delivery_time": 1,
                            "lifespan": 15,
-                           "unit_rate": 4000, "mobilisation": 100000,
-                           "maintenance_perc": 0.02, "consumption": 0.25, "insurance_perc": 0.01, "crew": 2,
-                           "utilisation": 0.80, "capacity_steps": 300}
+                           "unit_rate": 4_000,
+                           "mobilisation": 100_000,
+                           "maintenance_perc": 0.02,
+                           "consumption": 0.25,
+                           "insurance_perc": 0.01,
+                           "crew": 2,
+                           "utilisation": 0.80,
+                           "capacity_steps": 300}
 
 # *** Default inputs: Commodity class ***
 
@@ -195,14 +206,15 @@ maize_data = {"name": 'Maize',
               "handymax_perc": 50,
               "panamax_perc": 0,
               "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1000000, 1100000, 1250000, 1400000, 1500000]})}
+                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+
 soybean_data = {"name": 'Soybeans',
                 "handling_fee": 3,
                 "handysize_perc": 50,
                 "handymax_perc": 50,
                 "panamax_perc": 0,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                    'volume': [1000000, 1100000, 1250000, 1400000, 1500000]})}
+                                                    'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
 wheat_data = {"name": 'Wheat',
               "handling_fee": 3,
@@ -210,12 +222,13 @@ wheat_data = {"name": 'Wheat',
               "handymax_perc": 0,
               "panamax_perc": 100,
               "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1000000, 1100000, 1250000, 1400000, 1500000]})}
+                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+
 # *** Default inputs: Vessel class ***
 
 handysize_data = {"name": 'Handysize_1',
                   "type": 'Handysize',
-                  "call_size": 35000,
+                  "call_size": 35_000,
                   "LOA": 130,
                   "draft": 10,
                   "beam": 24,
@@ -226,7 +239,7 @@ handysize_data = {"name": 'Handysize_1',
 
 handymax_data = {"name": 'Handymax_1',
                  "type": 'Handymax',
-                 "call_size": 50000,
+                 "call_size": 50_000,
                  "LOA": 180,
                  "draft": 11.5,
                  "beam": 28,
@@ -237,7 +250,7 @@ handymax_data = {"name": 'Handymax_1',
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 65000,
+                "call_size": 65_000,
                 "LOA": 220,
                 "draft": 13,
                 "beam": 32.2,
@@ -245,3 +258,11 @@ panamax_data = {"name": 'Panamax_1',
                 "all_turn_time": 36,
                 "mooring_time": 3,
                 "demurrage_rate": 730}
+
+labour_data = {"international_salary": 105_000,
+               "international_staff": 4,
+               "local_salary": 18_850,
+               "local_staff": 10,
+               "operational_salary": 16_750,
+               "shift_length": 6.5,
+               "annual_shifts": 200}
