@@ -15,6 +15,8 @@
 - unloading_station_properties_mixin
 - commodity_properties_mixin
 - vessel_properties_mixin
+- labour_properties_mixin
+- hasscenario_properties_mixin
 
 """
 
@@ -23,6 +25,8 @@ import uuid
 
 import numpy as np
 import pandas as pd
+
+import matplotlib.pyplot as plt
 
 
 class identifiable_properties_mixin(object):
@@ -121,6 +125,7 @@ class quay_wall_properties_mixin(object):
         self.freeboard = freeboard
         self.Gijt_constant = Gijt_constant
         self.Gijt_coefficient = Gijt_coefficient
+        self.unit_rate = int(self.Gijt_constant * (self.depth * 2 + self.freeboard) ** self.Gijt_coefficient)
 
 
 class berth_properties_mixin(object):
@@ -147,13 +152,13 @@ class cyclic_properties_mixin(object):
         self.insurance_perc = insurance_perc
         self.crew = crew
         self.crane_type = crane_type
-        self.lifting_capacity = lifting_capacity
         self.hourly_cycles = hourly_cycles
         self.eff_fact = eff_fact
-        self.utilisation = utilisation
+        self.lifting_capacity = lifting_capacity
         self.payload = int(0.70 * self.lifting_capacity)  # Source: Nemag
         self.peak_capacity = int(self.payload * self.hourly_cycles)
         self.effective_capacity = int(eff_fact * self.peak_capacity)  # Source: TATA steel
+        self.utilisation = utilisation
 
 
 class continuous_properties_mixin(object):
@@ -171,8 +176,8 @@ class continuous_properties_mixin(object):
         self.insurance_perc = insurance_perc
         self.crew = crew
         self.crane_type = crane_type
-        self.peak_capacity = peak_capacity
         self.eff_fact = eff_fact
+        self.peak_capacity = peak_capacity
         self.effective_capacity = eff_fact * peak_capacity
         self.utilisation = utilisation
 
@@ -200,7 +205,7 @@ class conveyor_properties_mixin(object):
 
 class storage_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew, insurance_perc, storage_type, consumption, silo_capacity, *args, **kwargs):
+                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -214,7 +219,7 @@ class storage_properties_mixin(object):
         self.insurance_perc = insurance_perc
         self.storage_type = storage_type
         self.consumption = consumption
-        self.silo_capacity = silo_capacity
+        self.capacity = capacity
 
 
 class unloading_station_properties_mixin(object):
@@ -262,6 +267,19 @@ class vessel_properties_mixin(object):
         self.demurrage_rate = demurrage_rate
 
 
+class labour_properties_mixin(object):
+    def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
+                 shift_length, annual_shifts, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.international_salary = international_salary
+        self.international_staff = international_staff
+        self.local_salary = local_salary
+        self.local_staff = local_staff
+        self.operational_salary = operational_salary
+        self.shift_length = shift_length
+        self.annual_shifts = annual_shifts
+
+
 class hasscenario_properties_mixin(object):
     """Something has a scenario
 
@@ -290,3 +308,12 @@ class hasscenario_properties_mixin(object):
         scenario_data = {'year': years, 'volume': volumes}
 
         self.scenario_data = pd.DataFrame(data=scenario_data)
+
+    def plot_demand(self):
+        plt.figure(figsize=(10, 7.5))
+
+        plt.plot(self.historic_data['year'], self.historic_data['volume'], 'o:r')
+        plt.plot(self.scenario_data['year'], self.scenario_data['volume'], 'o:b')
+        plt.xlabel('Time [years]')
+        plt.ylabel('Demand ' + self.name + ' [tons]')
+        plt.title('Demand ' + self.name)
