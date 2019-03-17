@@ -425,8 +425,31 @@ class System:
     def profits(self):
         pass
 
-    def WACC(self):
-        pass
+    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
+        """Nominal cash flow is the true dollar amount of future revenues the company expects
+        to receive and expenses it expects to pay out, without any adjustments for inflation.
+        When all cashflows within the model are denoted in real terms and have been
+        adjusted for inflation. The real WACC is computed by as follows:"""
+
+        Gearing = Gearing
+        Re = Re  # return on equity
+        Rd = Rd  # return on debt
+        Tc = Tc  # income tax
+        E = 100 - Gearing
+        D = Gearing
+
+        WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
+
+        return WACC_nominal
+
+    def WACC_real(self, interest=0.0604):
+        """Real cash flow expresses a company's cash flow with adjustments for inflation.
+        When all cashflows within the model are denoted in real terms and have been
+        adjusted for inflation, WACC_real should be used. WACC_real is computed by as follows:"""
+
+        WACC_real = (self.WACC_nominal() + 1) / (interest + 1) - 1
+
+        return WACC_real
 
     def NPV(self):
         pass
