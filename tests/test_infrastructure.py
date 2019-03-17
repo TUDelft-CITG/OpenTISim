@@ -14,7 +14,7 @@ def test_berth():
 	              "delivery_time": 1,
               	      "max_cranes": 3}
               
-	berth = Berth(**berth_data)
+	berth = objects.Berth(**berth_data)
 
 	assert berth.name == 'Berth_01'
 	assert berth.crane_type == 'Mobile cranes'
