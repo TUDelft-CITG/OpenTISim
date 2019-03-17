@@ -13,7 +13,7 @@ Terminal-Optimization
 Features
 --------
 
-Parametric Design and Investment Analysis - Adaptive infrastructure planning in light of an uncertain future
+Investment Strategy Simulation - Adaptive infrastructure development parametrically driven by changing demand scenarios
 
 Example notebooks:
 * **Example 01** - Basic example of terminal development in response to changing throughput scenarios.
