@@ -402,7 +402,16 @@ class System:
             service_capacity))
 
     def simulate(self, startyear=2019, lifecycle=20):
-        """Step through each year of the terminal lifecycle and check if investment is needed"""
+        """Step through each year of the terminal lifecycle and check if investment is needed
+        1. step through investment decisions
+        2. collect cash flows
+        3. collect revenues
+        4. calculate profits
+        5. apply WACC to cashflows and revenues
+        6. aggregate to NPV
+
+        """
+        # 1. step through investment decisions
         for year in range(startyear, startyear + lifecycle):
             print('Simulate year: {}'.format(year))
             self.quay_invest(year, 1000)
@@ -414,74 +423,15 @@ class System:
             if False:
                 self.berth_invest(year, 3)
 
-        #     System.quay_invest(2020, 400)
-        #     System.storage_invest(2020, Storage, 0.1 * 100000)
-        #
-        #     timestep = year - start_year
-        #
-        #     # *** for each element run investment trigger logic
-        #     for element in self.elements:
-        #         if isinstance(element, Berth):
-        #             self.berth_invest_decision_waiting(terminal.berths, terminal.cranes, vessels,
-        #                                                terminal.allowable_waiting_time, year, timestep,
-        #                                                operational_hours)
-        #
-        #         if isinstance(element, Quay):
-        #             quay_invest_decision(System, year, target_quay_length)
-        #             self.quay_invest_decision(terminal.quays, terminal.berths, year, timestep)
-        #
-        #         if isinstance(element, Berth):
-        #             pass
-        #
-        #         if isinstance(element, Storage):
-        #             storage_type = 'Silos'
-        #             terminal.storage = invest.storage_invest_decision(terminal.storage, trigger_throughput_perc,
-        #                                                               aspired_throughput_perc, storage_type,
-        #                                                               commodities, year, timestep)
-        #
-        #         if isinstance(element, Loader):
-        #             # Loading stations
-        #             terminal.stations = invest.station_invest_decision(terminal.stations, station_utilisation,
-        #                                                                trigger_throughput_perc, aspired_throughput_perc,
-        #                                                                commodities, year, timestep, operational_hours)
-        #
-        #         if isinstance(element, Conveyor):
-        #             # Conveyors
-        #             terminal.quay_conveyors = invest.quay_conveyor_invest_decision(terminal.quay_conveyors,
-        #                                                                            terminal.cranes, year, timestep,
-        #                                                                            operational_hours)
-        #             terminal.hinterland_conveyors = invest.hinterland_conveyor_invest_decision(
-        #                 terminal.hinterland_conveyors, terminal.stations, year, timestep, operational_hours)
-        #
-        #     # Terminal throughput
-        #     terminal = financial.throughput_calc(terminal, vessels, commodities, allowable_berth_occupancy, year,
-        #                                          start_year, timestep, operational_hours)
-        #
-        #     # *** for updated terminal run financial calculations
-        #     terminal.revenues = financial.revenue_calc(terminal.revenues, terminal.throughputs, commodities, year,
-        #                                                timestep)
-        #     terminal.capex = financial.capex_calc(terminal, year, timestep)
-        #     terminal.labour = financial.labour_calc(terminal, year, timestep, operational_hours)
-        #     terminal.maintenance = financial.maintenance_calc(terminal, year, timestep)
-        #     terminal.energy = financial.energy_calc(terminal, year, operational_hours, timestep)
-        #     terminal.insurance = financial.insurance_calc(terminal, year, timestep)
-        #     terminal.lease = financial.lease_calc(terminal, year, timestep)
-        #     terminal.demurrage = financial.demurrage_calc(terminal.demurrage, terminal.berths, vessels, year, timestep)
-        #     terminal.residuals = financial.residual_calc(terminal, year, timestep)
-        #     terminal.profits = financial.profit_calc(terminal, simulation_window, timestep, year, start_year)
-        #     terminal.opex = financial.opex_calc(terminal, year, timestep)
-        #
-        #     # WACC depreciated profits
-        # terminal.WACC_cashflows = financial.WACC_calc(terminal.project_WACC, terminal.profits, simulation_window,
-        #                                               start_year)
-        #
-        # # Combine all cashflows
-        # terminal.cashflows = financial.cashflow_calc(terminal, simulation_window, start_year)
-        #
-        # # NPV
-        # terminal.NPV = financial.NPV_calc(terminal.WACC_cashflows)
-        #
-        # return terminal
+        # 2. collect cash flows
+
+        # 3. collect revenues
+
+        # 4. calculate profits
+
+        # 5. apply WACC to cashflows and revenues
+
+        # 6. aggregate to NPV
 
     def plot_system(self):
         pass
