@@ -57,6 +57,7 @@ berth_data = {"name": 'Berth_01',
               "delivery_time": 1,
               "max_cranes": 3}
 # todo: check delivery time of berth
+# todo: check if indeed at t = 0 it takes 1 year to get a berth online and 2 years to get a quay online
 
 # *** Default inputs: CyclicUnloader class ***
 
