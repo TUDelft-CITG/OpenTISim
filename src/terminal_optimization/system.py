@@ -11,12 +11,14 @@ from terminal_optimization import defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, elements=[], supply_chains=[], supply_graph=[], cargo_type=[],
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[], supply_chains=[],
+                 supply_graph=[], cargo_type=[],
                  cargo_forecast=[],
                  traffic_forecast=[]):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
+        self.operational_hours = operational_hours
 
         # status terminal @ T=startyear
         self.supply_chains = supply_chains
@@ -30,17 +32,48 @@ class System:
 
     def create_data_dict(self, obj):
         # add cash flow information to quay_wall object in a dataframe
-        data = {'year': list(range(self.startyear, self.startyear + self.lifecycle)),
-                'capex': list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
-                    obj.capex] + list(
-                    np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle))),
-                'maintenance':
-                    list(np.multiply(0, range(self.startyear, obj.year_online - 1))) +
-                    list(np.multiply(obj.maintenance,
-                                     len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [1])),
-                'insurance': list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + list(
-                    np.multiply(obj.maintenance,
-                                len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [1]))}
+        data = {}
+
+        data['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        try:
+            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
+                obj.capex] + list(
+                np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
+        except:
+            pass
+
+        try:
+            data['maintenance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                                  list(np.multiply(obj.maintenance,
+                                                   len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                       1]))
+        except:
+            pass
+
+        try:
+            data['insurance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                                list(np.multiply(obj.maintenance,
+                                                 len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                     1]))
+        except:
+            pass
+
+        try:
+            data['energy'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                             list(np.multiply(obj.energy,
+                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                  1]))
+        except:
+            pass
+
+        try:
+            data['labour'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                             list(np.multiply(obj.labour,
+                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                  1]))
+        except:
+            pass
+
         return data
 
     def supply_chain(self, nodes, edges):
@@ -180,6 +213,14 @@ class System:
             # - opex
             silo.insurance = silo.capex * silo.insurance_perc
             silo.maintenance = silo.capex * silo.maintenance_perc
+            silo.energy = silo.consumption * silo.capacity * self.operational_hours
+
+            occupancy = 0.8  # todo: Figure out occupancy
+            consumption = silo.consumption
+            capacity = silo.capacity
+            hours = self.operational_hours
+            silo.energy = consumption * capacity * hours
+
             silo.year_online = year + silo.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
@@ -208,9 +249,9 @@ class System:
         list_of_elements = list_of_elements_1 + list_of_elements_2
         if list_of_elements != []:
             for element in list_of_elements:
-                service_capacity += element.effective_capacity * element.utilisation
+                service_capacity += element.lifting_capacity * element.hourly_cycles * element.eff_fact * self.operational_hours
                 if year >= element.year_online:
-                    service_capacity_online += element.effective_capacity * element.utilisation
+                    service_capacity_online += element.lifting_capacity * element.hourly_cycles * element.eff_fact * self.operational_hours
 
         print('a total of {} ton of crane service capacity is online; {} ton total planned'.format(
             service_capacity_online,
@@ -230,6 +271,14 @@ class System:
             # - opex
             crane.insurance = crane.capex * crane.insurance_perc
             crane.maintenance = crane.capex * crane.maintenance_perc
+
+            occupancy = 0.8  # todo: Figure out occupancy
+            consumption = crane.consumption
+            hours = self.operational_hours * occupancy
+            crane.energy = consumption * hours
+
+            labour = Labour(**defaults.labour_data)
+            crane.labour = crane.crew * self.operational_hours / labour.shift_length
             crane.year_online = year + crane.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
@@ -238,7 +287,7 @@ class System:
 
             self.elements.append(crane)
 
-            service_capacity += crane.effective_capacity * crane.utilisation
+            service_capacity += crane.lifting_capacity * crane.hourly_cycles * crane.eff_fact * self.operational_hours
 
         print('a total of {} ton of crane service capacity is online; {} ton total planned'.format(
             service_capacity_online,
@@ -281,6 +330,10 @@ class System:
             # - opex
             conveyor.insurance = conveyor.capex * conveyor.insurance_perc
             conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
+            occupancy = 0.8  # todo: Figure out occupancy
+            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
+            hours = self.operational_hours * occupancy
+            conveyor.energy = consumption * hours
             conveyor.year_online = year + conveyor.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
@@ -309,9 +362,9 @@ class System:
         list_of_elements = self.find_elements(Unloading_station)
         if list_of_elements != []:
             for element in list_of_elements:
-                service_capacity += element.capacity_steps
+                service_capacity += element.production
                 if year >= element.year_online:
-                    service_capacity_online += element.capacity_steps
+                    service_capacity_online += element.production
         # todo: understand conveyors capacity formulation
 
         print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
@@ -324,7 +377,7 @@ class System:
             hinterland_station = Unloading_station(**defaults.hinterland_station_data)
 
             # - capex
-            delta = hinterland_station.capacity_steps
+            delta = hinterland_station.production
             unit_rate = hinterland_station.unit_rate
             mobilisation = hinterland_station.mobilisation
             hinterland_station.capex = int(delta * unit_rate + mobilisation)
@@ -332,6 +385,7 @@ class System:
             # - opex
             hinterland_station.insurance = hinterland_station.capex * hinterland_station.insurance_perc
             hinterland_station.maintenance = hinterland_station.capex * hinterland_station.maintenance_perc
+            hinterland_station.energy = hinterland_station.consumption * hinterland_station.production * self.operational_hours
             hinterland_station.year_online = year + hinterland_station.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
@@ -340,7 +394,7 @@ class System:
 
             self.elements.append(hinterland_station)
 
-            service_capacity += hinterland_station.capacity_steps
+            service_capacity += hinterland_station.production
 
         print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
             service_capacity_online,

@@ -44,11 +44,11 @@ quay_wall_data = {"name": 'Quay_01',
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
-                  "length": 400,
-                  "depth": 14,
                   "freeboard": 4,
                   "Gijt_constant": 757.20,
-                  "Gijt_coefficient": 1.2878}
+                  "Gijt_coefficient": 1.2878,
+                  "length": 400,  # should probably be calculated
+                  "depth": 14}  # should probably be calculated
 
 # *** Default inputs: Berth class ***
 
@@ -64,31 +64,31 @@ gantry_crane_data = {"name": 'Gantry_crane_01',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
                      "lifespan": 40,
-                     "unit_rate": 19_500_000,
+                     "unit_rate": 9_750_000,
                      "mobilisation_perc": 0.15,
                      "maintenance_perc": 0.02,
+                     "consumption": 561,
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Gantry crane',
-                     "lifting_capacity": 70,
-                     "hourly_cycles": 60,
-                     "eff_fact": 0.55,
-                     "utilisation": 0.80}
+                     "lifting_capacity": 50,
+                     "hourly_cycles": 50,
+                     "eff_fact": 0.50}
 
 harbour_crane_data = {"name": 'Harbour_crane_01',
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 40,
-                      "unit_rate": 14_000_000,
+                      "unit_rate": 10_500_000,
                       "mobilisation_perc": 0.15,
                       "maintenance_perc": 0.02,
+                      "consumption": 210,
                       "insurance_perc": 0.01,
                       "crew": 3,
                       "crane_type": 'Harbour crane',
                       "lifting_capacity": 40,
                       "hourly_cycles": 40,
-                      "eff_fact": 0.55,
-                      "utilisation": 0.80}
+                      "eff_fact": 0.40}
 
 mobile_crane_data = {"name": 'Mobile_crane_01',
                      "ownership": 'Terminal operator',
@@ -97,15 +97,16 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
                      "unit_rate": 3_325_000,
                      "mobilisation_perc": 0.15,
                      "maintenance_perc": 0.031,
+                     "consumption": 310,
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Mobile crane',
-                     "lifting_capacity": 60,
-                     "hourly_cycles": 30,
-                     "eff_fact": 0.55,
-                     "utilisation": 0.80}
+                     "lifting_capacity": 30,
+                     "hourly_cycles": 25,
+                     "eff_fact": 0.35}
 
 # *** Default inputs: ContinuousUnloader class ***
+
 
 continuous_screw_data = {"name": 'Continuous_loader_01',
                          "ownership": 'Terminal operator',
@@ -114,12 +115,12 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
                          "unit_rate": 6_900_000,
                          "mobilisation_perc": 0.15,
                          "maintenance_perc": 0.02,
+                         "consumption": 364,
                          "insurance_perc": 0.01,
                          "crew": 2,
                          "crane_type": 'Screw unloader',
                          "peak_capacity": 700,
-                         "eff_fact": 0.55,
-                         "utilisation": 0.80}
+                         "eff_fact": 0.55}
 
 # *** Default inputs: Conveyor class ***
 
@@ -167,7 +168,7 @@ silo_data = {"name": 'Silo_01',
              "insurance_perc": 0.01,
              "storage_type": 'Silos',
              "consumption": 0.002,
-             "capacity": 6_000}
+             "capacity": 5_000}
 
 warehouse_data = {"name": 'Warehouse_01',
                   "ownership": 'Terminal operator',
@@ -185,18 +186,18 @@ warehouse_data = {"name": 'Warehouse_01',
 
 # *** Default inputs: Unloading_station class ***
 
+
 hinterland_station_data = {"name": 'Hinterland_station_01',
                            "ownership": 'Terminal operator',
                            "delivery_time": 1,
                            "lifespan": 15,
-                           "unit_rate": 4_000,
-                           "mobilisation": 100_000,
+                           "unit_rate": 800_000,
+                           "mobilisation": 200_000,
                            "maintenance_perc": 0.02,
-                           "consumption": 0.25,
+                           "consumption": 100,
                            "insurance_perc": 0.01,
                            "crew": 2,
-                           "utilisation": 0.80,
-                           "capacity_steps": 300}
+                           "production": 800}
 
 # *** Default inputs: Commodity class ***
 
@@ -274,3 +275,8 @@ labour_data = {"name": 'Labour',
 
 energy_data = {"name": 'Energy',
                "price": 0.10}
+
+# *** Default inputs: Train class ***
+
+train_data = {"wagon_payload": 60,
+              "number_of_wagons": 60}

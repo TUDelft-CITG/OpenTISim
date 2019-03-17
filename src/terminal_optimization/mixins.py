@@ -139,8 +139,8 @@ class berth_properties_mixin(object):
 
 class cyclic_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
-                 insurance_perc, crew, crane_type, lifting_capacity, hourly_cycles, eff_fact,
-                 utilisation, *args, **kwargs):
+                 consumption, insurance_perc, crew, crane_type, lifting_capacity, hourly_cycles, eff_fact,
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -149,21 +149,21 @@ class cyclic_properties_mixin(object):
         self.unit_rate = unit_rate
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
+        self.consumption = consumption
         self.insurance_perc = insurance_perc
         self.crew = crew
         self.crane_type = crane_type
+        self.lifting_capacity = lifting_capacity
         self.hourly_cycles = hourly_cycles
         self.eff_fact = eff_fact
-        self.lifting_capacity = lifting_capacity
         self.payload = int(0.70 * self.lifting_capacity)  # Source: Nemag
         self.peak_capacity = int(self.payload * self.hourly_cycles)
         self.effective_capacity = int(eff_fact * self.peak_capacity)  # Source: TATA steel
-        self.utilisation = utilisation
 
 
 class continuous_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
-                 insurance_perc, crew, crane_type, peak_capacity, eff_fact, utilisation, *args, **kwargs):
+                 consumption, insurance_perc, crew, crane_type, peak_capacity, eff_fact, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -173,13 +173,13 @@ class continuous_properties_mixin(object):
         self.mobilisation_perc = mobilisation_perc
         self.mobilisation = int(mobilisation_perc * unit_rate)
         self.maintenance_perc = maintenance_perc
+        self.consumption = consumption
         self.insurance_perc = insurance_perc
         self.crew = crew
         self.crane_type = crane_type
-        self.eff_fact = eff_fact
         self.peak_capacity = peak_capacity
+        self.eff_fact = eff_fact
         self.effective_capacity = eff_fact * peak_capacity
-        self.utilisation = utilisation
 
 
 class conveyor_properties_mixin(object):
@@ -224,7 +224,7 @@ class storage_properties_mixin(object):
 
 class unloading_station_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
-                 insurance_perc, consumption, crew, utilisation, capacity_steps, *args, **kwargs):
+                 insurance_perc, consumption, crew, production, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -236,8 +236,7 @@ class unloading_station_properties_mixin(object):
         self.insurance_perc = insurance_perc
         self.consumption = consumption
         self.crew = crew
-        self.utilisation = utilisation
-        self.capacity_steps = capacity_steps
+        self.production = production
 
 
 class commodity_properties_mixin(object):
@@ -285,6 +284,15 @@ class energy_properties_mixin(object):
         super().__init__(*args, **kwargs)
         self.price = price
 
+class train_properties_mixin(object):
+    def __init__(self, wagon_payload, number_of_wagons, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.wagon_payload = wagon_payload
+        self.number_of_wagons = number_of_wagons
+        self.prep_time = 2
+        self.call_size = wagon_payload * number_of_wagons
+        self.call_log = []
 
 class hasscenario_properties_mixin(object):
     """Something has a scenario

@@ -125,3 +125,12 @@ print('test Energy: energy')
 print(defaults.energy_data)
 energy = objects.Energy(**defaults.energy_data)
 print(energy.__dict__)
+
+print('')
+print('*** Test general Train class')
+print('')
+
+print('test Train: train')
+print(defaults.train_data)
+train = objects.Train(**defaults.train_data)
+print(train.__dict__)

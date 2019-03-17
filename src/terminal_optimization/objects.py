@@ -133,3 +133,8 @@ Labour = type('Labour', (mixins.identifiable_properties_mixin,
 Energy = type('Energy', (mixins.identifiable_properties_mixin,
                          mixins.energy_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
+
+# The general Train class
+Train = type('Train', (mixins.identifiable_properties_mixin,
+                       mixins.train_properties_mixin),
+             {})  # The dictionary is empty because the site type is generic
