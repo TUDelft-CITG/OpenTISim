@@ -13,7 +13,7 @@ def test_berth():
 	              "crane_type": 'Mobile cranes',
 	              "delivery_time": 1,
               	      "max_cranes": 3}
-              
+        
 	berth = objects.Berth(**berth_data)
 
 	assert berth.name == 'Berth_01'
