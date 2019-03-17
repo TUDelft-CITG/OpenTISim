@@ -11,24 +11,16 @@ from terminal_optimization import defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[], supply_chains=[],
-                 supply_graph=[], cargo_type=[],
-                 cargo_forecast=[],
-                 traffic_forecast=[]):
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[]):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
 
         # status terminal @ T=startyear
-        self.supply_chains = supply_chains
-        self.supply_graph = supply_graph
         self.elements = elements
 
-        # cargo and traffic inputs
-        self.cargo_type = cargo_type
-        self.cargo_forecast = cargo_forecast
-        self.traffic_forecast = traffic_forecast
+    # *** Simulation engine
 
     def simulate(self, startyear=2019, lifecycle=20):
         """ Terminal design optimization
@@ -91,6 +83,8 @@ class System:
         # 5. apply WACC to cashflows and revenues
 
         # 6. aggregate to NPV
+
+    # *** Investment functions
 
     def berth_invest(self, year, allowable_berth_occupancy, handysize, handymax, panamax):
         """
@@ -410,6 +404,23 @@ class System:
         print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
             service_capacity_online,
             service_capacity))
+
+    # *** Financial analyses
+
+    def capex(self):
+        pass
+
+    def opex(self):
+        pass
+
+    def revenues(self):
+        pass
+
+    def profits(self):
+        pass
+
+    def WACC(self):
+        pass
 
     def NPV(self):
         pass
