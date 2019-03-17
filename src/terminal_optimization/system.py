@@ -137,6 +137,12 @@ class System:
                              defaults.panamax_data["LOA"])
                 draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
                             defaults.panamax_data["draft"])
+                # apply PIANC 2014:
+                # - length (for nr_berths == 1)
+                length = length + 2 * 15
+                # todo: include formulation for nr_berths>1
+
+                # - depth
                 max_sinkage = 0.5
                 wave_motion = 0.5
                 safety_margin = 0.5
