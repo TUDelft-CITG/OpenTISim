@@ -92,164 +92,6 @@ class System:
 
         # 6. aggregate to NPV
 
-    def create_data_dict(self, obj):
-        """Function to create a dict with important capex and opex data."""
-
-        # add cash flow information to quay_wall object in a dataframe
-        data = {}
-
-        data['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        try:
-            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
-                obj.capex] + list(
-                np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
-        except:
-            pass
-
-        try:
-            data['maintenance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                                  list(np.multiply(obj.maintenance,
-                                                   len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                       1]))
-        except:
-            pass
-
-        try:
-            data['insurance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                                list(np.multiply(obj.maintenance,
-                                                 len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                     1]))
-        except:
-            pass
-
-        try:
-            data['energy'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                             list(np.multiply(obj.energy,
-                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                  1]))
-        except:
-            pass
-
-        try:
-            data['labour'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                             list(np.multiply(obj.labour,
-                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                  1]))
-        except:
-            pass
-
-        return data
-
-    def calculate_vessel_calls(self, year=2019):
-        """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
-
-        # intialize values to be returned
-        handysize_vol = 0
-        handymax_vol = 0
-        panamax_vol = 0
-        total_vol = 0
-
-        # gather volumes from each commodity scenario and calculate how much is transported with which vessel
-        commodities = self.find_elements(Commodity)
-        for commodity in commodities:
-            # todo: check what commodity.utilisation means (Wijnands multiplies by utilisation)
-            volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            handysize_vol += volume * commodity.handysize_perc / 100
-            handymax_vol += volume * commodity.handymax_perc / 100
-            panamax_vol += volume * commodity.panamax_perc / 100
-            total_vol += volume
-
-        # gather vessels and calculate the number of calls each vessel type needs to make
-        vessels = self.find_elements(Vessel)
-        for vessel in vessels:
-            if vessel.type == 'Handysize':
-                handysize_calls = int(np.ceil(handysize_vol / vessel.call_size))
-            elif vessel.type == 'Handymax':
-                handymax_calls = int(np.ceil(handymax_vol / vessel.call_size))
-            elif vessel.type == 'Panamax':
-                panamax_calls = int(np.ceil(panamax_vol / vessel.call_size))
-        total_calls = np.sum([handysize_calls, handymax_calls, panamax_calls])
-
-        return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
-
-    def calculate_berth_occupancy(self, handysize, handymax, panamax):
-        """
-        - Find all cranes and sum their effective_capacity to get service_capacity
-        - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
-        - Occupancy is total_time_at_berth divided by operational hours
-        """
-
-        # list all crane objects in system
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
-
-        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        if list_of_elements != []:
-            service_rate = 0
-            for element in list_of_elements:
-                service_rate += element.effective_capacity
-
-            time_at_berth_handysize = handysize * (
-                    (defaults.handysize_data["call_size"] / service_rate) + defaults.handysize_data["mooring_time"])
-            time_at_berth_handymax = handymax * (
-                    (defaults.handymax_data["call_size"] / service_rate) + defaults.handymax_data["mooring_time"])
-            time_at_berth_panamax = panamax * (
-                    (defaults.panamax_data["call_size"] / service_rate) + defaults.panamax_data["mooring_time"])
-
-            total_time_at_berth = np.sum([time_at_berth_handysize, time_at_berth_handymax, time_at_berth_panamax])
-
-            # berth_occupancy is the total time at berth devided by the operational hours
-            berth_occupancy = total_time_at_berth / self.operational_hours
-        else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-            berth_occupancy = float("inf")
-
-        return berth_occupancy
-
-    def check_crane_slot_available(self):
-        list_of_elements = self.find_elements(Berth)
-        slots = 0
-        for element in list_of_elements:
-            slots += element.max_cranes
-
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
-
-        # when there are more slots than installed cranes ...
-        if slots > len(list_of_elements):
-            return True
-        else:
-            return False
-
-    def find_elements(self, obj):
-        """return elements of type obj part of self.elements"""
-
-        list_of_elements = []
-        if self.elements != []:
-            for element in self.elements:
-                if isinstance(element, obj):
-                    list_of_elements.append(element)
-
-        return list_of_elements
-
-    def report_element(self, Element, year):
-        elements = 0
-        elements_online = 0
-        element_name = []
-        list_of_elements = self.find_elements(Element)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                element_name = element.name
-                elements += 1
-                if year >= element.year_online:
-                    elements_online += 1
-
-        print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
-
-        return elements_online, elements
-
     def berth_invest(self, year, allowable_berth_occupancy, handysize, handymax, panamax):
         """
         Given the overall objectives of the terminal
@@ -569,11 +411,168 @@ class System:
             service_capacity_online,
             service_capacity))
 
-    def plot_system(self):
-        pass
-
     def NPV(self):
         pass
+
+    # *** General functions
+
+    def create_data_dict(self, obj):
+        """Function to create a dict with important capex and opex data."""
+
+        # add cash flow information to quay_wall object in a dataframe
+        data = {}
+
+        data['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        try:
+            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
+                obj.capex] + list(
+                np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
+        except:
+            pass
+
+        try:
+            data['maintenance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                                  list(np.multiply(obj.maintenance,
+                                                   len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                       1]))
+        except:
+            pass
+
+        try:
+            data['insurance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                                list(np.multiply(obj.maintenance,
+                                                 len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                     1]))
+        except:
+            pass
+
+        try:
+            data['energy'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                             list(np.multiply(obj.energy,
+                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                  1]))
+        except:
+            pass
+
+        try:
+            data['labour'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
+                             list(np.multiply(obj.labour,
+                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
+                                                  1]))
+        except:
+            pass
+
+        return data
+
+    def find_elements(self, obj):
+        """return elements of type obj part of self.elements"""
+
+        list_of_elements = []
+        if self.elements != []:
+            for element in self.elements:
+                if isinstance(element, obj):
+                    list_of_elements.append(element)
+
+        return list_of_elements
+
+    def calculate_vessel_calls(self, year=2019):
+        """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
+
+        # intialize values to be returned
+        handysize_vol = 0
+        handymax_vol = 0
+        panamax_vol = 0
+        total_vol = 0
+
+        # gather volumes from each commodity scenario and calculate how much is transported with which vessel
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            # todo: check what commodity.utilisation means (Wijnands multiplies by utilisation)
+            volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            handysize_vol += volume * commodity.handysize_perc / 100
+            handymax_vol += volume * commodity.handymax_perc / 100
+            panamax_vol += volume * commodity.panamax_perc / 100
+            total_vol += volume
+
+        # gather vessels and calculate the number of calls each vessel type needs to make
+        vessels = self.find_elements(Vessel)
+        for vessel in vessels:
+            if vessel.type == 'Handysize':
+                handysize_calls = int(np.ceil(handysize_vol / vessel.call_size))
+            elif vessel.type == 'Handymax':
+                handymax_calls = int(np.ceil(handymax_vol / vessel.call_size))
+            elif vessel.type == 'Panamax':
+                panamax_calls = int(np.ceil(panamax_vol / vessel.call_size))
+        total_calls = np.sum([handysize_calls, handymax_calls, panamax_calls])
+
+        return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
+
+    def calculate_berth_occupancy(self, handysize, handymax, panamax):
+        """
+        - Find all cranes and sum their effective_capacity to get service_capacity
+        - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
+        - Occupancy is total_time_at_berth divided by operational hours
+        """
+
+        # list all crane objects in system
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements = list_of_elements_1 + list_of_elements_2
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        if list_of_elements != []:
+            service_rate = 0
+            for element in list_of_elements:
+                service_rate += element.effective_capacity
+
+            time_at_berth_handysize = handysize * (
+                    (defaults.handysize_data["call_size"] / service_rate) + defaults.handysize_data["mooring_time"])
+            time_at_berth_handymax = handymax * (
+                    (defaults.handymax_data["call_size"] / service_rate) + defaults.handymax_data["mooring_time"])
+            time_at_berth_panamax = panamax * (
+                    (defaults.panamax_data["call_size"] / service_rate) + defaults.panamax_data["mooring_time"])
+
+            total_time_at_berth = np.sum([time_at_berth_handysize, time_at_berth_handymax, time_at_berth_panamax])
+
+            # berth_occupancy is the total time at berth devided by the operational hours
+            berth_occupancy = total_time_at_berth / self.operational_hours
+        else:
+            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            berth_occupancy = float("inf")
+
+        return berth_occupancy
+
+    def check_crane_slot_available(self):
+        list_of_elements = self.find_elements(Berth)
+        slots = 0
+        for element in list_of_elements:
+            slots += element.max_cranes
+
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements = list_of_elements_1 + list_of_elements_2
+
+        # when there are more slots than installed cranes ...
+        if slots > len(list_of_elements):
+            return True
+        else:
+            return False
+
+    def report_element(self, Element, year):
+        elements = 0
+        elements_online = 0
+        element_name = []
+        list_of_elements = self.find_elements(Element)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                element_name = element.name
+                elements += 1
+                if year >= element.year_online:
+                    elements_online += 1
+
+        print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
+
+        return elements_online, elements
 
     def supply_chain(self, nodes, edges):
         """Create a supply chain of example objects:
@@ -596,3 +595,6 @@ class System:
 
         # inspect all paths
         self.supply_chains = list([p for p in nx.all_shortest_paths(FG, nodes[0].name, nodes[-1].name)])
+
+    def plot_system(self):
+        pass
