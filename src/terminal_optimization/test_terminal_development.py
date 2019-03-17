@@ -11,7 +11,7 @@ soybeans = objects.Commodity(**defaults.soybean_data)
 maize.scenario_random()
 wheat.scenario_random()
 soybeans.scenario_random()
-cargo = [maize, wheat, soybeans]
+demand = [maize, wheat, soybeans]
 
 # instantiate vessels
 handysize = objects.Vessel(**defaults.handysize_data)
@@ -20,7 +20,7 @@ panamax = objects.Vessel(**defaults.panamax_data)
 vessels = [handysize, handymax, panamax]
 
 # instantiate System object
-Terminal = system.System(elements=cargo + vessels)
+Terminal = system.System(elements=demand + vessels)
 
 # start parametric terminal development
 Terminal.simulate()
