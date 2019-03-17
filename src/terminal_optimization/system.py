@@ -72,18 +72,7 @@ class System:
             allowable_berth_occupancy = .4  # is 40 %
             self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
 
-            # # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
-            # self.conveyor_invest(year, 1000)
-            # self.storage_invest(year, 1000)
-            # self.conveyor_invest(year, 1000)
-            # self.unloading_station_invest(year, 1000)
-
-            # # cranes:
-            # # QSC: service_rate
-            # # investment decisions: invest in a crane if service_rate < desired_service_rate
-            # self.crane_invest(year, 1200)
-            #
-            # # investment decisions: invest if cranes capacity > conveyor capacity
+            # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
             # self.conveyor_invest(year, 1000)
             #
             # self.storage_invest(year, 10000)
