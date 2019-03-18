@@ -43,7 +43,7 @@ class System:
         6. aggregate to NPV
 
         """
-
+        # todo:
         # 1. step through investment decisions
         for year in range(startyear, startyear + lifecycle):
             """
@@ -138,9 +138,13 @@ class System:
                 draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
                             defaults.panamax_data["draft"])
                 # apply PIANC 2014:
-                # - length (for nr_berths == 1)
-                length = length + 2 * 15
-                # todo: include formulation for nr_berths>1
+                # see Ijzermans, 2019 - infrastructure.py line 107 - 111
+                if quay_walls==0:
+                    # - length when next quay is n = 1
+                    length = length + 2 * 15
+                else:
+                    # - length when next quay is n > 1
+                    length = length + 15
 
                 # - depth
                 max_sinkage = 0.5
@@ -237,6 +241,7 @@ class System:
 
         labour = Labour(**defaults.labour_data)
         crane.labour = crane.crew * self.operational_hours / labour.shift_length
+        # todo: 1 jaar voordat quay online komt of meteen
         crane.year_online = year + crane.delivery_time
 
         # add cash flow information to quay_wall object in a dataframe
