@@ -1,6 +1,7 @@
 # package(s) for data handling
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Used for making the graph to visualize our problem
 import networkx as nx
@@ -11,7 +12,7 @@ from terminal_optimization import defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[]):
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[], crane_type_defaults=defaults.mobile_crane_data):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -19,6 +20,7 @@ class System:
 
         # status terminal @ T=startyear
         self.elements = elements
+        self.crane_type_defaults = crane_type_defaults
 
     # *** Simulation engine
 
@@ -45,7 +47,7 @@ class System:
         """
         # todo:
         # 1. step through investment decisions
-        for year in range(startyear, startyear + lifecycle):
+        for year in range(self.startyear, self.startyear + self.lifecycle):
             """
             strategic objective: create a profitable enterprise (NPV > 0)
             operational objective: provide infrastructure of just sufficient quality
@@ -222,7 +224,7 @@ class System:
         # # check if total planned length is smaller than target length, if so add a quay
         # while service_capacity < service_capacity_trigger:
         print('  *** add Harbour crane to elements')
-        crane = Cyclic_Unloader(**defaults.harbour_crane_data)
+        crane = Cyclic_Unloader(**self.crane_type_defaults)
 
         # - capex
         delta = 1
@@ -429,6 +431,27 @@ class System:
 
     def profits(self):
         pass
+
+    def cashflow_plot(self, width=0.2, alpha=0.6):
+
+        # todo: extract from self.elements years, revenue, capex and opex
+        years = [2020, 2021, 2022, 2023, 2024, 2025]
+        revenue = [0, 0, 7, 7, 8, 9]
+        capex = [-25, -8, 0, -1, 0, -1]
+        opex = [-1, -2, -3, -3, -4, -4]
+
+        # generate plot
+        fig, ax = plt.subplots()
+
+        ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='green')
+        ax.bar(years, capex, width=width, alpha=alpha, label="capex", color='darkred')
+        ax.bar([x + width for x in years], opex, width=width, alpha=alpha, label="maintenance", color='darkblue')
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Cashflow [$]')
+        ax.set_title('Cash flow plot')
+        ax.set_xticks([x + width for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
 
     def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
@@ -642,4 +665,5 @@ class System:
         self.supply_chains = list([p for p in nx.all_shortest_paths(FG, nodes[0].name, nodes[-1].name)])
 
     def plot_system(self):
-        pass
+
+        nx.draw_kamada_kawai(self.supply_graph, with_labels=True)
