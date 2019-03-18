@@ -40,7 +40,7 @@ quay_wall_data = {"name": 'Quay_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
-                  "mobilisation_min": 2_500_000,
+                  "mobilisation_min": 2_500_000,  # Ijzermans, 2019, P 96
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
@@ -72,7 +72,7 @@ gantry_crane_data = {"name": 'Gantry_crane_01',
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Gantry crane',
-                     "lifting_capacity": 50,
+                     "lifting_capacity": 50,   # Ijzermans, 2019, P 96
                      "hourly_cycles": 50,
                      "eff_fact": 0.50}
 
