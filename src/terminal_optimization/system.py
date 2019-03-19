@@ -236,7 +236,7 @@ class System:
 
         # Occupancy related to the effective capacity. The unloader has also time needed for trimming, cleaning and switching holds.
         # Therefor the capacity decreases, but also the running hours decrease in which in the energy costs decreases.
-        
+
         occupancy = 0.5  # (effective capacity)
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
@@ -254,6 +254,7 @@ class System:
         # add cash flow information to quay_wall object in a dataframe
         data = self.create_data_dict(crane)
         crane.df = pd.DataFrame(data=data)
+        # todo: check if this is also possible with crane.df = pd.date_range(crane)
 
         self.elements.append(crane)
 
