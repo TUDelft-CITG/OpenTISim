@@ -222,7 +222,7 @@ class System:
 
         # - capex
         # todo: figure out what is meant with delta in this case
-        # delta stands for number of unloaders aquisitioned in current year
+        # delta: number of unloaders aquisitioned in current year
         # delta = cranes
 
         delta = 1
@@ -234,7 +234,10 @@ class System:
         crane.insurance = crane.capex * crane.insurance_perc
         crane.maintenance = crane.capex * crane.maintenance_perc
 
-        occupancy = 0.8  # todo: Figure out what is meant with occupancy (this value is now wrong)
+        # Occupancy related to the effective capacity. The unloader has also time needed for trimming, cleaning and switching holds.
+        # Therefor the capacity decreases, but also the running hours decrease in which in the energy costs decreases.
+        
+        occupancy = 0.5  # (effective capacity)
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
         crane.energy = consumption * hours
