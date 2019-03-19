@@ -206,28 +206,16 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        # # from all Crane objects sum online length
-        # service_capacity = 0
-        # service_capacity_online = 0
-        # list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        # list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        # list_of_elements = list_of_elements_1 + list_of_elements_2
-        # if list_of_elements != []:
-        #     for element in list_of_elements:
-        #         service_capacity += element.lifting_capacity * element.hourly_cycles * element.eff_fact * self.operational_hours
-        #         if year >= element.year_online:
-        #             service_capacity_online += element.lifting_capacity * element.hourly_cycles * element.eff_fact * self.operational_hours
-        #
-        # print('a total of {} ton of crane service capacity is online; {} ton total planned'.format(
-        #     service_capacity_online,
-        #     service_capacity))
-        #
-        # # check if total planned length is smaller than target length, if so add a quay
-        # while service_capacity < service_capacity_trigger:
         print('  *** add Harbour crane to elements')
-        crane = Cyclic_Unloader(**self.crane_type_defaults)
+        if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
+                self.crane_type_defaults["crane_type"] == 'Harbour crane' or
+                self.crane_type_defaults["crane_type"] == 'Mobile crane'):
+            crane = Cyclic_Unloader(**self.crane_type_defaults)
+        elif self.crane_type_defaults["crane_type"] == 'Screw unloader':
+            crane = Continuous_Unloader(**self.crane_type_defaults)
 
         # - capex
+        # todo: figure out what is meant with delta in this case
         delta = 1
         unit_rate = crane.unit_rate
         mobilisation = delta * unit_rate * crane.mobilisation_perc
@@ -237,7 +225,7 @@ class System:
         crane.insurance = crane.capex * crane.insurance_perc
         crane.maintenance = crane.capex * crane.maintenance_perc
 
-        occupancy = 0.8  # todo: Figure out occupancy
+        occupancy = 0.8  # todo: Figure out what is meant with occupancy (this value is now wrong)
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
         crane.energy = consumption * hours
@@ -246,10 +234,10 @@ class System:
         crane.labour = crane.crew * self.operational_hours / labour.shift_length
 
         # apply proper timing for the crane to come online
-        years_online=[]
+        years_online = []
         for element in self.find_elements(Quay_wall):
             years_online.append(element.year_online)
-        crane.year_online = max([year+crane.delivery_time, max(years_online) - 1 + crane.delivery_time])
+        crane.year_online = max([year + crane.delivery_time, max(years_online) - 1 + crane.delivery_time])
 
         # add cash flow information to quay_wall object in a dataframe
         data = self.create_data_dict(crane)
@@ -456,7 +444,7 @@ class System:
                 if isinstance(element, Quay_wall):
                     if year >= element.year_online:
                         quays[-1] += 1
-                if isinstance(element, Cyclic_Unloader):
+                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
 
@@ -469,7 +457,7 @@ class System:
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
-        ax.set_title('Terminal elements online')
+        ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
