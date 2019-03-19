@@ -243,7 +243,9 @@ class System:
         crane.energy = consumption * hours
 
         labour = Labour(**defaults.labour_data)
-        crane.labour = crane.crew * self.operational_hours / labour.shift_length
+
+        '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
+        crane.labour = crane.crew * self.operational_hours / (labour.shift_length*labour.annual_shifts) * labour.operational_salary
 
         # apply proper timing for the crane to come online
         years_online = []
@@ -540,7 +542,7 @@ class System:
             data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
                 obj.capex] + list(
                 np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
-            
+
             # df = pd.DataFrame()
             #
             # df['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
