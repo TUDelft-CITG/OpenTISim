@@ -535,9 +535,16 @@ class System:
 
         data['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         try:
-            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
+            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 2))) + [
                 obj.capex] + list(
                 np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
+
+        # if delivery_time > 1:
+        #     then 'capex'= 0.6 * capex, startyear  and capex = 0.4 * capex, startyear+1
+        # else:
+        #     'capex'= capex, startyear
+
+
         except:
             pass
 
