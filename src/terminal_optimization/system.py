@@ -12,7 +12,8 @@ from terminal_optimization import defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[], crane_type_defaults=defaults.mobile_crane_data):
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[],
+                 crane_type_defaults=defaults.mobile_crane_data):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -141,7 +142,7 @@ class System:
                             defaults.panamax_data["draft"])
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
-                if quay_walls==0:
+                if quay_walls == 0:
                     # - length when next quay is n = 1
                     length = length + 2 * 15
                 else:
@@ -243,8 +244,12 @@ class System:
 
         labour = Labour(**defaults.labour_data)
         crane.labour = crane.crew * self.operational_hours / labour.shift_length
-        # todo: 1 jaar voordat quay online komt of meteen
-        crane.year_online = year + crane.delivery_time
+
+        # apply proper timing for the crane to come online
+        years_online=[]
+        for element in self.find_elements(Quay_wall):
+            years_online.append(element.year_online)
+        crane.year_online = max([year+crane.delivery_time, max(years_online) - 1 + crane.delivery_time])
 
         # add cash flow information to quay_wall object in a dataframe
         data = self.create_data_dict(crane)
@@ -432,6 +437,43 @@ class System:
     def profits(self):
         pass
 
+    def terminal_elements_plot(self, width=0.2, alpha=0.6):
+
+        # collect elements to add to plot
+        years = []
+        berths = []
+        cranes = []
+        quays = []
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            berths.append(0)
+            quays.append(0)
+            cranes.append(0)
+            for element in self.elements:
+                if isinstance(element, Berth):
+                    if year >= element.year_online:
+                        berths[-1] += 1
+                if isinstance(element, Quay_wall):
+                    if year >= element.year_online:
+                        quays[-1] += 1
+                if isinstance(element, Cyclic_Unloader):
+                    if year >= element.year_online:
+                        cranes[-1] += 1
+
+        # generate plot
+        fig, ax = plt.subplots()
+
+        ax.bar([x - width for x in years], berths, width=width, alpha=alpha, label="berths", color='green')
+        ax.bar(years, quays, width=width, alpha=alpha, label="quays", color='darkred')
+        ax.bar([x + width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='darkblue')
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Elements on line [nr]')
+        ax.set_title('Terminal elements online')
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
+
     def cashflow_plot(self, width=0.2, alpha=0.6):
 
         # todo: extract from self.elements years, revenue, capex and opex
@@ -449,7 +491,7 @@ class System:
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [$]')
         ax.set_title('Cash flow plot')
-        ax.set_xticks([x + width for x in years])
+        ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
 
