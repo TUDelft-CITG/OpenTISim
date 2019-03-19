@@ -184,8 +184,12 @@ class System:
         # - capex
         unit_rate = int(
             quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
+
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         quay_wall.capex = int(length * unit_rate + mobilisation)
+
+        # unit_rate = int(quay_wall.Gijt_constant * (2* (depth + quay_wall.freeboard)) ** quay_wall.Gijt_coefficient
+        # quay_wall.capex = int(unit_rate * (2*(depth + quay_wall.freeboard)+width) * length  + mobilisation)
 
         # - opex
         quay_wall.insurance = quay_wall.capex * quay_wall.insurance_perc
