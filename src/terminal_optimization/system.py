@@ -544,6 +544,7 @@ class System:
 
         # year online
         year_online = element.year_online
+        year_delivery = element.delivery_time
 
         df = pd.DataFrame()
 
@@ -551,7 +552,7 @@ class System:
         df["year"] = years
 
         # capex
-        if year_online > 1:
+        if year_delivery > 1:
             df.loc[df["year"] == year_online - 1, "capex"] = 0.6 * capex
             df.loc[df["year"] == year_online, "capex"] = 0.4 * capex
         else:
