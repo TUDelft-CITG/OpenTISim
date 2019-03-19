@@ -191,6 +191,8 @@ class System:
         # unit_rate = int(quay_wall.Gijt_constant * (2* (depth + quay_wall.freeboard)) ** quay_wall.Gijt_coefficient
         # quay_wall.capex = int(unit_rate * (2*(depth + quay_wall.freeboard)+width) * length  + mobilisation)
 
+        # todo: review the formulas
+
         # - opex
         quay_wall.insurance = quay_wall.capex * quay_wall.insurance_perc
         quay_wall.maintenance = quay_wall.capex * quay_wall.maintenance_perc
@@ -220,6 +222,9 @@ class System:
 
         # - capex
         # todo: figure out what is meant with delta in this case
+        # delta stands for number of unloaders aquisitioned in current year
+        # delta = cranes
+
         delta = 1
         unit_rate = crane.unit_rate
         mobilisation = delta * unit_rate * crane.mobilisation_perc
