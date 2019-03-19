@@ -199,8 +199,7 @@ class System:
         quay_wall.year_online = year + quay_wall.delivery_time
 
         # add cash flow information to quay_wall object in a dataframe
-        data = self.create_data_dict(quay_wall)
-        quay_wall.df = pd.DataFrame(data=data)
+        quay_wall = self.add_cashflow_data_to_element(quay_wall)
 
         self.elements.append(quay_wall)
 
@@ -245,7 +244,8 @@ class System:
         labour = Labour(**defaults.labour_data)
 
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
-        crane.labour = crane.crew * self.operational_hours / (labour.shift_length*labour.annual_shifts) * labour.operational_salary
+        crane.labour = crane.crew * self.operational_hours / (
+                    labour.shift_length * labour.annual_shifts) * labour.operational_salary
 
         # apply proper timing for the crane to come online
         years_online = []
@@ -254,10 +254,9 @@ class System:
         crane.year_online = max([year + crane.delivery_time, max(years_online) - 1 + crane.delivery_time])
 
         # add cash flow information to quay_wall object in a dataframe
-        data = self.create_data_dict(crane)
-        crane.df = pd.DataFrame(data=data)
+        crane = self.add_cashflow_data_to_element(crane)
 
-        #crane.df = pd.DataFrame(crane)
+        # crane.df = pd.DataFrame(crane)
 
         self.elements.append(crane)
 
@@ -309,8 +308,7 @@ class System:
             silo.year_online = year + silo.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            data = self.create_data_dict(silo)
-            silo.df = pd.DataFrame(data=data)
+            silo = self.add_cashflow_data_to_element(silo)
 
             self.elements.append(silo)
 
@@ -363,8 +361,7 @@ class System:
             conveyor.year_online = year + conveyor.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            data = self.create_data_dict(conveyor)
-            conveyor.df = pd.DataFrame(data=data)
+            conveyor = self.add_cashflow_data_to_element(conveyor)
 
             self.elements.append(conveyor)
 
@@ -416,8 +413,7 @@ class System:
             hinterland_station.year_online = year + hinterland_station.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            data = self.create_data_dict(hinterland_station)
-            hinterland_station.df = pd.DataFrame(data=data)
+            hinterland_station = self.add_cashflow_data_to_element(hinterland_station)
 
             self.elements.append(hinterland_station)
 
@@ -530,67 +526,52 @@ class System:
 
     # *** General functions
 
-    def create_data_dict(self, obj):
-        """Function to create a dict with important capex and opex data."""
+    def add_cashflow_data_to_element(self, element):
 
-        # add cash flow information to quay_wall object in a dataframe
-        data = {}
+        """Place cashflow data in element dataframe"""
 
-        data['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        # years
+        years = list(range(self.startyear, self.startyear + self.lifecycle))
 
-        try:
-            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
-                obj.capex] + list(
-                np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
+        # capex
+        capex = element.capex
 
-            # df = pd.DataFrame()
-            #
-            # df['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-            #
-            # if obj.delivery_time > 1:
-            #     df.loc[df['year'] == obj.year_online - 1, "capex"] = 0.6 * obj.capex
-            #     df.loc[df['year'] == obj.year_online, "capex"] = 0.4 * obj.capex
-            # else:
-            #     df.loc[df['year'] == obj.year_online, "capex"] = obj.capex
-            #
-            # df.fillna(0, inplace=True)
+        # opex
+        maintenance = element.maintenance
+        insurance = element.insurance
+        energy = element.energy
+        labour = element.labour
 
-        except:
-            pass
+        # year online
+        year_online = element.year_online
 
-        try:
-            data['maintenance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                                  list(np.multiply(obj.maintenance,
-                                                   len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                       1]))
-        except:
-            pass
+        df = pd.DataFrame()
 
-        try:
-            data['insurance'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                                list(np.multiply(obj.maintenance,
-                                                 len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                     1]))
-        except:
-            pass
+        # years
+        df["year"] = years
 
-        try:
-            data['energy'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                             list(np.multiply(obj.energy,
-                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                  1]))
-        except:
-            pass
+        # capex
+        if year_online > 1:
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.6 * capex
+            df.loc[df["year"] == year_online, "capex"] = 0.4 * capex
+        else:
+            df.loc[df["year"] == year_online, "capex"] = capex
 
-        try:
-            data['labour'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + \
-                             list(np.multiply(obj.labour,
-                                              len(range(obj.year_online - 1, self.startyear + self.lifecycle)) * [
-                                                  1]))
-        except:
-            pass
+        # opex
+        if maintenance:
+            df.loc[df["year"] > year_online, "maintenance"] = maintenance
+        if insurance:
+            df.loc[df["year"] > year_online, "insurance"] = insurance
+        if energy:
+            df.loc[df["year"] > year_online, "energy"] = energy
+        if labour:
+            df.loc[df["year"] > year_online, "labour"] = labour
 
-        return data
+        df.fillna(0, inplace=True)
+
+        element.df = df
+
+        return element
 
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
