@@ -690,6 +690,7 @@ class System:
         each path needs at least 1 of each of the indicated objects to make a navigable route
         if terminal elements do not make up a graph with a full path through no revenue can be obtained
         """
+
         # create a graph
         FG = nx.DiGraph()
 
