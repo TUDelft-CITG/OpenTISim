@@ -254,7 +254,8 @@ class System:
         # add cash flow information to quay_wall object in a dataframe
         data = self.create_data_dict(crane)
         crane.df = pd.DataFrame(data=data)
-        # todo: check if this is also possible with crane.df = pd.date_range(crane)
+
+        #crane.df = pd.DataFrame(crane)
 
         self.elements.append(crane)
 
@@ -534,16 +535,23 @@ class System:
         data = {}
 
         data['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+
         try:
-            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 2))) + [
+            data['capex'] = list(np.multiply(0, range(self.startyear, obj.year_online - 1))) + [
                 obj.capex] + list(
                 np.multiply(0, range(obj.year_online, self.startyear + self.lifecycle)))
-
-        # if delivery_time > 1:
-        #     then 'capex'= 0.6 * capex, startyear  and capex = 0.4 * capex, startyear+1
-        # else:
-        #     'capex'= capex, startyear
-
+            
+            # df = pd.DataFrame()
+            #
+            # df['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+            #
+            # if obj.delivery_time > 1:
+            #     df.loc[df['year'] == obj.year_online - 1, "capex"] = 0.6 * obj.capex
+            #     df.loc[df['year'] == obj.year_online, "capex"] = 0.4 * obj.capex
+            # else:
+            #     df.loc[df['year'] == obj.year_online, "capex"] = obj.capex
+            #
+            # df.fillna(0, inplace=True)
 
         except:
             pass
