@@ -477,7 +477,7 @@ class System:
     def cashflow_plot(self, width=0.2, alpha=0.6):
 
         # todo: extract from self.elements years, revenue, capex and opex
-        years = [2020, 2021, 2022, 2023, 2024, 2025]
+        years = [2019,2020,2021,2022,2023,2024]
         revenue = [0, 0, 7, 7, 8, 9]
         capex = [-25, -8, 0, -1, 0, -1]
         opex = [-1, -2, -3, -3, -4, -4]
@@ -494,6 +494,27 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
+
+    # def cashflow_plot(self, element, width=0.2, alpha=0.6):
+    #
+    #     # todo: extract from self.elements years, revenue, capex and opex
+    #     years = list(range(self.startyear, self.startyear + self.lifecycle))
+    #     revenue = throughput * fee
+    #     capex = element.capex
+    #     opex = element.maintenance + element.insurance + element.labour + element.energy
+    #
+    #     # generate plot
+    #     fig, ax = plt.subplots()
+    #
+    #     ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='green')
+    #     ax.bar(years, capex, width=width, alpha=alpha, label="capex", color='darkred')
+    #     ax.bar([x + width for x in years], opex, width=width, alpha=alpha, label="maintenance", color='darkblue')
+    #     ax.set_xlabel('Years')
+    #     ax.set_ylabel('Cashflow [$]')
+    #     ax.set_title('Cash flow plot')
+    #     ax.set_xticks([x for x in years])
+    #     ax.set_xticklabels(years)
+    #     ax.legend()
 
     def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
@@ -573,6 +594,8 @@ class System:
         element.df = df
 
         return element
+
+
 
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
