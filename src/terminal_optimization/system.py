@@ -255,9 +255,6 @@ class System:
 
         # add cash flow information to quay_wall object in a dataframe
         crane = self.add_cashflow_data_to_element(crane)
-
-        # crane.df = pd.DataFrame(crane)
-
         self.elements.append(crane)
 
         # service_capacity += crane.lifting_capacity * crane.hourly_cycles * crane.eff_fact * self.operational_hours
@@ -437,13 +434,14 @@ class System:
     def profits(self):
         pass
 
-    def terminal_elements_plot(self, width=0.2, alpha=0.6):
+    def terminal_elements_plot(self, width=0.3, alpha=0.6):
 
         # collect elements to add to plot
         years = []
         berths = []
         cranes = []
         quays = []
+
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             berths.append(0)
@@ -461,11 +459,11 @@ class System:
                         cranes[-1] += 1
 
         # generate plot
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(16, 7))
 
-        ax.bar([x - width for x in years], berths, width=width, alpha=alpha, label="berths", color='green')
-        ax.bar(years, quays, width=width, alpha=alpha, label="quays", color='darkred')
-        ax.bar([x + width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='darkblue')
+        ax.bar([x - width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
+        ax.bar(years, quays, width=width, alpha=alpha, label="quays", color='red')
+        ax.bar([x + width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
@@ -473,6 +471,25 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
+
+    # def cashflow_plot(self, crane, width=0.2, alpha=0.6):
+    #
+    #     #collect elements to add to plot
+    #     years=[range(self.startyear, self.startyear + self.lifecycle)]
+    #     capex= self.capex
+    #
+    #     # generate plot
+    #     fig, ax = plt.subplots()
+    #
+    #     ax.bar(years, capex, width=width, alpha=alpha, label="capex", color='darkred')
+    #     ax.set_xlabel('Years')
+    #     ax.set_ylabel('Cashflow [$]')
+    #     ax.set_title('Cash flow plot')
+    #     ax.set_xticks([x for x in years])
+    #     ax.set_xticklabels(years)
+    #     ax.legend()
+
+
 
     def cashflow_plot(self, width=0.2, alpha=0.6):
 
@@ -495,26 +512,9 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
-    # def cashflow_plot(self, element, width=0.2, alpha=0.6):
-    #
-    #     # todo: extract from self.elements years, revenue, capex and opex
-    #     years = list(range(self.startyear, self.startyear + self.lifecycle))
-    #     revenue = throughput * fee
-    #     capex = element.capex
-    #     opex = element.maintenance + element.insurance + element.labour + element.energy
-    #
-    #     # generate plot
-    #     fig, ax = plt.subplots()
-    #
-    #     ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='green')
-    #     ax.bar(years, capex, width=width, alpha=alpha, label="capex", color='darkred')
-    #     ax.bar([x + width for x in years], opex, width=width, alpha=alpha, label="maintenance", color='darkblue')
-    #     ax.set_xlabel('Years')
-    #     ax.set_ylabel('Cashflow [$]')
-    #     ax.set_title('Cash flow plot')
-    #     ax.set_xticks([x for x in years])
-    #     ax.set_xticklabels(years)
-    #     ax.legend()
+
+
+
 
     def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
@@ -596,7 +596,6 @@ class System:
         return element
 
 
-
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
 
@@ -620,7 +619,8 @@ class System:
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
         commodities = self.find_elements(Commodity)
         for commodity in commodities:
-            # todo: check what commodity.utilisation means (Wijnands multiplies by utilisation)
+            # todo: check what commodity.utilisation means (Wijnands multiplies by utilisation).
+            #  see page 48 of wijnands report
             volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
             handysize_vol += volume * commodity.handysize_perc / 100
             handymax_vol += volume * commodity.handymax_perc / 100

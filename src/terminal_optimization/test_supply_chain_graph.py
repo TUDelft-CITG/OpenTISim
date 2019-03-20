@@ -21,8 +21,7 @@ unloading_station = objects.Unloading_station(**defaults.hinterland_station_data
 nodes = [quay, berth, crane, screw, conveyor1, storage, conveyor2, unloading_station]
 edges = [[quay, berth],
          [berth, crane],
-         [berth, screw],
-         [crane, conveyor1],
+         [crane, screw],
          [screw, conveyor1],
          [conveyor1, storage],
          [storage, conveyor2],
