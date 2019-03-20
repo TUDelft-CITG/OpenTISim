@@ -245,7 +245,7 @@ class System:
 
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.labour = crane.crew * self.operational_hours / (
-                    labour.shift_length * labour.annual_shifts) * labour.operational_salary
+                labour.shift_length * labour.annual_shifts) * labour.operational_salary
 
         # apply proper timing for the crane to come online
         years_online = []
@@ -472,49 +472,32 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
-    # def cashflow_plot(self, crane, width=0.2, alpha=0.6):
-    #
-    #     #collect elements to add to plot
-    #     years=[range(self.startyear, self.startyear + self.lifecycle)]
-    #     capex= self.capex
-    #
-    #     # generate plot
-    #     fig, ax = plt.subplots()
-    #
-    #     ax.bar(years, capex, width=width, alpha=alpha, label="capex", color='darkred')
-    #     ax.set_xlabel('Years')
-    #     ax.set_ylabel('Cashflow [$]')
-    #     ax.set_title('Cash flow plot')
-    #     ax.set_xticks([x for x in years])
-    #     ax.set_xticklabels(years)
-    #     ax.legend()
-
-
-
-    def cashflow_plot(self, width=0.2, alpha=0.6):
+    def cashflow_plot(self, cash_flows, width=0.2, alpha=0.6):
 
         # todo: extract from self.elements years, revenue, capex and opex
-        years = [2019,2020,2021,2022,2023,2024]
-        revenue = [0, 0, 7, 7, 8, 9]
-        capex = [-25, -8, 0, -1, 0, -1]
-        opex = [-1, -2, -3, -3, -4, -4]
+        years = cash_flows['year'].values
+        revenue = [0] * len(years)
+        capex = cash_flows['capex'].values
+
+        insurance = cash_flows['insurance'].values
+        maintenance = cash_flows['maintenance'].values
+        energy = cash_flows['energy'].values
+        labour = cash_flows['labour'].values
+
+        opex = insurance + maintenance + energy + labour
 
         # generate plot
         fig, ax = plt.subplots()
 
         ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='green')
-        ax.bar(years, capex, width=width, alpha=alpha, label="capex", color='darkred')
-        ax.bar([x + width for x in years], opex, width=width, alpha=alpha, label="maintenance", color='darkblue')
+        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='darkred')
+        ax.bar([x + width for x in years], -opex, width=width, alpha=alpha, label="maintenance", color='darkblue')
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [$]')
         ax.set_title('Cash flow plot')
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
-
-
-
-
 
     def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
@@ -546,6 +529,28 @@ class System:
         pass
 
     # *** General functions
+
+    def add_cashflow_elements(self):
+
+        cash_flows = pd.DataFrame()
+
+        # initialise cash_flows
+        cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        cash_flows['capex'] = 0
+        cash_flows['maintenance'] = 0
+        cash_flows['insurance'] = 0
+        cash_flows['energy'] = 0
+        cash_flows['labour'] = 0
+
+        for element in self.elements:
+            if hasattr(element, 'df'):
+                for column in cash_flows.columns:
+                    if column in element.df.columns and column != "year":
+                        cash_flows[column] += element.df[column]
+
+        cash_flows.fillna(0)
+
+        return cash_flows
 
     def add_cashflow_data_to_element(self, element):
 
@@ -594,7 +599,6 @@ class System:
         element.df = df
 
         return element
-
 
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
