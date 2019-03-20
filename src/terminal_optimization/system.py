@@ -487,7 +487,7 @@ class System:
         opex = insurance + maintenance + energy + labour
 
         # generate plot
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(16, 7))
 
         ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='green')
         ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='darkred')
