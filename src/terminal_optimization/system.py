@@ -18,6 +18,7 @@ class System:
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
+        self.revenues = []
 
         # status terminal @ T=startyear
         self.elements = elements
@@ -67,7 +68,7 @@ class System:
             allowable_berth_occupancy = .4  # is 40 %
             self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
 
-
+            self.calculate_revenue(year)
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
             # self.conveyor_invest(year, 1000)
             #
@@ -82,23 +83,26 @@ class System:
 
         # 3. collect revenues
 
-    def revenue(self, year, total_vol, service_capacity_online):
-        revenue_fee = defaults.maize_data["handling_fee"]
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            while (self.lifetime):
-                revenue_throughput = min(service_capacity_online, total_vol)
-                revenue = revenue_fee * revenue_throughput
-
-        revenue = self.add_cashflow_data_to_element(revenue)
-
-        self.element.append(revenue)
-
         # 4. calculate profits
 
         # 5. apply WACC to cashflows and revenues
 
         # 6. aggregate to NPV
+
+    def calculate_revenue(self, year):
+
+        # intialize values to be returned
+        revenues = 0
+
+        # gather volumes from each commodity scenario and calculate how much is transported with which vessel
+        for commodity in self.find_elements(Commodity):
+            volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            fee = commodity.handling_fee
+
+            revenues += (volume * fee)
+            print(revenues)
+
+        self.revenues.append(revenues)
 
     # *** Investment functions
 
@@ -150,7 +154,7 @@ class System:
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
                 length = max(defaults.handysize_data["LOA"], defaults.handymax_data["LOA"],
-                             defaults.panamax_data["LOA"]) #average size
+                             defaults.panamax_data["LOA"])  # average size
                 draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
                             defaults.panamax_data["draft"])
                 # apply PIANC 2014:
@@ -491,9 +495,10 @@ class System:
 
         # todo: extract from self.elements years, revenue, capex and opex
         years = cash_flows['year'].values
-        revenue = cash_flows['revenues'].values
+        revenue = self.revenues
         capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + cash_flows['labour'].values
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+               cash_flows['labour'].values
 
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
@@ -550,8 +555,7 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
-        cash_flows['revenues'] = 20000000
-
+        cash_flows['revenues'] = 0
 
         for element in self.elements:
             if hasattr(element, 'df'):
@@ -559,6 +563,7 @@ class System:
                     if column in element.df.columns and column != "year":
                         cash_flows[column] += element.df[column]
 
+        # cash_flows['revenues'] += self.revenues
         cash_flows.fillna(0)
 
         return cash_flows
