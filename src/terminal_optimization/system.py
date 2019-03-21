@@ -82,11 +82,13 @@ class System:
 
         # 3. collect revenues
 
-    def revenue(self, total_vol, service_capacity_online):
+    def revenue(self, year, total_vol, service_capacity_online):
         revenue_fee = defaults.maize_data["handling_fee"]
-        revenue_throughput = min(service_capacity_online, total_vol)
 
-        revenue = revenue_fee * revenue_throughput
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+        while (self.lifetime):
+            revenue_throughput = min(service_capacity_online, total_vol)
+            revenue = revenue_fee * revenue_throughput
 
         revenue = self.add_cashflow_data_to_element(revenue)
 
