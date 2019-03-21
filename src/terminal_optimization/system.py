@@ -12,22 +12,25 @@ from terminal_optimization import defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, elements=[],
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, debug=False, elements=[],
                  crane_type_defaults=defaults.mobile_crane_data):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
-        self.revenues = []
-        self.service_rates =[]
-
+        self.debug = debug
         # status terminal @ T=startyear
         self.elements = elements
+
+        # default values for crane type to use
         self.crane_type_defaults = crane_type_defaults
+
+        # storage variables for revenue
+        self.revenues = []
 
     # *** Simulation engine
 
-    def simulate(self, startyear=2019, lifecycle=20):
+    def simulate(self):
         """ Terminal design optimization
 
         Based on:
@@ -48,23 +51,29 @@ class System:
         6. aggregate to NPV
 
         """
-        # todo:
+
+        # before the start of each simulation set revenues to []
+        self.revenues = []
+
         # 1. step through investment decisions
-        for year in range(startyear, startyear + lifecycle):
+        for year in range(self.startyear, self.startyear + self.lifecycle):
             """
             strategic objective: create a profitable enterprise (NPV > 0)
             operational objective: provide infrastructure of just sufficient quality
             """
-            print('')
-            print('Simulate year: {}'.format(year))
+
+            if self.debug:
+                print('')
+                print('Simulate year: {}'.format(year))
 
             # estimate traffic from commodity scenarios
             handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-            print('  Total vessel calls: {}'.format(total_calls))
-            print('     Handysize calls: {}'.format(handysize))
-            print('     Handymax calls: {}'.format(handymax))
-            print('     Panamax calls: {}'.format(panamax))
-            print('  Total cargo volume: {}'.format(total_vol))
+            if self.debug:
+                print('  Total vessel calls: {}'.format(total_calls))
+                print('     Handysize calls: {}'.format(handysize))
+                print('     Handymax calls: {}'.format(handymax))
+                print('     Panamax calls: {}'.format(panamax))
+                print('  Total cargo volume: {}'.format(total_vol))
 
             allowable_berth_occupancy = .4  # is 40 %
             self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
@@ -91,30 +100,39 @@ class System:
         # 6. aggregate to NPV
 
     def calculate_revenue(self, year):
+        """
+        1. calculate the value of the total demand in year (demand * handling fee)
+        2. calculate the maximum amount that can be handled (service capacity * operational hours)
+        Terminal.revenues is the minimum of 1. and 2.
+        """
 
-        # intialize values to be returned
+        # gather volumes from each commodity, calculate how much revenue it would yield, and add
         revenues = 0
-
-        # gather volumes from each commodity scenario and calculate how much is transported with which vessel
         for commodity in self.find_elements(Commodity):
-            volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
             fee = commodity.handling_fee
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                revenues += (volume * fee)
+            except:
+                pass
+        if self.debug:
+            print('  Revenues (demand): {}'.format(revenues))
 
-            revenues += (volume * fee)
-            print(revenues)
+        # find the total service rate,
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate += element.effective_capacity * element.eff_fact
 
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
+        if self.debug:
+            print('  Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
 
-        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        if list_of_elements != []:
-            service_rate = 0
-            for element in list_of_elements:
-                if year>=element.year_online:
-                    service_rate += element.effective_capacity
+        try:
+            self.revenues.append(min(revenues, service_rate * self.operational_hours * fee))
+        except:
+            pass
 
-        self.revenues.append(min(revenues, service_rate * self.operational_hours))
+        # todo: now one fee is used for all commodities. This still needs attention
 
     # *** Investment functions
 
@@ -141,25 +159,29 @@ class System:
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
         self.report_element(Continuous_Unloader, year)
-        print('')
-        print('  Start analysis:')
+        if self.debug:
+            print('')
+            print('  Start analysis:')
 
         # calculate berth occupancy
         berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
-        print('     Berth occupancy (@ start of year): {}'.format(berth_occupancy))
+        if self.debug:
+            print('     Berth occupancy (@ start of year): {}'.format(berth_occupancy))
 
         while berth_occupancy > allowable_berth_occupancy:
 
             # add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
-                print('  *** add Berth to elements')
+                if self.debug:
+                    print('  *** add Berth to elements')
                 berth = Berth(**defaults.berth_data)
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
 
                 berth_occupancy = self.calculate_berth_occupancy(handysize, handymax,
                                                                  panamax)
-                print('     Berth occupancy (after adding berth): {}'.format(berth_occupancy))
+                if self.debug:
+                    print('     Berth occupancy (after adding berth): {}'.format(berth_occupancy))
 
             # check if a quay is needed
             berths = len(self.find_elements(Berth))
@@ -188,14 +210,16 @@ class System:
                 self.quay_invest(year, length, depth)
 
                 berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
-                print('     Berth occupancy (after adding quay): {}'.format(berth_occupancy))
+                if self.debug:
+                    print('     Berth occupancy (after adding quay): {}'.format(berth_occupancy))
 
             # check if a crane is needed
             if self.check_crane_slot_available():
                 self.crane_invest(year)
 
                 berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
-                print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
+                if self.debug:
+                    print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
     def quay_invest(self, year, length, depth):
         """
@@ -209,7 +233,8 @@ class System:
             - quay_wall.freeboard must be high enough to accommodate largest expected vessel
         """
 
-        print('  *** add Quay to elements')
+        if self.debug:
+            print('  *** add Quay to elements')
         quay_wall = Quay_wall(**defaults.quay_wall_data)
 
         # - capex
@@ -242,7 +267,8 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        print('  *** add Harbour crane to elements')
+        if self.debug:
+            print('  *** add Harbour crane to elements')
         if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
                 self.crane_type_defaults["crane_type"] == 'Harbour crane' or
                 self.crane_type_defaults["crane_type"] == 'Mobile crane'):
@@ -312,11 +338,14 @@ class System:
                 if year >= element.year_online:
                     storage_online += element.capacity
 
-        print('a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
+        if self.debug:
+            print(
+                'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
 
         # check if total planned length is smaller than target length, if so add a quay
         while storage < storage_trigger:
-            print('add Storage to elements')
+            if self.debug:
+                print('add Storage to elements')
             silo = Storage(**defaults.silo_data)
 
             # - capex
@@ -342,7 +371,9 @@ class System:
 
             storage += silo.capacity
 
-        print('a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
+        if self.debug:
+            print(
+                'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
 
     def conveyor_invest(self, year, service_capacity_trigger):
         """current strategy is to add conveyors as soon as a service trigger is achieved
@@ -363,13 +394,15 @@ class System:
                     service_capacity_online += element.capacity_steps
         # todo: understand conveyors capacity formulation
 
-        print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-            service_capacity_online,
-            service_capacity))
+        if self.debug:
+            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+                service_capacity_online,
+                service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_capacity_trigger:
-            print('add Conveyor to elements')
+            if self.debug:
+                print('add Conveyor to elements')
             conveyor = Conveyor(**defaults.quay_conveyor_data)
 
             # - capex
@@ -395,9 +428,10 @@ class System:
 
             service_capacity += conveyor.capacity_steps
 
-        print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-            service_capacity_online,
-            service_capacity))
+        if self.debug:
+            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+                service_capacity_online,
+                service_capacity))
 
     def unloading_station_invest(self, year, service_capacity_trigger):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -418,13 +452,15 @@ class System:
                     service_capacity_online += element.production
         # todo: understand conveyors capacity formulation
 
-        print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-            service_capacity_online,
-            service_capacity))
+        if self.debug:
+            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+                service_capacity_online,
+                service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_capacity_trigger:
-            print('add Unloading_station to elements')
+            if self.debug:
+                print('add Unloading_station to elements')
             hinterland_station = Unloading_station(**defaults.hinterland_station_data)
 
             # - capex
@@ -447,9 +483,10 @@ class System:
 
             service_capacity += hinterland_station.production
 
-        print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-            service_capacity_online,
-            service_capacity))
+        if self.debug:
+            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+                service_capacity_online,
+                service_capacity))
 
     # *** Financial analyses
 
@@ -503,9 +540,9 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
-    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
+    def cashflow_plot(self, width=0.3, alpha=0.6):
 
-        # todo: extract from self.elements years, revenue, capex and opex
+        cash_flows = self.add_cashflow_elements()
         years = cash_flows['year'].values
         revenue = self.revenues
         capex = cash_flows['capex'].values
@@ -515,7 +552,7 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
 
-        ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='pink')
+        ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
         ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
         ax.bar([x + width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
         ax.set_xlabel('Years')
@@ -653,11 +690,26 @@ class System:
         for commodity in commodities:
             # todo: check what commodity.utilisation means (Wijnands multiplies by utilisation).
             #  see page 48 of wijnands report
-            volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            handysize_vol += volume * commodity.handysize_perc / 100
-            handymax_vol += volume * commodity.handymax_perc / 100
-            panamax_vol += volume * commodity.panamax_perc / 100
-            total_vol += volume
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+            try:
+                handysize_vol += volume * commodity.handysize_perc / 100
+            except:
+                pass
+            try:
+                handymax_vol += volume * commodity.handymax_perc / 100
+            except:
+                pass
+            try:
+                panamax_vol += volume * commodity.panamax_perc / 100
+            except:
+                pass
+            try:
+                total_vol += volume
+            except:
+                pass
 
         # gather vessels and calculate the number of calls each vessel type needs to make
         vessels = self.find_elements(Vessel)
@@ -735,7 +787,8 @@ class System:
                 if year >= element.year_online:
                     elements_online += 1
 
-        print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
+        if self.debug:
+            print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
 
         return elements_online, elements
 
