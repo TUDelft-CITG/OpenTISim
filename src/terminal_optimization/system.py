@@ -48,7 +48,7 @@ class System:
         """
         # todo:
         # 1. step through investment decisions
-        for year in range(self.startyear, self.startyear + self.lifecycle):
+        for year in range(startyear, startyear + lifecycle):
             """
             strategic objective: create a profitable enterprise (NPV > 0)
             operational objective: provide infrastructure of just sufficient quality
@@ -82,15 +82,15 @@ class System:
 
         # 3. collect revenues
 
-    def revenues(self, total_vol, service_capacity_online):
-        revenues_fee = defaults.maize_data["handling_fee"]
-        revenues_throughput = min(service_capacity_online, total_vol)
+    def revenue(self, total_vol, service_capacity_online):
+        revenue_fee = defaults.maize_data["handling_fee"]
+        revenue_throughput = min(service_capacity_online, total_vol)
 
-        revenues = revenues_fee * revenues_throughput
+        revenue = revenue_fee * revenue_throughput
 
-        revenues = self.add_cashflow_data_to_element(revenues)
+        revenue = self.add_cashflow_data_to_element(revenue)
 
-        self.element.append(revenues)
+        self.element.append(revenue)
 
         # 4. calculate profits
 
@@ -148,7 +148,7 @@ class System:
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
                 length = max(defaults.handysize_data["LOA"], defaults.handymax_data["LOA"],
-                             defaults.panamax_data["LOA"])
+                             defaults.panamax_data["LOA"]) #average size
                 draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
                             defaults.panamax_data["draft"])
                 # apply PIANC 2014:
@@ -159,7 +159,7 @@ class System:
                 else:
                     # - length when next quay is n > 1
                     length = length + 15
-                #   length = 1.1 * berth *( length + 15)
+                #   length = 1.1 * berths *( length + 15)
                 # todo: checken of length goed gedefinieerd is
 
                 # - depth
@@ -215,8 +215,6 @@ class System:
         quay_wall = self.add_cashflow_data_to_element(quay_wall)
 
         self.elements.append(quay_wall)
-
-
 
     def crane_invest(self, year):
         """current strategy is to add cranes as soon as a service trigger is achieved
@@ -562,7 +560,6 @@ class System:
         cash_flows.fillna(0)
 
         return cash_flows
-
 
     def add_cashflow_data_to_element(self, element):
 
