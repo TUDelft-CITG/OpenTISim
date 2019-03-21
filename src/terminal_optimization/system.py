@@ -81,6 +81,12 @@ class System:
 
         # 3. collect revenues
 
+
+
+
+
+
+
         # 4. calculate profits
 
         # 5. apply WACC to cashflows and revenues
@@ -148,6 +154,8 @@ class System:
                 else:
                     # - length when next quay is n > 1
                     length = length + 15
+                #   length = 1.1 * berth *( length + 15)
+                # todo: checken of length goed gedefinieerd is
 
                 # - depth
                 max_sinkage = 0.5
@@ -472,26 +480,20 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
-    def cashflow_plot(self, cash_flows, width=0.2, alpha=0.6):
+    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
 
         # todo: extract from self.elements years, revenue, capex and opex
         years = cash_flows['year'].values
-        revenue = [0] * len(years)
+        revenue = cash_flows['revenues'].values #[0] * len(years) #revenues['revenues'].values
         capex = cash_flows['capex'].values
-
-        insurance = cash_flows['insurance'].values
-        maintenance = cash_flows['maintenance'].values
-        energy = cash_flows['energy'].values
-        labour = cash_flows['labour'].values
-
-        opex = insurance + maintenance + energy + labour
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + cash_flows['labour'].values
 
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
 
-        ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='green')
-        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='darkred')
-        ax.bar([x + width for x in years], -opex, width=width, alpha=alpha, label="maintenance", color='darkblue')
+        ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='pink')
+        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
+        ax.bar([x + width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [$]')
         ax.set_title('Cash flow plot')
@@ -541,6 +543,7 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
+        cash_flows['revenues'] = 20000000
 
         for element in self.elements:
             if hasattr(element, 'df'):
