@@ -503,6 +503,7 @@ class System:
         pass
 
     def terminal_elements_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
         years = []
@@ -541,8 +542,12 @@ class System:
         ax.legend()
 
     def cashflow_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
 
+        # add cash flow information for each of the Terminal elements
         cash_flows = self.add_cashflow_elements()
+
+        # prepare years, revenue, capex and opex for plotting
         years = cash_flows['year'].values
         revenue = self.revenues
         capex = cash_flows['capex'].values
@@ -552,9 +557,10 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
 
-        ax.bar([x - width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
         ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
-        ax.bar([x + width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
+        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [000 M $]')
         ax.set_title('Cash flow plot')
@@ -589,7 +595,22 @@ class System:
         return WACC_real
 
     def NPV(self):
-        pass
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        # add cash flow information for each of the Terminal elements
+        cash_flows = self.add_cashflow_elements()
+
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows['year'].values
+        revenue = self.revenues
+        capex = cash_flows['capex'].values
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+               cash_flows['labour'].values
+
+        PV = - capex - opex + revenue
+        print('PV: {}'.format(PV))
+
+        print('NPV: {}'.format(np.sum(PV)))
 
     # *** General functions
 
