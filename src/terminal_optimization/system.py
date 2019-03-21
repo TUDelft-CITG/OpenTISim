@@ -19,6 +19,7 @@ class System:
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
         self.revenues = []
+        self.service_rates =[]
 
         # status terminal @ T=startyear
         self.elements = elements
@@ -102,7 +103,18 @@ class System:
             revenues += (volume * fee)
             print(revenues)
 
-        self.revenues.append(revenues)
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements = list_of_elements_1 + list_of_elements_2
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        if list_of_elements != []:
+            service_rate = 0
+            for element in list_of_elements:
+                if year>=element.year_online:
+                    service_rate += element.effective_capacity
+
+        self.revenues.append(min(revenues, service_rate * self.operational_hours))
 
     # *** Investment functions
 
