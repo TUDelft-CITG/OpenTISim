@@ -67,6 +67,7 @@ class System:
             allowable_berth_occupancy = .4  # is 40 %
             self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
 
+
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
             # self.conveyor_invest(year, 1000)
             #
@@ -81,11 +82,15 @@ class System:
 
         # 3. collect revenues
 
+    def revenues(self, total_vol, service_capacity_online):
+        revenues_fee = defaults.maize_data["handling_fee"]
+        revenues_throughput = min(service_capacity_online, total_vol)
 
+        revenues = revenues_fee * revenues_throughput
 
+        revenues = self.add_cashflow_data_to_element(revenues)
 
-
-
+        self.element.append(revenues)
 
         # 4. calculate profits
 
@@ -211,6 +216,8 @@ class System:
 
         self.elements.append(quay_wall)
 
+
+
     def crane_invest(self, year):
         """current strategy is to add cranes as soon as a service trigger is achieved
         - find out how much service capacity is online
@@ -266,7 +273,7 @@ class System:
         self.elements.append(crane)
 
         # service_capacity += crane.lifting_capacity * crane.hourly_cycles * crane.eff_fact * self.operational_hours
-
+        #
         # print('a total of {} ton of crane service capacity is online; {} ton total planned'.format(
         #     service_capacity_online,
         #     service_capacity))
@@ -484,7 +491,7 @@ class System:
 
         # todo: extract from self.elements years, revenue, capex and opex
         years = cash_flows['year'].values
-        revenue = cash_flows['revenues'].values #[0] * len(years) #revenues['revenues'].values
+        revenue = cash_flows['revenues'].values
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + cash_flows['labour'].values
 
@@ -495,7 +502,7 @@ class System:
         ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
         ax.bar([x + width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
         ax.set_xlabel('Years')
-        ax.set_ylabel('Cashflow [$]')
+        ax.set_ylabel('Cashflow [000 M $]')
         ax.set_title('Cash flow plot')
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
@@ -545,6 +552,7 @@ class System:
         cash_flows['labour'] = 0
         cash_flows['revenues'] = 20000000
 
+
         for element in self.elements:
             if hasattr(element, 'df'):
                 for column in cash_flows.columns:
@@ -554,6 +562,7 @@ class System:
         cash_flows.fillna(0)
 
         return cash_flows
+
 
     def add_cashflow_data_to_element(self, element):
 
