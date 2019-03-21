@@ -326,7 +326,10 @@ class hasscenario_properties_mixin(object):
     def plot_demand(self):
         plt.figure(figsize=(10, 7.5))
 
-        plt.plot(self.historic_data['year'], self.historic_data['volume'], 'o:r')
+        try:
+            plt.plot(self.historic_data['year'], self.historic_data['volume'], 'o:r')
+        except:
+            pass
         plt.plot(self.scenario_data['year'], self.scenario_data['volume'], 'o:b')
         plt.xlabel('Time [years]')
         plt.ylabel('Demand ' + self.name + ' [tons]')
