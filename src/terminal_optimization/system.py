@@ -570,6 +570,25 @@ class System:
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
                cash_flows['labour'].values
+        # todo: check if we need to add land lease as a opex (for terminal operator) or revenue (for a port operator)
+
+        # sum cash flows to get profits as a function of year
+        profits = []
+        for year in years:
+            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() +
+                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+
+        # cumulatively sum profits to get profits_cum
+        profits_cum = [None] * len(profits)
+        for index, value in enumerate(profits):
+            if index == 0:
+                profits_cum[index] = 0
+            else:
+                profits_cum[index] = profits_cum[index - 1] + profits[index]
 
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
@@ -577,6 +596,8 @@ class System:
         ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
         ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
         ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+        ax.step(years, profits, label='profits', where='mid')
+        ax.step(years, profits_cum, label='profits_cum', where='mid')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [000 M $]')
