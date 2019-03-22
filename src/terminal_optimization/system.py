@@ -564,9 +564,11 @@ class System:
                            revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
 
         profits_cum = [None] * len(profits)
-        for i in enumerate(profits):
-            if i[0] > 0:
-                profits_cum[i[0]] = sum(profits[0:i[0]])
+        for index, value in enumerate(profits):
+            if index == 0:
+                profits_cum[index] = 0
+            else:
+                profits_cum[index] = profits_cum[index - 1] + profits[index]
 
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
