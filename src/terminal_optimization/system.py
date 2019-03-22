@@ -159,6 +159,7 @@ class System:
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
         self.report_element(Continuous_Unloader, year)
+        self.report_element(Storage, year)
         if self.debug:
             print('')
             print('  Start analysis:')
@@ -221,6 +222,20 @@ class System:
                 if self.debug:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
+            # #check if storage is needed
+            # cranes = len(self.find_elements(Crane))
+            # storages = len(self.find_elements(Storage))
+            #
+            # Mobile_crane = Crane(**defaults.mobile_crane_data)
+            # storages = Storage(**defaults.silo_data)
+            #
+            # if cranes*Mobile_crane.capacity > storages*Storages.capacity:
+            #     self.storage_invest(year)
+            #
+            #     berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+            #     if self.debug:
+            #         print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
+
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -279,7 +294,7 @@ class System:
         # - capex
         # todo: figure out what is meant with delta in this case
         # delta: number of unloaders aquisitioned in current year
-        # delta = cranes
+        # delta = self.cranes
 
         delta = 1
         unit_rate = crane.unit_rate
@@ -293,7 +308,8 @@ class System:
         # Occupancy related to the effective capacity. The unloader has also time needed for trimming, cleaning and switching holds.
         # Therefor the capacity decreases, but also the running hours decrease in which in the energy costs decreases.
 
-        occupancy = 0.5  # (effective capacity)
+        occupancy = 0.4 #(effective capacity)
+        # todo: needs to be the berth occupancy
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
         crane.energy = consumption * hours
@@ -331,6 +347,7 @@ class System:
         # from all Quay objects sum online length
         storage = 0
         storage_online = 0
+        storage_trigger = element.capacity
         list_of_elements = self.find_elements(Storage)
         if list_of_elements != []:
             for element in list_of_elements:
@@ -356,9 +373,9 @@ class System:
             silo.maintenance = silo.capex * silo.maintenance_perc
             silo.energy = silo.consumption * silo.capacity * self.operational_hours
 
-            occupancy = 0.8  # todo: Figure out occupancy
+            occupancy = 0.95
             consumption = silo.consumption
-            capacity = silo.capacity
+            capacity = silo.capacity * occupancy
             hours = self.operational_hours
             silo.energy = consumption * capacity * hours
 
@@ -414,7 +431,7 @@ class System:
             # - opex
             conveyor.insurance = conveyor.capex * conveyor.insurance_perc
             conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
-            occupancy = 0.8  # todo: Figure out occupancy
+            occupancy = 0.95
             consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
             hours = self.operational_hours * occupancy
             conveyor.energy = consumption * hours
@@ -632,6 +649,9 @@ class System:
                 for column in cash_flows.columns:
                     if column in element.df.columns and column != "year":
                         cash_flows[column] += element.df[column]
+
+        # for cash_flows['revenues'] =
+
 
         # cash_flows['revenues'] += self.revenues
         cash_flows.fillna(0)
