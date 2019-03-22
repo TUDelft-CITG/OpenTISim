@@ -554,12 +554,28 @@ class System:
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
                cash_flows['labour'].values
 
+        profits = []
+        for year in years:
+            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() +
+                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+
+        profits_cum = [None] * len(profits)
+        for i in enumerate(profits):
+            if i[0] > 0:
+                profits_cum[i[0]] = sum(profits[0:i[0]])
+
         # generate plot
         fig, ax = plt.subplots(figsize=(16, 7))
 
         ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
         ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
         ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+        ax.step(years, profits, label='profits', where='mid')
+        ax.step(years, profits_cum, label='profits_cum', where='mid')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [000 M $]')
