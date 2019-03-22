@@ -663,7 +663,7 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
-        cash_flows['revenues'] = 0
+        cash_flows['revenues'] = self.revenues
 
         for element in self.elements:
             if hasattr(element, 'df'):
@@ -671,10 +671,6 @@ class System:
                     if column in element.df.columns and column != "year":
                         cash_flows[column] += element.df[column]
 
-        # for cash_flows['revenues'] =
-
-
-        # cash_flows['revenues'] += self.revenues
         cash_flows.fillna(0)
 
         return cash_flows
