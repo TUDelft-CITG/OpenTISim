@@ -553,7 +553,9 @@ class System:
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
                cash_flows['labour'].values
+        # todo: check if we need to add land lease as a opex (for terminal operator) or revenue (for a port operator)
 
+        # sum cash flows to get profits as a function of year
         profits = []
         for year in years:
             profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
@@ -563,6 +565,7 @@ class System:
                            cash_flows.loc[cash_flows['year'] == year]['labour'].item() +
                            revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
 
+        # cumulatively sum profits to get profits_cum
         profits_cum = [None] * len(profits)
         for index, value in enumerate(profits):
             if index == 0:
