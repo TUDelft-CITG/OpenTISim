@@ -222,20 +222,33 @@ class System:
                 if self.debug:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
-            # #check if storage is needed
-            # cranes = len(self.find_elements(Crane))
-            # storages = len(self.find_elements(Storage))
-            #
-            # Mobile_crane = Crane(**defaults.mobile_crane_data)
-            # storages = Storage(**defaults.silo_data)
-            #
-            # if cranes*Mobile_crane.capacity > storages*Storages.capacity:
-            #     self.storage_invest(year)
-            #
-            #     berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
-            #     if self.debug:
-            #         print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
+            #check if storage is needed
+            # from all Quay objects sum online length
 
+            Storages = Storage(**defaults.silo_data)
+            storage = 0
+            storage_online = 0
+            storage_trigger = Storages.capacity
+            list_of_elements = self.find_elements(Storage)
+            if list_of_elements != []:
+                for element in list_of_elements:
+                    storage += Storages.capacity
+                    if year >= element.year_online:
+                        storage_online += Storages.capacity
+
+            # berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+            # if self.debug:
+            #     print('     Berth occupancy (after adding storage): {}'.format(berth_occupancy))
+            #
+            # if self.debug:
+            #     print(
+            #         'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online,
+            #                                                                                        storage))
+            # # check if total planned length is smaller than target length, if so add a quay
+            # while storage < storage_trigger:
+            #     if self.debug:
+            #         print('add Storage to elements')
+            
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -308,7 +321,7 @@ class System:
         # Occupancy related to the effective capacity. The unloader has also time needed for trimming, cleaning and switching holds.
         # Therefor the capacity decreases, but also the running hours decrease in which in the energy costs decreases.
 
-        occupancy = 0.4 #(effective capacity)
+        occupancy = 0.4 #berth_occupancy #(effective capacity)
         # todo: needs to be the berth occupancy
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
@@ -336,7 +349,7 @@ class System:
         #     service_capacity_online,
         #     service_capacity))
 
-    def storage_invest(self, year, storage_trigger):
+    def storage_invest(self, year):
         """current strategy is to add storage as long as target storage is not yet achieved
         - find out how much storage is online
         - find out how much storage is planned
@@ -344,49 +357,50 @@ class System:
         - add storage until target is reached
         """
 
-        # from all Quay objects sum online length
-        storage = 0
-        storage_online = 0
-        storage_trigger = element.capacity
-        list_of_elements = self.find_elements(Storage)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                storage += element.capacity
-                if year >= element.year_online:
-                    storage_online += element.capacity
-
+        # # from all Quay objects sum online length
+        # storage = 0
+        # storage_online = 0
+        # # storage_trigger = element.capacity
+        # list_of_elements = self.find_elements(Storage)
+        # if list_of_elements != []:
+        #     for element in list_of_elements:
+        #         storage += element.capacity
+        #         if year >= element.year_online:
+        #             storage_online += element.capacity
+        #
+        # if self.debug:
+        #     print(
+        #         'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
+        #
+        # # check if total planned length is smaller than target length, if so add a quay
+        # while storage < storage_trigger:
         if self.debug:
-            print(
-                'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
+           print('add Storage to elements')
 
-        # check if total planned length is smaller than target length, if so add a quay
-        while storage < storage_trigger:
-            if self.debug:
-                print('add Storage to elements')
-            silo = Storage(**defaults.silo_data)
+        silo = Storage(**defaults.silo_data)
 
-            # - capex
-            silo.capex = silo.unit_rate * silo.capacity + silo.mobilisation_min
+        # - capex
+        silo.capex = silo.unit_rate * silo.capacity + silo.mobilisation_min
 
-            # - opex
-            silo.insurance = silo.capex * silo.insurance_perc
-            silo.maintenance = silo.capex * silo.maintenance_perc
-            silo.energy = silo.consumption * silo.capacity * self.operational_hours
+        # - opex
+        silo.insurance = silo.capex * silo.insurance_perc
+        silo.maintenance = silo.capex * silo.maintenance_perc
+        silo.energy = silo.consumption * silo.capacity * self.operational_hours
 
-            occupancy = 0.95
-            consumption = silo.consumption
-            capacity = silo.capacity * occupancy
-            hours = self.operational_hours
-            silo.energy = consumption * capacity * hours
+        occupancy = 0.95
+        consumption = silo.consumption
+        capacity = silo.capacity * occupancy
+        hours = self.operational_hours
+        silo.energy = consumption * capacity * hours
 
-            silo.year_online = year + silo.delivery_time
+        silo.year_online = year + silo.delivery_time
 
-            # add cash flow information to quay_wall object in a dataframe
-            silo = self.add_cashflow_data_to_element(silo)
+        # add cash flow information to quay_wall object in a dataframe
+        silo = self.add_cashflow_data_to_element(silo)
 
-            self.elements.append(silo)
+        self.elements.append(silo)
 
-            storage += silo.capacity
+        storage += silo.capacity
 
         if self.debug:
             print(
