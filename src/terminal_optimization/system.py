@@ -13,7 +13,7 @@ from terminal_optimization import defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, debug=False, elements=[],
-                 crane_type_defaults=defaults.mobile_crane_data):
+                 crane_type_defaults=defaults.mobile_crane_data, storage_type_defaults=defaults.silo_data):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -24,6 +24,7 @@ class System:
 
         # default values for crane type to use
         self.crane_type_defaults = crane_type_defaults
+        self.storage_type_defaults = storage_type_defaults
 
         # storage variables for revenue
         self.revenues = []
@@ -223,9 +224,8 @@ class System:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
             #check if storage is needed
-            # from all Quay objects sum online length
 
-            Storages = Storage(**defaults.silo_data)
+            Storages = Storage(**self.storage_type_defaults)
             storage = 0
             storage_online = 0
             storage_trigger = Storages.capacity
@@ -236,7 +236,6 @@ class System:
                     if year >= element.year_online:
                         storage_online += Storages.capacity
 
-            # berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
             # if self.debug:
             #     print('     Berth occupancy (after adding storage): {}'.format(berth_occupancy))
             #
@@ -248,7 +247,7 @@ class System:
             # while storage < storage_trigger:
             #     if self.debug:
             #         print('add Storage to elements')
-            
+
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -374,33 +373,35 @@ class System:
         #
         # # check if total planned length is smaller than target length, if so add a quay
         # while storage < storage_trigger:
+        #     if self.debug:
+        #         print('add Storage to elements')
+
         if self.debug:
-           print('add Storage to elements')
+            print('  *** add storage to elements')
 
-        silo = Storage(**defaults.silo_data)
-
+        storage = Storage(**self.storage_type_defaults)
         # - capex
-        silo.capex = silo.unit_rate * silo.capacity + silo.mobilisation_min
+        storage.capex = storage.unit_rate * storage.capacity + storage.mobilisation_min
 
         # - opex
-        silo.insurance = silo.capex * silo.insurance_perc
-        silo.maintenance = silo.capex * silo.maintenance_perc
-        silo.energy = silo.consumption * silo.capacity * self.operational_hours
+        storage.insurance = storage.capex * storage.insurance_perc
+        storage.maintenance = storage.capex * storage.maintenance_perc
+        storage.energy = storage.consumption * storage.capacity * self.operational_hours
 
         occupancy = 0.95
         consumption = silo.consumption
         capacity = silo.capacity * occupancy
         hours = self.operational_hours
-        silo.energy = consumption * capacity * hours
+        storage.energy = consumption * capacity * hours
 
-        silo.year_online = year + silo.delivery_time
+        storage.year_online = year + storage.delivery_time
 
         # add cash flow information to quay_wall object in a dataframe
-        silo = self.add_cashflow_data_to_element(silo)
+        storage = self.add_cashflow_data_to_element(silo)
 
         self.elements.append(silo)
 
-        storage += silo.capacity
+        storage += storage.capacity
 
         if self.debug:
             print(
