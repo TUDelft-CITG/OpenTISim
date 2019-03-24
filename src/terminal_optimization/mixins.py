@@ -205,10 +205,11 @@ class conveyor_properties_mixin(object):
 
 
 class storage_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
                  maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
+        self.type = type
         self.ownership = ownership
         self.delivery_time = delivery_time
         self.lifespan = lifespan

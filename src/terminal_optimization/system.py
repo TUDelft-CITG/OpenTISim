@@ -83,7 +83,7 @@ class System:
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
             self.conveyor_invest(year, defaults.quay_conveyor_data, 1000)
             #
-            # self.storage_invest(year)
+            self.storage_invest(year, self.storage_type_defaults, 1000)
             #
             self.conveyor_invest(year, defaults.hinterland_conveyor_data, 1000)
             #
@@ -349,7 +349,7 @@ class System:
         #     service_capacity_online,
         #     service_capacity))
 
-    def storage_invest(self, year):
+    def storage_invest(self, year, defaults_storage_data, trigger):
         """current strategy is to add storage as long as target storage is not yet achieved
         - find out how much storage is online
         - find out how much storage is planned
@@ -357,56 +357,90 @@ class System:
         - add storage until target is reached
         """
 
-        # # from all Quay objects sum online length
-        # storage = 0
-        # storage_online = 0
-        # # storage_trigger = element.capacity
-        # list_of_elements = self.find_elements(Storage)
-        # if list_of_elements != []:
-        #     for element in list_of_elements:
-        #         storage += element.capacity
-        #         if year >= element.year_online:
-        #             storage_online += element.capacity
+
+        # from all Conveyor objects sum online capacity
+        storage_capacity = 0
+        storage_capacity_online = 0
+        list_of_elements = self.find_elements(Storage)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                print(element.type)
+                print(defaults_storage_data['type'])
+                if element.type == defaults_storage_data['type']:
+                    storage_capacity += element.capacity
+                    if year >= element.year_online:
+                        storage_capacity_online += element.capacity
+        # todo: understand storage capacity formulation
+
+        if self.debug:
+            print('a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
+                storage_capacity_online,
+                defaults_storage_data['type'],
+                storage_capacity))
+
+        # check if total planned length is smaller than target length, if so add a quay
+        while storage_capacity < trigger:
+            if self.debug:
+                print('  *** add storage to elements')
+
+            storage = Storage(**defaults_storage_data)
+
+            # - capex
+            storage.capex = storage.unit_rate * storage.capacity + storage.mobilisation_min
+
+            # - opex
+            storage.insurance = storage.capex * storage.insurance_perc
+            storage.maintenance = storage.capex * storage.maintenance_perc
+            storage.energy = storage.consumption * storage.capacity * self.operational_hours
+
+            occupancy = 0.95
+            consumption = storage.consumption
+            capacity = storage.capacity * occupancy
+            hours = self.operational_hours
+            storage.energy = consumption * capacity * hours
+
+            storage.year_online = year + storage.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+            storage = self.add_cashflow_data_to_element(storage)
+
+            self.elements.append(storage)
+
+            storage_capacity += storage.capacity
+
+            if self.debug:
+                print(
+                    'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_capacity_online,
+                                                                                                   storage_capacity))
+
+        #     # - capex
+        #     delta = conveyor.capacity_steps
+        #     unit_rate = 6.0 * conveyor.length
+        #     mobilisation = conveyor.mobilisation
+        #     conveyor.capex = int(delta * unit_rate + mobilisation)
+        #
+        #     # - opex
+        #     conveyor.insurance = conveyor.capex * conveyor.insurance_perc
+        #     conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
+        #     occupancy = 0.95
+        #     consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
+        #     hours = self.operational_hours * occupancy
+        #     conveyor.energy = consumption * hours
+        #
+        #     conveyor.year_online = year + conveyor.delivery_time
+        #
+        #     # add cash flow information to quay_wall object in a dataframe
+        #     conveyor = self.add_cashflow_data_to_element(conveyor)
+        #
+        #     self.elements.append(conveyor)
+        #
+        #     service_capacity += conveyor.capacity_steps
         #
         # if self.debug:
-        #     print(
-        #         'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
-        #
-        # # check if total planned length is smaller than target length, if so add a quay
-        # while storage < storage_trigger:
-        #     if self.debug:
-        #         print('add Storage to elements')
+        #     print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+        #         service_capacity_online,
+        #         service_capacity))
 
-        if self.debug:
-            print('  *** add storage to elements')
-
-        storage = Storage(**self.storage_type_defaults)
-        # - capex
-        storage.capex = storage.unit_rate * storage.capacity + storage.mobilisation_min
-
-        # - opex
-        storage.insurance = storage.capex * storage.insurance_perc
-        storage.maintenance = storage.capex * storage.maintenance_perc
-        storage.energy = storage.consumption * storage.capacity * self.operational_hours
-
-        occupancy = 0.95
-        consumption = silo.consumption
-        capacity = silo.capacity * occupancy
-        hours = self.operational_hours
-        storage.energy = consumption * capacity * hours
-
-        storage.year_online = year + storage.delivery_time
-
-        # add cash flow information to quay_wall object in a dataframe
-        storage = self.add_cashflow_data_to_element(silo)
-
-        self.elements.append(silo)
-
-        storage += storage.capacity
-
-        if self.debug:
-            print(
-                'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
 
     def conveyor_invest(self, year, defaults_quay_conveyor_data, service_capacity_trigger):
         """current strategy is to add conveyors as soon as a service trigger is achieved

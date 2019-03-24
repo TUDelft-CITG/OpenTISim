@@ -160,6 +160,7 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
 # *** Default inputs: Storage class ***
 
 silo_data = {"name": 'Silo_01',
+             "type": 'silo',
              "ownership": 'Terminal operator',
              "delivery_time": 1,
              "lifespan": 30,
@@ -174,6 +175,7 @@ silo_data = {"name": 'Silo_01',
              "capacity": 5_000}
 
 warehouse_data = {"name": 'Warehouse_01',
+                  "style": 'warehouse',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
                   "lifespan": 30,
