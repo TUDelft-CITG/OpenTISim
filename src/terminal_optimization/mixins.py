@@ -183,11 +183,12 @@ class continuous_properties_mixin(object):
 
 
 class conveyor_properties_mixin(object):
-    def __init__(self, length, ownership, delivery_time, lifespan, unit_rate, mobilisation,
+    def __init__(self, type, length, ownership, delivery_time, lifespan, unit_rate, mobilisation,
                  maintenance_perc, insurance_perc,
                  consumption_constant, consumption_coefficient, crew, utilisation, capacity_steps, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
+        self.type = type
         self.length = length
         self.ownership = ownership
         self.delivery_time = delivery_time

@@ -81,11 +81,11 @@ class System:
 
             self.calculate_revenue(year)
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
-            # self.conveyor_invest(year, 1000)
+            self.conveyor_invest(year, defaults.quay_conveyor_data, 1000)
             #
-            # self.storage_invest(year, 10000)
+            # self.storage_invest(year)
             #
-            # self.conveyor_invest(year, 1000)
+            self.conveyor_invest(year, defaults.hinterland_conveyor_data, 1000)
             #
             # # self.calculate_train_calls(year)
             # self.unloading_station_invest(year, 1000)
@@ -160,6 +160,7 @@ class System:
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
         self.report_element(Continuous_Unloader, year)
+        self.report_element(Conveyor, year)
         self.report_element(Storage, year)
         if self.debug:
             print('')
@@ -223,7 +224,7 @@ class System:
                 if self.debug:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
-            #check if storage is needed
+            # check if storage is needed
 
             Storages = Storage(**self.storage_type_defaults)
             storage = 0
@@ -320,7 +321,7 @@ class System:
         # Occupancy related to the effective capacity. The unloader has also time needed for trimming, cleaning and switching holds.
         # Therefor the capacity decreases, but also the running hours decrease in which in the energy costs decreases.
 
-        occupancy = 0.4 #berth_occupancy #(effective capacity)
+        occupancy = 0.4  # berth_occupancy #(effective capacity)
         # todo: needs to be the berth occupancy
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
@@ -407,7 +408,7 @@ class System:
             print(
                 'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online, storage))
 
-    def conveyor_invest(self, year, service_capacity_trigger):
+    def conveyor_invest(self, year, defaults_quay_conveyor_data, service_capacity_trigger):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -421,21 +422,25 @@ class System:
         list_of_elements = self.find_elements(Conveyor)
         if list_of_elements != []:
             for element in list_of_elements:
-                service_capacity += element.capacity_steps
-                if year >= element.year_online:
-                    service_capacity_online += element.capacity_steps
+                print(element.type)
+                print(defaults_quay_conveyor_data['type'])
+                if element.type == defaults_quay_conveyor_data['type']:
+                    service_capacity += element.capacity_steps
+                    if year >= element.year_online:
+                        service_capacity_online += element.capacity_steps
         # todo: understand conveyors capacity formulation
 
         if self.debug:
-            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+            print('a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
                 service_capacity_online,
+                defaults_quay_conveyor_data['type'],
                 service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_capacity_trigger:
             if self.debug:
                 print('add Conveyor to elements')
-            conveyor = Conveyor(**defaults.quay_conveyor_data)
+            conveyor = Conveyor(**defaults_quay_conveyor_data)
 
             # - capex
             delta = conveyor.capacity_steps

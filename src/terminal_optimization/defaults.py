@@ -126,6 +126,7 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
 # *** Default inputs: Conveyor class ***
 
 quay_conveyor_data = {"name": 'Quay_conveyor_01',
+                      "type": 'quay_conveyor',
                       "length": 500,
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
@@ -141,6 +142,7 @@ quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "capacity_steps": 400}
 
 hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
+                            "type": 'hinterland_conveyor',
                             "length": 500,
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
