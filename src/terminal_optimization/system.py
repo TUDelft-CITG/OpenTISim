@@ -224,18 +224,18 @@ class System:
                 if self.debug:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
-            # check if storage is needed
-
-            Storages = Storage(**self.storage_type_defaults)
-            storage = 0
-            storage_online = 0
-            storage_trigger = Storages.capacity
-            list_of_elements = self.find_elements(Storage)
-            if list_of_elements != []:
-                for element in list_of_elements:
-                    storage += Storages.capacity
-                    if year >= element.year_online:
-                        storage_online += Storages.capacity
+            # # check if storage is needed
+            #
+            # Storages = Storage(**self.storage_type_defaults)
+            # storage = 0
+            # storage_online = 0
+            # storage_trigger = Storages.capacity
+            # list_of_elements = self.find_elements(Storage)
+            # if list_of_elements != []:
+            #     for element in list_of_elements:
+            #         storage += Storages.capacity
+            #         if year >= element.year_online:
+            #             storage_online += Storages.capacity
 
             # if self.debug:
             #     print('     Berth occupancy (after adding storage): {}'.format(berth_occupancy))
@@ -356,7 +356,6 @@ class System:
         - find out how much storage is needed
         - add storage until target is reached
         """
-
 
         # from all Conveyor objects sum online capacity
         storage_capacity = 0
@@ -573,7 +572,7 @@ class System:
     def profits(self):
         pass
 
-    def terminal_elements_plot(self, width=0.3, alpha=0.6):
+    def terminal_elements_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -581,12 +580,14 @@ class System:
         berths = []
         cranes = []
         quays = []
+        storages = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             berths.append(0)
             quays.append(0)
             cranes.append(0)
+            storages.append(0)
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
@@ -597,13 +598,17 @@ class System:
                 if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
+                if isinstance(element, Storage):
+                    if year >= element.year_online:
+                        storages[-1] += 1
 
         # generate plot
-        fig, ax = plt.subplots(figsize=(16, 7))
+        fig, ax = plt.subplots(figsize=(20,10))
 
-        ax.bar([x - width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
-        ax.bar(years, quays, width=width, alpha=alpha, label="quays", color='red')
-        ax.bar([x + width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
+        ax.bar([x - 1.5*width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
+        ax.bar([x - 0.5*width for x in years], quays, width=width, alpha=alpha, label="quays", color='red')
+        ax.bar([x + 0.5*width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
+        ax.bar([x + 1.5*width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
