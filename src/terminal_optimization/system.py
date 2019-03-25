@@ -431,6 +431,7 @@ class System:
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_capacity_cranes:
+            # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
             if self.debug:
                 print('add Conveyor to elements')
             conveyor = Conveyor(**defaults_quay_conveyor_data)
