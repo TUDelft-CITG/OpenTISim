@@ -270,6 +270,7 @@ class System:
 
         if self.debug:
             print('  *** add Harbour crane to elements')
+        # add unloader object
         if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
                 self.crane_type_defaults["crane_type"] == 'Harbour crane' or
                 self.crane_type_defaults["crane_type"] == 'Mobile crane'):
@@ -300,6 +301,7 @@ class System:
         hours = self.operational_hours * occupancy
         crane.energy = consumption * hours
         # todo: check the energy formulation!
+        # todo: NB: with high berth occupancy rates the opex becomes high this way
 
         #   labour
         labour = Labour(**defaults.labour_data)
@@ -308,7 +310,7 @@ class System:
                 labour.shift_length * labour.annual_shifts)) * labour.operational_salary
         # todo: check the labour formulation!
 
-        # apply proper timing for the crane to come online
+        # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
         for element in self.find_elements(Quay_wall):
             years_online.append(element.year_online)
@@ -316,6 +318,8 @@ class System:
 
         # add cash flow information to quay_wall object in a dataframe
         crane = self.add_cashflow_data_to_element(crane)
+
+        # add object to elements
         self.elements.append(crane)
 
     def storage_invest(self, year, defaults_storage_data, trigger):
@@ -332,8 +336,6 @@ class System:
         list_of_elements = self.find_elements(Storage)
         if list_of_elements != []:
             for element in list_of_elements:
-                print(element.type)
-                print(defaults_storage_data['type'])
                 if element.type == defaults_storage_data['type']:
                     storage_capacity += element.capacity
                     if year >= element.year_online:
@@ -346,11 +348,16 @@ class System:
                 defaults_storage_data['type'],
                 storage_capacity))
 
-        # check if total planned length is smaller than target length, if so add a quay
-        while storage_capacity < trigger:
+        max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
+
+        # check if sufficient storage capacity is available
+        while storage_capacity < max_vessel_call_size:
+            # todo: added the option that minimum storage size is at least as big as the largest vessel's call_size
+            # todo: find a way to add dwell time
             if self.debug:
                 print('  *** add storage to elements')
 
+            # add storage object
             storage = Storage(**defaults_storage_data)
 
             # - capex
@@ -362,6 +369,7 @@ class System:
             storage.energy = storage.consumption * storage.capacity * self.operational_hours
 
             occupancy = 0.95
+            # todo: check if this hard coded number is correct
             consumption = storage.consumption
             capacity = storage.capacity * occupancy
             hours = self.operational_hours
@@ -382,34 +390,6 @@ class System:
                         storage_capacity_online,
                         storage_capacity))
 
-        #     # - capex
-        #     delta = conveyor.capacity_steps
-        #     unit_rate = 6.0 * conveyor.length
-        #     mobilisation = conveyor.mobilisation
-        #     conveyor.capex = int(delta * unit_rate + mobilisation)
-        #
-        #     # - opex
-        #     conveyor.insurance = conveyor.capex * conveyor.insurance_perc
-        #     conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
-        #     occupancy = 0.95
-        #     consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
-        #     hours = self.operational_hours * occupancy
-        #     conveyor.energy = consumption * hours
-        #
-        #     conveyor.year_online = year + conveyor.delivery_time
-        #
-        #     # add cash flow information to quay_wall object in a dataframe
-        #     conveyor = self.add_cashflow_data_to_element(conveyor)
-        #
-        #     self.elements.append(conveyor)
-        #
-        #     service_capacity += conveyor.capacity_steps
-        #
-        # if self.debug:
-        #     print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-        #         service_capacity_online,
-        #         service_capacity))
-
     def conveyor_invest(self, year, defaults_quay_conveyor_data, service_capacity_trigger):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
@@ -424,8 +404,6 @@ class System:
         list_of_elements = self.find_elements(Conveyor)
         if list_of_elements != []:
             for element in list_of_elements:
-                print(element.type)
-                print(defaults_quay_conveyor_data['type'])
                 if element.type == defaults_quay_conveyor_data['type']:
                     service_capacity += element.capacity_steps
                     if year >= element.year_online:
