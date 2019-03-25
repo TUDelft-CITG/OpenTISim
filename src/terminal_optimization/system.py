@@ -81,11 +81,11 @@ class System:
 
             self.calculate_revenue(year)
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
-            self.conveyor_invest(year, defaults.quay_conveyor_data, 1000)
+            self.conveyor_invest(year, defaults.quay_conveyor_data)
             #
-            self.storage_invest(year, self.storage_type_defaults, 1000)
+            self.storage_invest(year, self.storage_type_defaults)
             #
-            self.conveyor_invest(year, defaults.hinterland_conveyor_data, 1000)
+            self.conveyor_invest(year, defaults.hinterland_conveyor_data)
             #
             # # self.calculate_train_calls(year)
             # self.unloading_station_invest(year, 1000)
@@ -322,7 +322,7 @@ class System:
         # add object to elements
         self.elements.append(crane)
 
-    def storage_invest(self, year, defaults_storage_data, trigger):
+    def storage_invest(self, year, defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved
         - find out how much storage is online
         - find out how much storage is planned
@@ -390,7 +390,7 @@ class System:
                         storage_capacity_online,
                         storage_capacity))
 
-    def conveyor_invest(self, year, defaults_quay_conveyor_data, service_capacity_trigger):
+    def conveyor_invest(self, year, defaults_quay_conveyor_data):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -398,10 +398,23 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        # from all Conveyor objects sum online capacity
+        # list all crane objects in system
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements = list_of_elements_1 + list_of_elements_2
+
+        # find the total service rate
+        if list_of_elements != []:
+            service_capacity_cranes = 0
+            for element in list_of_elements:
+                service_capacity_cranes += element.effective_capacity
+
+        # list all conveyor objects in system
+        list_of_elements = self.find_elements(Conveyor)
+
+        # find the total service rate
         service_capacity = 0
         service_capacity_online = 0
-        list_of_elements = self.find_elements(Conveyor)
         if list_of_elements != []:
             for element in list_of_elements:
                 if element.type == defaults_quay_conveyor_data['type']:
@@ -417,7 +430,7 @@ class System:
                 service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity < service_capacity_trigger:
+        while service_capacity < service_capacity_cranes:
             if self.debug:
                 print('add Conveyor to elements')
             conveyor = Conveyor(**defaults_quay_conveyor_data)
