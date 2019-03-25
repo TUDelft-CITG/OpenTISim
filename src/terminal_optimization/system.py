@@ -224,31 +224,6 @@ class System:
                 if self.debug:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
 
-            # # check if storage is needed
-            #
-            # Storages = Storage(**self.storage_type_defaults)
-            # storage = 0
-            # storage_online = 0
-            # storage_trigger = Storages.capacity
-            # list_of_elements = self.find_elements(Storage)
-            # if list_of_elements != []:
-            #     for element in list_of_elements:
-            #         storage += Storages.capacity
-            #         if year >= element.year_online:
-            #             storage_online += Storages.capacity
-
-            # if self.debug:
-            #     print('     Berth occupancy (after adding storage): {}'.format(berth_occupancy))
-            #
-            # if self.debug:
-            #     print(
-            #         'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_online,
-            #                                                                                        storage))
-            # # check if total planned length is smaller than target length, if so add a quay
-            # while storage < storage_trigger:
-            #     if self.debug:
-            #         print('add Storage to elements')
-
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -263,17 +238,14 @@ class System:
 
         if self.debug:
             print('  *** add Quay to elements')
+        # add a Quay_wall element
         quay_wall = Quay_wall(**defaults.quay_wall_data)
 
         # - capex
         unit_rate = int(
             quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
-
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         quay_wall.capex = int(length * unit_rate + mobilisation)
-
-        # unit_rate = int(quay_wall.Gijt_constant * (2* (depth + quay_wall.freeboard)) ** quay_wall.Gijt_coefficient
-        # quay_wall.capex = int(unit_rate * (2*(depth + quay_wall.freeboard)+width) * length  + mobilisation)
 
         # todo: review the formulas
 
@@ -305,24 +277,24 @@ class System:
             crane = Continuous_Unloader(**self.crane_type_defaults)
 
         # - capex
-        # todo: figure out what is meant with delta in this case
-        # delta: number of unloaders aquisitioned in current year
-        # delta = self.cranes
-
-        delta = 1
         unit_rate = crane.unit_rate
-        mobilisation = delta * unit_rate * crane.mobilisation_perc
-        crane.capex = int(delta * unit_rate + mobilisation)
+        mobilisation = unit_rate * crane.mobilisation_perc
+        crane.capex = int(unit_rate + mobilisation)
 
         # - opex
         crane.insurance = crane.capex * crane.insurance_perc
         crane.maintenance = crane.capex * crane.maintenance_perc
 
-        # Occupancy related to the effective capacity. The unloader has also time needed for trimming, cleaning and switching holds.
-        # Therefor the capacity decreases, but also the running hours decrease in which in the energy costs decreases.
+        # Occupancy related to the effective capacity. The unloader has also time needed for trimming,
+        # cleaning and switching holds. Therefore the capacity decreases, but also the running hours decrease
+        # in which case the energy costs decreases.
 
-        occupancy = 0.4  # berth_occupancy #(effective capacity)
-        # todo: needs to be the berth occupancy
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+        # this is needed because at greenfield startup occupancy is still inf
+        if occupancy == np.inf:
+            occupancy = 0.4
+
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
         crane.energy = consumption * hours
@@ -330,8 +302,8 @@ class System:
         labour = Labour(**defaults.labour_data)
 
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
-        crane.labour = crane.crew * self.operational_hours / (
-                labour.shift_length * labour.annual_shifts) * labour.operational_salary
+        crane.labour = ((crane.crew * self.operational_hours) / (
+                labour.shift_length * labour.annual_shifts)) * labour.operational_salary
 
         # apply proper timing for the crane to come online
         years_online = []
@@ -342,12 +314,6 @@ class System:
         # add cash flow information to quay_wall object in a dataframe
         crane = self.add_cashflow_data_to_element(crane)
         self.elements.append(crane)
-
-        # service_capacity += crane.lifting_capacity * crane.hourly_cycles * crane.eff_fact * self.operational_hours
-        #
-        # print('a total of {} ton of crane service capacity is online; {} ton total planned'.format(
-        #     service_capacity_online,
-        #     service_capacity))
 
     def storage_invest(self, year, defaults_storage_data, trigger):
         """current strategy is to add storage as long as target storage is not yet achieved
@@ -409,8 +375,9 @@ class System:
 
             if self.debug:
                 print(
-                    'a total of {} ton of storage capacity is online; {} ton total planned'.format(storage_capacity_online,
-                                                                                                   storage_capacity))
+                    'a total of {} ton of storage capacity is online; {} ton total planned'.format(
+                        storage_capacity_online,
+                        storage_capacity))
 
         #     # - capex
         #     delta = conveyor.capacity_steps
@@ -439,7 +406,6 @@ class System:
         #     print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
         #         service_capacity_online,
         #         service_capacity))
-
 
     def conveyor_invest(self, year, defaults_quay_conveyor_data, service_capacity_trigger):
         """current strategy is to add conveyors as soon as a service trigger is achieved
@@ -603,12 +569,12 @@ class System:
                         storages[-1] += 1
 
         # generate plot
-        fig, ax = plt.subplots(figsize=(20,10))
+        fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x - 1.5*width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
-        ax.bar([x - 0.5*width for x in years], quays, width=width, alpha=alpha, label="quays", color='red')
-        ax.bar([x + 0.5*width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
-        ax.bar([x + 1.5*width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
+        ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
+        ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='red')
+        ax.bar([x + 0.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
+        ax.bar([x + 1.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
