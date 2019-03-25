@@ -209,6 +209,7 @@ class System:
                 max_sinkage = 0.5
                 wave_motion = 0.5
                 safety_margin = 0.5
+                # todo: these are hard coded values, consider to move to vessel defaults
                 depth = np.sum([draft, max_sinkage, wave_motion, safety_margin])
                 self.quay_invest(year, length, depth)
 
@@ -289,21 +290,23 @@ class System:
         # cleaning and switching holds. Therefore the capacity decreases, but also the running hours decrease
         # in which case the energy costs decreases.
 
+        #   energy
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
         # this is needed because at greenfield startup occupancy is still inf
         if occupancy == np.inf:
             occupancy = 0.4
-
         consumption = crane.consumption
         hours = self.operational_hours * occupancy
         crane.energy = consumption * hours
+        # todo: check the energy formulation!
 
+        #   labour
         labour = Labour(**defaults.labour_data)
-
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.labour = ((crane.crew * self.operational_hours) / (
                 labour.shift_length * labour.annual_shifts)) * labour.operational_salary
+        # todo: check the labour formulation!
 
         # apply proper timing for the crane to come online
         years_online = []
