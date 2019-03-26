@@ -119,12 +119,23 @@ class System:
         if self.debug:
             print('  Revenues (demand): {}'.format(revenues))
 
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
+                                                                                         handymax_calls,
+                                                                                         panamax_calls)
         # find the total service rate,
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
-                service_rate += element.effective_capacity * element.eff_fact
+                service_rate +=  element.effective_capacity * self.operational_hours * berth_occupancy_online
 
+
+        # # find the total service rate,
+        # service_rate = 0
+        # for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        #     if year >= element.year_online:
+        #         service_rate += element.effective_capacity * element.eff_fact
+        #
         if self.debug:
             print('  Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
 
@@ -231,8 +242,8 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
                                                                                                  handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -275,7 +286,6 @@ class System:
         - find out how much service capacity is needed
         - add service capacity until service_trigger is no longer exceeded
         """
-
         if self.debug:
             print('  *** add Harbour crane to elements')
         # add unloader object
@@ -329,6 +339,7 @@ class System:
 
         # add object to elements
         self.elements.append(crane)
+
 
     def storage_invest(self, year, defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved
@@ -577,6 +588,7 @@ class System:
         ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
         ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='red')
         ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
+        # ax.bar([x + 1.5 * width for x in years], berth_occupancy_online, width=width, alpha=alpha, label="cranes", color='blue')
         # ax.bar([x + 1.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
 
         ax.set_xlabel('Years')
@@ -878,6 +890,7 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
+
             time_at_berth_handysize_planned = handysize_calls * (
                     (defaults.handysize_data["call_size"] / service_rate_planned) + defaults.handysize_data[
                 "mooring_time"])
@@ -911,13 +924,13 @@ class System:
             else:
                 berth_occupancy_online = float("inf")
 
-
         else:
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
             berth_occupancy_planned = float("inf")
             berth_occupancy_online = float("inf")
 
         return berth_occupancy_planned, berth_occupancy_online
+
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)
