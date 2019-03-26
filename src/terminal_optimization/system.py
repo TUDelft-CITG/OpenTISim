@@ -173,7 +173,8 @@ class System:
         print(panamax)
         berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         if self.debug:
-            print('     Berth occupancy (@ start of year): {}'.format(berth_occupancy_planned))
+            print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
+            print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
 
         while berth_occupancy_planned > allowable_berth_occupancy:
 
@@ -187,7 +188,8 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy (after adding berth): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # check if a quay is needed
             berths = len(self.find_elements(Berth))
@@ -219,7 +221,8 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
                                                                                                  handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy (after adding quay): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
 
             # check if a crane is needed
             if self.check_crane_slot_available():
@@ -229,7 +232,7 @@ class System:
                                                                                                  handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy_planned))
-
+                    print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy_online))
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -875,7 +878,6 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
-            # todo: moet dit niet min(effective_capacity) van alle elementen zijn, want is toch geen optelling?
             time_at_berth_handysize_planned = handysize_calls * (
                     (defaults.handysize_data["call_size"] / service_rate_planned) + defaults.handysize_data[
                 "mooring_time"])
