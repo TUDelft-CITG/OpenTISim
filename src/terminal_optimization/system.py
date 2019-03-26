@@ -920,7 +920,7 @@ class System:
                     [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                berth_occupancy_online = total_time_at_berth_online / self.operational_hours
+                berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
             else:
                 berth_occupancy_online = float("inf")
 
