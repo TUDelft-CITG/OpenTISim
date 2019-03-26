@@ -652,7 +652,7 @@ class System:
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Throughput capacity [tons/year]')
-        ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
+        ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
