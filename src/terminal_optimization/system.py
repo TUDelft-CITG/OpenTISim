@@ -578,6 +578,62 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
+    def terminal_capacity_plot(self, width=0.25, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # get crane service capacity and storage capacity
+        years = []
+        cranes = []
+        cranes_capacity = []
+        storages = []
+        storages_capacity = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+
+            years.append(year)
+            cranes.append(0)
+            cranes_capacity.append(0)
+            storages.append(0)
+            storages_capacity.append(0)
+
+            handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy = self.calculate_berth_occupancy(handysize_calls, handymax_calls, panamax_calls)
+
+            for element in self.elements:
+                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                    # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
+                    if year >= element.year_online:
+                        cranes[-1] += 1
+                        cranes_capacity[-1] += element.effective_capacity * self.operational_hours * berth_occupancy
+                if isinstance(element, Storage):
+                    if year >= element.year_online:
+                        storages[-1] += 1
+                        storages_capacity[-1] += element.capacity * 365 / 18
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            for column in commodity.scenario_data.columns:
+                if column in commodity.scenario_data.columns and column != "year":
+                    demand['demand'] += commodity.scenario_data[column]
+
+        # generate plot
+        fig, ax = plt.subplots(figsize=(20, 10))
+
+        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes", color='red')
+        ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
+               color='green')
+        ax.step(years, demand['demand'].values, label="demand", where='mid')
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Throughput capacity [tons/year]')
+        ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
+
     def cashflow_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
