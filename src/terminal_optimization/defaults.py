@@ -207,7 +207,7 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
 # *** Default inputs: Commodity class ***
 
 maize_data = {"name": 'Maize',
-              "handling_fee": 3,
+              "handling_fee": 9.8,
               "handysize_perc": 50,
               "handymax_perc": 50,
               "panamax_perc": 0,
@@ -215,7 +215,7 @@ maize_data = {"name": 'Maize',
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
 soybean_data = {"name": 'Soybeans',
-                "handling_fee": 3,
+                "handling_fee": 9.8,
                 "handysize_perc": 50,
                 "handymax_perc": 50,
                 "panamax_perc": 0,
@@ -223,7 +223,7 @@ soybean_data = {"name": 'Soybeans',
                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
 wheat_data = {"name": 'Wheat',
-              "handling_fee": 3,
+              "handling_fee": 9.8,
               "handysize_perc": 0,
               "handymax_perc": 0,
               "panamax_perc": 100,
