@@ -119,23 +119,23 @@ class System:
         if self.debug:
             print('  Revenues (demand): {}'.format(revenues))
 
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
-                                                                                         handymax_calls,
-                                                                                         panamax_calls)
+        # handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        # berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
+        #                                                                                  handymax_calls,
+        #                                                                                  panamax_calls)
+        # # # find the total service rate,
+        # service_rate = 0
+        # for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        #     if year >= element.year_online:
+        #         service_rate +=  element.effective_capacity * self.operational_hours * berth_occupancy_online
+
+
         # find the total service rate,
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
-                service_rate +=  element.effective_capacity * self.operational_hours * berth_occupancy_online
+                service_rate += element.effective_capacity * element.eff_fact
 
-
-        # # find the total service rate,
-        # service_rate = 0
-        # for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-        #     if year >= element.year_online:
-        #         service_rate += element.effective_capacity * element.eff_fact
-        #
         if self.debug:
             print('  Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
 
