@@ -568,8 +568,8 @@ class System:
 
         ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
         ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='red')
-        ax.bar([x + 0.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
-        ax.bar([x + 1.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
+        ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
+        # ax.bar([x + 1.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
@@ -615,16 +615,18 @@ class System:
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
         for commodity in self.find_elements(Commodity):
-            for column in commodity.scenario_data.columns:
-                if column in commodity.scenario_data.columns and column != "year":
-                    demand['demand'] += commodity.scenario_data[column]
-
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes", color='red')
-        ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
-               color='green')
+        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity", color='red')
+        # ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
+        #        color='green')
         ax.step(years, demand['demand'].values, label="demand", where='mid')
 
         ax.set_xlabel('Years')
@@ -826,21 +828,9 @@ class System:
             #  see page 48 of wijnands report
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            except:
-                pass
-            try:
                 handysize_vol += volume * commodity.handysize_perc / 100
-            except:
-                pass
-            try:
                 handymax_vol += volume * commodity.handymax_perc / 100
-            except:
-                pass
-            try:
                 panamax_vol += volume * commodity.panamax_perc / 100
-            except:
-                pass
-            try:
                 total_vol += volume
             except:
                 pass
@@ -858,7 +848,7 @@ class System:
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
 
-    def calculate_berth_occupancy(self, handysize, handymax, panamax):
+    def calculate_berth_occupancy(self, handysize_calls, handymax_calls, panamax_calls):
         """
         - Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
@@ -876,11 +866,11 @@ class System:
             for element in list_of_elements:
                 service_rate += element.effective_capacity
 
-            time_at_berth_handysize = handysize * (
+            time_at_berth_handysize = handysize_calls * (
                     (defaults.handysize_data["call_size"] / service_rate) + defaults.handysize_data["mooring_time"])
-            time_at_berth_handymax = handymax * (
+            time_at_berth_handymax = handymax_calls * (
                     (defaults.handymax_data["call_size"] / service_rate) + defaults.handymax_data["mooring_time"])
-            time_at_berth_panamax = panamax * (
+            time_at_berth_panamax = panamax_calls * (
                     (defaults.panamax_data["call_size"] / service_rate) + defaults.panamax_data["mooring_time"])
 
             total_time_at_berth = np.sum([time_at_berth_handysize, time_at_berth_handymax, time_at_berth_panamax])
