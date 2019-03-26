@@ -167,11 +167,15 @@ class System:
             print('  Start analysis:')
 
         # calculate berth occupancy
-        berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+        print(year)
+        print(handysize)
+        print(handymax)
+        print(panamax)
+        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         if self.debug:
-            print('     Berth occupancy (@ start of year): {}'.format(berth_occupancy))
+            print('     Berth occupancy (@ start of year): {}'.format(berth_occupancy_planned))
 
-        while berth_occupancy > allowable_berth_occupancy:
+        while berth_occupancy_planned > allowable_berth_occupancy:
 
             # add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
@@ -181,10 +185,9 @@ class System:
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
 
-                berth_occupancy = self.calculate_berth_occupancy(handysize, handymax,
-                                                                 panamax)
+                berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy (after adding berth): {}'.format(berth_occupancy))
+                    print('     Berth occupancy (after adding berth): {}'.format(berth_occupancy_planned))
 
             # check if a quay is needed
             berths = len(self.find_elements(Berth))
@@ -213,17 +216,19 @@ class System:
                 depth = np.sum([draft, max_sinkage, wave_motion, safety_margin])
                 self.quay_invest(year, length, depth)
 
-                berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
+                                                                                                 handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy (after adding quay): {}'.format(berth_occupancy))
+                    print('     Berth occupancy (after adding quay): {}'.format(berth_occupancy_planned))
 
             # check if a crane is needed
             if self.check_crane_slot_available():
                 self.crane_invest(year)
 
-                berth_occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
+                                                                                                 handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy))
+                    print('     Berth occupancy (after adding crane): {}'.format(berth_occupancy_planned))
 
     def quay_invest(self, year, length, depth):
         """
@@ -293,12 +298,12 @@ class System:
 
         #   energy
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        occupancy = self.calculate_berth_occupancy(handysize, handymax, panamax)
+        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         # this is needed because at greenfield startup occupancy is still inf
-        if occupancy == np.inf:
-            occupancy = 0.4
+        if berth_occupancy_planned == np.inf:
+            berth_occupancy_planned = 0.4
         consumption = crane.consumption
-        hours = self.operational_hours * occupancy
+        hours = self.operational_hours * berth_occupancy_planned
         crane.energy = consumption * hours
         # todo: check the energy formulation!
         # todo: NB: with high berth occupancy rates the opex becomes high this way
@@ -308,7 +313,7 @@ class System:
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.labour = ((crane.crew * self.operational_hours) / (
                 labour.shift_length * labour.annual_shifts)) * labour.operational_salary
-        #todo: check the labour formulation!
+        # todo: check the labour formulation!
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
@@ -597,14 +602,14 @@ class System:
             storages_capacity.append(0)
 
             handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy = self.calculate_berth_occupancy(handysize_calls, handymax_calls, panamax_calls)
+            berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls, handymax_calls, panamax_calls)
 
             for element in self.elements:
                 if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
                     # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
                     if year >= element.year_online:
                         cranes[-1] += 1
-                        cranes_capacity[-1] += element.effective_capacity * self.operational_hours * berth_occupancy
+                        cranes_capacity[-1] += element.effective_capacity * self.operational_hours * berth_occupancy_online
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
@@ -624,7 +629,8 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity", color='red')
+        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
+               color='red')
         # ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
         #        color='green')
         ax.step(years, demand['demand'].values, label="demand", where='mid')
@@ -848,7 +854,7 @@ class System:
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
 
-    def calculate_berth_occupancy(self, handysize_calls, handymax_calls, panamax_calls):
+    def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
         - Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
@@ -862,45 +868,54 @@ class System:
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
+        service_rate_online = 0
         if list_of_elements != []:
             for element in list_of_elements:
                 service_rate_planned += element.effective_capacity
-                # if year >= element.year_online:
-                #     service_rate_online += element.effective_capacity * element.eff_fact
+                if year >= element.year_online:
+                    service_rate_online += element.effective_capacity
 
-            #todo: moet dit niet min(effective_capacity) van alle elementen zijn, want is toch geen optelling?
+            # todo: moet dit niet min(effective_capacity) van alle elementen zijn, want is toch geen optelling?
             time_at_berth_handysize_planned = handysize_calls * (
-                    (defaults.handysize_data["call_size"] / service_rate_planned) + defaults.handysize_data["mooring_time"])
+                    (defaults.handysize_data["call_size"] / service_rate_planned) + defaults.handysize_data[
+                "mooring_time"])
             time_at_berth_handymax_planned = handymax_calls * (
-                    (defaults.handymax_data["call_size"] / service_rate_planned) + defaults.handymax_data["mooring_time"])
+                    (defaults.handymax_data["call_size"] / service_rate_planned) + defaults.handymax_data[
+                "mooring_time"])
             time_at_berth_panamax_planned = panamax_calls * (
                     (defaults.panamax_data["call_size"] / service_rate_planned) + defaults.panamax_data["mooring_time"])
 
-            total_time_at_berth_planned = np.sum([time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
+            total_time_at_berth_planned = np.sum(
+                [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
 
             # berth_occupancy is the total time at berth devided by the operational hours
-            berth_occupancy = total_time_at_berth_planned / self.operational_hours
+            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
 
+            if service_rate_online != 0:
+                time_at_berth_handysize_online = handysize_calls * (
+                        (defaults.handysize_data["call_size"] / service_rate_online) + defaults.handysize_data[
+                    "mooring_time"])
+                time_at_berth_handymax_online = handymax_calls * (
+                        (defaults.handymax_data["call_size"] / service_rate_online) + defaults.handymax_data[
+                    "mooring_time"])
+                time_at_berth_panamax_online = panamax_calls * (
+                        (defaults.panamax_data["call_size"] / service_rate_online) + defaults.panamax_data["mooring_time"])
 
-            # time_at_berth_handysize_online = handysize_calls * (
-            #         (defaults.handysize_data["call_size"] / service_rate_online) + defaults.handysize_data[
-            #     "mooring_time"])
-            # time_at_berth_handymax_online = handymax_calls * (
-            #         (defaults.handymax_data["call_size"] / service_rate_online) + defaults.handymax_data[
-            #     "mooring_time"])
-            # time_at_berth_panamax_online = panamax_calls * (
-            #         (defaults.panamax_data["call_size"] / service_rate_online) + defaults.panamax_data["mooring_time"])
-            #
-            # total_time_at_berth_online = np.sum([time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
-            #
-            # # berth_occupancy is the total time at berth devided by the operational hours
-            # berth_occupancy_online = total_time_at_berth_online / self.operational_hours
+                total_time_at_berth_online = np.sum(
+                    [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
+
+                # berth_occupancy is the total time at berth devided by the operational hours
+                berth_occupancy_online = total_time_at_berth_online / self.operational_hours
+            else:
+                berth_occupancy_online = float("inf")
+
 
         else:
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-            berth_occupancy = float("inf")
+            berth_occupancy_planned = float("inf")
+            berth_occupancy_online = float("inf")
 
-        return berth_occupancy
+        return berth_occupancy_planned, berth_occupancy_online
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)
