@@ -388,7 +388,10 @@ class System:
             # - opex
             storage.insurance = storage.capex * storage.insurance_perc
             storage.maintenance = storage.capex * storage.maintenance_perc
-            storage.energy = storage.consumption * storage.capacity * self.operational_hours
+
+            #energy
+            energy = Energy(**defaults.energy_data)
+            storage.energy = storage.consumption * storage.capacity * self.operational_hours * energy.price
 
             occupancy = 0.95
             # todo: check if this hard coded number is correct
@@ -470,7 +473,10 @@ class System:
             occupancy = 0.95
             consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
             hours = self.operational_hours * occupancy
-            conveyor.energy = consumption * hours
+
+            #energy
+            energy = Energy(**defaults.energy_data)
+            conveyor.energy = consumption * hours * energy.price
 
             conveyor.year_online = year + conveyor.delivery_time
 
@@ -525,7 +531,9 @@ class System:
             # - opex
             hinterland_station.insurance = hinterland_station.capex * hinterland_station.insurance_perc
             hinterland_station.maintenance = hinterland_station.capex * hinterland_station.maintenance_perc
-            hinterland_station.energy = hinterland_station.consumption * hinterland_station.production * self.operational_hours
+
+            energy = Energy(**defaults.energy_data)
+            hinterland_station.energy = hinterland_station.consumption * hinterland_station.production * self.operational_hours * energy.price
 
             hinterland_station.year_online = year + hinterland_station.delivery_time
 
