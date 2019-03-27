@@ -119,10 +119,10 @@ class System:
         if self.debug:
             print('  Revenues (demand): {}'.format(revenues))
 
-        # handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        # berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
-        #                                                                                  handymax_calls,
-        #                                                                                  panamax_calls)
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
+                                                                                         handymax_calls,
+                                                                                         panamax_calls)
         # # # find the total service rate,
         # service_rate = 0
         # for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
@@ -134,7 +134,7 @@ class System:
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
-                service_rate += element.effective_capacity * element.eff_fact
+                service_rate += element.effective_capacity * berth_occupancy_online
 
         if self.debug:
             print('  Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
@@ -313,8 +313,8 @@ class System:
 
         #   energy
         energy = Energy(**defaults.energy_data)
-        # handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        # berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
         # this is needed because at greenfield startup occupancy is still inf
 
@@ -325,14 +325,14 @@ class System:
         hours = self.operational_hours * berth_occupancy_online
         crane.energy = consumption * hours * energy.price
         # todo: the energy costs needs to be calculated every year and not only in year 1 and than take this number for the
-        #  whole period (that is what at the moment happens)!!
+        #  whole period (that is what at the moment happens)
 
         #   labour
         labour = Labour(**defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
-        crane.labour = ((crane.crew * self.operational_hours) / (
-                labour.shift_length * labour.annual_shifts)) * labour.operational_salary
-        # todo: check the labour formulation!
+        crane.shift = ((crane.crew * self.operational_hours) / (
+                labour.shift_length * labour.annual_shifts))
+        crane.labour = crane.shift * labour.operational_salary
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
