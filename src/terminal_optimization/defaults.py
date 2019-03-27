@@ -82,25 +82,25 @@ harbour_crane_data = {"name": 'Harbour_crane_01',
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 40,
-                      "unit_rate": 10_500_000,
+                      "unit_rate": 7_880_000, #10_500_000 old number todo: check if correct
                       "mobilisation_perc": 0.15,
                       "maintenance_perc": 0.02,
                       "consumption": 210,
                       "insurance_perc": 0.01,
                       "crew": 3,
                       "crane_type": 'Harbour crane',
-                      "lifting_capacity": 40,
+                      "lifting_capacity": 25, #40 old number todo: why was this 40?
                       "hourly_cycles": 40,
                       "eff_fact": 0.40}
 
 mobile_crane_data = {"name": 'Mobile_crane_01',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
-                     "lifespan": 20,
+                     "lifespan": 40, #20 old number todo: why was this 20?
                      "unit_rate": 3_325_000,
                      "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.031,
-                     "consumption": 310,
+                     "maintenance_perc": 0.02,#0.031 old number todo: checking why was this 0.031
+                     "consumption": 485, # 310 old number todo: checking why this was 310 istead of 485
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Mobile crane',
