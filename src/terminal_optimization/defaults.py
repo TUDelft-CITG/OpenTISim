@@ -41,14 +41,16 @@ quay_wall_data = {"name": 'Quay_01',
                   "delivery_time": 2,
                   "lifespan": 50,
                   "mobilisation_min": 2_500_000,  # Ijzermans, 2019, P 96
-                  "mobilisation_perc": 0.02,
+                  "mobilisation_perc": 0.01,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "freeboard": 4,
                   "Gijt_constant": 757.20,
                   "Gijt_coefficient": 1.2878,
-                  "length": 400,  # should probably be calculated
-                  "depth": 14}  # should probably be calculated
+                  "length": 0,
+                  "depth": 0}
+
+# todo:  length & depth removing from defaults
 
 # *** Default inputs: Berth class ***
 
