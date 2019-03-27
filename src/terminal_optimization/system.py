@@ -244,6 +244,7 @@ class System:
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
+
     def quay_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
@@ -259,13 +260,14 @@ class System:
         if self.debug:
             print('  *** add Quay to elements')
         # add a Quay_wall element
+
         quay_wall = Quay_wall(**defaults.quay_wall_data)
 
         # - capex
         unit_rate = int(
             quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
-        quay_wall.capex = int(length * unit_rate + mobilisation)
+        quay_wall.capex = int(length * unit_rate *0.01 + mobilisation)
 
         # todo: review the formulas
 
@@ -657,6 +659,7 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
+
     def cashflow_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
@@ -801,20 +804,20 @@ class System:
 
         # capex
         if year_delivery > 1:
-            df.loc[df["year"] == year_online - 1, "capex"] = 0.6 * capex
-            df.loc[df["year"] == year_online, "capex"] = 0.4 * capex
+            df.loc[df["year"] == year_online - 2, "capex"] = 0.6 * capex
+            df.loc[df["year"] == year_online-1, "capex"] = 0.4 * capex
         else:
-            df.loc[df["year"] == year_online, "capex"] = capex
+            df.loc[df["year"] == year_online-1, "capex"] = capex
 
         # opex
         if maintenance:
-            df.loc[df["year"] > year_online, "maintenance"] = maintenance
+            df.loc[df["year"] >= year_online, "maintenance"] = maintenance
         if insurance:
-            df.loc[df["year"] > year_online, "insurance"] = insurance
+            df.loc[df["year"] >= year_online, "insurance"] = insurance
         if energy:
-            df.loc[df["year"] > year_online, "energy"] = energy
+            df.loc[df["year"] >= year_online, "energy"] = energy
         if labour:
-            df.loc[df["year"] > year_online, "labour"] = labour
+            df.loc[df["year"] >= year_online, "labour"] = labour
 
         df.fillna(0, inplace=True)
 
