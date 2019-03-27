@@ -237,7 +237,7 @@ class System:
 
             # check if a crane is needed
             if self.check_crane_slot_available():
-                self.crane_invest(year)
+                self.crane_invest(year, berth_occupancy_online)
 
                 berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
                                                                                                  handymax, panamax)
@@ -281,7 +281,7 @@ class System:
 
         self.elements.append(quay_wall)
 
-    def crane_invest(self, year):
+    def crane_invest(self, year, berth_occupancy_online):
         """current strategy is to add cranes as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -313,16 +313,19 @@ class System:
 
         #   energy
         energy = Energy(**defaults.energy_data)
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+        # handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        # berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+
         # this is needed because at greenfield startup occupancy is still inf
-        if berth_occupancy_planned == np.inf:
-            berth_occupancy_planned = 0.4
+
+        if berth_occupancy_online == np.inf:
+            berth_occupancy_online = 0.4
+
         consumption = crane.consumption
-        hours = self.operational_hours * berth_occupancy_planned
+        hours = self.operational_hours * berth_occupancy_online
         crane.energy = consumption * hours * energy.price
-        # todo: check the energy formulation!
-        # todo: NB: with high berth occupancy rates the opex becomes high this way
+        # todo: the energy costs needs to be calculated every year and not only in year 1 and than take this number for the
+        #  whole period (that is what at the moment happens)!!
 
         #   labour
         labour = Labour(**defaults.labour_data)
