@@ -312,6 +312,7 @@ class System:
         # in which case the energy costs decreases.
 
         #   energy
+        energy = Energy(**defaults.energy_data)
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         # this is needed because at greenfield startup occupancy is still inf
@@ -319,7 +320,7 @@ class System:
             berth_occupancy_planned = 0.4
         consumption = crane.consumption
         hours = self.operational_hours * berth_occupancy_planned
-        crane.energy = consumption * hours
+        crane.energy = consumption * hours * energy.price
         # todo: check the energy formulation!
         # todo: NB: with high berth occupancy rates the opex becomes high this way
 
