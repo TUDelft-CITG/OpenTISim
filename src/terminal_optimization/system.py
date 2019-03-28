@@ -85,7 +85,7 @@ class System:
             #
             self.storage_invest(year, self.storage_type_defaults)
             #
-            self.conveyor_invest(year, defaults.hinterland_conveyor_data)
+            # self.conveyor_invest(year, defaults.hinterland_conveyor_data)
             #
             # # self.calculate_train_calls(year)
             # self.unloading_station_invest(year, 1000)
@@ -436,7 +436,6 @@ class System:
             service_peakcapacity_cranes = 0
             for element in list_of_elements_Crane:
                 service_peakcapacity_cranes += element.peak_capacity
-        #todo: element.peak_capacity from cranes is not good defined, different peak capacity in results
 
         # list all conveyor objects in system
         list_of_elements = self.find_elements(Conveyor)
