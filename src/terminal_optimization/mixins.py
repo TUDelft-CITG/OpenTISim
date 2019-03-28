@@ -227,7 +227,7 @@ class storage_properties_mixin(object):
 
 class unloading_station_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
-                 insurance_perc, consumption, crew, production, *args, **kwargs):
+                 insurance_perc, consumption, crew, production, wagon_payload, number_of_wagons, prep_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -240,7 +240,11 @@ class unloading_station_properties_mixin(object):
         self.consumption = consumption
         self.crew = crew
         self.production = production
-
+        self.wagon_payload = wagon_payload
+        self.number_of_wagons = number_of_wagons
+        self.prep_time = prep_time
+        self.call_size = int(self.wagon_payload * self.number_of_wagons)
+        self.capacity = int(self.call_size / (self.call_size/self.production + self.prep_time))
 
 class commodity_properties_mixin(object):
     def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):

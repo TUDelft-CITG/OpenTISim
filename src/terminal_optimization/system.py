@@ -86,9 +86,11 @@ class System:
             self.storage_invest(year, self.storage_type_defaults)
             #
             self.conveyor_hinter_invest(year, defaults.hinterland_conveyor_data)
+
+            # self.unloading_station_invest(year)
             #
             # # self.calculate_train_calls(year)
-            # self.unloading_station_invest(year, 1000)
+
 
         # 2. collect cash flows
 
@@ -167,6 +169,7 @@ class System:
         self.report_element(Conveyor_Quay, year)
         self.report_element(Storage, year)
         self.report_element(Conveyor_Hinter, year)
+        self.report_element(Unloading_station, year)
         if self.debug:
             print('')
             print('  Start analysis:')
@@ -448,7 +451,6 @@ class System:
                     storage_capacity += element.capacity
                     if year >= element.year_online:
                         storage_capacity_online += element.capacity
-        # todo: understand storage capacity formulation
 
         if self.debug:
             print('a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
@@ -485,7 +487,10 @@ class System:
             hours = self.operational_hours
             storage.energy = consumption * capacity * hours * energy.price
 
-            storage.year_online = year + storage.delivery_time
+            if year == self.startyear:
+                storage.year_online = year + storage.delivery_time + 1
+            else:
+                storage.year_online = year + storage.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             storage = self.add_cashflow_data_to_element(storage)
@@ -508,88 +513,77 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        # list all crane objects in system
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
+        # # find unloading capacity of the unloading station
+        # list_of_elements_Unloading = self.find_elements(Unloading_station)
+        #
+        # # find the total service rate
+        # if list_of_elements_Unloading != []:
+        #     service_capacity_unloading = 0
+        #     for element in list_of_elements_Unloading:
+        #         service_capacity_unloading += element.peak_capacity
+        #
+        # # list all conveyor objects in system
+        # list_of_elements = self.find_elements(Conveyor_Hinter)
+        #
+        # # find the total service rate
+        # service_capacity = 0
+        # service_capacity_online = 0
+        # if list_of_elements != []:
+        #     for element in list_of_elements:
+        #         if element.type == defaults_hinterland_conveyor_data['type']:
+        #             service_capacity += element.capacity_steps
+        #             if year >= element.year_online:
+        #                 service_capacity_online += element.capacity_steps
+        #
+        # if self.debug:
+        #     print('a total of {} ton of {} conveyor hinterland service capacity is online; {} ton total planned'.format(
+        #         service_capacity_online,
+        #         defaults_hinterland_conveyor_data['type'],
+        #         service_capacity))
+        #
+        # # check if total planned length is smaller than target length, if so add a quay
+        # while service_capacity < service_capacity_unloading:
+        #     # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
+        #     if self.debug:
+        #         print('add Conveyor to elements')
+        #     conveyor = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
+        #
+        #     # - capex
+        #     capacity = conveyor.capacity_steps
+        #     unit_rate = conveyor.unit_rate_factor * conveyor.length
+        #     mobilisation = conveyor.mobilisation
+        #     conveyor.capex = int(capacity * unit_rate + mobilisation)
+        #
+        #     # - opex
+        #     conveyor.insurance = conveyor.capex * conveyor.insurance_perc
+        #     conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
+        #
+        #     #   energy
+        #     energy = Energy(**defaults.energy_data)
+        #     consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
+        #     hours = self.operational_hours #* occupancy station #todo: the station occupancy is not yet defined
+        #     conveyor.energy = consumption * hours * energy.price
+        #
+        #     # year online
+        #     years_online = []
+        #     for element in list_of_elements_Unloading:
+        #         years_online.append(element.year_online)
+        #     conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
+        #     #todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
+        #
+        #     # add cash flow information to quay_wall object in a dataframe
+        #     conveyor.hinter = self.add_cashflow_data_to_element(conveyor)
+        #
+        #     self.elements.append(conveyor.hinter)
+        #
+        #     service_capacity += conveyor.capacity_steps
+        #
+        # if self.debug:
+        #     print('a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+        #         service_capacity_online,
+        #         service_capacity))
 
-        # find the total service rate
-        if list_of_elements_Crane != []:
-            service_peakcapacity_cranes = 0
-            for element in list_of_elements_Crane:
-                service_peakcapacity_cranes += element.peak_capacity
-
-        # list all conveyor objects in system
-        list_of_elements = self.find_elements(Conveyor_Hinter)
-
-        # find the total service rate
-        service_capacity = 0
-        service_capacity_online = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                if element.type == defaults_hinterland_conveyor_data['type']:
-                    service_capacity += element.capacity_steps
-                    if year >= element.year_online:
-                        service_capacity_online += element.capacity_steps
-
-        if self.debug:
-            print('a total of {} ton of {} conveyor hinterland service capacity is online; {} ton total planned'.format(
-                service_capacity_online,
-                defaults_hinterland_conveyor_data['type'],
-                service_capacity))
-
-        # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity < service_peakcapacity_cranes:
-            # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
-            if self.debug:
-                print('add Conveyor to elements')
-            conveyor = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
-
-            # - capex
-            capacity = conveyor.capacity_steps
-            unit_rate = conveyor.unit_rate_factor * conveyor.length
-            mobilisation = conveyor.mobilisation
-            conveyor.capex = int(capacity * unit_rate + mobilisation)
-
-            # - opex
-            conveyor.insurance = conveyor.capex * conveyor.insurance_perc
-            conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
-
-            #   energy
-            energy = Energy(**defaults.energy_data)
-            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax,                                                                                           panamax)
-
-            # this is needed because at greenfield startup occupancy is still inf
-            if berth_occupancy_online == np.inf:
-                berth_occupancy_online = 0.4
-            #todo: the berht occupancy is not yet well defined (it does not calculate every year a new berth occupancy)
-
-            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
-            hours = self.operational_hours * berth_occupancy_online
-            conveyor.energy = consumption * hours * energy.price
-
-            # year online
-
-            years_online = []
-            for element in list_of_elements_Crane:
-                years_online.append(element.year_online)
-            conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
-            #todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
-
-            # add cash flow information to quay_wall object in a dataframe
-            conveyor.hinter = self.add_cashflow_data_to_element(conveyor)
-
-            self.elements.append(conveyor.hinter)
-
-            service_capacity += conveyor.capacity_steps
-
-        if self.debug:
-            print('a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                service_capacity_online,
-                service_capacity))
-
-    def unloading_station_invest(self, year, service_capacity_trigger):
+    def unloading_station_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -597,54 +591,54 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        # from all Conveyor objects sum online capacity
-        service_capacity = 0
-        service_capacity_online = 0
-        list_of_elements = self.find_elements(Unloading_station)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                service_capacity += element.production
-                if year >= element.year_online:
-                    service_capacity_online += element.production
-        # todo: understand conveyors capacity formulation
-
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
         if self.debug:
-            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online,
-                service_capacity))
+                print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
+                print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
 
-        # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity < service_capacity_trigger:
+        allowable_station_occupancy = .4  # is 40 %
+
+        while station_occupancy_planned > allowable_station_occupancy:
+            # add a station when station occupancy is too high
             if self.debug:
-                print('add Unloading_station to elements')
-            hinterland_station = Unloading_station(**defaults.hinterland_station_data)
+                print('  *** add station to elements')
+
+            # station = Unloading_station(**defaults.hinterland_station_data)
+            # station.year_online = year + station.delivery_time
+            #
+            # self.elements.append(station)
+
+
+            station = Unloading_station(**defaults.hinterland_station_data)
 
             # - capex
-            delta = hinterland_station.production
-            unit_rate = hinterland_station.unit_rate
-            mobilisation = hinterland_station.mobilisation
-            hinterland_station.capex = int(delta * unit_rate + mobilisation)
+            unit_rate = station.unit_rate
+            mobilisation = station.mobilisation
+            station.capex = int(unit_rate + mobilisation)
 
             # - opex
-            hinterland_station.insurance = hinterland_station.capex * hinterland_station.insurance_perc
-            hinterland_station.maintenance = hinterland_station.capex * hinterland_station.maintenance_perc
+            station.insurance = station.capex * station.insurance_perc
+            station.maintenance = station.capex * station.maintenance_perc
+            station.labour = 0
+
+            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
             energy = Energy(**defaults.energy_data)
-            hinterland_station.energy = hinterland_station.consumption * hinterland_station.production * self.operational_hours * energy.price
+            station.energy = station.consumption * self.operational_hours * station_occupancy_online * energy.price
 
-            hinterland_station.year_online = year + hinterland_station.delivery_time
+            station.year_online = year + station.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            hinterland_station = self.add_cashflow_data_to_element(hinterland_station)
+            station = self.add_cashflow_data_to_element(station)
 
-            self.elements.append(hinterland_station)
+            self.elements.append(station)
 
-            service_capacity += hinterland_station.production
-
-        if self.debug:
-            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online,
-                service_capacity))
+        #     service_capacity += station.production
+        #
+        # if self.debug:
+        #     print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+        #         service_capacity_online,
+        #         service_capacity))
 
     # *** Financial analyses
 
@@ -1051,6 +1045,45 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online
 
+    def calculate_station_occupancy(self, year):
+        """
+        - Find all cranes and sum their effective_capacity to get service_capacity
+        - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
+        - Occupancy is total_time_at_berth divided by operational hours
+        """
+
+        list_of_elements = self.find_elements(Unloading_station)
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+
+        service_rate_planned = 0
+        service_rate_online = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                service_rate_planned += element.capacity
+                if year >= element.year_online:
+                    service_rate_online += element.capacity
+
+            time_at_station_planned = total_vol / element.capacity
+
+            # station_occupancy is the total time at station divided by the operational hours
+            station_occupancy_planned = time_at_station_planned / self.operational_hours
+
+            if service_rate_online != 0:
+                time_at_station_online = total_vol / element.capacity
+
+                # station occupancy is the total time at berth divided by the operational hours
+                station_occupancy_online = min([time_at_station_online / self.operational_hours, 1])
+            else:
+                station_occupancy_online = float("inf")
+
+        else:
+            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            station_occupancy_planned = float("inf")
+            station_occupancy_online = float("inf")
+
+        return station_occupancy_online, station_occupancy_planned
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)

@@ -205,7 +205,10 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
                            "consumption": 100,
                            "insurance_perc": 0.01,
                            "crew": 2,
-                           "production": 800}
+                           "production": 800,
+                           "wagon_payload" : 60,
+                           "number_of_wagons": 60,
+                           "prep_time": 2}
 
 # *** Default inputs: Commodity class ***
 
