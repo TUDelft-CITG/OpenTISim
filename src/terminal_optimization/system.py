@@ -433,9 +433,10 @@ class System:
 
         # find the total service rate
         if list_of_elements != []:
-            service_capacity_cranes = 0
+            service_peakcapacity_cranes = 0
             for element in list_of_elements:
-                service_capacity_cranes += element.effective_capacity
+                service_peakcapacity_cranes += element.peak_capacity
+#todo: element.peak_capacity from cranes is not good defined, different peak capacity in results
 
         # list all conveyor objects in system
         list_of_elements = self.find_elements(Conveyor)
@@ -449,7 +450,6 @@ class System:
                     service_capacity += element.capacity_steps
                     if year >= element.year_online:
                         service_capacity_online += element.capacity_steps
-        # todo: understand conveyors capacity formulation
 
         if self.debug:
             print('a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
@@ -458,7 +458,7 @@ class System:
                 service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity < service_capacity_cranes:
+        while service_capacity < service_peakcapacity_cranes:
             # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
             if self.debug:
                 print('add Conveyor to elements')
