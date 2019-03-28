@@ -429,14 +429,14 @@ class System:
         # list all crane objects in system
         list_of_elements_1 = self.find_elements(Cyclic_Unloader)
         list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
+        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
 
         # find the total service rate
-        if list_of_elements != []:
+        if list_of_elements_Crane != []:
             service_peakcapacity_cranes = 0
-            for element in list_of_elements:
+            for element in list_of_elements_Crane:
                 service_peakcapacity_cranes += element.peak_capacity
-#todo: element.peak_capacity from cranes is not good defined, different peak capacity in results
+        #todo: element.peak_capacity from cranes is not good defined, different peak capacity in results
 
         # list all conveyor objects in system
         list_of_elements = self.find_elements(Conveyor)
@@ -482,13 +482,9 @@ class System:
             conveyor.energy = consumption * hours * energy.price
 
             years_online = []
-            for element in self.find_elements(Cyclic_Unloader):
+            for element in list_of_elements_Crane:
                 years_online.append(element.year_online)
-            conveyor.year_online = max([year + conveyor.delivery_time, max(years_online) - 1 + conveyor.delivery_time])
-
-
-
-            # conveyor.year_online = year + conveyor.delivery_time
+            conveyor.year_online = max(years_online) - 1 + conveyor.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor = self.add_cashflow_data_to_element(conveyor)
@@ -603,7 +599,7 @@ class System:
                         cranes[-1] += 1
                 if isinstance(element, Conveyor):
                     if year >= element.year_online:
-                                conveyors[-1] += 1
+                        conveyors[-1] += 1
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
