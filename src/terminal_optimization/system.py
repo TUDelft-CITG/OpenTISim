@@ -81,11 +81,11 @@ class System:
 
             self.calculate_revenue(year)
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
-            self.conveyor_invest(year, defaults.quay_conveyor_data)
+            self.conveyor_quay_invest(year, defaults.quay_conveyor_data)
             #
             self.storage_invest(year, self.storage_type_defaults)
             #
-            # self.conveyor_invest(year, defaults.hinterland_conveyor_data)
+            self.conveyor_hinter_invest(year, defaults.hinterland_conveyor_data)
             #
             # # self.calculate_train_calls(year)
             # self.unloading_station_invest(year, 1000)
@@ -164,8 +164,9 @@ class System:
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
         self.report_element(Continuous_Unloader, year)
-        self.report_element(Conveyor, year)
+        self.report_element(Conveyor_Quay, year)
         self.report_element(Storage, year)
+        self.report_element(Conveyor_Hinter, year)
         if self.debug:
             print('')
             print('  Start analysis:')
@@ -339,6 +340,95 @@ class System:
         # add object to elements
         self.elements.append(crane)
 
+    def conveyor_quay_invest(self, year, defaults_quay_conveyor_data):
+        """current strategy is to add conveyors as soon as a service trigger is achieved
+        - find out how much service capacity is online
+        - find out how much service capacity is planned
+        - find out how much service capacity is needed
+        - add service capacity until service_trigger is no longer exceeded
+        """
+
+        # list all crane objects in system
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
+
+        # find the total service rate
+        if list_of_elements_Crane != []:
+            service_peakcapacity_cranes = 0
+            for element in list_of_elements_Crane:
+                service_peakcapacity_cranes += element.peak_capacity
+
+        # list all conveyor objects in system
+        list_of_elements = self.find_elements(Conveyor_Quay)
+
+        # find the total service rate
+        service_capacity = 0
+        service_capacity_online = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                if element.type == defaults_quay_conveyor_data['type']:
+                    service_capacity += element.capacity_steps
+                    if year >= element.year_online:
+                        service_capacity_online += element.capacity_steps
+
+        if self.debug:
+            print('a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
+                service_capacity_online,
+                defaults_quay_conveyor_data['type'],
+                service_capacity))
+
+        # check if total planned length is smaller than target length, if so add a quay
+        while service_capacity < service_peakcapacity_cranes:
+            # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
+            if self.debug:
+                print('add Conveyor to elements')
+            conveyor = Conveyor_Quay(**defaults_quay_conveyor_data)
+
+            # - capex
+            capacity = conveyor.capacity_steps
+            unit_rate = conveyor.unit_rate_factor * conveyor.length
+            mobilisation = conveyor.mobilisation
+            conveyor.capex = int(capacity * unit_rate + mobilisation)
+
+            # - opex
+            conveyor.insurance = conveyor.capex * conveyor.insurance_perc
+            conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
+
+            #   energy
+            energy = Energy(**defaults.energy_data)
+            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax,
+                                                                                             panamax)
+
+            # this is needed because at greenfield startup occupancy is still inf
+            if berth_occupancy_online == np.inf:
+                berth_occupancy_online = 0.4
+            # todo: the berht occupancy is not yet well defined (it does not calculate every year a new berth occupancy)
+
+            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
+            hours = self.operational_hours * berth_occupancy_online
+            conveyor.energy = consumption * hours * energy.price
+
+            # year online
+
+            years_online = []
+            for element in list_of_elements_Crane:
+                years_online.append(element.year_online)
+            conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
+            # todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
+
+            # add cash flow information to quay_wall object in a dataframe
+            conveyor.quay = self.add_cashflow_data_to_element(conveyor)
+
+            self.elements.append(conveyor.quay)
+
+            service_capacity += conveyor.capacity_steps
+
+        if self.debug:
+            print('a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
+                service_capacity_online,
+                service_capacity))
 
     def storage_invest(self, year, defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved
@@ -410,7 +500,7 @@ class System:
                         storage_capacity_online,
                         storage_capacity))
 
-    def conveyor_invest(self, year, defaults_quay_conveyor_data):
+    def conveyor_hinter_invest(self, year, defaults_hinterland_conveyor_data):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -430,22 +520,22 @@ class System:
                 service_peakcapacity_cranes += element.peak_capacity
 
         # list all conveyor objects in system
-        list_of_elements = self.find_elements(Conveyor)
+        list_of_elements = self.find_elements(Conveyor_Hinter)
 
         # find the total service rate
         service_capacity = 0
         service_capacity_online = 0
         if list_of_elements != []:
             for element in list_of_elements:
-                if element.type == defaults_quay_conveyor_data['type']:
+                if element.type == defaults_hinterland_conveyor_data['type']:
                     service_capacity += element.capacity_steps
                     if year >= element.year_online:
                         service_capacity_online += element.capacity_steps
 
         if self.debug:
-            print('a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
+            print('a total of {} ton of {} conveyor hinterland service capacity is online; {} ton total planned'.format(
                 service_capacity_online,
-                defaults_quay_conveyor_data['type'],
+                defaults_hinterland_conveyor_data['type'],
                 service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
@@ -453,7 +543,7 @@ class System:
             # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
             if self.debug:
                 print('add Conveyor to elements')
-            conveyor = Conveyor(**defaults_quay_conveyor_data)
+            conveyor = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
 
             # - capex
             capacity = conveyor.capacity_steps
@@ -488,14 +578,14 @@ class System:
             #todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
 
             # add cash flow information to quay_wall object in a dataframe
-            conveyor = self.add_cashflow_data_to_element(conveyor)
+            conveyor.hinter = self.add_cashflow_data_to_element(conveyor)
 
-            self.elements.append(conveyor)
+            self.elements.append(conveyor.hinter)
 
             service_capacity += conveyor.capacity_steps
 
         if self.debug:
-            print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+            print('a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
                 service_capacity_online,
                 service_capacity))
 
@@ -570,7 +660,7 @@ class System:
     def profits(self):
         pass
 
-    def terminal_elements_plot(self, width=0.2, alpha=0.6):
+    def terminal_elements_plot(self, width=0.15, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -578,16 +668,18 @@ class System:
         berths = []
         cranes = []
         quays = []
-        conveyors =[]
+        conveyors_quay =[]
         storages = []
+        conveyors_hinterland = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             berths.append(0)
             quays.append(0)
             cranes.append(0)
+            conveyors_quay.append(0)
             storages.append(0)
-            conveyors.append(0)
+            conveyors_hinterland.append(0)
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
@@ -598,22 +690,26 @@ class System:
                 if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
-                if isinstance(element, Conveyor):
+                if isinstance(element, Conveyor_Quay):
                     if year >= element.year_online:
-                        conveyors[-1] += 1
+                        conveyors_quay[-1] += 1
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
+                if isinstance(element, Conveyor_Hinter):
+                    if year >= element.year_online:
+                        conveyors_hinterland[-1] += 1
+
 
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral', edgecolor= 'crimson')
-        ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid', edgecolor='purple' )
-        ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue', edgecolor= 'blue')
-        ax.bar([x + 1.5 * width for x in years], conveyors, width=width, alpha=alpha, label="conveyors quay", color='lightgreen', edgecolor= 'green')
-        ax.bar([x + 2.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange', edgecolor= 'orangered')
-
+        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral', edgecolor= 'crimson')
+        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid', edgecolor='purple' )
+        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue', edgecolor= 'blue')
+        ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay", color='lightgreen', edgecolor= 'green')
+        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange', edgecolor= 'orangered')
+        ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter", color='grey', edgecolor='black')
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
         ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))

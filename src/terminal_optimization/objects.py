@@ -79,7 +79,7 @@ Continuous_Unloader = type('Continuous_Unloader', (mixins.identifiable_propertie
 # The generic Conveyor class
 # - Quay_conveyor
 # - Hinterland_conveyor
-Conveyor = type('Conveyor', (mixins.identifiable_properties_mixin,  # Give it a name
+Conveyor_Quay = type('Conveyor_Quay', (mixins.identifiable_properties_mixin,  # Give it a name
                              mixins.history_properties_mixin,  # Give it procurement history
                              mixins.conveyor_properties_mixin,
                              mixins.hascapex_properties_mixin,  # Give it capex info
@@ -87,6 +87,16 @@ Conveyor = type('Conveyor', (mixins.identifiable_properties_mixin,  # Give it a 
                              mixins.hasrevenue_properties_mixin,  # Give it revenue info
                              mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
+
+Conveyor_Hinter = type('Conveyor_Hinter', (mixins.identifiable_properties_mixin,  # Give it a name
+                             mixins.history_properties_mixin,  # Give it procurement history
+                             mixins.conveyor_properties_mixin,
+                             mixins.hascapex_properties_mixin,  # Give it capex info
+                             mixins.hasopex_properties_mixin,  # Give it opex info
+                             mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                             mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+                {})  # The dictionary is empty because the site type is generic
+
 
 # todo: check if Unloader and Conveyor can be the same
 
