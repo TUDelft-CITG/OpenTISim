@@ -458,7 +458,7 @@ class System:
 
             # - capex
             delta = conveyor.capacity_steps
-            unit_rate = 6.0 * conveyor.length
+            unit_rate = conveyor.unit_rate_factor * conveyor.length
             mobilisation = conveyor.mobilisation
             conveyor.capex = int(delta * unit_rate + mobilisation)
 
