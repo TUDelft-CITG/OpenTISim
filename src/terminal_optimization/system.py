@@ -481,7 +481,14 @@ class System:
             energy = Energy(**defaults.energy_data)
             conveyor.energy = consumption * hours * energy.price
 
-            conveyor.year_online = year + conveyor.delivery_time
+            years_online = []
+            for element in self.find_elements(Cyclic_Unloader):
+                years_online.append(element.year_online)
+            conveyor.year_online = max([year + conveyor.delivery_time, max(years_online) - 1 + conveyor.delivery_time])
+
+
+
+            # conveyor.year_online = year + conveyor.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor = self.add_cashflow_data_to_element(conveyor)
@@ -566,7 +573,7 @@ class System:
     def profits(self):
         pass
 
-    def terminal_elements_plot(self, width=0.25, alpha=0.6):
+    def terminal_elements_plot(self, width=0.2, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -574,6 +581,7 @@ class System:
         berths = []
         cranes = []
         quays = []
+        conveyors =[]
         storages = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
@@ -582,6 +590,7 @@ class System:
             quays.append(0)
             cranes.append(0)
             storages.append(0)
+            conveyors.append(0)
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
@@ -592,6 +601,9 @@ class System:
                 if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
+                if isinstance(element, Conveyor):
+                    if year >= element.year_online:
+                                conveyors[-1] += 1
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
@@ -599,10 +611,10 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='pink')
-        ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='red')
-        ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue')
-        # ax.bar([x + 1.5 * width for x in years], berth_occupancy_online, width=width, alpha=alpha, label="cranes", color='blue')
+        ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral', edgecolor= 'crimson')
+        ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid', edgecolor='purple' )
+        ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue', edgecolor= 'blue')
+        ax.bar([x + 1.5 * width for x in years], conveyors, width=width, alpha=alpha, label="conveyors", color='lightgreen', edgecolor= 'green')
         # ax.bar([x + 1.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
 
         ax.set_xlabel('Years')
@@ -918,7 +930,7 @@ class System:
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
 
-            # berth_occupancy is the total time at berth devided by the operational hours
+            # berth_occupancy is the total time at berth divided by the operational hours
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
 
             if service_rate_online != 0:
