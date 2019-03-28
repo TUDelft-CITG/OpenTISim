@@ -366,10 +366,13 @@ class System:
                 defaults_storage_data['type'],
                 storage_capacity))
 
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+
         max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
+        storage_capacity_dwelltime = (total_vol * 0.05)*1.1
 
         # check if sufficient storage capacity is available
-        while storage_capacity < max_vessel_call_size:
+        while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
             # todo: added the option that minimum storage size is at least as big as the largest vessel's call_size
             # todo: find a way to add dwell time
             if self.debug:
@@ -457,20 +460,27 @@ class System:
             conveyor = Conveyor(**defaults_quay_conveyor_data)
 
             # - capex
-            delta = conveyor.capacity_steps
+            capacity = conveyor.capacity_steps
             unit_rate = conveyor.unit_rate_factor * conveyor.length
             mobilisation = conveyor.mobilisation
-            conveyor.capex = int(delta * unit_rate + mobilisation)
+            conveyor.capex = int(capacity * unit_rate + mobilisation)
 
             # - opex
             conveyor.insurance = conveyor.capex * conveyor.insurance_perc
             conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
-            occupancy = 0.95
-            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
-            hours = self.operational_hours * occupancy
 
-            #energy
+            #   energy
             energy = Energy(**defaults.energy_data)
+            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax,                                                                                           panamax)
+
+            # this is needed because at greenfield startup occupancy is still inf
+            if berth_occupancy_online == np.inf:
+                berth_occupancy_online = 0.4
+            #todo: the berht occupancy is not yet well defined (it does not calculate every year a new berth occupancy)
+
+            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
+            hours = self.operational_hours * berth_occupancy_online
             conveyor.energy = consumption * hours * energy.price
 
             # year online
@@ -606,7 +616,7 @@ class System:
         ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid', edgecolor='purple' )
         ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue', edgecolor= 'blue')
         ax.bar([x + 1.5 * width for x in years], conveyors, width=width, alpha=alpha, label="conveyors quay", color='lightgreen', edgecolor= 'green')
-        # ax.bar([x + 1.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
+        ax.bar([x + 2.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange', edgecolor= 'orangered')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
