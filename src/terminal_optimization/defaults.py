@@ -174,7 +174,8 @@ silo_data = {"name": 'Silo_01',
              "insurance_perc": 0.01,
              "storage_type": 'Silos',
              "consumption": 0.002,
-             "capacity": 5_000}
+             "capacity": 5_000,
+             "occupancy": 0.95}
 
 warehouse_data = {"name": 'Warehouse_01',
                   "style": 'warehouse',

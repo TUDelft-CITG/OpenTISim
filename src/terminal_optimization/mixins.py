@@ -206,7 +206,7 @@ class conveyor_properties_mixin(object):
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity, *args, **kwargs):
+                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity, occupancy, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -222,6 +222,7 @@ class storage_properties_mixin(object):
         self.storage_type = storage_type
         self.consumption = consumption
         self.capacity = capacity
+        self.occupancy = occupancy
 
 
 class unloading_station_properties_mixin(object):

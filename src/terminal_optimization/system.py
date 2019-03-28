@@ -390,14 +390,10 @@ class System:
 
             #energy
             energy = Energy(**defaults.energy_data)
-            storage.energy = storage.consumption * storage.capacity * self.operational_hours * energy.price
-
-            occupancy = 0.95
-            # todo: check if this hard coded number is correct
             consumption = storage.consumption
-            capacity = storage.capacity * occupancy
+            capacity = storage.capacity * storage.occupancy
             hours = self.operational_hours
-            storage.energy = consumption * capacity * hours
+            storage.energy = consumption * capacity * hours * energy.price
 
             storage.year_online = year + storage.delivery_time
 
