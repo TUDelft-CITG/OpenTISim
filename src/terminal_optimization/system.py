@@ -123,13 +123,6 @@ class System:
         berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
                                                                                          handymax_calls,
                                                                                          panamax_calls)
-        # # # find the total service rate,
-        # service_rate = 0
-        # for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-        #     if year >= element.year_online:
-        #         service_rate +=  element.effective_capacity * self.operational_hours * berth_occupancy_online
-
-
         # find the total service rate,
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
@@ -480,10 +473,13 @@ class System:
             energy = Energy(**defaults.energy_data)
             conveyor.energy = consumption * hours * energy.price
 
+            # year online
+
             years_online = []
             for element in list_of_elements_Crane:
                 years_online.append(element.year_online)
-            conveyor.year_online = max(years_online) - 1 + conveyor.delivery_time
+            conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
+            #todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor = self.add_cashflow_data_to_element(conveyor)
@@ -609,7 +605,7 @@ class System:
         ax.bar([x - 1.5 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral', edgecolor= 'crimson')
         ax.bar([x - 0.5 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid', edgecolor='purple' )
         ax.bar([x + 0.5 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue', edgecolor= 'blue')
-        ax.bar([x + 1.5 * width for x in years], conveyors, width=width, alpha=alpha, label="conveyors", color='lightgreen', edgecolor= 'green')
+        ax.bar([x + 1.5 * width for x in years], conveyors, width=width, alpha=alpha, label="conveyors quay", color='lightgreen', edgecolor= 'green')
         # ax.bar([x + 1.5 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='green')
 
         ax.set_xlabel('Years')
