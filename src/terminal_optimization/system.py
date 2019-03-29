@@ -91,7 +91,6 @@ class System:
             #
             # # self.calculate_train_calls(year)
 
-
         # 2. collect cash flows
 
         # 3. collect revenues
@@ -122,14 +121,16 @@ class System:
             print('     Revenues (demand): {}'.format(revenues))
 
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
-                                                                                         handymax_calls,
-                                                                                         panamax_calls)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize_calls,
+            handymax_calls,
+            panamax_calls)
+
         # find the total service rate,
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
-                service_rate += element.effective_capacity * berth_occupancy_online
+                service_rate += element.effective_capacity * crane_occupancy_online
 
         if self.debug:
             print('     Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
@@ -175,7 +176,8 @@ class System:
             print('  Start analysis:')
 
         # calculate berth occupancy
-        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize, handymax, panamax)
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
@@ -190,7 +192,8 @@ class System:
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
 
-                berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                    year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
@@ -222,8 +225,9 @@ class System:
                 depth = np.sum([draft, max_sinkage, wave_motion, safety_margin])
                 self.quay_invest(year, length, depth)
 
-                berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
-                                                                                                 handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                    year, handysize,
+                    handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
@@ -232,8 +236,9 @@ class System:
             if self.check_crane_slot_available():
                 self.crane_invest(year, berth_occupancy_online)
 
-                berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize,
-                                                                                                 handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                    year, handysize,
+                    handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
@@ -260,7 +265,7 @@ class System:
         unit_rate = int(
             quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
-        quay_wall.capex = int(length * unit_rate *0.01 + mobilisation)
+        quay_wall.capex = int(length * unit_rate * 0.01 + mobilisation)
 
         # todo: review the formulas
 
@@ -307,15 +312,16 @@ class System:
         #   energy
         energy = Energy(**defaults.energy_data)
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize, handymax, panamax)
 
         # this is needed because at greenfield startup occupancy is still inf
-
         if berth_occupancy_online == np.inf:
             berth_occupancy_online = 0.4
+            crane_occupancy_online = 0.4
 
         consumption = crane.consumption
-        hours = self.operational_hours * berth_occupancy_online
+        hours = self.operational_hours * crane_occupancy_online
         crane.energy = consumption * hours * energy.price
         # todo: the energy costs needs to be calculated every year and not only in year 1 and than take this number for the
         #  whole period (that is what at the moment happens)
@@ -397,8 +403,9 @@ class System:
             #   energy
             energy = Energy(**defaults.energy_data)
             handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax,
-                                                                                             panamax)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                year, handysize, handymax,
+                panamax)
 
             # this is needed because at greenfield startup occupancy is still inf
             if berth_occupancy_online == np.inf:
@@ -457,7 +464,7 @@ class System:
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
 
         max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
-        storage_capacity_dwelltime = (total_vol * 0.05)*1.1
+        storage_capacity_dwelltime = (total_vol * 0.05) * 1.1
 
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
@@ -476,7 +483,7 @@ class System:
             storage.insurance = storage.capex * storage.insurance_perc
             storage.maintenance = storage.capex * storage.maintenance_perc
 
-            #energy
+            # energy
             energy = Energy(**defaults.energy_data)
             consumption = storage.consumption
             capacity = storage.capacity * storage.occupancy
@@ -589,8 +596,8 @@ class System:
 
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
         if self.debug:
-                print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
-                print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
+            print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
+            print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
 
         allowable_station_occupancy = .4  # is 40 %
 
@@ -613,7 +620,10 @@ class System:
             station.labour = 0
 
             energy = Energy(**defaults.energy_data)
-            station.energy = station.consumption * self.operational_hours * station_occupancy_online * energy.price
+            if station_occupancy_online == np.inf:
+                station.energy = 0
+            else:
+                station.energy = station.consumption * self.operational_hours * station_occupancy_online * energy.price
 
             station.year_online = year + station.delivery_time
 
@@ -655,7 +665,7 @@ class System:
         berths = []
         cranes = []
         quays = []
-        conveyors_quay =[]
+        conveyors_quay = []
         storages = []
         conveyors_hinterland = []
 
@@ -687,16 +697,21 @@ class System:
                     if year >= element.year_online:
                         conveyors_hinterland[-1] += 1
 
-
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral', edgecolor= 'crimson')
-        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid', edgecolor='purple' )
-        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue', edgecolor= 'blue')
-        ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay", color='lightgreen', edgecolor= 'green')
-        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange', edgecolor= 'orangered')
-        ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter", color='grey', edgecolor='black')
+        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral',
+               edgecolor='crimson')
+        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid',
+               edgecolor='purple')
+        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
+               edgecolor='blue')
+        ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
+               color='lightgreen', edgecolor='green')
+        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
+               edgecolor='orangered')
+        ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
+               color='grey', edgecolor='black')
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
         ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
@@ -723,14 +738,16 @@ class System:
             storages_capacity.append(0)
 
             handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls, handymax_calls, panamax_calls)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                year, handysize_calls, handymax_calls, panamax_calls)
 
             for element in self.elements:
                 if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
                     # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
                     if year >= element.year_online:
                         cranes[-1] += 1
-                        cranes_capacity[-1] += element.effective_capacity * self.operational_hours * berth_occupancy_online
+                        cranes_capacity[
+                            -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
@@ -762,7 +779,6 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
-
 
     def cashflow_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
@@ -909,9 +925,9 @@ class System:
         # capex
         if year_delivery > 1:
             df.loc[df["year"] == year_online - 2, "capex"] = 0.6 * capex
-            df.loc[df["year"] == year_online-1, "capex"] = 0.4 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.4 * capex
         else:
-            df.loc[df["year"] == year_online-1, "capex"] = capex
+            df.loc[df["year"] == year_online - 1, "capex"] = capex
 
         # opex
         if maintenance:
@@ -997,7 +1013,7 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
-
+            # estimate berth occupancy
             time_at_berth_handysize_planned = handysize_calls * (
                     (defaults.handysize_data["call_size"] / service_rate_planned) + defaults.handysize_data[
                 "mooring_time"])
@@ -1013,6 +1029,20 @@ class System:
             # berth_occupancy is the total time at berth divided by the operational hours
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
 
+            # estimate crane occupancy
+            time_at_crane_handysize_planned = handysize_calls * (
+                (defaults.handysize_data["call_size"] / service_rate_planned))
+            time_at_crane_handymax_planned = handymax_calls * (
+                (defaults.handymax_data["call_size"] / service_rate_planned))
+            time_at_crane_panamax_planned = panamax_calls * (
+                (defaults.panamax_data["call_size"] / service_rate_planned))
+
+            total_time_at_crane_planned = np.sum(
+                [time_at_crane_handysize_planned, time_at_crane_handymax_planned, time_at_crane_panamax_planned])
+
+            # berth_occupancy is the total time at berth divided by the operational hours
+            crane_occupancy_planned = total_time_at_crane_planned / self.operational_hours
+
             if service_rate_online != 0:
                 time_at_berth_handysize_online = handysize_calls * (
                         (defaults.handysize_data["call_size"] / service_rate_online) + defaults.handysize_data[
@@ -1021,22 +1051,40 @@ class System:
                         (defaults.handymax_data["call_size"] / service_rate_online) + defaults.handymax_data[
                     "mooring_time"])
                 time_at_berth_panamax_online = panamax_calls * (
-                        (defaults.panamax_data["call_size"] / service_rate_online) + defaults.panamax_data["mooring_time"])
+                        (defaults.panamax_data["call_size"] / service_rate_online) + defaults.panamax_data[
+                    "mooring_time"])
 
                 total_time_at_berth_online = np.sum(
                     [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
+
+                time_at_crane_handysize_online = handysize_calls * (
+                    (defaults.handysize_data["call_size"] / service_rate_online))
+                time_at_crane_handymax_online = handymax_calls * (
+                    (defaults.handymax_data["call_size"] / service_rate_online))
+                time_at_crane_panamax_online = panamax_calls * (
+                    (defaults.panamax_data["call_size"] / service_rate_online))
+
+                total_time_at_crane_online = np.sum(
+                    [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
+
+                # berth_occupancy is the total time at berth devided by the operational hours
+                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+
             else:
                 berth_occupancy_online = float("inf")
+                crane_occupancy_online = float("inf")
 
         else:
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
             berth_occupancy_planned = float("inf")
             berth_occupancy_online = float("inf")
+            crane_occupancy_planned = float("inf")
+            crane_occupancy_online = float("inf")
 
-        return berth_occupancy_planned, berth_occupancy_online
+        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
 
     def calculate_station_occupancy(self, year):
         """
@@ -1057,13 +1105,13 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.capacity
 
-            time_at_station_planned = total_vol / service_rate_planned           #element.capacity
+            time_at_station_planned = total_vol / service_rate_planned  # element.capacity
 
             # station_occupancy is the total time at station divided by the operational hours
             station_occupancy_planned = time_at_station_planned / self.operational_hours
 
             if service_rate_online != 0:
-                time_at_station_online = total_vol / service_rate_online           #element.capacity
+                time_at_station_online = total_vol / service_rate_online  # element.capacity
 
                 # station occupancy is the total time at berth divided by the operational hours
                 station_occupancy_online = min([time_at_station_online / self.operational_hours, 1])
