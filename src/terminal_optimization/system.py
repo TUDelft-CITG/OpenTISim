@@ -242,6 +242,8 @@ class System:
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
+                    print('     Crane occupancy planned (after adding crane): {}'.format(crane_occupancy_planned))
+                    print('     Crane occupancy online (after adding crane): {}'.format(crane_occupancy_online))
 
     def quay_invest(self, year, length, depth):
         """
@@ -265,7 +267,7 @@ class System:
         unit_rate = int(
             quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
-        quay_wall.capex = int(length * unit_rate * 0.01 + mobilisation)
+        quay_wall.capex = int(length * unit_rate + mobilisation)
 
         # todo: review the formulas
 
@@ -1060,18 +1062,22 @@ class System:
                 # berth_occupancy is the total time at berth devided by the operational hours
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
 
-                time_at_crane_handysize_online = handysize_calls * (
-                    (defaults.handysize_data["call_size"] / service_rate_online))
-                time_at_crane_handymax_online = handymax_calls * (
-                    (defaults.handymax_data["call_size"] / service_rate_online))
-                time_at_crane_panamax_online = panamax_calls * (
-                    (defaults.panamax_data["call_size"] / service_rate_online))
+                handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+                time_at_crane = total_vol / (service_rate_online * len(list_of_elements))
 
-                total_time_at_crane_online = np.sum(
-                    [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
+                # time_at_crane_handysize_online = handysize_calls * (
+                #     (defaults.handysize_data["call_size"] / service_rate_online))
+                # time_at_crane_handymax_online = handymax_calls * (
+                #     (defaults.handymax_data["call_size"] / service_rate_online))
+                # time_at_crane_panamax_online = panamax_calls * (
+                #     (defaults.panamax_data["call_size"] / service_rate_online))
+
+                # total_time_at_crane_online = np.sum([time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+                #crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+
+                crane_occupancy_online = min([time_at_crane / self.operational_hours, 1])
 
             else:
                 berth_occupancy_online = float("inf")

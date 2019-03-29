@@ -126,7 +126,7 @@ class quay_wall_properties_mixin(object):
         self.Gijt_constant = Gijt_constant
         self.Gijt_coefficient = Gijt_coefficient
         self.unit_rate = int(self.Gijt_constant * (self.depth * 2 + self.freeboard) ** self.Gijt_coefficient)
-
+        #self.unit_rate = int(self.Gijt_constant * (2*(self.depth + self.freeboard)) ** self.Gijt_coefficient)
 
 class berth_properties_mixin(object):
     def __init__(self, crane_type, max_cranes, delivery_time, *args, **kwargs):
