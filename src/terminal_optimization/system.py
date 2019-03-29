@@ -119,7 +119,7 @@ class System:
             except:
                 pass
         if self.debug:
-            print('  Revenues (demand): {}'.format(revenues))
+            print('     Revenues (demand): {}'.format(revenues))
 
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize_calls,
@@ -132,7 +132,7 @@ class System:
                 service_rate += element.effective_capacity * berth_occupancy_online
 
         if self.debug:
-            print('  Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
+            print('     Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
 
         try:
             self.revenues.append(min(revenues, service_rate * self.operational_hours * fee))
@@ -175,10 +175,6 @@ class System:
             print('  Start analysis:')
 
         # calculate berth occupancy
-        print(year)
-        print(handysize)
-        print(handymax)
-        print(panamax)
         berth_occupancy_planned, berth_occupancy_online = self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
@@ -376,7 +372,7 @@ class System:
                         service_capacity_online += element.capacity_steps
 
         if self.debug:
-            print('a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
+            print('     a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
                 service_capacity_online,
                 defaults_quay_conveyor_data['type'],
                 service_capacity))
@@ -385,7 +381,7 @@ class System:
         while service_capacity < service_peakcapacity_cranes:
             # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
             if self.debug:
-                print('add Conveyor to elements')
+                print('  *** add Conveyor to elements')
             conveyor = Conveyor_Quay(**defaults_quay_conveyor_data)
 
             # - capex
@@ -429,7 +425,7 @@ class System:
             service_capacity += conveyor.capacity_steps
 
         if self.debug:
-            print('a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
+            print('     a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
                 service_capacity_online,
                 service_capacity))
 
@@ -453,7 +449,7 @@ class System:
                         storage_capacity_online += element.capacity
 
         if self.debug:
-            print('a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
+            print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                 storage_capacity_online,
                 defaults_storage_data['type'],
                 storage_capacity))
@@ -501,7 +497,7 @@ class System:
 
             if self.debug:
                 print(
-                    'a total of {} ton of storage capacity is online; {} ton total planned'.format(
+                    '      a total of {} ton of storage capacity is online; {} ton total planned'.format(
                         storage_capacity_online,
                         storage_capacity))
 
@@ -536,7 +532,7 @@ class System:
         #                 service_capacity_online += element.capacity_steps
         #
         # if self.debug:
-        #     print('a total of {} ton of {} conveyor hinterland service capacity is online; {} ton total planned'.format(
+        #     print('     a total of {} ton of {} conveyor hinterland service capacity is online; {} ton total planned'.format(
         #         service_capacity_online,
         #         defaults_hinterland_conveyor_data['type'],
         #         service_capacity))
@@ -579,7 +575,7 @@ class System:
         #     service_capacity += conveyor.capacity_steps
         #
         # if self.debug:
-        #     print('a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+        #     print('     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
         #         service_capacity_online,
         #         service_capacity))
 
@@ -627,13 +623,13 @@ class System:
             self.elements.append(station)
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-            print('station_occupancy_planned: {}'.format(station_occupancy_planned))
+            print('    station_occupancy_planned: {}'.format(station_occupancy_planned))
             # service_capacity += station.production
             # print(station_occupancy_planned)
             # print(station_occupancy_online)
             #
         # if self.debug:
-        #     print('a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
+        #     print('     a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
         #         service_capacity_online,
         #         service_capacity))
 
@@ -1075,7 +1071,6 @@ class System:
                 station_occupancy_online = float("inf")
 
         else:
-            print('else')
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
             station_occupancy_planned = float("inf")
             station_occupancy_online = float("inf")
