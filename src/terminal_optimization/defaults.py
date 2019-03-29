@@ -251,7 +251,7 @@ handysize_data = {"name": 'Handysize_1',
 
 handymax_data = {"name": 'Handymax_1',
                  "type": 'Handymax',
-                 "call_size": 50_000,
+                 "call_size": 55_000,
                  "LOA": 180,
                  "draft": 11.5,
                  "beam": 28,
