@@ -664,15 +664,8 @@ class System:
             self.elements.append(station)
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-            print('    station_occupancy_planned: {}'.format(station_occupancy_planned))
-            # service_capacity += station.production
-            # print(station_occupancy_planned)
-            # print(station_occupancy_online)
-            #
-        # if self.debug:
-        #     print('     a total of {} ton of conveyor service capacity is online; {} ton total planned'.format(
-        #         service_capacity_online,
-        #         service_capacity))
+            if self.debug:
+                print('    station_occupancy_planned: {}'.format(station_occupancy_planned))
 
     # *** Financial analyses
 
