@@ -76,10 +76,10 @@ class System:
                 print('     Panamax calls: {}'.format(panamax))
                 print('  Total cargo volume: {}'.format(total_vol))
 
+            # todo: enable definition of trigger as input (no hard coding!)
             allowable_berth_occupancy = .4  # is 40 %
             self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
 
-            self.calculate_revenue(year)
             # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
             self.conveyor_quay_invest(year, defaults.quay_conveyor_data)
             #
@@ -88,18 +88,24 @@ class System:
             self.conveyor_hinter_invest(year, defaults.hinterland_conveyor_data)
 
             self.unloading_station_invest(year)
-            #
-            # # self.calculate_train_calls(year)
 
-        # 2. collect cash flows
+            # self.calculate_train_calls(year)
 
-        # 3. collect revenues
+        #    calculate the energy costs
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            self.calculate_energy_cost(year)
 
-        # 4. calculate profits
+        # 2. collect revenues
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            self.calculate_revenue(year)
 
-        # 5. apply WACC to cashflows and revenues
+        # 3. collect cash flows
+        self.add_cashflow_elements()
 
-        # 6. aggregate to NPV
+        # 4. apply WACC to cashflows and revenues
+
+        # 5. aggregate to NPV
+        self.NPV()
 
     def calculate_revenue(self, year):
         """
@@ -141,6 +147,83 @@ class System:
             pass
 
         # todo: now one fee is used for all commodities. This still needs attention
+
+    def calculate_energy_cost(self, year):
+        """
+        1. calculate the value of the total demand in year (demand * handling fee)
+        2. calculate the maximum amount that can be handled (service capacity * operational hours)
+        Terminal.revenues is the minimum of 1. and 2.
+        """
+
+        energy = Energy(**defaults.energy_data)
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize_calls,
+            handymax_calls,
+            panamax_calls)
+
+        # calculate crane energy
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
+
+        for element in list_of_elements_Crane:
+            if year >= element.year_online:
+                consumption = element.consumption
+                hours = self.operational_hours * crane_occupancy_online
+
+                if consumption * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate conveyor energy
+        list_of_elements_1 = self.find_elements(Conveyor_Quay)
+        list_of_elements_2 = self.find_elements(Conveyor_Hinter)
+        list_of_elements_Conveyor = list_of_elements_1 + list_of_elements_2
+
+        for element in list_of_elements_Conveyor:
+            if year >= element.year_online:
+                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
+                hours = self.operational_hours * berth_occupancy_online
+                # are we sure this should be berth_occupancy_online, or should it be crane_occupancy_online
+
+                if consumption * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate storage energy
+        list_of_elements_Storage = self.find_elements(Storage)
+
+        for element in list_of_elements_Storage:
+            if year >= element.year_online:
+                consumption = element.consumption
+                capacity = element.capacity * element.occupancy
+                hours = self.operational_hours
+
+                if consumption * capacity * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate hinterland station energy
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+
+        list_of_elements_Station = self.find_elements(Unloading_station)
+
+        for element in list_of_elements_Station:
+            if year >= element.year_online:
+
+                if element.consumption * self.operational_hours * station_occupancy_online * energy.price != np.inf:
+                    element.df.loc[element.df[
+                                       'year'] == year, 'energy'] = element.consumption * self.operational_hours * station_occupancy_online * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
 
     # *** Investment functions
 
@@ -311,23 +394,6 @@ class System:
         # cleaning and switching holds. Therefore the capacity decreases, but also the running hours decrease
         # in which case the energy costs decreases.
 
-        #   energy
-        energy = Energy(**defaults.energy_data)
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
-
-        # this is needed because at greenfield startup occupancy is still inf
-        if berth_occupancy_online == np.inf:
-            berth_occupancy_online = 0.4
-            crane_occupancy_online = 0.4
-
-        consumption = crane.consumption
-        hours = self.operational_hours * crane_occupancy_online
-        crane.energy = consumption * hours * energy.price
-        # todo: the energy costs needs to be calculated every year and not only in year 1 and than take this number for the
-        #  whole period (that is what at the moment happens)
-
         #   labour
         labour = Labour(**defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
@@ -402,24 +468,6 @@ class System:
             conveyor.insurance = conveyor.capex * conveyor.insurance_perc
             conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
 
-            #   energy
-            energy = Energy(**defaults.energy_data)
-            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, handysize, handymax,
-                panamax)
-
-            # this is needed because at greenfield startup occupancy is still inf
-            if berth_occupancy_online == np.inf:
-                berth_occupancy_online = 0.4
-            # todo: the berht occupancy is not yet well defined (it does not calculate every year a new berth occupancy)
-
-            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
-            hours = self.operational_hours * berth_occupancy_online
-            conveyor.energy = consumption * hours * energy.price
-
-            # year online
-
             years_online = []
             for element in list_of_elements_Crane:
                 years_online.append(element.year_online)
@@ -484,13 +532,6 @@ class System:
             # - opex
             storage.insurance = storage.capex * storage.insurance_perc
             storage.maintenance = storage.capex * storage.maintenance_perc
-
-            # energy
-            energy = Energy(**defaults.energy_data)
-            consumption = storage.consumption
-            capacity = storage.capacity * storage.occupancy
-            hours = self.operational_hours
-            storage.energy = consumption * capacity * hours * energy.price
 
             if year == self.startyear:
                 storage.year_online = year + storage.delivery_time + 1
@@ -620,12 +661,6 @@ class System:
             station.insurance = station.capex * station.insurance_perc
             station.maintenance = station.capex * station.maintenance_perc
             station.labour = 0
-
-            energy = Energy(**defaults.energy_data)
-            if station_occupancy_online == np.inf:
-                station.energy = 0
-            else:
-                station.energy = station.consumption * self.operational_hours * station_occupancy_online * energy.price
 
             station.year_online = year + station.delivery_time
 
@@ -912,7 +947,6 @@ class System:
         # opex
         maintenance = element.maintenance
         insurance = element.insurance
-        energy = element.energy
         labour = element.labour
 
         # year online
@@ -936,8 +970,6 @@ class System:
             df.loc[df["year"] >= year_online, "maintenance"] = maintenance
         if insurance:
             df.loc[df["year"] >= year_online, "insurance"] = insurance
-        if energy:
-            df.loc[df["year"] >= year_online, "energy"] = energy
         if labour:
             df.loc[df["year"] >= year_online, "labour"] = labour
 
@@ -1072,7 +1104,8 @@ class System:
                 time_at_crane_panamax_online = panamax_calls * (
                     (defaults.panamax_data["call_size"] / service_rate_online))
 
-                total_time_at_crane_online = np.sum([time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
+                total_time_at_crane_online = np.sum(
+                    [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
                 crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
