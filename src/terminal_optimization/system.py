@@ -80,29 +80,26 @@ class System:
             allowable_berth_occupancy = .4  # is 40 %
             self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
 
-            # NB: quay_conveyor, storage, hinterland_conveyor and unloading_station follow from berth
             self.conveyor_quay_invest(year, defaults.quay_conveyor_data)
-            #
+
             self.storage_invest(year, self.storage_type_defaults)
-            #
+
             self.conveyor_hinter_invest(year, defaults.hinterland_conveyor_data)
 
             self.unloading_station_invest(year)
 
             # self.calculate_train_calls(year)
 
-        #    calculate the energy costs
+        # 2. calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
 
-        # 2. collect revenues
+        # 3. collect revenues
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year)
 
-        # 3. collect cash flows
-        self.add_cashflow_elements()
-
-        # 4. apply WACC to cashflows and revenues
+        # 4. collect cash flows
+        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
 
         # 5. aggregate to NPV
         self.NPV()
@@ -817,11 +814,8 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
-    def cashflow_plot(self, width=0.3, alpha=0.6):
+    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # add cash flow information for each of the Terminal elements
-        cash_flows = self.add_cashflow_elements()
 
         # prepare years, revenue, capex and opex for plotting
         years = cash_flows['year'].values
@@ -895,7 +889,7 @@ class System:
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
         # add cash flow information for each of the Terminal elements
-        cash_flows = self.add_cashflow_elements()
+        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
 
         # prepare years, revenue, capex and opex for plotting
         years = cash_flows['year'].values
@@ -932,7 +926,20 @@ class System:
 
         cash_flows.fillna(0)
 
-        return cash_flows
+        # calculate WACC nominal cashflows
+        cash_flows_WACC_nominal = pd.DataFrame()
+        cash_flows_WACC_nominal['year'] = cash_flows['year']
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            for column in cash_flows.columns:
+                if column != "year":
+                    cash_flows_WACC_nominal.loc[cash_flows_WACC_nominal['year'] == year, column] = \
+                        cash_flows.loc[
+                            cash_flows[
+                                'year'] == year, column] / (
+                                (1 + self.WACC_real()) ** (
+                                year - self.startyear))
+
+        return cash_flows, cash_flows_WACC_nominal
 
     def add_cashflow_data_to_element(self, element):
 
