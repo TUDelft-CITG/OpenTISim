@@ -679,232 +679,6 @@ class System:
 
     # *** Financial analyses
 
-    def capex(self):
-        pass
-
-    def opex(self):
-        pass
-
-    def revenues(self):
-        pass
-
-    def profits(self):
-        pass
-
-    def terminal_elements_plot(self, width=0.15, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # collect elements to add to plot
-        years = []
-        berths = []
-        cranes = []
-        quays = []
-        conveyors_quay = []
-        storages = []
-        conveyors_hinterland = []
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            years.append(year)
-            berths.append(0)
-            quays.append(0)
-            cranes.append(0)
-            conveyors_quay.append(0)
-            storages.append(0)
-            conveyors_hinterland.append(0)
-            for element in self.elements:
-                if isinstance(element, Berth):
-                    if year >= element.year_online:
-                        berths[-1] += 1
-                if isinstance(element, Quay_wall):
-                    if year >= element.year_online:
-                        quays[-1] += 1
-                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-                    if year >= element.year_online:
-                        cranes[-1] += 1
-                if isinstance(element, Conveyor_Quay):
-                    if year >= element.year_online:
-                        conveyors_quay[-1] += 1
-                if isinstance(element, Storage):
-                    if year >= element.year_online:
-                        storages[-1] += 1
-                if isinstance(element, Conveyor_Hinter):
-                    if year >= element.year_online:
-                        conveyors_hinterland[-1] += 1
-
-        # generate plot
-        fig, ax = plt.subplots(figsize=(20, 10))
-
-        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral',
-               edgecolor='crimson')
-        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid',
-               edgecolor='purple')
-        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
-               edgecolor='blue')
-        ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
-               color='lightgreen', edgecolor='green')
-        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
-               edgecolor='orangered')
-        ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
-               color='grey', edgecolor='black')
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Elements on line [nr]')
-        ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
-
-    def terminal_capacity_plot(self, width=0.25, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # get crane service capacity and storage capacity
-        years = []
-        cranes = []
-        cranes_capacity = []
-        storages = []
-        storages_capacity = []
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-
-            years.append(year)
-            cranes.append(0)
-            cranes_capacity.append(0)
-            storages.append(0)
-            storages_capacity.append(0)
-
-            handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, handysize_calls, handymax_calls, panamax_calls)
-
-            for element in self.elements:
-                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-                    # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
-                    if year >= element.year_online:
-                        cranes[-1] += 1
-                        cranes_capacity[
-                            -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
-                if isinstance(element, Storage):
-                    if year >= element.year_online:
-                        storages[-1] += 1
-                        storages_capacity[-1] += element.capacity * 365 / 18
-
-        # get demand
-        demand = pd.DataFrame()
-        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
-            try:
-                for column in commodity.scenario_data.columns:
-                    if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
-            except:
-                pass
-        # generate plot
-        fig, ax = plt.subplots(figsize=(20, 10))
-
-        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
-               color='red')
-        # ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
-        #        color='green')
-        ax.step(years, demand['demand'].values, label="demand", where='mid')
-
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Throughput capacity [tons/year]')
-        ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
-
-    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
-        revenue = self.revenues
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values
-        # todo: check if we need to add land lease as a opex (for terminal operator) or revenue (for a port operator)
-
-        # sum cash flows to get profits as a function of year
-        profits = []
-        for year in years:
-            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() +
-                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-
-        # cumulatively sum profits to get profits_cum
-        profits_cum = [None] * len(profits)
-        for index, value in enumerate(profits):
-            if index == 0:
-                profits_cum[index] = 0
-            else:
-                profits_cum[index] = profits_cum[index - 1] + profits[index]
-
-        # generate plot
-        fig, ax = plt.subplots(figsize=(16, 7))
-
-        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
-        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
-        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
-        ax.step(years, profits, label='profits', where='mid')
-        ax.step(years, profits_cum, label='profits_cum', where='mid')
-
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Cashflow [000 M $]')
-        ax.set_title('Cash flow plot')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
-
-    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
-        """Nominal cash flow is the true dollar amount of future revenues the company expects
-        to receive and expenses it expects to pay out, without any adjustments for inflation.
-        When all cashflows within the model are denoted in real terms and have been
-        adjusted for inflation. The real WACC is computed by as follows:"""
-
-        Gearing = Gearing
-        Re = Re  # return on equity
-        Rd = Rd  # return on debt
-        Tc = Tc  # income tax
-        E = 100 - Gearing
-        D = Gearing
-
-        WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
-
-        return WACC_nominal
-
-    def WACC_real(self, interest=0.0604):
-        """Real cash flow expresses a company's cash flow with adjustments for inflation.
-        When all cashflows within the model are denoted in real terms and have been
-        adjusted for inflation, WACC_real should be used. WACC_real is computed by as follows:"""
-
-        WACC_real = (self.WACC_nominal() + 1) / (interest + 1) - 1
-
-        return WACC_real
-
-    def NPV(self):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # add cash flow information for each of the Terminal elements
-        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
-        revenue = self.revenues
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values
-
-        PV = - capex - opex + revenue
-        print('PV: {}'.format(PV))
-
-        print('NPV: {}'.format(np.sum(PV)))
-
-    # *** General functions
-
     def add_cashflow_elements(self):
 
         cash_flows = pd.DataFrame()
@@ -985,6 +759,52 @@ class System:
         element.df = df
 
         return element
+
+    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
+        """Nominal cash flow is the true dollar amount of future revenues the company expects
+        to receive and expenses it expects to pay out, without any adjustments for inflation.
+        When all cashflows within the model are denoted in real terms and have been
+        adjusted for inflation. The real WACC is computed by as follows:"""
+
+        Gearing = Gearing
+        Re = Re  # return on equity
+        Rd = Rd  # return on debt
+        Tc = Tc  # income tax
+        E = 100 - Gearing
+        D = Gearing
+
+        WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
+
+        return WACC_nominal
+
+    def WACC_real(self, interest=0.0604):
+        """Real cash flow expresses a company's cash flow with adjustments for inflation.
+        When all cashflows within the model are denoted in real terms and have been
+        adjusted for inflation, WACC_real should be used. WACC_real is computed by as follows:"""
+
+        WACC_real = (self.WACC_nominal() + 1) / (interest + 1) - 1
+
+        return WACC_real
+
+    def NPV(self):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        # add cash flow information for each of the Terminal elements
+        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
+
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows['year'].values
+        revenue = self.revenues
+        capex = cash_flows['capex'].values
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+               cash_flows['labour'].values
+
+        PV = - capex - opex + revenue
+        print('PV: {}'.format(PV))
+
+        print('NPV: {}'.format(np.sum(PV)))
+
+    # *** General functions
 
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
@@ -1204,29 +1024,172 @@ class System:
 
         return elements_online, elements
 
-    def supply_chain(self, nodes, edges):
-        """Create a supply chain of example objects:
-        the graph contains all available paths the cargo can take to travel through the terminal
-        each path needs at least 1 of each of the indicated objects to make a navigable route
-        if terminal elements do not make up a graph with a full path through no revenue can be obtained
-        """
+    # *** plotting functions
 
-        # create a graph
-        FG = nx.DiGraph()
+    def terminal_elements_plot(self, width=0.15, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
 
-        labels = {}
-        for node in nodes:
-            labels[node.name] = (node.name, node.name)
-            FG.add_node(node.name, Object=node)
+        # collect elements to add to plot
+        years = []
+        berths = []
+        cranes = []
+        quays = []
+        conveyors_quay = []
+        storages = []
+        conveyors_hinterland = []
 
-        for edge in edges:
-            FG.add_edge(edge[0].name, edge[1].name, weight=1)
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            berths.append(0)
+            quays.append(0)
+            cranes.append(0)
+            conveyors_quay.append(0)
+            storages.append(0)
+            conveyors_hinterland.append(0)
+            for element in self.elements:
+                if isinstance(element, Berth):
+                    if year >= element.year_online:
+                        berths[-1] += 1
+                if isinstance(element, Quay_wall):
+                    if year >= element.year_online:
+                        quays[-1] += 1
+                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                    if year >= element.year_online:
+                        cranes[-1] += 1
+                if isinstance(element, Conveyor_Quay):
+                    if year >= element.year_online:
+                        conveyors_quay[-1] += 1
+                if isinstance(element, Storage):
+                    if year >= element.year_online:
+                        storages[-1] += 1
+                if isinstance(element, Conveyor_Hinter):
+                    if year >= element.year_online:
+                        conveyors_hinterland[-1] += 1
 
-        self.supply_graph = FG
+        # generate plot
+        fig, ax = plt.subplots(figsize=(20, 10))
 
-        # inspect all paths
-        self.supply_chains = list([p for p in nx.all_shortest_paths(FG, nodes[0].name, nodes[-1].name)])
+        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral',
+               edgecolor='crimson')
+        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid',
+               edgecolor='purple')
+        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
+               edgecolor='blue')
+        ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
+               color='lightgreen', edgecolor='green')
+        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
+               edgecolor='orangered')
+        ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
+               color='grey', edgecolor='black')
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Elements on line [nr]')
+        ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
 
-    def plot_system(self):
+    def terminal_capacity_plot(self, width=0.25, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
 
-        nx.draw_kamada_kawai(self.supply_graph, with_labels=True)
+        # get crane service capacity and storage capacity
+        years = []
+        cranes = []
+        cranes_capacity = []
+        storages = []
+        storages_capacity = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+
+            years.append(year)
+            cranes.append(0)
+            cranes_capacity.append(0)
+            storages.append(0)
+            storages_capacity.append(0)
+
+            handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                year, handysize_calls, handymax_calls, panamax_calls)
+
+            for element in self.elements:
+                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                    # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
+                    if year >= element.year_online:
+                        cranes[-1] += 1
+                        cranes_capacity[
+                            -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
+                if isinstance(element, Storage):
+                    if year >= element.year_online:
+                        storages[-1] += 1
+                        storages_capacity[-1] += element.capacity * 365 / 18
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+        # generate plot
+        fig, ax = plt.subplots(figsize=(20, 10))
+
+        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
+               color='red')
+        # ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
+        #        color='green')
+        ax.step(years, demand['demand'].values, label="demand", where='mid')
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Throughput capacity [tons/year]')
+        ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
+
+    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows['year'].values
+        revenue = self.revenues
+        capex = cash_flows['capex'].values
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+               cash_flows['labour'].values
+        # todo: check if we need to add land lease as a opex (for terminal operator) or revenue (for a port operator)
+
+        # sum cash flows to get profits as a function of year
+        profits = []
+        for year in years:
+            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() +
+                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+
+        # cumulatively sum profits to get profits_cum
+        profits_cum = [None] * len(profits)
+        for index, value in enumerate(profits):
+            if index == 0:
+                profits_cum[index] = 0
+            else:
+                profits_cum[index] = profits_cum[index - 1] + profits[index]
+
+        # generate plot
+        fig, ax = plt.subplots(figsize=(16, 7))
+
+        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
+        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
+        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+        ax.step(years, profits, label='profits', where='mid')
+        ax.step(years, profits_cum, label='profits_cum', where='mid')
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Cashflow [000 M $]')
+        ax.set_title('Cash flow plot')
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
