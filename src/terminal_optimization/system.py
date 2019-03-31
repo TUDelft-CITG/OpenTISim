@@ -3,9 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Used for making the graph to visualize our problem
-import networkx as nx
-
 # terminal_optimization package
 from terminal_optimization.objects import *
 from terminal_optimization import defaults
