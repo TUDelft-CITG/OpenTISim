@@ -1063,21 +1063,21 @@ class System:
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
 
                 handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-                time_at_crane = total_vol / (service_rate_online * len(list_of_elements))
+                # time_at_crane = total_vol / (service_rate_online * len(list_of_elements))
 
-                # time_at_crane_handysize_online = handysize_calls * (
-                #     (defaults.handysize_data["call_size"] / service_rate_online))
-                # time_at_crane_handymax_online = handymax_calls * (
-                #     (defaults.handymax_data["call_size"] / service_rate_online))
-                # time_at_crane_panamax_online = panamax_calls * (
-                #     (defaults.panamax_data["call_size"] / service_rate_online))
+                time_at_crane_handysize_online = handysize_calls * (
+                    (defaults.handysize_data["call_size"] / service_rate_online))
+                time_at_crane_handymax_online = handymax_calls * (
+                    (defaults.handymax_data["call_size"] / service_rate_online))
+                time_at_crane_panamax_online = panamax_calls * (
+                    (defaults.panamax_data["call_size"] / service_rate_online))
 
-                # total_time_at_crane_online = np.sum([time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
+                total_time_at_crane_online = np.sum([time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                #crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
 
-                crane_occupancy_online = min([time_at_crane / self.operational_hours, 1])
+                # crane_occupancy_online = min([time_at_crane / self.operational_hours, 1])
 
             else:
                 berth_occupancy_online = float("inf")
