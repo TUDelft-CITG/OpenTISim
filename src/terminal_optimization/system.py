@@ -403,7 +403,7 @@ class System:
         years_online = []
         for element in self.find_elements(Quay_wall):
             years_online.append(element.year_online)
-        crane.year_online = max([year + crane.delivery_time, max(years_online) - 1 + crane.delivery_time])
+        crane.year_online = max([year + crane.delivery_time, max(years_online)])
 
         # add cash flow information to quay_wall object in a dataframe
         crane = self.add_cashflow_data_to_element(crane)
@@ -427,8 +427,11 @@ class System:
         # find the total service rate
         if list_of_elements_Crane != []:
             service_peakcapacity_cranes = 0
+            service_peakcapacity_cranes_online = 0
             for element in list_of_elements_Crane:
                 service_peakcapacity_cranes += element.peak_capacity
+                if year >= element.year_online:
+                    service_peakcapacity_cranes_online += element.peak_capacity
 
         # list all conveyor objects in system
         list_of_elements = self.find_elements(Conveyor_Quay)
@@ -450,7 +453,7 @@ class System:
                 service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity < service_peakcapacity_cranes:
+        while service_capacity < service_peakcapacity_cranes_online:
             # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
             if self.debug:
                 print('  *** add Conveyor to elements')
@@ -466,11 +469,12 @@ class System:
             conveyor.insurance = conveyor.capex * conveyor.insurance_perc
             conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
 
+            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             years_online = []
             for element in list_of_elements_Crane:
                 years_online.append(element.year_online)
-            conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
-            # todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
+            conveyor.year_online = year
+            # todo: the year_online is now equal to the crane's. But this is not yet robust
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor.quay = self.add_cashflow_data_to_element(conveyor)
