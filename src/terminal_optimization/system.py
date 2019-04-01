@@ -100,7 +100,7 @@ class System:
             self.calculate_revenue(year)
 
         # 4. collect all cash flows (capex, opex, revenues)
-        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
+        cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
         # 5. calculate PV's and aggregate to NPV
         self.NPV()
@@ -716,19 +716,19 @@ class System:
         cash_flows.fillna(0)
 
         # calculate WACC nominal cashflows
-        cash_flows_WACC_nominal = pd.DataFrame()
-        cash_flows_WACC_nominal['year'] = cash_flows['year']
+        cash_flows_WACC_real= pd.DataFrame()
+        cash_flows_WACC_real['year'] = cash_flows['year']
         for year in range(self.startyear, self.startyear + self.lifecycle):
             for column in cash_flows.columns:
                 if column != "year":
-                    cash_flows_WACC_nominal.loc[cash_flows_WACC_nominal['year'] == year, column] = \
+                    cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
                         cash_flows.loc[
                             cash_flows[
                                 'year'] == year, column] / (
-                                (1 + self.WACC_nominal()) ** (
+                                (1 + self.WACC_real()) ** (
                                 year - self.startyear))
 
-        return cash_flows, cash_flows_WACC_nominal
+        return cash_flows, cash_flows_WACC_real
 
     def add_cashflow_data_to_element(self, element):
 
@@ -777,9 +777,8 @@ class System:
 
     def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
-        to receive and expenses it expects to pay out, without any adjustments for inflation.
-        When all cashflows within the model are denoted in real terms and have been
-        adjusted for inflation."""
+        to receive and expenses it expects to pay out, including inflation.
+        When all cashflows within the model are denoted in real terms and including inflation."""
 
         Gearing = Gearing
         Re = Re  # return on equity
@@ -792,12 +791,13 @@ class System:
 
         return WACC_nominal
 
-    def WACC_real(self, interest=0.0604):
+    def WACC_real(self, inflation = 0.02): #old: interest=0.0604
         """Real cash flow expresses a company's cash flow with adjustments for inflation.
         When all cashflows within the model are denoted in real terms and have been
-        adjusted for inflation, WACC_real should be used. WACC_real is computed by as follows:"""
+        adjusted for inflation (no inlfation has been taken into account),
+        WACC_real should be used. WACC_real is computed by as follows:"""
 
-        WACC_real = (self.WACC_nominal() + 1) / (interest + 1) - 1 #use inflation instead of interest (todo)!
+        WACC_real = (self.WACC_nominal() + 1) / (inflation + 1) - 1
 
         return WACC_real
 
@@ -805,7 +805,7 @@ class System:
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
         # add cash flow information for each of the Terminal elements
-        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
+        cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
         # prepare years, revenue, capex and opex for plotting
         years = cash_flows['year'].values
