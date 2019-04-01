@@ -514,9 +514,20 @@ class System:
                 storage_capacity))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize,
+            handymax, panamax)
 
         max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
-        storage_capacity_dwelltime = (total_vol * 0.05) * 1.1
+
+        # find the total service rate,
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate += element.effective_capacity * crane_occupancy_online
+
+        # todo: make the maximum dwelltime an input
+        storage_capacity_dwelltime = (service_rate * self.operational_hours * 0.05) * 1.1
 
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
