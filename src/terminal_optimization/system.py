@@ -704,7 +704,16 @@ class System:
         cash_flows['maintenance'] = 0
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
-        cash_flows['labour'] = labour.international_staff*labour.international_salary + labour.local_staff*labour.local_salary
+
+        quay_wall = Quay_wall(**defaults.quay_wall_data)
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            if year < self.startyear + quay_wall.delivery_time:
+                cash_flows['labour'] = 0
+            else:
+                cash_flows['labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+        # todo: start labour cost in 2020 instead of 2018
+
         cash_flows['revenues'] = self.revenues
 
         for element in self.elements:
@@ -715,7 +724,7 @@ class System:
 
         cash_flows.fillna(0)
 
-        # calculate WACC nominal cashflows
+        # calculate WACC real cashflows
         cash_flows_WACC_real= pd.DataFrame()
         cash_flows_WACC_real['year'] = cash_flows['year']
         for year in range(self.startyear, self.startyear + self.lifecycle):
