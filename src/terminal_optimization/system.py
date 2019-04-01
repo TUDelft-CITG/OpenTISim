@@ -184,7 +184,7 @@ class System:
         for element in list_of_elements_Conveyor:
             if year >= element.year_online:
                 consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
-                hours = self.operational_hours * berth_occupancy_online
+                hours = self.operational_hours * crane_occupancy_online
                 # are we sure this should be berth_occupancy_online, or should it be crane_occupancy_online
 
                 if consumption * hours * energy.price != np.inf:
@@ -675,7 +675,11 @@ class System:
             station.maintenance = station.capex * station.maintenance_perc
             station.labour = 0
 
-            station.year_online = year + station.delivery_time
+            if year == self.startyear:
+                station.year_online = year + station.delivery_time + 1
+            else:
+                station.year_online = year + station.delivery_time
+
 
             # add cash flow information to quay_wall object in a dataframe
             station = self.add_cashflow_data_to_element(station)
@@ -692,13 +696,15 @@ class System:
 
         cash_flows = pd.DataFrame()
 
+        labour = Labour(**defaults.labour_data)
+
         # initialise cash_flows
         cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         cash_flows['capex'] = 0
         cash_flows['maintenance'] = 0
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
-        cash_flows['labour'] = 0
+        cash_flows['labour'] = labour.international_staff*labour.international_salary + labour.local_staff*labour.local_salary
         cash_flows['revenues'] = self.revenues
 
         for element in self.elements:
@@ -791,7 +797,7 @@ class System:
         When all cashflows within the model are denoted in real terms and have been
         adjusted for inflation, WACC_real should be used. WACC_real is computed by as follows:"""
 
-        WACC_real = (self.WACC_nominal() + 1) / (interest + 1) - 1
+        WACC_real = (self.WACC_nominal() + 1) / (interest + 1) - 1 #use inflation instead of interest (todo)!
 
         return WACC_real
 
@@ -980,13 +986,24 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.capacity
 
-            time_at_station_planned = total_vol / service_rate_planned  # element.capacity
+            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                year, handysize,
+                handymax, panamax)
+
+            # find the total service rate,
+            service_rate_throughput = 0
+            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+                if year >= element.year_online:
+                    service_rate_throughput += element.effective_capacity * crane_occupancy_online
+
+            time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.capacity
 
             # station_occupancy is the total time at station divided by the operational hours
             station_occupancy_planned = time_at_station_planned / self.operational_hours
 
             if service_rate_online != 0:
-                time_at_station_online = total_vol / service_rate_online  # element.capacity
+                time_at_station_online = service_rate_throughput * self.operational_hours / service_rate_online  # element.capacity
 
                 # station occupancy is the total time at berth divided by the operational hours
                 station_occupancy_online = min([time_at_station_online / self.operational_hours, 1])
@@ -1046,6 +1063,7 @@ class System:
         conveyors_quay = []
         storages = []
         conveyors_hinterland = []
+        unloading_station = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1055,6 +1073,8 @@ class System:
             conveyors_quay.append(0)
             storages.append(0)
             conveyors_hinterland.append(0)
+            unloading_station.append(0)
+
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
@@ -1074,6 +1094,9 @@ class System:
                 if isinstance(element, Conveyor_Hinter):
                     if year >= element.year_online:
                         conveyors_hinterland[-1] += 1
+                if isinstance(element, Unloading_station):
+                    if year >= element.year_online:
+                        unloading_station[-1] += 1
 
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
@@ -1090,6 +1113,9 @@ class System:
                edgecolor='orangered')
         ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
                color='grey', edgecolor='black')
+        ax.bar([x + 5 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
+               color='red', edgecolor='black')
+
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
         ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
