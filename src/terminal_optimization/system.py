@@ -15,11 +15,14 @@ class System:
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
+
+        # provide intermediate outputs via print statements if debug = True
         self.debug = debug
-        # status terminal @ T=startyear
+
+        # collection of all terminal objects
         self.elements = elements
 
-        # default values for crane type to use
+        # default values to use in case various types can be selected
         self.crane_type_defaults = crane_type_defaults
         self.storage_type_defaults = storage_type_defaults
 
@@ -29,7 +32,10 @@ class System:
     # *** Simulation engine
 
     def simulate(self):
-        """ Terminal design optimization
+        """ Terminal investment strategy simulation
+
+        This method automatically generates investment decisions, parametrically derived from overall demand trends and
+        a number of investment triggers.
 
         Based on:
         - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
@@ -41,19 +47,16 @@ class System:
         Apply frame of reference style decisions while stepping through each year of the terminal
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
         QSC, decision recipe, intervention method):
-        1. step through investment decisions
-        2. collect cash flows
-        3. collect revenues
-        4. calculate profits
-        5. apply WACC to cashflows and revenues
-        6. aggregate to NPV
+
+           1. for each year evaluate the various investment decisions
+           2. for each year calculate the energy costs (requires insight in realized demands)
+           3. for each year calculate terminal revenues
+           4. collect all cash flows (capex, opex, revenues)
+           5. calculate PV's and aggregate to NPV
 
         """
 
-        # before the start of each simulation set revenues to []
-        self.revenues = []
-
-        # 1. step through investment decisions
+        # 1. for each year evaluate the various investment decisions
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
             strategic objective: create a profitable enterprise (NPV > 0)
@@ -87,18 +90,19 @@ class System:
 
             # self.calculate_train_calls(year)
 
-        # 2. calculate the energy costs (requires insight in realized demands)
+        # 2. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
 
-        # 3. collect revenues
+        # 3.  for each year calculate terminal revenues
+        self.revenues = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year)
 
-        # 4. collect cash flows
+        # 4. collect all cash flows (capex, opex, revenues)
         cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
 
-        # 5. aggregate to NPV
+        # 5. calculate PV's and aggregate to NPV
         self.NPV()
 
     def calculate_revenue(self, year):
