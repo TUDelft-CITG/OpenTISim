@@ -719,7 +719,7 @@ class System:
                         cash_flows.loc[
                             cash_flows[
                                 'year'] == year, column] / (
-                                (1 + self.WACC_real()) ** (
+                                (1 + self.WACC_nominal()) ** (
                                 year - self.startyear))
 
         return cash_flows, cash_flows_WACC_nominal
@@ -773,7 +773,7 @@ class System:
         """Nominal cash flow is the true dollar amount of future revenues the company expects
         to receive and expenses it expects to pay out, without any adjustments for inflation.
         When all cashflows within the model are denoted in real terms and have been
-        adjusted for inflation. The real WACC is computed by as follows:"""
+        adjusted for inflation."""
 
         Gearing = Gearing
         Re = Re  # return on equity
