@@ -199,7 +199,7 @@ class System:
         for element in list_of_elements_Storage:
             if year >= element.year_online:
                 consumption = element.consumption
-                capacity = element.capacity * element.occupancy
+                capacity = element.capacity 
                 hours = self.operational_hours
 
                 if consumption * capacity * hours * energy.price != np.inf:

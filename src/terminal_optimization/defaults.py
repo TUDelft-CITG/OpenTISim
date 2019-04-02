@@ -40,8 +40,8 @@ quay_wall_data = {"name": 'Quay_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
-                  "mobilisation_min": 2_500_000,  # Ijzermans, 2019, P 96
-                  "mobilisation_perc": 0.02, #old 0.01
+                  "mobilisation_min": 2_500_000,
+                  "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "freeboard": 4,
@@ -55,7 +55,7 @@ quay_wall_data = {"name": 'Quay_01',
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
-              "max_cranes": 3}
+              "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
 # todo: check delivery time of berth
 # todo: check if indeed at t = 0 it takes 1 year to get a berth online and 2 years to get a quay online
 
@@ -142,7 +142,7 @@ quay_conveyor_data = {"name": 'Quay_conveyor_01',
 
 hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "type": 'hinterland_conveyor',
-                            "length": 400, #500 old number
+                            "length": 400,
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
                             "lifespan": 10,
@@ -172,8 +172,7 @@ silo_data = {"name": 'Silo_01',
              "insurance_perc": 0.01,
              "storage_type": 'Silos',
              "consumption": 0.002,
-             "capacity": 5_000,
-             "occupancy": 0.95}
+             "capacity": 6_000} # all input values from Ijzermans, 2019, P 102
 
 warehouse_data = {"name": 'Warehouse_01',
                   "style": 'warehouse',
