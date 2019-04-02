@@ -48,16 +48,12 @@ quay_wall_data = {"name": 'Quay_01',
                   "Gijt_constant": 757.20,
                   "Gijt_coefficient": 1.2878} # all values from Ijzermans, 2019, P 91
 
-# todo:  length & depth removing from defaults
-
 # *** Default inputs: Berth class ***
 
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
               "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
-# todo: check delivery time of berth
-# todo: check if indeed at t = 0 it takes 1 year to get a berth online and 2 years to get a quay online
 
 # *** Default inputs: CyclicUnloader class ***
 

@@ -199,7 +199,7 @@ class System:
         for element in list_of_elements_Storage:
             if year >= element.year_online:
                 consumption = element.consumption
-                capacity = element.capacity 
+                capacity = element.capacity
                 hours = self.operational_hours
 
                 if consumption * capacity * hours * energy.price != np.inf:
@@ -388,10 +388,6 @@ class System:
         crane.insurance = unit_rate * crane.insurance_perc
         crane.maintenance = unit_rate * crane.maintenance_perc
 
-        # Occupancy related to the effective capacity. The unloader has also time needed for trimming,
-        # cleaning and switching holds. Therefore the capacity decreases, but also the running hours decrease
-        # in which case the energy costs decreases.
-
         #   labour
         labour = Labour(**defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
@@ -468,6 +464,11 @@ class System:
             # - opex
             conveyor.insurance = capacity * unit_rate * conveyor.insurance_perc
             conveyor.maintenance = capacity * unit_rate * conveyor.maintenance_perc
+
+            #   labour
+            labour = Labour(**defaults.labour_data)
+            conveyor.shift = ((conveyor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            conveyor.labour = conveyor.shift * labour.operational_salary
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             years_online = []
@@ -546,6 +547,11 @@ class System:
             storage.insurance = storage.unit_rate * storage.capacity * storage.insurance_perc
             storage.maintenance = storage.unit_rate * storage.capacity * storage.maintenance_perc
 
+            #   labour
+            labour = Labour(**defaults.labour_data)
+            storage.shift = ((storage.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            storage.labour = storage.shift * labour.operational_salary
+
             if year == self.startyear:
                 storage.year_online = year + storage.delivery_time + 1
             else:
@@ -616,6 +622,11 @@ class System:
         #     # - opex
         #     conveyor.insurance = capacity * unit_rate * conveyor.insurance_perc
         #     conveyor.maintenance = capacity * unit_rate * conveyor.maintenance_perc
+        #  #   labour
+        #             labour = Labour(**defaults.labour_data)
+        #             conveyor.shift = ((conveyor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+        #             conveyor.labour = conveyor.shift * labour.operational_salary
+
         #
         #     #   energy
         #     energy = Energy(**defaults.energy_data)
@@ -628,7 +639,6 @@ class System:
         #     for element in list_of_elements_Unloading:
         #         years_online.append(element.year_online)
         #     conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
-        #     #todo: the year_online is not yet complete, it does not follow directly the movements of the cranes
         #
         #     # add cash flow information to quay_wall object in a dataframe
         #     conveyor.hinter = self.add_cashflow_data_to_element(conveyor)
