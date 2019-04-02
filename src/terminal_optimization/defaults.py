@@ -46,7 +46,10 @@ quay_wall_data = {"name": 'Quay_01',
                   "insurance_perc": 0.01,
                   "freeboard": 4,
                   "Gijt_constant": 757.20,
-                  "Gijt_coefficient": 1.2878} # all values from Ijzermans, 2019, P 91
+                  "Gijt_coefficient": 1.2878,
+                  "max_sinkage": 0.5,
+                  "wave_motion": 0.5,
+                  "safety_margin": 0.5} # all values from Ijzermans, 2019, P 91
 
 # *** Default inputs: Berth class ***
 

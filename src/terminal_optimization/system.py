@@ -291,24 +291,18 @@ class System:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if quay_walls == 0:
                     # - length when next quay is n = 1
-                    length = length + 2 * 15
+                    length = length + 2 * 15  #ref: PIANC 2014
                 else:
                     # - length when next quay is n > 1
-                    length = length + 15
-                #   length = 1.1 * berths *( length + 15)
-                # todo: checken of length goed gedefinieerd is
+                    length = 1.1 * berths *(length + 15) #ref: PIANC 2014
 
                 # - depth
-                max_sinkage = 0.5
-                wave_motion = 0.5
-                safety_margin = 0.5
-                # todo: these are hard coded values, consider to move to vessel defaults
-                depth = np.sum([draft, max_sinkage, wave_motion, safety_margin])
+                quay_wall = Quay_wall(**defaults.quay_wall_data)
+                depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize,
-                    handymax, panamax)
+                    year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
@@ -450,7 +444,6 @@ class System:
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_peakcapacity_cranes_online:
-            # todo: this way conveyors are added until conveyor service capacity is at least the crane capacity
             if self.debug:
                 print('  *** add Conveyor to elements')
             conveyor = Conveyor_Quay(**defaults_quay_conveyor_data)
