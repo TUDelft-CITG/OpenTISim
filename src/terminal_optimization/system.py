@@ -315,7 +315,7 @@ class System:
 
             # check if a crane is needed
             if self.check_crane_slot_available():
-                self.crane_invest(year, berth_occupancy_online)
+                self.crane_invest(year)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize,
@@ -362,7 +362,7 @@ class System:
 
         self.elements.append(quay_wall)
 
-    def crane_invest(self, year, berth_occupancy_online):
+    def crane_invest(self, year):
         """current strategy is to add cranes as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
