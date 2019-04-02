@@ -353,8 +353,8 @@ class System:
         # todo: review the formulas
 
         # - opex
-        quay_wall.insurance = quay_wall.capex * quay_wall.insurance_perc
-        quay_wall.maintenance = quay_wall.capex * quay_wall.maintenance_perc
+        quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
+        quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
 
         # add cash flow information to quay_wall object in a dataframe
@@ -385,8 +385,8 @@ class System:
         crane.capex = int(unit_rate + mobilisation)
 
         # - opex
-        crane.insurance = crane.capex * crane.insurance_perc
-        crane.maintenance = crane.capex * crane.maintenance_perc
+        crane.insurance = unit_rate * crane.insurance_perc
+        crane.maintenance = unit_rate * crane.maintenance_perc
 
         # Occupancy related to the effective capacity. The unloader has also time needed for trimming,
         # cleaning and switching holds. Therefore the capacity decreases, but also the running hours decrease
@@ -466,8 +466,8 @@ class System:
             conveyor.capex = int(capacity * unit_rate + mobilisation)
 
             # - opex
-            conveyor.insurance = conveyor.capex * conveyor.insurance_perc
-            conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
+            conveyor.insurance = capacity * unit_rate * conveyor.insurance_perc
+            conveyor.maintenance = capacity * unit_rate * conveyor.maintenance_perc
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             years_online = []
@@ -543,8 +543,8 @@ class System:
             storage.capex = storage.unit_rate * storage.capacity + storage.mobilisation_min
 
             # - opex
-            storage.insurance = storage.capex * storage.insurance_perc
-            storage.maintenance = storage.capex * storage.maintenance_perc
+            storage.insurance = storage.unit_rate * storage.capacity * storage.insurance_perc
+            storage.maintenance = storage.unit_rate * storage.capacity * storage.maintenance_perc
 
             if year == self.startyear:
                 storage.year_online = year + storage.delivery_time + 1
@@ -614,8 +614,8 @@ class System:
         #     conveyor.capex = int(capacity * unit_rate + mobilisation)
         #
         #     # - opex
-        #     conveyor.insurance = conveyor.capex * conveyor.insurance_perc
-        #     conveyor.maintenance = conveyor.capex * conveyor.maintenance_perc
+        #     conveyor.insurance = capacity * unit_rate * conveyor.insurance_perc
+        #     conveyor.maintenance = capacity * unit_rate * conveyor.maintenance_perc
         #
         #     #   energy
         #     energy = Energy(**defaults.energy_data)
@@ -671,8 +671,8 @@ class System:
             station.capex = int(unit_rate + mobilisation)
 
             # - opex
-            station.insurance = station.capex * station.insurance_perc
-            station.maintenance = station.capex * station.maintenance_perc
+            station.insurance = unit_rate * station.insurance_perc
+            station.maintenance = unit_rate * station.maintenance_perc
             station.labour = 0
 
             if year == self.startyear:
