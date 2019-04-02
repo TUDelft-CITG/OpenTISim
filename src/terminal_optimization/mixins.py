@@ -242,7 +242,7 @@ class unloading_station_properties_mixin(object):
         self.number_of_wagons = number_of_wagons
         self.prep_time = prep_time
         self.call_size = int(self.wagon_payload * self.number_of_wagons)
-        self.capacity = int(self.call_size / (self.call_size/self.production + self.prep_time))
+        self.service_rate = int(self.call_size / (self.call_size/self.production + self.prep_time)) #TUE/hour, IJzermans 2019, P30
 
 class commodity_properties_mixin(object):
     def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):
