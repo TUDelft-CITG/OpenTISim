@@ -10,7 +10,8 @@ from terminal_optimization import defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, debug=False, elements=[],
-                 crane_type_defaults=defaults.mobile_crane_data, storage_type_defaults=defaults.silo_data):
+                 crane_type_defaults=defaults.mobile_crane_data, storage_type_defaults=defaults.silo_data,
+                 allowable_berth_occupancy = 0.4, allowable_dwelltime=0.05):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -25,6 +26,10 @@ class System:
         # default values to use in case various types can be selected
         self.crane_type_defaults = crane_type_defaults
         self.storage_type_defaults = storage_type_defaults
+
+        # triggers for the various elements
+        self.allowable_berth_occupancy = allowable_berth_occupancy
+        self.allowable_dwelltime = allowable_dwelltime
 
         # storage variables for revenue
         self.revenues = []
@@ -76,9 +81,7 @@ class System:
                 print('     Panamax calls: {}'.format(panamax))
                 print('  Total cargo volume: {}'.format(total_vol))
 
-            # todo: enable definition of trigger as input (no hard coding!)
-            allowable_berth_occupancy = .4  # is 40 %
-            self.berth_invest(year, allowable_berth_occupancy, handysize, handymax, panamax)
+            self.berth_invest(year, handysize, handymax, panamax)
 
             self.conveyor_quay_invest(year, defaults.quay_conveyor_data)
 
@@ -225,7 +228,7 @@ class System:
 
     # *** Investment functions
 
-    def berth_invest(self, year, allowable_berth_occupancy, handysize, handymax, panamax):
+    def berth_invest(self, year, handysize, handymax, panamax):
         """
         Given the overall objectives of the terminal
 
@@ -263,7 +266,7 @@ class System:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
 
-        while berth_occupancy_planned > allowable_berth_occupancy:
+        while berth_occupancy_planned > self.allowable_berth_occupancy:
 
             # add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
@@ -339,8 +342,7 @@ class System:
         quay_wall = Quay_wall(**defaults.quay_wall_data)
 
         # - capex
-        unit_rate = int(
-            quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
+        unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         quay_wall.capex = int(length * unit_rate + mobilisation)
 
@@ -438,9 +440,7 @@ class System:
 
         if self.debug:
             print('     a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online,
-                defaults_quay_conveyor_data['type'],
-                service_capacity))
+                service_capacity_online,defaults_quay_conveyor_data['type'],service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_peakcapacity_cranes_online:
@@ -503,14 +503,11 @@ class System:
 
         if self.debug:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
-                storage_capacity_online,
-                defaults_storage_data['type'],
-                storage_capacity))
+                storage_capacity_online,defaults_storage_data['type'],storage_capacity))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize,
-            handymax, panamax)
+            year, handysize,handymax, panamax)
 
         max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
 
@@ -521,11 +518,10 @@ class System:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
         # todo: make the maximum dwelltime an input
-        storage_capacity_dwelltime = (service_rate * self.operational_hours * 0.05) * 1.1
+        storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1
 
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
-            # todo: added the option that minimum storage size is at least as big as the largest vessel's call_size
             # todo: find a way to add dwell time
             if self.debug:
                 print('  *** add storage to elements')
