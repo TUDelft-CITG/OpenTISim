@@ -46,9 +46,7 @@ quay_wall_data = {"name": 'Quay_01',
                   "insurance_perc": 0.01,
                   "freeboard": 4,
                   "Gijt_constant": 757.20,
-                  "Gijt_coefficient": 1.2878,
-                  "length": 0,
-                  "depth": 0}
+                  "Gijt_coefficient": 1.2878} # all values from Ijzermans, 2019, P 91
 
 # todo:  length & depth removing from defaults
 
@@ -74,42 +72,41 @@ gantry_crane_data = {"name": 'Gantry_crane_01',
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Gantry crane',
-                     "lifting_capacity": 50,   # Ijzermans, 2019, P 96
+                     "lifting_capacity": 50,
                      "hourly_cycles": 50,
-                     "eff_fact": 0.50}
+                     "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
 
 harbour_crane_data = {"name": 'Harbour_crane_01',
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 40,
-                      "unit_rate": 7_880_000, #10_500_000 old number todo: check if correct
+                      "unit_rate": 7_880_000,
                       "mobilisation_perc": 0.15,
                       "maintenance_perc": 0.02,
                       "consumption": 210,
                       "insurance_perc": 0.01,
                       "crew": 3,
                       "crane_type": 'Harbour crane',
-                      "lifting_capacity": 25, #40 old number todo: why was this 40?
+                      "lifting_capacity": 25,
                       "hourly_cycles": 40,
-                      "eff_fact": 0.40}
+                      "eff_fact": 0.40} # all values from Ijzermans, 2019, P 100
 
 mobile_crane_data = {"name": 'Mobile_crane_01',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
-                     "lifespan": 40, #20 old number todo: why was this 20?
+                     "lifespan": 40,
                      "unit_rate": 3_325_000,
                      "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,#0.031 old number todo: checking why was this 0.031
-                     "consumption": 485, # 310 old number todo: checking why this was 310 istead of 485
+                     "maintenance_perc": 0.02,
+                     "consumption": 485,
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Mobile crane',
                      "lifting_capacity": 30,
                      "hourly_cycles": 25,
-                     "eff_fact": 0.35}
+                     "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
 
 # *** Default inputs: ContinuousUnloader class ***
-
 
 continuous_screw_data = {"name": 'Continuous_loader_01',
                          "ownership": 'Terminal operator',
@@ -123,13 +120,13 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
                          "crew": 2,
                          "crane_type": 'Screw unloader',
                          "peak_capacity": 700,
-                         "eff_fact": 0.55}
+                         "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
 
 # *** Default inputs: Conveyor class ***
 
 quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "type": 'quay_conveyor',
-                      "length": 200, #500 old number
+                      "length": 200,
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 10,
@@ -141,7 +138,7 @@ quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "consumption_coefficient": 0.08,
                       "crew": 1,
                       "utilisation": 0.80,
-                      "capacity_steps": 400}
+                      "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
 
 hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "type": 'hinterland_conveyor',
@@ -157,7 +154,8 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "consumption_coefficient": 0.08,
                             "crew": 1,
                             "utilisation": 0.80,
-                            "capacity_steps": 400}
+                            "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
+
 
 # *** Default inputs: Storage class ***
 

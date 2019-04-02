@@ -109,7 +109,7 @@ class hastriggers_properties_mixin(object):
 
 class quay_wall_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, length, depth, freeboard, Gijt_constant, Gijt_coefficient, *args,
+                 maintenance_perc, insurance_perc, freeboard, Gijt_constant, Gijt_coefficient, *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -120,13 +120,9 @@ class quay_wall_properties_mixin(object):
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
-        self.length = length
-        self.depth = depth
         self.freeboard = freeboard
         self.Gijt_constant = Gijt_constant
         self.Gijt_coefficient = Gijt_coefficient
-        self.unit_rate = int(self.Gijt_constant * (self.depth * 2 + self.freeboard) ** self.Gijt_coefficient)
-        #self.unit_rate = int(self.Gijt_constant * (2*(self.depth + self.freeboard)) ** self.Gijt_coefficient)
 
 class berth_properties_mixin(object):
     def __init__(self, crane_type, max_cranes, delivery_time, *args, **kwargs):
