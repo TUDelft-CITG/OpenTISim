@@ -434,54 +434,52 @@ class System:
         service_capacity_online = 0
         if list_of_elements != []:
             for element in list_of_elements:
-                if element.type == defaults_quay_conveyor_data['type']:
-                    service_capacity += element.capacity_steps
-                    if year >= element.year_online:
-                        service_capacity_online += element.capacity_steps
+                service_capacity += element.capacity_steps
+                if year >= element.year_online:
+                   service_capacity_online += element.capacity_steps
 
         if self.debug:
-            print('     a total of {} ton of {} conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online,defaults_quay_conveyor_data['type'],service_capacity))
+            print('a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
+                service_capacity_online,service_capacity))
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_capacity < service_peakcapacity_cranes_online:
             if self.debug:
-                print('  *** add Conveyor to elements')
-            conveyor = Conveyor_Quay(**defaults_quay_conveyor_data)
+                print('  *** add Quay Conveyor to elements')
+            conveyor_quay = Conveyor_Quay(**defaults_quay_conveyor_data)
 
             # - capex
-            capacity = conveyor.capacity_steps
-            unit_rate = conveyor.unit_rate_factor * conveyor.length
-            mobilisation = conveyor.mobilisation
-            conveyor.capex = int(capacity * unit_rate + mobilisation)
+            capacity = conveyor_quay.capacity_steps
+            unit_rate = conveyor_quay.unit_rate_factor * conveyor_quay.length
+            mobilisation = conveyor_quay.mobilisation
+            conveyor_quay.capex = int(capacity * unit_rate + mobilisation)
 
             # - opex
-            conveyor.insurance = capacity * unit_rate * conveyor.insurance_perc
-            conveyor.maintenance = capacity * unit_rate * conveyor.maintenance_perc
+            conveyor_quay.insurance = capacity * unit_rate * conveyor_quay.insurance_perc
+            conveyor_quay.maintenance = capacity * unit_rate * conveyor_quay.maintenance_perc
 
             #   labour
             labour = Labour(**defaults.labour_data)
-            conveyor.shift = ((conveyor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            conveyor.labour = conveyor.shift * labour.operational_salary
+            conveyor_quay.shift = ((conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             years_online = []
             for element in list_of_elements_Crane:
                 years_online.append(element.year_online)
-            conveyor.year_online = year
+            conveyor_quay.year_online = year
             # todo: the year_online is now equal to the crane's. But this is not yet robust
 
             # add cash flow information to quay_wall object in a dataframe
-            conveyor.quay = self.add_cashflow_data_to_element(conveyor)
+            conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
 
-            self.elements.append(conveyor.quay)
+            self.elements.append(conveyor_quay)
 
-            service_capacity += conveyor.capacity_steps
+            service_capacity += conveyor_quay.capacity_steps
 
         if self.debug:
             print('     a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
-                service_capacity_online,
-                service_capacity))
+                service_capacity_online, service_capacity))
 
     def storage_invest(self, year, defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved
@@ -491,7 +489,7 @@ class System:
         - add storage until target is reached
         """
 
-        # from all Conveyor objects sum online capacity
+        # from all storage objects sum online capacity
         storage_capacity = 0
         storage_capacity_online = 0
         list_of_elements = self.find_elements(Storage)
@@ -566,74 +564,67 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        list_of_elements = self.find_elements(Unloading_station)
-        # find the total service rate and determine the time at station
-
-        service_rate_planned_station = 0
-        service_rate_online_station = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                service_rate_planned_station += element.production
-                if year >= element.year_online:
-                    service_rate_online_station += element.production
-
-        # list all conveyor objects in system
-        list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
-
         # find the total service rate
         service_capacity = 0
         service_capacity_online_hinter = 0
+        list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
         if list_of_elements_conveyor != []:
             for element in list_of_elements_conveyor:
-                if element.type == defaults_hinterland_conveyor_data['type']:
-                    service_capacity += element.capacity_steps
-                    if year >= element.year_online:
-                        service_capacity_online_hinter += element.capacity_steps
+                service_capacity += element.capacity_steps
+                if year >= element.year_online:
+                    service_capacity_online_hinter += element.capacity_steps
 
         if self.debug:
-            print('     a total of {} ton of {} conveyor hinterland service capacity is online; {} ton total planned'.format(
-                service_capacity_online_hinter, defaults_hinterland_conveyor_data['type'],service_capacity))
+            print(
+                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+                    service_capacity_online_hinter, service_capacity))
+
+        # find the total service rate,
+        service_rate = 0
+        for element in (self.find_elements(Unloading_station)):
+            if year >= element.year_online:
+                service_rate += element.production
 
         # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity_online_hinter > service_rate_online_station:
+        while service_rate > service_capacity:
             if self.debug:
-                print('add Conveyor to elements')
-            conveyor = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
+                print('add Hinter Conveyor to elements')
+            conveyor_hinter = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
 
             # - capex
-            capacity = conveyor.capacity_steps
-            unit_rate = conveyor.unit_rate_factor * conveyor.length
-            mobilisation = conveyor.mobilisation
-            conveyor.capex = int(capacity * unit_rate + mobilisation)
+            capacity = conveyor_hinter.capacity_steps
+            unit_rate = conveyor_hinter.unit_rate_factor * conveyor_hinter.length
+            mobilisation = conveyor_hinter.mobilisation
+            conveyor_hinter.capex = int(capacity * unit_rate + mobilisation)
 
             # - opex
-            conveyor.insurance = capacity * unit_rate * conveyor.insurance_perc
-            conveyor.maintenance = capacity * unit_rate * conveyor.maintenance_perc
+            conveyor_hinter.insurance = capacity * unit_rate * conveyor_hinter.insurance_perc
+            conveyor_hinter.maintenance = capacity * unit_rate * conveyor_hinter.maintenance_perc
 
             # - labour
             labour = Labour(**defaults.labour_data)
-            conveyor.shift = ((conveyor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            conveyor.labour = conveyor.shift * labour.operational_salary
+            conveyor_hinter.shift = ((conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
 
             #   energy
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
             energy = Energy(**defaults.energy_data)
-            consumption = conveyor.capacity_steps * conveyor.consumption_coefficient + conveyor.consumption_constant
+            consumption = conveyor_hinter.capacity_steps * conveyor_hinter.consumption_coefficient + conveyor_hinter.consumption_constant
             hours = self.operational_hours * station_occupancy_online
-            conveyor.energy = consumption * hours * energy.price
+            conveyor_hinter.energy = consumption * hours * energy.price
 
             # year online
             years_online = []
             for element in list_of_elements_conveyor:
                 years_online.append(element.year_online)
-            conveyor.year_online = element.year_online - 1 + conveyor.delivery_time
+            conveyor_hinter.year_online = element.year_online - 1 + conveyor_hinter.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            conveyor.hinter = self.add_cashflow_data_to_element(conveyor)
+            conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
 
-            self.elements.append(conveyor.hinter)
+            self.elements.append(conveyor_hinter)
 
-            service_capacity += conveyor.capacity_steps
+            service_capacity += conveyor_hinter.capacity_steps
 
         if self.debug:
             print('     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
@@ -1067,7 +1058,7 @@ class System:
 
     # *** plotting functions
 
-    def terminal_elements_plot(self, width=0.15, alpha=0.6):
+    def terminal_elements_plot(self, width=0.1, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -1128,7 +1119,7 @@ class System:
                edgecolor='orangered')
         ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
                color='grey', edgecolor='black')
-        ax.bar([x + 5 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
+        ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
                color='red', edgecolor='black')
 
         ax.set_xlabel('Years')
