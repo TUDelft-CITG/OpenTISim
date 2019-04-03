@@ -308,7 +308,8 @@ class System:
                     length = length + 2 * 15  #ref: PIANC 2014
                 else:
                     # - length when next quay is n > 1
-                    length = 1.1 * berths *(length + 15) #ref: PIANC 2014
+                    length = 1.1 * (length + 15)  #ref: PIANC 2014
+                    #todo: find an optimal length formula
 
                 # - depth
                 quay_wall = Quay_wall(**defaults.quay_wall_data)
