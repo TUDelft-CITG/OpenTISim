@@ -160,9 +160,8 @@ class System:
         energy = Energy(**defaults.energy_data)
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize_calls,
-            handymax_calls,
-            panamax_calls)
+            year, handysize_calls,handymax_calls,panamax_calls)
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
         # calculate crane energy
         list_of_elements_1 = self.find_elements(Cyclic_Unloader)
@@ -180,16 +179,13 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        # calculate conveyor energy
-        list_of_elements_1 = self.find_elements(Conveyor_Quay)
-        list_of_elements_2 = self.find_elements(Conveyor_Hinter)
-        list_of_elements_Conveyor = list_of_elements_1 + list_of_elements_2
+        # calculate Quay conveyor energy
+        list_of_elements = self.find_elements(Conveyor_Quay)
 
-        for element in list_of_elements_Conveyor:
+        for element in list_of_elements:
             if year >= element.year_online:
                 consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
                 hours = self.operational_hours * crane_occupancy_online
-                # are we sure this should be berth_occupancy_online, or should it be crane_occupancy_online
 
                 if consumption * hours * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
@@ -208,6 +204,20 @@ class System:
 
                 if consumption * capacity * hours * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate hinterland conveyor energy
+        list_of_elements = self.find_elements(Conveyor_Hinter)
+
+        for element in list_of_elements:
+            if year >= element.year_online:
+                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
+                hours = self.operational_hours * station_occupancy_online
+
+                if consumption * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
 
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
@@ -606,12 +616,6 @@ class System:
             conveyor_hinter.shift = ((conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
 
-            #   energy
-            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-            energy = Energy(**defaults.energy_data)
-            consumption = conveyor_hinter.capacity_steps * conveyor_hinter.consumption_coefficient + conveyor_hinter.consumption_constant
-            hours = self.operational_hours * station_occupancy_online
-            conveyor_hinter.energy = consumption * hours * energy.price
 
             # year online
             years_online = []
