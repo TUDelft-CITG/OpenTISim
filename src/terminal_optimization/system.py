@@ -483,7 +483,24 @@ class System:
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
             # # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-            conveyor_quay.year_online = max(years_online)
+
+            # there should always be a new crane in the planning
+            new_crane_years = [x for x in years_online if x >= year]
+
+            # find the maximum online year of Conveyor_Quay or make it []
+            if self.find_elements(Conveyor_Quay) != []:
+                max_conveyor_years = max([x.year_online for x in self.find_elements(Conveyor_Quay)])
+            else:
+                max_conveyor_years = []
+
+            if max_conveyor_years == []:
+                conveyor_quay.year_online = min(new_crane_years)
+            elif max_conveyor_years < min(new_crane_years):
+                conveyor_quay.year_online = min(new_crane_years)
+            elif max_conveyor_years == min(new_crane_years):
+                conveyor_quay.year_online = max(new_crane_years)
+            elif max_conveyor_years > min(new_crane_years):
+                conveyor_quay.year_online = max(new_crane_years)
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
