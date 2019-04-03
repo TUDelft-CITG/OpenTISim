@@ -9,7 +9,7 @@ from terminal_optimization import defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=4680, debug=False, elements=[],
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=defaults.mobile_crane_data, storage_type_defaults=defaults.silo_data,
                  allowable_berth_occupancy = 0.4, allowable_dwelltime=18/365, allowable_station_occupancy = 0.4):
         # time inputs
@@ -27,7 +27,7 @@ class System:
         self.crane_type_defaults = crane_type_defaults
         self.storage_type_defaults = storage_type_defaults
 
-        # triggers for the various elements
+        # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
         self.allowable_station_occupancy = allowable_station_occupancy
@@ -629,9 +629,12 @@ class System:
         """
 
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+        train_calls = self.train_call(year)
+
         if self.debug:
             print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
             print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
+            print('     Number of trains (@start of year): {}'.format(train_calls))
 
         while station_occupancy_planned > self.allowable_station_occupancy:
             # add a station when station occupancy is too high
@@ -639,18 +642,6 @@ class System:
                 print('  *** add station to elements')
 
             station = Unloading_station(**defaults.hinterland_station_data)
-
-            # - Trains calculated with the throughput
-            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, handysize, handymax, panamax)
-
-            service_rate_throughput = 0
-            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-                if year >= element.year_online:
-                    service_rate_throughput += element.effective_capacity * crane_occupancy_online
-
-            station.trains = service_rate_throughput * self.operational_hours / station.call_size
 
             # - capex
             unit_rate = station.unit_rate
@@ -1045,6 +1036,28 @@ class System:
             print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
 
         return elements_online, elements
+
+    def train_call(self, year):
+        """Calculation of the train calls per year, this is calculated from:
+        - find out how much throughput there is
+        - find out how much cargo the train can transport
+        - calculate the numbers of train calls"""
+
+        station = Unloading_station(**defaults.hinterland_station_data)
+
+        # - Trains calculated with the throughput
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize, handymax, panamax)
+
+        service_rate_throughput = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate_throughput += element.effective_capacity * crane_occupancy_online
+
+        train_calls = service_rate_throughput * self.operational_hours / station.call_size
+
+        return train_calls
 
     # *** plotting functions
 
