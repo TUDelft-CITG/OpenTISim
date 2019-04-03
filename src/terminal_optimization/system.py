@@ -493,6 +493,7 @@ class System:
             else:
                 max_conveyor_years = []
 
+            # decide what online year to use
             if max_conveyor_years == []:
                 conveyor_quay.year_online = min(new_crane_years)
             elif max_conveyor_years < min(new_crane_years):
