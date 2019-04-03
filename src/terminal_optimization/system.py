@@ -180,9 +180,9 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate Quay conveyor energy
-        list_of_elements = self.find_elements(Conveyor_Quay)
+        list_of_elements_quay = self.find_elements(Conveyor_Quay)
 
-        for element in list_of_elements:
+        for element in list_of_elements_quay:
             if year >= element.year_online:
                 consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
                 hours = self.operational_hours * crane_occupancy_online
@@ -209,9 +209,9 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate hinterland conveyor energy
-        list_of_elements = self.find_elements(Conveyor_Hinter)
+        list_of_elements_hinter = self.find_elements(Conveyor_Hinter)
 
-        for element in list_of_elements:
+        for element in list_of_elements_hinter:
             if year >= element.year_online:
                 consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
                 hours = self.operational_hours * station_occupancy_online
@@ -422,38 +422,27 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
 
-        # list all crane objects in system
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
-
-        # find the total service rate
-        if list_of_elements_Crane != []:
-            service_peakcapacity_cranes = 0
-            service_peakcapacity_cranes_online = 0
-            for element in list_of_elements_Crane:
-                service_peakcapacity_cranes += element.peak_capacity
-                if year >= element.year_online:
-                    service_peakcapacity_cranes_online += element.peak_capacity
-
-        # list all conveyor objects in system
-        list_of_elements = self.find_elements(Conveyor_Quay)
-
         # find the total service rate
         service_capacity = 0
         service_capacity_online = 0
+        list_of_elements = self.find_elements(Conveyor_Quay)
         if list_of_elements != []:
             for element in list_of_elements:
                 service_capacity += element.capacity_steps
                 if year >= element.year_online:
-                   service_capacity_online += element.capacity_steps
+                    service_capacity_online += element.capacity_steps
 
         if self.debug:
             print('a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online,service_capacity))
+                service_capacity_online, service_capacity))
+
+        # find the total service rate,
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            service_rate += element.peak_capacity
 
         # check if total planned length is smaller than target length, if so add a quay
-        while service_capacity < service_peakcapacity_cranes_online:
+        while service_capacity < service_rate:
             if self.debug:
                 print('  *** add Quay Conveyor to elements')
             conveyor_quay = Conveyor_Quay(**defaults_quay_conveyor_data)
@@ -475,10 +464,16 @@ class System:
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             years_online = []
-            for element in list_of_elements_Crane:
+            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
                 years_online.append(element.year_online)
-            conveyor_quay.year_online = year
+            conveyor_quay.year_online = element.year_online
             # todo: the year_online is now equal to the crane's. But this is not yet robust
+            #
+            # years_online = []
+            # for element in self.find_elements(Quay_wall):
+            #     years_online.append(element.year_online)
+            # crane.year_online = max([year + crane.delivery_time, max(years_online)])
+            #
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
@@ -585,15 +580,13 @@ class System:
                     service_capacity_online_hinter += element.capacity_steps
 
         if self.debug:
-            print(
-                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+            print('a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
                     service_capacity_online_hinter, service_capacity))
 
         # find the total service rate,
         service_rate = 0
         for element in (self.find_elements(Unloading_station)):
-            if year >= element.year_online:
-                service_rate += element.production
+            service_rate += element.production
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_rate > service_capacity:
@@ -621,7 +614,7 @@ class System:
             years_online = []
             for element in list_of_elements_conveyor:
                 years_online.append(element.year_online)
-            conveyor_hinter.year_online = element.year_online - 1 + conveyor_hinter.delivery_time
+            conveyor_hinter.year_online = year + conveyor_hinter.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
@@ -653,7 +646,6 @@ class System:
                 print('  *** add station to elements')
 
             station = Unloading_station(**defaults.hinterland_station_data)
-            station.year_online = year + station.delivery_time
 
             # - Trains calculated with the throughput
             handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
@@ -707,15 +699,16 @@ class System:
         cash_flows['maintenance'] = 0
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
+        cash_flows['labour'] = 0
 
-        quay_wall = Quay_wall(**defaults.quay_wall_data)
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            if year < self.startyear + quay_wall.delivery_time:
-                cash_flows['labour'] = 0
-            else:
-                cash_flows['labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
-        # todo: start labour cost in 2020 instead of 2018
+        # quay_wall = Quay_wall(**defaults.quay_wall_data)
+        #
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     if year < self.startyear + quay_wall.delivery_time:
+        #         cash_flows['labour'] = 0
+        #     else:
+        #         cash_flows['labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+        # # todo: start labour cost in 2020 instead of 2018
 
         cash_flows['revenues'] = self.revenues
 
