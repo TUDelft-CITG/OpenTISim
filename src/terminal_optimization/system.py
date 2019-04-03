@@ -272,7 +272,7 @@ class System:
         """
 
         # report on the status of all berth elements
-        berths_online, berths = self.report_element(Berth, year)
+        self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
         self.report_element(Continuous_Unloader, year)
