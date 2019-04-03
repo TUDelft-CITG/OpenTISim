@@ -113,7 +113,7 @@ class System:
         2. calculate the maximum amount that can be handled (service capacity * operational hours)
         Terminal.revenues is the minimum of 1. and 2.
         """
-        #implement a safetymarge
+        # implement a safetymarge
         quay_walls = len(self.find_elements(Quay_wall))
         crane_cyclic = len(self.find_elements(Cyclic_Unloader))
         crane_continuos = len(self.find_elements(Continuous_Unloader))
@@ -122,7 +122,8 @@ class System:
         conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
         station = len(self.find_elements(Unloading_station))
 
-        if quay_walls<1 and  conveyor_quay<1 and (crane_cyclic > 1 or crane_continuos > 1) and storage <1 and conveyor_hinter <1 and station<1:
+        if quay_walls < 1 and conveyor_quay < 1 and (
+                crane_cyclic > 1 or crane_continuos > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -152,10 +153,12 @@ class System:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
         if self.debug:
-            print('     Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee * safety_factor)))
+            print('     Revenues (throughput): {}'.format(
+                int(service_rate * self.operational_hours * fee * safety_factor)))
 
         try:
-            self.revenues.append(min(revenues*safety_factor, service_rate * self.operational_hours * fee*safety_factor))
+            self.revenues.append(
+                min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
         except:
             pass
 
@@ -474,7 +477,7 @@ class System:
             #   labour
             labour = Labour(**defaults.labour_data)
             conveyor_quay.shift = (
-                        (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+                    (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
@@ -531,7 +534,7 @@ class System:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
         storage_capacity_dwelltime = (
-                                                 service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+                                             service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
@@ -622,7 +625,7 @@ class System:
             # - labour
             labour = Labour(**defaults.labour_data)
             conveyor_hinter.shift = (
-                        (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+                    (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
 
             # - online year
