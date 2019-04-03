@@ -116,14 +116,14 @@ class System:
         # implement a safetymarge
         quay_walls = len(self.find_elements(Quay_wall))
         crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        crane_continuos = len(self.find_elements(Continuous_Unloader))
+        crane_continuous = len(self.find_elements(Continuous_Unloader))
         conveyor_quay = len(self.find_elements(Conveyor_Quay))
         storage = len(self.find_elements(Storage))
         conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
         station = len(self.find_elements(Unloading_station))
 
         if quay_walls < 1 and conveyor_quay < 1 and (
-                crane_cyclic > 1 or crane_continuos > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
+                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -723,17 +723,11 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
-
-        # quay_wall = Quay_wall(**defaults.quay_wall_data)
-        #
-        # for year in range(self.startyear, self.startyear + self.lifecycle):
-        #     if year < self.startyear + quay_wall.delivery_time:
-        #         cash_flows['labour'] = 0
-        #     else:
-        #         cash_flows['labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
-        # # todo: start labour cost in 2020 instead of 2018
-
         cash_flows['revenues'] = self.revenues
+
+        # add labour component for years were revenues are not zero
+        cash_flows.loc[cash_flows[
+                           'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
 
         for element in self.elements:
             if hasattr(element, 'df'):
