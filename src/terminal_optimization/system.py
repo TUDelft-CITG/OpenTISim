@@ -442,7 +442,7 @@ class System:
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             service_rate += element.peak_capacity
 
-        # check if total planned length is smaller than target length, if so add a quay
+        # check if total planned capacity is smaller than target capacity, if so add a conveyor
         while service_capacity < service_rate:
             if self.debug:
                 print('  *** add Quay Conveyor to elements')
@@ -467,14 +467,8 @@ class System:
             years_online = []
             for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
                 years_online.append(element.year_online)
-            conveyor_quay.year_online = element.year_online
-            # todo: the year_online is now equal to the crane's. But this is not yet robust
-            #
-            # years_online = []
-            # for element in self.find_elements(Quay_wall):
-            #     years_online.append(element.year_online)
-            # crane.year_online = max([year + crane.delivery_time, max(years_online)])
-            #
+            conveyor_quay.year_online = max([year + conveyor_quay.delivery_time, min(years_online)])
+            # todo: the year_online is not correct!
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
@@ -610,12 +604,10 @@ class System:
             conveyor_hinter.shift = ((conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
 
+            # - online year
+            conveyor_hinter.year_online = year
+            # todo: the review the year online if it is correct!
 
-            # year online
-            years_online = []
-            for element in list_of_elements_conveyor:
-                years_online.append(element.year_online)
-            conveyor_hinter.year_online = year + conveyor_hinter.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
