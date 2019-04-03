@@ -455,8 +455,10 @@ class System:
 
         # find the total service rate,
         service_rate = 0
+        years_online = []
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             service_rate += element.peak_capacity
+            years_online.append(element.year_online)
 
         # check if total planned capacity is smaller than target capacity, if so add a conveyor
         while service_capacity < service_rate:
@@ -480,12 +482,8 @@ class System:
                     (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
-            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-            years_online = []
-            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-                years_online.append(element.year_online)
-            conveyor_quay.year_online = max([year + conveyor_quay.delivery_time, min(years_online)])
-            # todo: the year_online is not correct!
+            # # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
+            conveyor_quay.year_online = max(years_online)
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
