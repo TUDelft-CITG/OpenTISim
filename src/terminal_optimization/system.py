@@ -273,11 +273,14 @@ class System:
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
             year, handysize, handymax, panamax)
-        waiting_time_occupancy, factor = self.waiting_time(year)
+        factor, waiting_time_occupancy = self.waiting_time(year)
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
-            print('     waiting time factor start: {}'.format(factor))
+            print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
+            print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
+            print('     waiting time factor (@ start of year): {}'.format(factor))
+            print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -333,8 +336,6 @@ class System:
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
-                    print('     Crane occupancy planned (after adding crane): {}'.format(crane_occupancy_planned))
-                    print('     Crane occupancy online (after adding crane): {}'.format(crane_occupancy_online))
 
     def quay_invest(self, year, length, depth):
         """
@@ -985,17 +986,14 @@ class System:
         # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
             factor = float("inf")
 
-        # Find the average service time of a vessel
-        service_time = crane_occupancy_online * self.operational_hours / total_calls
-
         # Find the waiting time
-        waiting_time_hours = factor * service_time
+        waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
 
         # Find the percentage of the waiting_time
 
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
-        return waiting_time_occupancy, factor
+        return factor, waiting_time_occupancy
 
     def calculate_station_occupancy(self, year):
         """
