@@ -625,7 +625,7 @@ class System:
         # check if total planned length is smaller than target length, if so add a quay
         while service_rate > service_capacity:
             if self.debug:
-                print('add Hinter Conveyor to elements')
+                print('  *** add Hinter Conveyor to elements')
             conveyor_hinter = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
 
             # - capex
