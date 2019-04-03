@@ -11,7 +11,7 @@ from terminal_optimization import defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=defaults.mobile_crane_data, storage_type_defaults=defaults.silo_data,
-                 allowable_berth_occupancy = 0.4, allowable_dwelltime=18/365, allowable_station_occupancy = 0.4):
+                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -160,7 +160,7 @@ class System:
         energy = Energy(**defaults.energy_data)
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize_calls,handymax_calls,panamax_calls)
+            year, handysize_calls, handymax_calls, panamax_calls)
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
         # calculate crane energy
@@ -310,11 +310,11 @@ class System:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if quay_walls == 0:
                     # - length when next quay is n = 1
-                    length = length + 2 * 15  #ref: PIANC 2014
+                    length = length + 2 * 15  # ref: PIANC 2014
                 else:
                     # - length when next quay is n > 1
-                    length = 1.1 * (length + 15)  #ref: PIANC 2014
-                    #todo: find an optimal length formula
+                    length = 1.1 * (length + 15)  # ref: PIANC 2014
+                    # todo: find an optimal length formula
 
                 # - depth
                 quay_wall = Quay_wall(**defaults.quay_wall_data)
@@ -436,7 +436,7 @@ class System:
                     service_capacity_online += element.capacity_steps
 
         if self.debug:
-            print('a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
+            print('     a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
                 service_capacity_online, service_capacity))
 
         # find the total service rate,
@@ -462,7 +462,8 @@ class System:
 
             #   labour
             labour = Labour(**defaults.labour_data)
-            conveyor_quay.shift = ((conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            conveyor_quay.shift = (
+                        (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
@@ -504,11 +505,11 @@ class System:
 
         if self.debug:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
-                storage_capacity_online,defaults_storage_data['type'],storage_capacity))
+                storage_capacity_online, defaults_storage_data['type'], storage_capacity))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize,handymax, panamax)
+            year, handysize, handymax, panamax)
 
         max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
 
@@ -518,7 +519,8 @@ class System:
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
-        storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1 #IJzerman p.26
+        storage_capacity_dwelltime = (
+                                                 service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
@@ -554,7 +556,7 @@ class System:
 
             if self.debug:
                 print(
-                    '      a total of {} ton of storage capacity is online; {} ton total planned'.format(
+                    '     a total of {} ton of storage capacity is online; {} ton total planned'.format(
                         storage_capacity_online,
                         storage_capacity))
 
@@ -577,13 +579,18 @@ class System:
                     service_capacity_online_hinter += element.capacity_steps
 
         if self.debug:
-            print('a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+            print(
+                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
                     service_capacity_online_hinter, service_capacity))
 
         # find the total service rate,
         service_rate = 0
+        years_online = []
         for element in (self.find_elements(Unloading_station)):
             service_rate += element.production
+            years_online.append(element.year_online)
+
+        print('years online: {}'.format(years_online))
 
         # check if total planned length is smaller than target length, if so add a quay
         while service_rate > service_capacity:
@@ -603,13 +610,12 @@ class System:
 
             # - labour
             labour = Labour(**defaults.labour_data)
-            conveyor_hinter.shift = ((conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            conveyor_hinter.shift = (
+                        (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
 
             # - online year
-            conveyor_hinter.year_online = year
-            # todo: the review the year online if it is correct!
-
+            conveyor_hinter.year_online = max(years_online)
 
             # add cash flow information to quay_wall object in a dataframe
             conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
@@ -619,8 +625,9 @@ class System:
             service_capacity += conveyor_hinter.capacity_steps
 
         if self.debug:
-            print('     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                service_capacity_online_hinter, service_capacity))
+            print(
+                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+                    service_capacity_online_hinter, service_capacity))
 
     def unloading_station_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -707,7 +714,7 @@ class System:
         cash_flows.fillna(0)
 
         # calculate WACC real cashflows
-        cash_flows_WACC_real= pd.DataFrame()
+        cash_flows_WACC_real = pd.DataFrame()
         cash_flows_WACC_real['year'] = cash_flows['year']
         for year in range(self.startyear, self.startyear + self.lifecycle):
             for column in cash_flows.columns:
@@ -782,7 +789,7 @@ class System:
 
         return WACC_nominal
 
-    def WACC_real(self, inflation = 0.02): #old: interest=0.0604
+    def WACC_real(self, inflation=0.02):  # old: interest=0.0604
         """Real cash flow expresses a company's cash flow with adjustments for inflation.
         When all cashflows within the model are denoted in real terms and have been
         adjusted for inflation (no inlfation has been taken into account),
@@ -969,21 +976,28 @@ class System:
         berths = len(self.find_elements(Berth))
 
         if berths == 1:
-            factor = max(0, 79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
+            factor = max(0,
+                         79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
             if berths == 2:
-                factor = max(0, 29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
+                factor = max(0,
+                             29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
                 if berths == 3:
-                    factor = max(0, 19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
+                    factor = max(0,
+                                 19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
                     if berths == 4:
-                        factor = max(0, 17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
+                        factor = max(0,
+                                     17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
                         if berths == 5:
-                            factor = max(0, 11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
+                            factor = max(0,
+                                         11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
                             if berths == 6:
-                                factor = max(0, 10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
+                                factor = max(0,
+                                             10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
                                 if berths == 7:
-                                    factor = max(0, 8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
+                                    factor = max(0,
+                                                 8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
         else:
-        # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
+            # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
             factor = float("inf")
 
         # Find the waiting time
