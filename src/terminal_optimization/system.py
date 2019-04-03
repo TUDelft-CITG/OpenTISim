@@ -92,8 +92,6 @@ class System:
 
             self.unloading_station_invest(year)
 
-            # self.calculate_train_calls(year)
-
         # 2. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
@@ -115,6 +113,19 @@ class System:
         2. calculate the maximum amount that can be handled (service capacity * operational hours)
         Terminal.revenues is the minimum of 1. and 2.
         """
+        #implement a safetymarge
+        quay_walls = len(self.find_elements(Quay_wall))
+        crane_cyclic = len(self.find_elements(Cyclic_Unloader))
+        crane_continuos = len(self.find_elements(Continuous_Unloader))
+        conveyor_quay = len(self.find_elements(Conveyor_Quay))
+        storage = len(self.find_elements(Storage))
+        conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
+        station = len(self.find_elements(Unloading_station))
+
+        if quay_walls<1 and  conveyor_quay<1 and (crane_cyclic > 1 or crane_continuos > 1) and storage <1 and conveyor_hinter <1 and station<1:
+            safety_factor = 0
+        else:
+            safety_factor = 1
 
         # gather volumes from each commodity, calculate how much revenue it would yield, and add
         revenues = 0
@@ -122,7 +133,7 @@ class System:
             fee = commodity.handling_fee
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                revenues += (volume * fee)
+                revenues += (volume * fee * safety_factor)
             except:
                 pass
         if self.debug:
@@ -141,10 +152,10 @@ class System:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
         if self.debug:
-            print('     Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee)))
+            print('     Revenues (throughput): {}'.format(int(service_rate * self.operational_hours * fee * safety_factor)))
 
         try:
-            self.revenues.append(min(revenues, service_rate * self.operational_hours * fee))
+            self.revenues.append(min(revenues*safety_factor, service_rate * self.operational_hours * fee*safety_factor))
         except:
             pass
 
