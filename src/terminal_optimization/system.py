@@ -54,15 +54,20 @@ class System:
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
         QSC, decision recipe, intervention method):
 
-           1. for each year evaluate the various investment decisions
-           2. for each year calculate the energy costs (requires insight in realized demands)
-           3. for each year calculate terminal revenues
-           4. collect all cash flows (capex, opex, revenues)
-           5. calculate PV's and aggregate to NPV
+           1. for each year evaluate the demand of each commodity
+           2. for each year evaluate the various investment decisions
+           3. for each year calculate the energy costs (requires insight in realized demands)
+           4. for each year calculate terminal revenues
+           5. collect all cash flows (capex, opex, revenues)
+           6. calculate PV's and aggregate to NPV
 
         """
 
-        # 1. for each year evaluate the various investment decisions
+        # # 1. for each year evaluate the demand of each commodity
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_demand_commodity(year)
+
+        # 2. for each year evaluate the various investment decisions
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
             strategic objective: create a profitable enterprise (NPV > 0)
@@ -92,20 +97,34 @@ class System:
 
             self.unloading_station_invest(year)
 
-        # 2. for each year calculate the energy costs (requires insight in realized demands)
+        # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
 
-        # 3.  for each year calculate terminal revenues
+        # 4.  for each year calculate terminal revenues
         self.revenues = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year)
 
-        # 4. collect all cash flows (capex, opex, revenues)
+        # 5. collect all cash flows (capex, opex, revenues)
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
-        # 5. calculate PV's and aggregate to NPV
+        # 6. calculate PV's and aggregate to NPV
         self.NPV()
+
+    # def calculate_demand_commodity(self, year):
+    #
+    #     maize = Commodity(**defaults.maize_data)
+    #     wheat = Commodity(**defaults.wheat_data)
+    #     soybeans = Commodity(**defaults.soybean_data)
+    #
+    #
+    # # create a future througput scenario
+    #     maize_demand = maize.scenario_random(startyear=self.startyear, lifecycle=self.lifecycle)
+    #     wheat_demand = wheat.scenario_random(startyear=self.startyear, lifecycle=self.lifecycle)
+    #     soybeans_demand = soybeans.scenario_random(startyear=self.startyear, lifecycle=self.lifecycle)
+    #
+    #     return maize_demand, wheat_demand, soybeans_demand
 
     def calculate_revenue(self, year):
         """
@@ -127,6 +146,12 @@ class System:
             safety_factor = 0
         else:
             safety_factor = 1
+
+        # maize = Commodity(**defaults.maize_data)
+        # wheat = Commodity(**defaults.wheat_data)
+        # soybeans = Commodity(**defaults.soybean_data)
+        #
+        # maize_demand, wheat_demand, soybeans_demand = self.calculate_demand_commodity(year)
 
         # gather volumes from each commodity, calculate how much revenue it would yield, and add
         revenues = 0
@@ -151,6 +176,9 @@ class System:
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
+
+        # find the rate between volume and throughput
+        rate_throughput_volume = service_rate * self.operational_hours / total_vol
 
         if self.debug:
             print('     Revenues (throughput): {}'.format(
