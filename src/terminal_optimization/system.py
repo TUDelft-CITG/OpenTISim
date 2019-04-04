@@ -316,7 +316,7 @@ class System:
             berths = len(self.find_elements(Berth))
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
-                length = max(defaults.handysize_data["LOA"], defaults.handymax_data["LOA"],
+                length_v = max(defaults.handysize_data["LOA"], defaults.handymax_data["LOA"],
                              defaults.panamax_data["LOA"])  # average size
                 draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
                             defaults.panamax_data["draft"])
@@ -324,11 +324,12 @@ class System:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if quay_walls == 0:
                     # - length when next quay is n = 1
-                    length = length + 2 * 15  # ref: PIANC 2014
-                else:
+                    length = length_v + 2 * 15  # ref: PIANC 2014
+                elif quay_walls == 1:
                     # - length when next quay is n > 1
-                    length = 1.1 * (length + 15)  # ref: PIANC 2014
-                    # todo: find an optimal length formula
+                    length = 1.1 * berths * (length_v + 15) - (length_v+2*15) # ref: PIANC 2014
+                else:
+                    length = 1.1 * berths * (length_v + 15) - 1.1 * (berths-1) * (length_v + 15)
 
                 # - depth
                 quay_wall = Quay_wall(**defaults.quay_wall_data)
