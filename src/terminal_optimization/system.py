@@ -190,8 +190,6 @@ class System:
         except:
             pass
 
-        # todo: now one fee is used for all commodities. This still needs attention
-
     def calculate_energy_cost(self, year):
         """
         1. calculate the value of the total demand in year (demand * handling fee)
@@ -402,8 +400,6 @@ class System:
         unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         quay_wall.capex = int(length * unit_rate + mobilisation)
-
-        # todo: review the formulas
 
         # - opex
         quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
@@ -895,8 +891,6 @@ class System:
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
         commodities = self.find_elements(Commodity)
         for commodity in commodities:
-            # todo: check what commodity.utilisation means (Wijnands multiplies by utilisation).
-            #  see page 48 of wijnands report
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
                 handysize_vol += volume * commodity.handysize_perc / 100
@@ -1308,7 +1302,6 @@ class System:
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
                cash_flows['labour'].values
-        # todo: check if we need to add land lease as a opex (for terminal operator) or revenue (for a port operator)
 
         # sum cash flows to get profits as a function of year
         profits = []
