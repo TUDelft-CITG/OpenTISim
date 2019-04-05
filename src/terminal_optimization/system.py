@@ -629,8 +629,6 @@ class System:
             service_rate += element.production
             years_online.append(element.year_online)
 
-        print('years online: {}'.format(years_online))
-
         # check if total planned length is smaller than target length, if so add a quay
         while service_rate > service_capacity:
             if self.debug:
