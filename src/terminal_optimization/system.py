@@ -112,20 +112,6 @@ class System:
         # 6. calculate PV's and aggregate to NPV
         self.NPV()
 
-    # def calculate_demand_commodity(self, year):
-    #
-    #     maize = Commodity(**defaults.maize_data)
-    #     wheat = Commodity(**defaults.wheat_data)
-    #     soybeans = Commodity(**defaults.soybean_data)
-    #
-    #
-    # # create a future througput scenario
-    #     maize_demand = maize.scenario_random(startyear=self.startyear, lifecycle=self.lifecycle)
-    #     wheat_demand = wheat.scenario_random(startyear=self.startyear, lifecycle=self.lifecycle)
-    #     soybeans_demand = soybeans.scenario_random(startyear=self.startyear, lifecycle=self.lifecycle)
-    #
-    #     return maize_demand, wheat_demand, soybeans_demand
-
     def calculate_revenue(self, year):
         """
         1. calculate the value of the total demand in year (demand * handling fee)
@@ -165,11 +151,9 @@ class System:
         if self.debug:
             print('     Revenues (demand): {}'.format(revenues))
 
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize_calls,
-            handymax_calls,
-            panamax_calls)
+            year, handysize, handymax, panamax)
 
         # find the total service rate,
         service_rate = 0
@@ -198,9 +182,9 @@ class System:
         """
 
         energy = Energy(**defaults.energy_data)
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize_calls, handymax_calls, panamax_calls)
+            year, handysize, handymax, panamax)
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
         # calculate crane energy
@@ -735,10 +719,57 @@ class System:
 
     # *** Financial analyses
 
+    def demurrage_costs(self, year):
+
+        "Find the demurrage cost per type of vessel and sum all demurrage cost"
+
+        factor = self.waiting_time(year)
+
+        # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
+        quay_walls = len(self.find_elements(Quay_wall))
+
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate += element.effective_capacity / quay_walls
+                # Find the demurrage cost per type of vessel
+                if service_rate != 0:
+                    handymax = Vessel(**defaults.handymax_data)
+                    service_time_handymax = handymax.call_size / service_rate
+                    waiting_time_hours_handymax = factor * service_time_handymax
+                    port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
+                    penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
+                    demurrage_time_handymax = penalty_time_handymax * handymax_calls
+                    demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
+
+                    handysize = Vessel(**defaults.handysize_data)
+                    service_time_handysize = handysize.call_size / service_rate
+                    waiting_time_hours_handysize = factor * service_time_handysize
+                    port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
+                    penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
+                    demurrage_time_handysize = penalty_time_handysize * handysize_calls
+                    demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+
+                    panamax = Vessel(**defaults.panamax_data)
+                    service_time_panamax = panamax.call_size / service_rate
+                    waiting_time_hours_panamax = factor * service_time_panamax
+                    port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
+                    penalty_time_panamax = max(0, port_time_panamax - panamax.all_turn_time)
+                    demurrage_time_panamax = penalty_time_panamax * panamax_calls_panamax
+                    demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+
+                else:
+                    demurrage_cost_handymax = float("inf")
+                    demurrage_cost_handysize = float("inf")
+                    demurrage_cost_panamax = float("inf")
+
+        Total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+
+        return Total_demurrage_cost
+
     def add_cashflow_elements(self):
 
         cash_flows = pd.DataFrame()
-
         labour = Labour(**defaults.labour_data)
 
         # initialise cash_flows
@@ -748,8 +779,9 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
+        cash_flows['demurrage'] = 0
         cash_flows['revenues'] = self.revenues
-
+        
         # add labour component for years were revenues are not zero
         cash_flows.loc[cash_flows[
                            'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
@@ -981,8 +1013,6 @@ class System:
                 # berth_occupancy is the total time at berth devided by the operational hours
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
 
-                handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-
                 time_at_crane_handysize_online = handysize_calls * (
                     (defaults.handysize_data["call_size"] / service_rate_online))
                 time_at_crane_handymax_online = handymax_calls * (
@@ -1013,11 +1043,12 @@ class System:
         """
        - Import the berth occupancy of every year
        - Find the factor for the waiting time with the E2/E/n quing theory using 4th order polynomial regression
-       - Waiting time is the
+       - Waiting time is the factor times the crane occupancy
        """
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+            year, handysize_calls, handymax_calls, panamax_calls)
 
         # find the different factors which are linked to the number of berths
         berths = len(self.find_elements(Berth))
@@ -1040,12 +1071,8 @@ class System:
             # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
             factor = float("inf")
 
-        # Find the waiting time
         waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
-
-        # Find the percentage of the waiting_time
-
-        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+        waiting_time_occupancy = waiting_time_hours * total_calls/ self.operational_hours
 
         return factor, waiting_time_occupancy
 
