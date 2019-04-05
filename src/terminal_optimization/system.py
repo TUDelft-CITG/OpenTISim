@@ -327,7 +327,7 @@ class System:
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
                 length_v = max(defaults.handysize_data["LOA"], defaults.handymax_data["LOA"],
-                             defaults.panamax_data["LOA"])  # average size
+                               defaults.panamax_data["LOA"])  # average size
                 draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
                             defaults.panamax_data["draft"])
                 # apply PIANC 2014:
@@ -337,9 +337,9 @@ class System:
                     length = length_v + 2 * 15  # ref: PIANC 2014
                 elif quay_walls == 1:
                     # - length when next quay is n > 1
-                    length = 1.1 * berths * (length_v + 15) - (length_v+2*15) # ref: PIANC 2014
+                    length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)  # ref: PIANC 2014
                 else:
-                    length = 1.1 * berths * (length_v + 15) - 1.1 * (berths-1) * (length_v + 15)
+                    length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
                 # - depth
                 quay_wall = Quay_wall(**defaults.quay_wall_data)
@@ -723,7 +723,7 @@ class System:
 
         "Find the demurrage cost per type of vessel and sum all demurrage cost"
 
-        factor = self.waiting_time(year)
+        factor, waiting_time_occupancy = self.waiting_time(year)
 
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
         quay_walls = len(self.find_elements(Quay_wall))
@@ -732,36 +732,37 @@ class System:
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity / quay_walls
-                # Find the demurrage cost per type of vessel
-                if service_rate != 0:
-                    handymax = Vessel(**defaults.handymax_data)
-                    service_time_handymax = handymax.call_size / service_rate
-                    waiting_time_hours_handymax = factor * service_time_handymax
-                    port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-                    penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
-                    demurrage_time_handymax = penalty_time_handymax * handymax_calls
-                    demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
 
-                    handysize = Vessel(**defaults.handysize_data)
-                    service_time_handysize = handysize.call_size / service_rate
-                    waiting_time_hours_handysize = factor * service_time_handysize
-                    port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-                    penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
-                    demurrage_time_handysize = penalty_time_handysize * handysize_calls
-                    demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+        # Find the demurrage cost per type of vessel
+        if service_rate != 0:
+            handymax = Vessel(**defaults.handymax_data)
+            service_time_handymax = handymax.call_size / service_rate
+            waiting_time_hours_handymax = factor * service_time_handymax
+            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
+            penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
+            demurrage_time_handymax = penalty_time_handymax * handymax_calls
+            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
 
-                    panamax = Vessel(**defaults.panamax_data)
-                    service_time_panamax = panamax.call_size / service_rate
-                    waiting_time_hours_panamax = factor * service_time_panamax
-                    port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
-                    penalty_time_panamax = max(0, port_time_panamax - panamax.all_turn_time)
-                    demurrage_time_panamax = penalty_time_panamax * panamax_calls_panamax
-                    demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+            handysize = Vessel(**defaults.handysize_data)
+            service_time_handysize = handysize.call_size / service_rate
+            waiting_time_hours_handysize = factor * service_time_handysize
+            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
+            penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
+            demurrage_time_handysize = penalty_time_handysize * handysize_calls
+            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
 
-                else:
-                    demurrage_cost_handymax = float("inf")
-                    demurrage_cost_handysize = float("inf")
-                    demurrage_cost_panamax = float("inf")
+            panamax = Vessel(**defaults.panamax_data)
+            service_time_panamax = panamax.call_size / service_rate
+            waiting_time_hours_panamax = factor * service_time_panamax
+            port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
+            penalty_time_panamax = max(0, port_time_panamax - panamax.all_turn_time)
+            demurrage_time_panamax = penalty_time_panamax * panamax_calls
+            demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+
+        else:
+            demurrage_cost_handymax = float("inf")
+            demurrage_cost_handysize = float("inf")
+            demurrage_cost_panamax = float("inf")
 
         Total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
 
@@ -781,7 +782,7 @@ class System:
         cash_flows['labour'] = 0
         cash_flows['demurrage'] = 0
         cash_flows['revenues'] = self.revenues
-        
+
         # add labour component for years were revenues are not zero
         cash_flows.loc[cash_flows[
                            'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
@@ -1054,25 +1055,32 @@ class System:
         berths = len(self.find_elements(Berth))
 
         if berths == 1:
-            factor = max(0, 79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
+            factor = max(0,
+                         79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
         elif berths == 2:
-            factor = max(0,29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
+            factor = max(0,
+                         29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
         elif berths == 3:
-            factor = max(0, 19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
+            factor = max(0,
+                         19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
         elif berths == 4:
-            factor = max(0, 17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
+            factor = max(0,
+                         17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
         elif berths == 5:
-            factor = max(0, 11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
+            factor = max(0,
+                         11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
         elif berths == 6:
-            factor = max(0, 10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
+            factor = max(0,
+                         10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
         elif berths == 7:
-            factor = max(0, 8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
+            factor = max(0,
+                         8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
         else:
             # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
             factor = float("inf")
 
         waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
-        waiting_time_occupancy = waiting_time_hours * total_calls/ self.operational_hours
+        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         return factor, waiting_time_occupancy
 
