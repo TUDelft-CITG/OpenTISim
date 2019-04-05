@@ -723,39 +723,41 @@ class System:
 
         "Find the demurrage cost per type of vessel and sum all demurrage cost"
 
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+
         factor, waiting_time_occupancy = self.waiting_time(year)
 
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
-        quay_walls = len(self.find_elements(Quay_wall))
+        quay_walls = len(self.find_elements(objects.Quay_wall))
 
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (self.find_elements(objects.Cyclic_Unloader) + self.find_elements(objects.Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity / quay_walls
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
-            handymax = Vessel(**defaults.handymax_data)
+            handymax = objects.Vessel(**defaults.handymax_data)
             service_time_handymax = handymax.call_size / service_rate
             waiting_time_hours_handymax = factor * service_time_handymax
             port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
+            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
             demurrage_time_handymax = penalty_time_handymax * handymax_calls
             demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
 
-            handysize = Vessel(**defaults.handysize_data)
+            handysize = objects.Vessel(**defaults.handysize_data)
             service_time_handysize = handysize.call_size / service_rate
             waiting_time_hours_handysize = factor * service_time_handysize
             port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
+            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
             demurrage_time_handysize = penalty_time_handysize * handysize_calls
             demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
 
-            panamax = Vessel(**defaults.panamax_data)
+            panamax = objects.Vessel(**defaults.panamax_data)
             service_time_panamax = panamax.call_size / service_rate
             waiting_time_hours_panamax = factor * service_time_panamax
             port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
-            penalty_time_panamax = max(0, port_time_panamax - panamax.all_turn_time)
+            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
             demurrage_time_panamax = penalty_time_panamax * panamax_calls
             demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
@@ -764,9 +766,9 @@ class System:
             demurrage_cost_handysize = float("inf")
             demurrage_cost_panamax = float("inf")
 
-        Total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
 
-        return Total_demurrage_cost
+        return total_demurrage_cost
 
     def add_cashflow_elements(self):
 
