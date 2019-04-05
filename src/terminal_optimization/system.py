@@ -57,9 +57,10 @@ class System:
            1. for each year evaluate the demand of each commodity
            2. for each year evaluate the various investment decisions
            3. for each year calculate the energy costs (requires insight in realized demands)
-           4. for each year calculate terminal revenues
-           5. collect all cash flows (capex, opex, revenues)
-           6. calculate PV's and aggregate to NPV
+           4. for each year calculate the demurrage costs (requires insight in realized demands)
+           5. for each year calculate terminal revenues
+           6. collect all cash flows (capex, opex, revenues)
+           7. calculate PV's and aggregate to NPV
 
         """
 
@@ -101,15 +102,20 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
 
-        # 4.  for each year calculate terminal revenues
+        # 4. for each year calculate the demurrage costs (requires insight in realized demands)
+        self.demurrage = []
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            self.calculate_demurrage_cost(year)
+
+        # 5.  for each year calculate terminal revenues
         self.revenues = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year)
 
-        # 5. collect all cash flows (capex, opex, revenues)
+        # 6. collect all cash flows (capex, opex, revenues)
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
-        # 6. calculate PV's and aggregate to NPV
+        # 7. calculate PV's and aggregate to NPV
         self.NPV()
 
     def calculate_revenue(self, year):
@@ -260,6 +266,57 @@ class System:
 
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+    def calculate_demurrage_cost(self, year):
+
+        """Find the demurrage cost per type of vessel and sum all demurrage cost"""
+
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+
+        factor, waiting_time_occupancy = self.waiting_time(year)
+
+        # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
+        quay_walls = len(self.find_elements(Quay_wall))
+
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate += element.effective_capacity / quay_walls
+
+        # Find the demurrage cost per type of vessel
+        if service_rate != 0:
+            handymax = Vessel(**defaults.handymax_data)
+            service_time_handymax = handymax.call_size / service_rate
+            waiting_time_hours_handymax = factor * service_time_handymax
+            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
+            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
+            demurrage_time_handymax = penalty_time_handymax * handymax_calls
+            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
+
+            handysize = Vessel(**defaults.handysize_data)
+            service_time_handysize = handysize.call_size / service_rate
+            waiting_time_hours_handysize = factor * service_time_handysize
+            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
+            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
+            demurrage_time_handysize = penalty_time_handysize * handysize_calls
+            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+
+            panamax = Vessel(**defaults.panamax_data)
+            service_time_panamax = panamax.call_size / service_rate
+            waiting_time_hours_panamax = factor * service_time_panamax
+            port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
+            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
+            demurrage_time_panamax = penalty_time_panamax * panamax_calls
+            demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+
+        else:
+            demurrage_cost_handymax = 0
+            demurrage_cost_handysize = 0
+            demurrage_cost_panamax = 0
+
+        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+
+        self.demurrage.append(total_demurrage_cost)
 
     # *** Investment functions
 
@@ -717,57 +774,6 @@ class System:
 
     # *** Financial analyses
 
-    def demurrage_costs(self, year):
-
-        "Find the demurrage cost per type of vessel and sum all demurrage cost"
-
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-
-        factor, waiting_time_occupancy = self.waiting_time(year)
-
-        # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
-        quay_walls = len(self.find_elements(objects.Quay_wall))
-
-        service_rate = 0
-        for element in (self.find_elements(objects.Cyclic_Unloader) + self.find_elements(objects.Continuous_Unloader)):
-            if year >= element.year_online:
-                service_rate += element.effective_capacity / quay_walls
-
-        # Find the demurrage cost per type of vessel
-        if service_rate != 0:
-            handymax = objects.Vessel(**defaults.handymax_data)
-            service_time_handymax = handymax.call_size / service_rate
-            waiting_time_hours_handymax = factor * service_time_handymax
-            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
-            demurrage_time_handymax = penalty_time_handymax * handymax_calls
-            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
-
-            handysize = objects.Vessel(**defaults.handysize_data)
-            service_time_handysize = handysize.call_size / service_rate
-            waiting_time_hours_handysize = factor * service_time_handysize
-            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
-            demurrage_time_handysize = penalty_time_handysize * handysize_calls
-            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
-
-            panamax = objects.Vessel(**defaults.panamax_data)
-            service_time_panamax = panamax.call_size / service_rate
-            waiting_time_hours_panamax = factor * service_time_panamax
-            port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
-            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
-            demurrage_time_panamax = penalty_time_panamax * panamax_calls
-            demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
-
-        else:
-            demurrage_cost_handymax = float("inf")
-            demurrage_cost_handysize = float("inf")
-            demurrage_cost_panamax = float("inf")
-
-        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
-
-        return total_demurrage_cost
-
     def add_cashflow_elements(self):
 
         cash_flows = pd.DataFrame()
@@ -780,7 +786,7 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
-        cash_flows['demurrage'] = 0
+        cash_flows['demurrage'] = self.demurrage
         cash_flows['revenues'] = self.revenues
 
         # add labour component for years were revenues are not zero
@@ -1329,7 +1335,7 @@ class System:
         revenue = self.revenues
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values
+               cash_flows['labour'].values + cash_flows['demurrage'].values
 
         # sum cash flows to get profits as a function of year
         profits = []
@@ -1338,7 +1344,8 @@ class System:
                            cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
                            cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
                            cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() +
+                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
                            revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
 
         # cumulatively sum profits to get profits_cum
