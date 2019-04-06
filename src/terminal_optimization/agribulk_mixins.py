@@ -109,8 +109,8 @@ class hastriggers_properties_mixin(object):
 
 class quay_wall_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, freeboard, Gijt_constant, Gijt_coefficient, max_sinkage, wave_motion,
-                 safety_margin, *args, **kwargs):
+                 maintenance_perc, insurance_perc, length, depth, freeboard, Gijt_constant, Gijt_coefficient, *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -120,12 +120,13 @@ class quay_wall_properties_mixin(object):
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
+        self.length = length
+        self.depth = depth
         self.freeboard = freeboard
         self.Gijt_constant = Gijt_constant
         self.Gijt_coefficient = Gijt_coefficient
-        self.max_sinkage = max_sinkage
-        self.wave_motion = wave_motion
-        self.safety_margin= safety_margin
+        self.unit_rate = int(self.Gijt_constant * (self.depth * 2 + self.freeboard) ** self.Gijt_coefficient)
+        #self.unit_rate = int(self.Gijt_constant * (2*(self.depth + self.freeboard)) ** self.Gijt_coefficient)
 
 class berth_properties_mixin(object):
     def __init__(self, crane_type, max_cranes, delivery_time, *args, **kwargs):
@@ -205,7 +206,7 @@ class conveyor_properties_mixin(object):
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
+                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity, occupancy, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -221,6 +222,7 @@ class storage_properties_mixin(object):
         self.storage_type = storage_type
         self.consumption = consumption
         self.capacity = capacity
+        self.occupancy = occupancy
 
 
 class unloading_station_properties_mixin(object):
@@ -242,7 +244,7 @@ class unloading_station_properties_mixin(object):
         self.number_of_wagons = number_of_wagons
         self.prep_time = prep_time
         self.call_size = int(self.wagon_payload * self.number_of_wagons)
-        self.service_rate = int(self.call_size / (self.call_size/self.production + self.prep_time)) #TUE/hour, IJzermans 2019, P30
+        self.capacity = int(self.call_size / (self.call_size/self.production + self.prep_time))
 
 class commodity_properties_mixin(object):
     def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):

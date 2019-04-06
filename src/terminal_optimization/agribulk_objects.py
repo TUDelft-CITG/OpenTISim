@@ -97,6 +97,9 @@ Conveyor_Hinter = type('Conveyor_Hinter', (mixins.identifiable_properties_mixin,
                              mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
 
+
+# todo: check if Unloader and Conveyor can be the same
+
 # The generic Storage class
 # - Silo
 # - Warehouse

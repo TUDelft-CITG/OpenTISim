@@ -40,23 +40,26 @@ quay_wall_data = {"name": 'Quay_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
-                  "mobilisation_min": 2_500_000,
-                  "mobilisation_perc": 0.02,
+                  "mobilisation_min": 2_500_000,  # Ijzermans, 2019, P 96
+                  "mobilisation_perc": 0.02, #old 0.01
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "freeboard": 4,
                   "Gijt_constant": 757.20,
                   "Gijt_coefficient": 1.2878,
-                  "max_sinkage": 0.5,
-                  "wave_motion": 0.5,
-                  "safety_margin": 0.5} # all values from Ijzermans, 2019, P 91
+                  "length": 0,
+                  "depth": 0}
+
+# todo:  length & depth removing from defaults
 
 # *** Default inputs: Berth class ***
 
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
-              "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
+              "max_cranes": 3}
+# todo: check delivery time of berth
+# todo: check if indeed at t = 0 it takes 1 year to get a berth online and 2 years to get a quay online
 
 # *** Default inputs: CyclicUnloader class ***
 
@@ -71,41 +74,42 @@ gantry_crane_data = {"name": 'Gantry_crane_01',
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Gantry crane',
-                     "lifting_capacity": 50,
+                     "lifting_capacity": 50,   # Ijzermans, 2019, P 96
                      "hourly_cycles": 50,
-                     "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
+                     "eff_fact": 0.50}
 
 harbour_crane_data = {"name": 'Harbour_crane_01',
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 40,
-                      "unit_rate": 7_880_000,
+                      "unit_rate": 7_880_000, #10_500_000 old number todo: check if correct
                       "mobilisation_perc": 0.15,
                       "maintenance_perc": 0.02,
                       "consumption": 210,
                       "insurance_perc": 0.01,
                       "crew": 3,
                       "crane_type": 'Harbour crane',
-                      "lifting_capacity": 25,
+                      "lifting_capacity": 25, #40 old number todo: why was this 40?
                       "hourly_cycles": 40,
-                      "eff_fact": 0.40} # all values from Ijzermans, 2019, P 100
+                      "eff_fact": 0.40}
 
 mobile_crane_data = {"name": 'Mobile_crane_01',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
-                     "lifespan": 40,
+                     "lifespan": 40, #20 old number todo: why was this 20?
                      "unit_rate": 3_325_000,
                      "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 485,
+                     "maintenance_perc": 0.02,#0.031 old number todo: checking why was this 0.031
+                     "consumption": 485, # 310 old number todo: checking why this was 310 istead of 485
                      "insurance_perc": 0.01,
                      "crew": 3,
                      "crane_type": 'Mobile crane',
                      "lifting_capacity": 30,
                      "hourly_cycles": 25,
-                     "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
+                     "eff_fact": 0.35}
 
 # *** Default inputs: ContinuousUnloader class ***
+
 
 continuous_screw_data = {"name": 'Continuous_loader_01',
                          "ownership": 'Terminal operator',
@@ -119,13 +123,13 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
                          "crew": 2,
                          "crane_type": 'Screw unloader',
                          "peak_capacity": 700,
-                         "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
+                         "eff_fact": 0.55}
 
 # *** Default inputs: Conveyor class ***
 
 quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "type": 'quay_conveyor',
-                      "length": 200,
+                      "length": 200, #500 old number
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 10,
@@ -137,11 +141,11 @@ quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "consumption_coefficient": 0.08,
                       "crew": 1,
                       "utilisation": 0.80,
-                      "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
+                      "capacity_steps": 400}
 
 hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "type": 'hinterland_conveyor',
-                            "length": 400,
+                            "length": 400, #500 old number
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
                             "lifespan": 10,
@@ -153,8 +157,7 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "consumption_coefficient": 0.08,
                             "crew": 1,
                             "utilisation": 0.80,
-                            "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
-
+                            "capacity_steps": 400}
 
 # *** Default inputs: Storage class ***
 
@@ -171,7 +174,8 @@ silo_data = {"name": 'Silo_01',
              "insurance_perc": 0.01,
              "storage_type": 'Silos',
              "consumption": 0.002,
-             "capacity": 6_000} # all input values from Ijzermans, 2019, P 102
+             "capacity": 5_000,
+             "occupancy": 0.95}
 
 warehouse_data = {"name": 'Warehouse_01',
                   "style": 'warehouse',
