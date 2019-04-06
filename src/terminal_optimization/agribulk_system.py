@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # terminal_optimization package
-from terminal_optimization.objects import *
-from terminal_optimization import defaults
+from terminal_optimization.agribulk_objects import *
+from terminal_optimization import agribulk_defaults
 
 
 class System:
