@@ -1,25 +1,26 @@
 """Defaults for following objects:
 
-- 1. Quay_wall
+- 1. Jetty
+    - Liquid hydrogen
+    - Ammonia
 - 2. Berth
-- 3. Cyclic_Unloader
-    - Gantry crane
-    - Harbour crane
-    - Mobile crane
-     Continuous_Unloader
-    - Continuous screw
-- 4. Conveyor
-    - Hinterland conveyor
-    - Quay conveyor
+- 3. Unloader
+    - Liquid hydrogen
+    - Ammonia
+- 4. Pipelines
+    - Liquid hydrogen
+    - Ammonia
 - 5. Storage
-    - Silo
-    - Warehouse
+    - Liquid hydrogen
+    - Ammonia
+- 6. H2 retrieval
+    - Ammonia
+    - MCH
 - 6. Unloading_station
     - Hinterland station
 - 7. Commodity
-    - Maize
-    - Soybean
-    - Wheat
+    - Liquid hydrogen
+    - Ammonia
 - 8. Vessel
     - Handysize
     - Handymax
@@ -158,35 +159,51 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
 
 # *** Default inputs: Storage class ***
 
-silo_data = {"name": 'Silo_01',
-             "type": 'silo',
+"Liquid hydrogen "
+
+hydrogentank_data = {"name": 'HTank_01',
+             "type": 'HydrogenTank',
              "ownership": 'Terminal operator',
              "delivery_time": 1,
-             "lifespan": 30,
-             "unit_rate": 60,
+             "lifespan": 20,
+             "unit_rate": 800_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.02,
-             "crew": 1,
+             "maintenance_perc": 0.01,
+             "crew_min": 3,
+             "crew_for5": 1,
              "insurance_perc": 0.01,
-             "storage_type": 'Silos',
-             "consumption": 0.002,
-             "capacity": 6_000} # all input values from Ijzermans, 2019, P 102
+             "storage_type": 'tank',
+             "consumption": 0.1,
+             "capacity": 6000} # all input values from Ijzermans, 2019, P 102
 
-warehouse_data = {"name": 'Warehouse_01',
-                  "style": 'warehouse',
+"Ammonia"
+ammoniatank_data = {"name": 'ATank_01',
+                  "style": 'AmmoniaTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
-                  "lifespan": 30,
-                  "unit_rate": 140,
+                  "lifespan": 20,
+                  "unit_rate": 17_000_000,
                   "mobilisation_min": 200_000,
-                  "mobilisation_perc": 0.001,
+                  "mobilisation_perc": 0.003,
                   "maintenance_perc": 0.01,
-                  "crew": 3,
+                  "crew_min": 3,
+                  "crew_for5": 1,
                   "insurance_perc": 0.01,
-                  "storage_type": 'Warehouse',
-                  "consumption": 0.002,
-                  "silo_capacity": 'n/a'}
+                  "storage_type": 'tank',
+                  "consumption": 0.1,
+                  "silo_capacity": 45_000}
+
+"MCH"
+
+# *** Default inputs: H2Convertion class ***
+
+
+
+
+
+
+
 
 # *** Default inputs: Unloading_station class ***
 
@@ -208,32 +225,91 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
 
 # *** Default inputs: Commodity class ***
 
-maize_data = {"name": 'Maize',
-              "handling_fee": 9.8,
-              "handysize_perc": 50,
-              "handymax_perc": 50,
-              "panamax_perc": 0,
-              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+lhydrogen_data = {"name": 'Liquid hydrogen',
+                  "handling_fee": 9.8,
+                  "smallhydrogen_perc": 50,
+                  "largehydrogen_perc": 50,
+                  "smallammonia_perc": 0,
+                  "largeammonia_perc": 0,
+                  "handysize_perc": 0,
+                  "panamax_perc": 0,
+                  "VLCC_perc": 0,
+                  "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
-soybean_data = {"name": 'Soybeans',
+ammonia_data = {"name": 'Ammonia',
                 "handling_fee": 9.8,
-                "handysize_perc": 50,
-                "handymax_perc": 50,
+                "smallhydrogen_perc": 0,
+                "largehydrogen_perc": 0,
+                "smallammonia_perc": 40,
+                "largeammonia_perc": 60,
+                "handysize_perc": 0,
                 "panamax_perc": 0,
+                "VLCC_perc": 0,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                    'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-
-wheat_data = {"name": 'Wheat',
-              "handling_fee": 9.8,
-              "handysize_perc": 0,
-              "handymax_perc": 0,
-              "panamax_perc": 100,
-              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+                                                'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+MCH_data = {"name": 'MCH',
+            "smallhydrogen_perc": 0,
+            "largehydrogen_perc": 0,
+            "smallammonia_perc": 0,
+            "largeammonia_perc": 0,
+            "handysize_perc": 30,
+            "panamax_perc": 40,
+            "VLCC_perc": 30,
+            "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
 # *** Default inputs: Vessel class ***
 
+"Liquid hydrogen:"
+
+smallhydrogen_data = {"name": 'Handysize_1',
+                  "type": 'Handysize',
+                  "call_size": 10_000,
+                  "LOA": 200,
+                  "draft": 10,
+                  "beam": 24,
+                  "max_cranes": 3,
+                  "all_turn_time": 20,
+                  "mooring_time": 3,
+                  "demurrage_rate": 600}
+
+largehydrogen_data = {"name": 'Handysize_1',
+                  "type": 'Handysize',
+                  "call_size": 30_000,
+                  "LOA": 300,
+                  "draft": 12,
+                  "beam": 43,
+                  "max_cranes": 3,
+                  "all_turn_time": 30,
+                  "mooring_time": 3,
+                  "demurrage_rate": 700}
+
+"Ammonia:"
+
+smallammonia_data = {"name": 'Handymax_1',
+                 "type": 'Handymax',
+                 "call_size": 20_000,
+                 "LOA": 170,
+                 "draft": 9.5,
+                 "beam": 22,
+                 "max_cranes": 2,
+                 "all_turn_time": 24,
+                 "mooring_time": 3,
+                 "demurrage_rate": 750}
+
+largeammonia_data = {"name": 'Handymax_1',
+                 "type": 'Handymax',
+                 "call_size": 55_000,
+                 "LOA": 230,
+                 "draft": 11,
+                 "beam": 40,
+                 "max_cranes": 2,
+                 "all_turn_time": 24,
+                 "mooring_time": 3,
+                 "demurrage_rate": 750}
+
+"MCH:"
 handysize_data = {"name": 'Handysize_1',
                   "type": 'Handysize',
                   "call_size": 35_000,
@@ -245,17 +321,6 @@ handysize_data = {"name": 'Handysize_1',
                   "mooring_time": 3,
                   "demurrage_rate": 600}
 
-handymax_data = {"name": 'Handymax_1',
-                 "type": 'Handymax',
-                 "call_size": 55_000,
-                 "LOA": 180,
-                 "draft": 11.5,
-                 "beam": 28,
-                 "max_cranes": 2,
-                 "all_turn_time": 24,
-                 "mooring_time": 3,
-                 "demurrage_rate": 750}
-
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
                 "call_size": 65_000,
@@ -266,6 +331,18 @@ panamax_data = {"name": 'Panamax_1',
                 "all_turn_time": 36,
                 "mooring_time": 3,
                 "demurrage_rate": 730}
+
+VLCC_data = {"name": 'VLCC_1',
+             "type": 'VLCC',
+             "call_size": 200_000,
+             "LOA": 270,
+             "draft": 15,
+             "beam": 38,
+             "max_cranes": 3,
+             "all_turn_time": 40,
+             "mooring_time": 3,
+             "demurrage_rate": 1000}
+
 
 # *** Default inputs: Labour class ***
 
