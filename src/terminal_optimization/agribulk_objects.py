@@ -28,120 +28,120 @@
 
 """
 
-from terminal_optimization import mixins
+from terminal_optimization import agribulk_mixins
 
 # The generic Quay_wall class
-Quay_wall = type('Quay_wall', (mixins.identifiable_properties_mixin,  # Give it a name
-                               mixins.quay_wall_properties_mixin,
-                               mixins.history_properties_mixin,  # Give it procurement history
-                               mixins.hascapex_properties_mixin,  # Give it capex info
-                               mixins.hasopex_properties_mixin,  # Give it opex info
-                               mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                               mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+Quay_wall = type('Quay_wall', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                               agribulk_mixins.quay_wall_properties_mixin,
+                               agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                               agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                               agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                               agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                               agribulk_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                  {})  # The dictionary is empty because the site type is generic
 
 # The generic Berth class
-Berth = type('Berth', (mixins.identifiable_properties_mixin,  # Give it a name
-                       mixins.history_properties_mixin,  # Give it procurement history
-                       mixins.berth_properties_mixin,
-                       mixins.hascapex_properties_mixin,  # Give it capex info
-                       mixins.hasopex_properties_mixin,  # Give it opex info
-                       mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                       mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+Berth = type('Berth', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                       agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                       agribulk_mixins.berth_properties_mixin,
+                       agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                       agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                       agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                       agribulk_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
              {})  # The dictionary is empty because the site type is generic
 
 # The generic Cyclic_Unloader class
 # - Gantry_crane
 # - Harbour_crane
 # - Mobile_crane
-Cyclic_Unloader = type('Cyclic_Unloader', (mixins.identifiable_properties_mixin,  # Give it a name
-                                           mixins.history_properties_mixin,  # Give it procurement history
-                                           mixins.cyclic_properties_mixin,
-                                           mixins.hascapex_properties_mixin,  # Give it capex info
-                                           mixins.hasopex_properties_mixin,  # Give it opex info
-                                           mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                                           mixins.hastriggers_properties_mixin),
+Cyclic_Unloader = type('Cyclic_Unloader', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                                           agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                                           agribulk_mixins.cyclic_properties_mixin,
+                                           agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                                           agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                                           agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                                           agribulk_mixins.hastriggers_properties_mixin),
                        # Give it investment triggers (lambda?)
                        {})  # The dictionary is empty because the site type is generic
 
 # The generic ContinuousUnloader class
 # - Continuous_screw
-Continuous_Unloader = type('Continuous_Unloader', (mixins.identifiable_properties_mixin,  # Give it a name
-                                                   mixins.history_properties_mixin,  # Give it procurement history
-                                                   mixins.continuous_properties_mixin,
-                                                   mixins.hascapex_properties_mixin,  # Give it capex info
-                                                   mixins.hasopex_properties_mixin,  # Give it opex info
-                                                   mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                                                   mixins.hastriggers_properties_mixin),
+Continuous_Unloader = type('Continuous_Unloader', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                                                   agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                                                   agribulk_mixins.continuous_properties_mixin,
+                                                   agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                                                   agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                                                   agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                                                   agribulk_mixins.hastriggers_properties_mixin),
                            # Give it investment triggers (lambda?)
                            {})  # The dictionary is empty because the site type is generic
 
 # The generic Conveyor class
 # - Quay_conveyor
 # - Hinterland_conveyor
-Conveyor_Quay = type('Conveyor_Quay', (mixins.identifiable_properties_mixin,  # Give it a name
-                             mixins.history_properties_mixin,  # Give it procurement history
-                             mixins.conveyor_properties_mixin,
-                             mixins.hascapex_properties_mixin,  # Give it capex info
-                             mixins.hasopex_properties_mixin,  # Give it opex info
-                             mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+Conveyor_Quay = type('Conveyor_Quay', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                             agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                             agribulk_mixins.conveyor_properties_mixin,
+                             agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                             agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                             agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                             agribulk_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
 
-Conveyor_Hinter = type('Conveyor_Hinter', (mixins.identifiable_properties_mixin,  # Give it a name
-                             mixins.history_properties_mixin,  # Give it procurement history
-                             mixins.conveyor_properties_mixin,
-                             mixins.hascapex_properties_mixin,  # Give it capex info
-                             mixins.hasopex_properties_mixin,  # Give it opex info
-                             mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+Conveyor_Hinter = type('Conveyor_Hinter', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                             agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                             agribulk_mixins.conveyor_properties_mixin,
+                             agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                             agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                             agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                             agribulk_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
 
 # The generic Storage class
 # - Silo
 # - Warehouse
-Storage = type('Storage', (mixins.identifiable_properties_mixin,  # Give it a name
-                           mixins.history_properties_mixin,  # Give it procurement history
-                           mixins.storage_properties_mixin,
-                           mixins.hascapex_properties_mixin,  # Give it capex info
-                           mixins.hasopex_properties_mixin,  # Give it opex info
-                           mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                           mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+Storage = type('Storage', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                           agribulk_mixins.history_properties_mixin,  # Give it procurement history
+                           agribulk_mixins.storage_properties_mixin,
+                           agribulk_mixins.hascapex_properties_mixin,  # Give it capex info
+                           agribulk_mixins.hasopex_properties_mixin,  # Give it opex info
+                           agribulk_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                           agribulk_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})  # The dictionary is empty because the site type is generic
 
 # define loading station class functions **will ultimately be placed in package**
-Unloading_station = type('Unloading_station', (mixins.identifiable_properties_mixin,  # Give it a name
-                                               mixins.unloading_station_properties_mixin),
+Unloading_station = type('Unloading_station', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                                               agribulk_mixins.unloading_station_properties_mixin),
                          {})  # The dictionary is empty because the site type is generic
 
 # The generic Commodity class
 # - Maize
 # - Soybean
 # - Wheat
-Commodity = type('Commodity', (mixins.identifiable_properties_mixin,  # Give it a name
-                               mixins.commodity_properties_mixin,
-                               mixins.hasscenario_properties_mixin),
+Commodity = type('Commodity', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name
+                               agribulk_mixins.commodity_properties_mixin,
+                               agribulk_mixins.hasscenario_properties_mixin),
                  {})  # The dictionary is empty because the site type is generic
 
 # The general Vessel class
 # - Handysize
 # - Handymax
 # - Panamax
-Vessel = type('Vessel', (mixins.identifiable_properties_mixin,
-                         mixins.vessel_properties_mixin),
+Vessel = type('Vessel', (agribulk_mixins.identifiable_properties_mixin,
+                         agribulk_mixins.vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
 # The general Labour class
-Labour = type('Labour', (mixins.identifiable_properties_mixin,
-                         mixins.labour_properties_mixin),
+Labour = type('Labour', (agribulk_mixins.identifiable_properties_mixin,
+                         agribulk_mixins.labour_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
 # The general Energy class
-Energy = type('Energy', (mixins.identifiable_properties_mixin,
-                         mixins.energy_properties_mixin),
+Energy = type('Energy', (agribulk_mixins.identifiable_properties_mixin,
+                         agribulk_mixins.energy_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
 # The general Train class
-Train = type('Train', (mixins.identifiable_properties_mixin,
-                       mixins.train_properties_mixin),
+Train = type('Train', (agribulk_mixins.identifiable_properties_mixin,
+                       agribulk_mixins.train_properties_mixin),
              {})  # The dictionary is empty because the site type is generic

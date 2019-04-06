@@ -10,7 +10,7 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 crane_type_defaults=defaults.mobile_crane_data, storage_type_defaults=defaults.silo_data,
+                 crane_type_defaults=hydrogen_defaults.mobile_crane_data, storage_type_defaults=hydrogen_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
         # time inputs
         self.startyear = startyear
