@@ -90,11 +90,11 @@ class System:
 
             self.berth_invest(year, handysize, handymax, panamax)
 
-            self.conveyor_quay_invest(year, defaults.quay_conveyor_data)
+            self.conveyor_quay_invest(year,hydrogen_defaults.quay_conveyor_data)
 
             self.storage_invest(year, self.storage_type_defaults)
 
-            self.conveyor_hinter_invest(year, defaults.hinterland_conveyor_data)
+            self.conveyor_hinter_invest(year,hydrogen_defaults.hinterland_conveyor_data)
 
             self.unloading_station_invest(year)
 
@@ -139,9 +139,9 @@ class System:
         else:
             safety_factor = 1
 
-        # maize = Commodity(**defaults.maize_data)
-        # wheat = Commodity(**defaults.wheat_data)
-        # soybeans = Commodity(**defaults.soybean_data)
+        # maize = Commodity(**hydrogen_defaults.maize_data)
+        # wheat = Commodity(**hydrogen_defaults.wheat_data)
+        # soybeans = Commodity(**dhydrogen_efaults.soybean_data)
         #
         # maize_demand, wheat_demand, soybeans_demand = self.calculate_demand_commodity(year)
 
@@ -187,7 +187,7 @@ class System:
         Terminal.revenues is the minimum of 1. and 2.
         """
 
-        energy = Energy(**defaults.energy_data)
+        energy = Energy(**hydrogen_defaults.energy_data)
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
             year, handysize, handymax, panamax)
@@ -285,7 +285,7 @@ class System:
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
-            handymax = Vessel(**defaults.handymax_data)
+            handymax = Vessel(**hydrogen_defaults.handymax_data)
             service_time_handymax = handymax.call_size / service_rate
             waiting_time_hours_handymax = factor * service_time_handymax
             port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
@@ -293,7 +293,7 @@ class System:
             demurrage_time_handymax = penalty_time_handymax * handymax_calls
             demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
 
-            handysize = Vessel(**defaults.handysize_data)
+            handysize = Vessel(**hydrogen_defaults.handysize_data)
             service_time_handysize = handysize.call_size / service_rate
             waiting_time_hours_handysize = factor * service_time_handysize
             port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
@@ -301,7 +301,7 @@ class System:
             demurrage_time_handysize = penalty_time_handysize * handysize_calls
             demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
 
-            panamax = Vessel(**defaults.panamax_data)
+            panamax = Vessel(**hydrogen_defaults.panamax_data)
             service_time_panamax = panamax.call_size / service_rate
             waiting_time_hours_panamax = factor * service_time_panamax
             port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
@@ -369,7 +369,7 @@ class System:
             if not (self.check_crane_slot_available()):
                 if self.debug:
                     print('  *** add Berth to elements')
-                berth = Berth(**defaults.berth_data)
+                berth = Berth(**hydrogen_defaults.berth_data)
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
 
@@ -383,10 +383,10 @@ class System:
             berths = len(self.find_elements(Berth))
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
-                length_v = max(defaults.handysize_data["LOA"], defaults.handymax_data["LOA"],
-                               defaults.panamax_data["LOA"])  # average size
-                draft = max(defaults.handysize_data["draft"], defaults.handymax_data["draft"],
-                            defaults.panamax_data["draft"])
+                length_v = max(hydrogen_defaults.handysize_data["LOA"],hydrogen_defaults.handymax_data["LOA"],
+                              hydrogen_defaults.panamax_data["LOA"])  # average size
+                draft = max(hydrogen_defaults.handysize_data["draft"],hydrogen_defaults.handymax_data["draft"],
+                           hydrogen_defaults.panamax_data["draft"])
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if quay_walls == 0:
@@ -399,7 +399,7 @@ class System:
                     length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
                 # - depth
-                quay_wall = Quay_wall(**defaults.quay_wall_data)
+                quay_wall = Quay_wall(**hydrogen_defaults.quay_wall_data)
                 depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
@@ -435,7 +435,7 @@ class System:
             print('  *** add Quay to elements')
         # add a Quay_wall element
 
-        quay_wall = Quay_wall(**defaults.quay_wall_data)
+        quay_wall = Quay_wall(**hydrogen_defaults.quay_wall_data)
 
         # - capex
         unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
@@ -479,7 +479,7 @@ class System:
         crane.maintenance = unit_rate * crane.maintenance_perc
 
         #   labour
-        labour = Labour(**defaults.labour_data)
+        labour = Labour(**hydrogen_defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.shift = ((crane.crew * self.operational_hours) / (
                 labour.shift_length * labour.annual_shifts))
@@ -497,7 +497,7 @@ class System:
         # add object to elements
         self.elements.append(crane)
 
-    def conveyor_quay_invest(self, year, defaults_quay_conveyor_data):
+    def conveyor_quay_invest(self, year, hydrogen_defaults_quay_conveyor_data):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -530,7 +530,7 @@ class System:
         while service_capacity < service_rate:
             if self.debug:
                 print('  *** add Quay Conveyor to elements')
-            conveyor_quay = Conveyor_Quay(**defaults_quay_conveyor_data)
+            conveyor_quay = Conveyor_Quay(**hydrogen_defaults_quay_conveyor_data)
 
             # - capex
             capacity = conveyor_quay.capacity_steps
@@ -543,7 +543,7 @@ class System:
             conveyor_quay.maintenance = capacity * unit_rate * conveyor_quay.maintenance_perc
 
             #   labour
-            labour = Labour(**defaults.labour_data)
+            labour = Labour(**hydrogen_defaults.labour_data)
             conveyor_quay.shift = (
                     (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
@@ -580,7 +580,7 @@ class System:
             print('     a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
                 service_capacity_online, service_capacity))
 
-    def storage_invest(self, year, defaults_storage_data):
+    def storage_invest(self, year, hydrogen_defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved
         - find out how much storage is online
         - find out how much storage is planned
@@ -594,14 +594,14 @@ class System:
         list_of_elements = self.find_elements(Storage)
         if list_of_elements != []:
             for element in list_of_elements:
-                if element.type == defaults_storage_data['type']:
+                if element.type == hydrogen_defaults_storage_data['type']:
                     storage_capacity += element.capacity
                     if year >= element.year_online:
                         storage_capacity_online += element.capacity
 
         if self.debug:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
-                storage_capacity_online, defaults_storage_data['type'], storage_capacity))
+                storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
@@ -624,7 +624,7 @@ class System:
                 print('  *** add storage to elements')
 
             # add storage object
-            storage = Storage(**defaults_storage_data)
+            storage = Storage(**hydrogen_defaults_storage_data)
 
             # - capex
             storage.capex = storage.unit_rate * storage.capacity + storage.mobilisation_min
@@ -633,8 +633,8 @@ class System:
             storage.insurance = storage.unit_rate * storage.capacity * storage.insurance_perc
             storage.maintenance = storage.unit_rate * storage.capacity * storage.maintenance_perc
 
-            #   labour
-            labour = Labour(**defaults.labour_data)
+            #   labour**hydrogen_defaults
+            labour = Labour(**hydrogen_defaults.labour_data)
             storage.shift = ((storage.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             storage.labour = storage.shift * labour.operational_salary
 
@@ -656,7 +656,7 @@ class System:
                         storage_capacity_online,
                         storage_capacity))
 
-    def conveyor_hinter_invest(self, year, defaults_hinterland_conveyor_data):
+    def conveyor_hinter_invest(self, year, hydrogen_defaults_hinterland_conveyor_data):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -690,7 +690,7 @@ class System:
         while service_rate > service_capacity:
             if self.debug:
                 print('  *** add Hinter Conveyor to elements')
-            conveyor_hinter = Conveyor_Hinter(**defaults_hinterland_conveyor_data)
+            conveyor_hinter = Conveyor_Hinter(**hydrogen_defaults_hinterland_conveyor_data)
 
             # - capex
             capacity = conveyor_hinter.capacity_steps
@@ -703,7 +703,7 @@ class System:
             conveyor_hinter.maintenance = capacity * unit_rate * conveyor_hinter.maintenance_perc
 
             # - labour
-            labour = Labour(**defaults.labour_data)
+            labour = Labour(**hydrogen_defaults.labour_data)
             conveyor_hinter.shift = (
                     (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
@@ -744,7 +744,7 @@ class System:
             if self.debug:
                 print('  *** add station to elements')
 
-            station = Unloading_station(**defaults.hinterland_station_data)
+            station = Unloading_station(**hydrogen_defaults.hinterland_station_data)
 
             # - capex
             unit_rate = station.unit_rate
@@ -756,7 +756,7 @@ class System:
             station.maintenance = unit_rate * station.maintenance_perc
 
             #   labour
-            labour = Labour(**defaults.labour_data)
+            labour = Labour(**hydrogen_defaults.labour_data)
             station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             station.labour = station.shift * labour.operational_salary
 
@@ -777,7 +777,7 @@ class System:
     def add_cashflow_elements(self):
 
         cash_flows = pd.DataFrame()
-        labour = Labour(**defaults.labour_data)
+        labour = Labour(**hydrogen_defaults.labour_data)
 
         # initialise cash_flows
         cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
@@ -894,11 +894,14 @@ class System:
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
         # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
+        years = cash_flows_WACC_real['year'].values
         revenue = self.revenues
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values
+        capex = cash_flows_WACC_real['capex'].values
+        opex = cash_flows_WACC_real['insurance'].values + \
+               cash_flows_WACC_real['maintenance'].values + \
+               cash_flows_WACC_real['energy'].values + \
+               cash_flows_WACC_real['demurrage'].values + \
+               cash_flows_WACC_real['labour'].values
 
         PV = - capex - opex + revenue
         print('PV: {}'.format(PV))
@@ -975,13 +978,13 @@ class System:
 
             # estimate berth occupancy
             time_at_berth_handysize_planned = handysize_calls * (
-                    (defaults.handysize_data["call_size"] / service_rate_planned) + defaults.handysize_data[
+                    (hydrogen_defaults.handysize_data["call_size"] / service_rate_planned) +hydrogen_defaults.handysize_data[
                 "mooring_time"])
             time_at_berth_handymax_planned = handymax_calls * (
-                    (defaults.handymax_data["call_size"] / service_rate_planned) + defaults.handymax_data[
+                    (hydrogen_defaults.handymax_data["call_size"] / service_rate_planned) +hydrogen_defaults.handymax_data[
                 "mooring_time"])
             time_at_berth_panamax_planned = panamax_calls * (
-                    (defaults.panamax_data["call_size"] / service_rate_planned) + defaults.panamax_data["mooring_time"])
+                    (hydrogen_defaults.panamax_data["call_size"] / service_rate_planned) +hydrogen_defaults.panamax_data["mooring_time"])
 
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
@@ -991,11 +994,11 @@ class System:
 
             # estimate crane occupancy
             time_at_crane_handysize_planned = handysize_calls * (
-                (defaults.handysize_data["call_size"] / service_rate_planned))
+                (hydrogen_defaults.handysize_data["call_size"] / service_rate_planned))
             time_at_crane_handymax_planned = handymax_calls * (
-                (defaults.handymax_data["call_size"] / service_rate_planned))
+                (hydrogen_defaults.handymax_data["call_size"] / service_rate_planned))
             time_at_crane_panamax_planned = panamax_calls * (
-                (defaults.panamax_data["call_size"] / service_rate_planned))
+                (hydrogen_defaults.panamax_data["call_size"] / service_rate_planned))
 
             total_time_at_crane_planned = np.sum(
                 [time_at_crane_handysize_planned, time_at_crane_handymax_planned, time_at_crane_panamax_planned])
@@ -1005,13 +1008,13 @@ class System:
 
             if service_rate_online != 0:
                 time_at_berth_handysize_online = handysize_calls * (
-                        (defaults.handysize_data["call_size"] / service_rate_online) + defaults.handysize_data[
+                        (hydrogen_defaults.handysize_data["call_size"] / service_rate_online) +hydrogen_defaults.handysize_data[
                     "mooring_time"])
                 time_at_berth_handymax_online = handymax_calls * (
-                        (defaults.handymax_data["call_size"] / service_rate_online) + defaults.handymax_data[
+                        (hydrogen_defaults.handymax_data["call_size"] / service_rate_online) +hydrogen_defaults.handymax_data[
                     "mooring_time"])
                 time_at_berth_panamax_online = panamax_calls * (
-                        (defaults.panamax_data["call_size"] / service_rate_online) + defaults.panamax_data[
+                        (hydrogen_defaults.panamax_data["call_size"] / service_rate_online) +hydrogen_defaults.panamax_data[
                     "mooring_time"])
 
                 total_time_at_berth_online = np.sum(
@@ -1021,11 +1024,11 @@ class System:
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
 
                 time_at_crane_handysize_online = handysize_calls * (
-                    (defaults.handysize_data["call_size"] / service_rate_online))
+                    (hydrogen_defaults.handysize_data["call_size"] / service_rate_online))
                 time_at_crane_handymax_online = handymax_calls * (
-                    (defaults.handymax_data["call_size"] / service_rate_online))
+                    (hydrogen_defaults.handymax_data["call_size"] / service_rate_online))
                 time_at_crane_panamax_online = panamax_calls * (
-                    (defaults.panamax_data["call_size"] / service_rate_online))
+                    (hydrogen_defaults.panamax_data["call_size"] / service_rate_online))
 
                 total_time_at_crane_online = np.sum(
                     [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
@@ -1177,7 +1180,7 @@ class System:
         - find out how much cargo the train can transport
         - calculate the numbers of train calls"""
 
-        station = Unloading_station(**defaults.hinterland_station_data)
+        station = Unloading_station(**hydrogen_defaults.hinterland_station_data)
 
         # - Trains calculated with the throughput
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
