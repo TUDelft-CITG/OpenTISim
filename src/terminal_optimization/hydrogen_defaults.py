@@ -1,18 +1,18 @@
 """Defaults for following objects:
 
 - 1. Jetty
-    - Liquid hydrogen
-    - Ammonia
 - 2. Berth
 - 3. Unloader
     - Liquid hydrogen
     - Ammonia
+    - MCH
 - 4. Pipelines
-    - Liquid hydrogen
-    - Ammonia
+    - jetty
+    - hinterland
 - 5. Storage
     - Liquid hydrogen
     - Ammonia
+    - MCH
 - 6. H2 retrieval
     - Ammonia
     - MCH
@@ -21,10 +21,15 @@
 - 7. Commodity
     - Liquid hydrogen
     - Ammonia
+    - MCH
 - 8. Vessel
+    - smallhydrogen
+    - largehydrogen
+    - smallammonia
+    - largeammonia
     - Handysize
-    - Handymax
     - Panamax
+    - VLCC
 - 9. Labour
 
 Default values are based on Claes 2018; Corbeau 2018; Daas 2018; Juha 2018;
@@ -37,7 +42,7 @@ import pandas as pd
 
 # *** Default inputs: Quay class ***
 
-quay_wall_data = {"name": 'Quay_01',
+jetty_data = {"name": 'Quay_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
@@ -124,7 +129,7 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
 
 # *** Default inputs: Conveyor class ***
 
-quay_conveyor_data = {"name": 'Quay_conveyor_01',
+jetty_pipeline_data = {"name": 'Quay_conveyor_01',
                       "type": 'quay_conveyor',
                       "length": 200,
                       "ownership": 'Terminal operator',
@@ -140,7 +145,7 @@ quay_conveyor_data = {"name": 'Quay_conveyor_01',
                       "utilisation": 0.80,
                       "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
 
-hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
+hinterland_pipeline_data = {"name": 'Hinterland_conveyor_01',
                             "type": 'hinterland_conveyor',
                             "length": 400,
                             "ownership": 'Terminal operator',
@@ -161,7 +166,7 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
 
 "Liquid hydrogen "
 
-hydrogentank_data = {"name": 'HTank_01',
+storage_lh2_data = {"name": 'HTank_01',
              "type": 'HydrogenTank',
              "ownership": 'Terminal operator',
              "delivery_time": 1,
@@ -178,7 +183,7 @@ hydrogentank_data = {"name": 'HTank_01',
              "capacity": 6000} # all input values from Ijzermans, 2019, P 102
 
 "Ammonia"
-ammoniatank_data = {"name": 'ATank_01',
+storage_nh3_data = {"name": 'ATank_01',
                   "style": 'AmmoniaTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
@@ -192,15 +197,11 @@ ammoniatank_data = {"name": 'ATank_01',
                   "insurance_perc": 0.01,
                   "storage_type": 'tank',
                   "consumption": 0.1,
-                  "silo_capacity": 45_000}
+                  "capacity": 45_000}
 
 "MCH"
 
 # *** Default inputs: H2Convertion class ***
-
-
-
-
 
 
 
@@ -233,7 +234,7 @@ lhydrogen_data = {"name": 'Liquid hydrogen',
                   "largeammonia_perc": 0,
                   "handysize_perc": 0,
                   "panamax_perc": 0,
-                  "VLCC_perc": 0,
+                  "vlcc_perc": 0,
                   "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
@@ -245,7 +246,7 @@ ammonia_data = {"name": 'Ammonia',
                 "largeammonia_perc": 60,
                 "handysize_perc": 0,
                 "panamax_perc": 0,
-                "VLCC_perc": 0,
+                "vlcc_perc": 0,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                 'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 MCH_data = {"name": 'MCH',
@@ -255,7 +256,7 @@ MCH_data = {"name": 'MCH',
             "largeammonia_perc": 0,
             "handysize_perc": 30,
             "panamax_perc": 40,
-            "VLCC_perc": 30,
+            "vlcc_perc": 30,
             "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
@@ -332,7 +333,7 @@ panamax_data = {"name": 'Panamax_1',
                 "mooring_time": 3,
                 "demurrage_rate": 730}
 
-VLCC_data = {"name": 'VLCC_1',
+vlcc_data = {"name": 'VLCC_1',
              "type": 'VLCC',
              "call_size": 200_000,
              "LOA": 270,

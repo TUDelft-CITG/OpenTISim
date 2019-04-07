@@ -6,11 +6,11 @@
 - hasopex_properties_mixin
 - hasrevenue_properties_mixin
 - hastriggers_properties_mixin
-- quay_wall_properties_mixin
+- jetty_properties_mixin
 - berth_properties_mixin
 - cyclic_properties_mixin
 - continuous_properties_mixin
-- conveyor_properties_mixin
+- pipeline_properties_mixin
 - storage_properties_mixin
 - unloading_station_properties_mixin
 - commodity_properties_mixin
@@ -107,7 +107,7 @@ class hastriggers_properties_mixin(object):
         self.triggers = triggers
 
 
-class quay_wall_properties_mixin(object):
+class jetty_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
                  maintenance_perc, insurance_perc, freeboard, Gijt_constant, Gijt_coefficient, max_sinkage, wave_motion,
                  safety_margin, *args, **kwargs):
@@ -181,7 +181,7 @@ class continuous_properties_mixin(object):
         self.effective_capacity = eff_fact * peak_capacity
 
 
-class conveyor_properties_mixin(object):
+class pipeline_properties_mixin(object):
     def __init__(self, type, length, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
                  maintenance_perc, insurance_perc,
                  consumption_constant, consumption_coefficient, crew, utilisation, capacity_steps, *args, **kwargs):
@@ -249,9 +249,13 @@ class commodity_properties_mixin(object):
         super().__init__(*args, **kwargs)
         "initialize"
         self.handling_fee = handling_fee
+        self.smallhydrogen_perc = smallhydrogen_perc
+        self.largehydrogen_perc = largehydrogen_perc
+        self.smallammonia_perc = smallammonia_perc
+        self.largeammonia_perc = largeammonia_perc
         self.handysize_perc = handysize_perc
-        self.handymax_perc = handymax_perc
         self.panamax_perc = panamax_perc
+        self.vlcc_perc = vlcc_perc
 
 
 class vessel_properties_mixin(object):

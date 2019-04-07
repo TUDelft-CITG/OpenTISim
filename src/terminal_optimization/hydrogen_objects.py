@@ -1,38 +1,44 @@
 """Main generic object classes:
 
-- 1. Quay_wall
+Defaults for following objects:
+- 1. Jetty
 - 2. Berth
-- 3. Cyclic_Unloader
-    - Gantry crane
-    - Harbour crane
-    - Mobile crane
-     Continuous_Unloader
-    - Continuous screw
-- 4. Conveyor
-    - Hinterland conveyor
-    - Quay conveyor
+- 3. Unloader
+    - Liquid hydrogen
+    - Ammonia
+    - MCH
+- 4. Pipelines
+    - jetty
+    - hinterland
 - 5. Storage
-    - Silo
-    - Warehouse
+    - Liquid hydrogen
+    - Ammonia
+    - MCH
+- 6. H2 retrieval
+    - Ammonia
+    - MCH
 - 6. Unloading_station
     - Hinterland station
 - 7. Commodity
-    - Maize
-    - Soybean
-    - Wheat
+    - Liquid hydrogen
+    - Ammonia
+    - MCH
 - 8. Vessel
+    - smallhydrogen
+    - largehydrogen
+    - smallammonia
+    - largeammonia
     - Handysize
-    - Handymax
     - Panamax
+    - VLCC
 - 9. Labour
-
 """
 
 from terminal_optimization import hydrogen_mixins
 
-# The generic Quay_wall class
-Quay_wall = type('Quay_wall', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
-                               hydrogen_mixins.quay_wall_properties_mixin,
+# The generic jetty class
+Jetty = type('Jetty', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
+                               hydrogen_mixins.jetty_properties_mixin,
                                hydrogen_mixins.history_properties_mixin,  # Give it procurement history
                                hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
                                hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
@@ -79,18 +85,18 @@ Continuous_Unloader = type('Continuous_Unloader', (hydrogen_mixins.identifiable_
 # The generic Conveyor class
 # - Quay_conveyor
 # - Hinterland_conveyor
-Conveyor_Quay = type('Conveyor_Quay', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
+Pipeline_Jetty = type('Pipeline_Jetty', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
                              hydrogen_mixins.history_properties_mixin,  # Give it procurement history
-                             hydrogen_mixins.conveyor_properties_mixin,
+                             hydrogen_mixins.pipeline_properties_mixin,
                              hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
                              hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
                              hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
                              hydrogen_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
 
-Conveyor_Hinter = type('Conveyor_Hinter', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
+Pipeline_Hinter = type('Pipeline_Hinter', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
                              hydrogen_mixins.history_properties_mixin,  # Give it procurement history
-                             hydrogen_mixins.conveyor_properties_mixin,
+                             hydrogen_mixins.pipeline_properties_mixin,
                              hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
                              hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
                              hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
@@ -98,8 +104,9 @@ Conveyor_Hinter = type('Conveyor_Hinter', (hydrogen_mixins.identifiable_properti
                 {})  # The dictionary is empty because the site type is generic
 
 # The generic Storage class
-# - Silo
-# - Warehouse
+# - LH2
+# - NH3
+# - MCH
 Storage = type('Storage', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
                            hydrogen_mixins.history_properties_mixin,  # Give it procurement history
                            hydrogen_mixins.storage_properties_mixin,
@@ -115,18 +122,22 @@ Unloading_station = type('Unloading_station', (hydrogen_mixins.identifiable_prop
                          {})  # The dictionary is empty because the site type is generic
 
 # The generic Commodity class
-# - Maize
-# - Soybean
-# - Wheat
+# - Liquid hydrogen
+# - Ammonia
+# - MCH
 Commodity = type('Commodity', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
                                hydrogen_mixins.commodity_properties_mixin,
                                hydrogen_mixins.hasscenario_properties_mixin),
                  {})  # The dictionary is empty because the site type is generic
 
 # The general Vessel class
+# - smallhydrogen
+# - largehydrogen
+# - smallammonia
+# - largeammonia
 # - Handysize
-# - Handymax
 # - Panamax
+# - VLCC
 Vessel = type('Vessel', (hydrogen_mixins.identifiable_properties_mixin,
                          hydrogen_mixins.vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic

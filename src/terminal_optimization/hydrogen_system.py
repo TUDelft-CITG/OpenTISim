@@ -10,8 +10,10 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 crane_type_defaults=hydrogen_defaults.mobile_crane_data, storage_type_defaults=hydrogen_defaults.silo_data,
+                 commodity_type_defaults=hydrogen_defaults.lhydrogen_data, storage_type_defaults=
+                 hydrogen_defaults.storage_lh2_data, crane_type_defaults=hydrogen_defaults.mobile_crane_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
+
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -23,9 +25,10 @@ class System:
         # collection of all terminal objects
         self.elements = elements
 
-        # default values to use in case various types can be selected
-        self.crane_type_defaults = crane_type_defaults
+        # default values to use in selecting which commodity is imported
+        self.commodity_type_defaults = commodity_type_defaults
         self.storage_type_defaults = storage_type_defaults
+        self.crane_type_defaults = crane_type_defaults
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
@@ -80,21 +83,27 @@ class System:
                 print('Simulate year: {}'.format(year))
 
             # estimate traffic from commodity scenarios
-            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+            smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, \
+            total_vol = self.calculate_vessel_calls(year)
+
             if self.debug:
                 print('  Total vessel calls: {}'.format(total_calls))
+                print('     Small Hydrogen  calls: {}'.format(smallhydrogen))
+                print('     Large Hydrogen calls: {}'.format(largehydrogen))
+                print('     Small ammonia calls: {}'.format(smallammonia))
+                print('     Large ammonia calls: {}'.format(largeammonia))
                 print('     Handysize calls: {}'.format(handysize))
-                print('     Handymax calls: {}'.format(handymax))
                 print('     Panamax calls: {}'.format(panamax))
+                print('     VLCC calls: {}'.format(vlcc))
                 print('  Total cargo volume: {}'.format(total_vol))
 
-            self.berth_invest(year, handysize, handymax, panamax)
+            self.berth_invest(year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
 
-            self.conveyor_quay_invest(year,hydrogen_defaults.quay_conveyor_data)
+            self.pipeline_jetty_invest(year,hydrogen_defaults.jetty_pipeline_data)
 
-            self.storage_invest(year, self.storage_type_defaults)
+            self.storage_invest(year, self.storage_type_hydrogen_defaults)
 
-            self.conveyor_hinter_invest(year,hydrogen_defaults.hinterland_conveyor_data)
+            self.pipeline_hinter_invest(year,hydrogen_defaults.hinterland_conveyor_data)
 
             self.unloading_station_invest(year)
 
@@ -125,25 +134,19 @@ class System:
         Terminal.revenues is the minimum of 1. and 2.
         """
         # implement a safetymarge
-        quay_walls = len(self.find_elements(Quay_wall))
+        jettys = len(self.find_elements(Jetty))
         crane_cyclic = len(self.find_elements(Cyclic_Unloader))
         crane_continuous = len(self.find_elements(Continuous_Unloader))
-        conveyor_quay = len(self.find_elements(Conveyor_Quay))
+        pipeline_jetty = len(self.find_elements({Pipeline_Jetty}))
         storage = len(self.find_elements(Storage))
-        conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
+        pipeline_hinter = len(self.find_elements(Pipeline_Hinter))
         station = len(self.find_elements(Unloading_station))
 
-        if quay_walls < 1 and conveyor_quay < 1 and (
-                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
+        if jettys < 1 and pipeline_jetty < 1 and (
+                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and pipeline_hinter < 1 and station < 1:
             safety_factor = 0
         else:
             safety_factor = 1
-
-        # maize = Commodity(**hydrogen_defaults.maize_data)
-        # wheat = Commodity(**hydrogen_defaults.wheat_data)
-        # soybeans = Commodity(**dhydrogen_efaults.soybean_data)
-        #
-        # maize_demand, wheat_demand, soybeans_demand = self.calculate_demand_commodity(year)
 
         # gather volumes from each commodity, calculate how much revenue it would yield, and add
         revenues = 0
@@ -157,18 +160,16 @@ class System:
         if self.debug:
             print('     Revenues (demand): {}'.format(revenues))
 
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol \
+            = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
 
         # find the total service rate,
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
-
-        # find the rate between volume and throughput
-        rate_throughput_volume = service_rate * self.operational_hours / total_vol
 
         if self.debug:
             print('     Revenues (throughput): {}'.format(
@@ -188,9 +189,10 @@ class System:
         """
 
         energy = Energy(**hydrogen_defaults.energy_data)
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol \
+            = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
         # calculate crane energy
@@ -209,10 +211,10 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        # calculate Quay conveyor energy
-        list_of_elements_quay = self.find_elements(Conveyor_Quay)
+        # calculate pipeline jetty energy
+        list_of_elements_Pipelinejetty = self.find_elements(Pipeline_Jetty)
 
-        for element in list_of_elements_quay:
+        for element in list_of_elements_Pipelinejetty:
             if year >= element.year_online:
                 consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
                 hours = self.operational_hours * crane_occupancy_online
@@ -239,7 +241,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate hinterland conveyor energy
-        list_of_elements_hinter = self.find_elements(Conveyor_Hinter)
+        list_of_elements_hinter = self.find_elements(Pipeline_Hinter)
 
         for element in list_of_elements_hinter:
             if year >= element.year_online:
@@ -271,27 +273,28 @@ class System:
 
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol = \
+            self.calculate_vessel_calls(year)
 
         factor, waiting_time_occupancy = self.waiting_time(year)
 
-        # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
-        quay_walls = len(self.find_elements(Quay_wall))
+        # Find the service_rate per jetty to find the average service hours at the quay for a vessel
+        jettys = len(self.find_elements(Jetty))
 
         service_rate = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
-                service_rate += element.effective_capacity / quay_walls
+                service_rate += element.effective_capacity / jettys
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
-            handymax = Vessel(**hydrogen_defaults.handymax_data)
-            service_time_handymax = handymax.call_size / service_rate
-            waiting_time_hours_handymax = factor * service_time_handymax
-            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
-            demurrage_time_handymax = penalty_time_handymax * handymax_calls
-            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
+            vlcc = Vessel(**hydrogen_defaults.vlcc_data)
+            service_time_vlcc = vlcc.call_size / service_rate
+            waiting_time_hours_vlcc = factor * service_time_vlcc
+            port_time_handymax = waiting_time_hours_vlcc + service_time_handymax + vlcc.mooring_time
+            penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
+            demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
+            demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
 
             handysize = Vessel(**hydrogen_defaults.handysize_data)
             service_time_handysize = handysize.call_size / service_rate
@@ -310,17 +313,17 @@ class System:
             demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
         else:
-            demurrage_cost_handymax = 0
+            demurrage_cost_vlcc = 0
             demurrage_cost_handysize = 0
             demurrage_cost_panamax = 0
 
-        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+        total_demurrage_cost = demurrage_cost_vlcc + demurrage_cost_handysize + demurrage_cost_panamax
 
         self.demurrage.append(total_demurrage_cost)
 
     # *** Investment functions
 
-    def berth_invest(self, year, handysize, handymax, panamax):
+    def berth_invest(self, year,smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc):
         """
         Given the overall objectives of the terminal
 
@@ -340,12 +343,12 @@ class System:
 
         # report on the status of all berth elements
         self.report_element(Berth, year)
-        self.report_element(Quay_wall, year)
+        self.report_element(Jetty, year)
         self.report_element(Cyclic_Unloader, year)
         self.report_element(Continuous_Unloader, year)
-        self.report_element(Conveyor_Quay, year)
+        self.report_element(Pipeline_Jetty, year)
         self.report_element(Storage, year)
-        self.report_element(Conveyor_Hinter, year)
+        self.report_element(Pipeline_Hinter, year)
         self.report_element(Unloading_station, year)
         if self.debug:
             print('')
@@ -353,7 +356,7 @@ class System:
 
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
         factor, waiting_time_occupancy = self.waiting_time(year)
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
@@ -374,37 +377,37 @@ class System:
                 self.elements.append(berth)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize, handymax, panamax)
+                    year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # check if a quay is needed
             berths = len(self.find_elements(Berth))
-            quay_walls = len(self.find_elements(Quay_wall))
-            if berths > quay_walls:
-                length_v = max(hydrogen_defaults.handysize_data["LOA"],hydrogen_defaults.handymax_data["LOA"],
+            jettys = len(self.find_elements(Jetty))
+            if berths > jettys:
+                length_v = max(hydrogen_defaults.vlcc_data["LOA"],hydrogen_defaults.handysize_data["LOA"],
                               hydrogen_defaults.panamax_data["LOA"])  # average size
-                draft = max(hydrogen_defaults.handysize_data["draft"],hydrogen_defaults.handymax_data["draft"],
+                draft = max(hydrogen_defaults.vlcc_data["draft"],hydrogen_defaults.handysize_data["draft"],
                            hydrogen_defaults.panamax_data["draft"])
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
-                if quay_walls == 0:
+                if jettys == 0:
                     # - length when next quay is n = 1
                     length = length_v + 2 * 15  # ref: PIANC 2014
-                elif quay_walls == 1:
+                elif jettys == 1:
                     # - length when next quay is n > 1
                     length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)  # ref: PIANC 2014
                 else:
                     length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
                 # - depth
-                quay_wall = Quay_wall(**hydrogen_defaults.quay_wall_data)
-                depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
+                jetty = Jetty(**hydrogen_defaults.jetty_data)
+                depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
                 self.quay_invest(year, length, depth)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize, handymax, panamax)
+                    year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
@@ -414,12 +417,12 @@ class System:
                 self.crane_invest(year)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize, handymax, panamax)
+                    year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
 
-    def quay_invest(self, year, length, depth):
+    def jetty_invest(self, year, length, depth):
         """
         *** Decision recipe Quay: ***
         QSC: quay_per_berth
@@ -433,24 +436,24 @@ class System:
 
         if self.debug:
             print('  *** add Quay to elements')
-        # add a Quay_wall element
+        # add a Jetty element
 
-        quay_wall = Quay_wall(**hydrogen_defaults.quay_wall_data)
+        jetty = Jetty(**hydrogen_defaults.jetty_data)
 
         # - capex
-        unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
-        mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
-        quay_wall.capex = int(length * unit_rate + mobilisation)
+        unit_rate = int(jetty.Gijt_constant * (depth * 2 + jetty.freeboard) ** jetty.Gijt_coefficient)
+        mobilisation = int(max((length * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
+        jetty.capex = int(length * unit_rate + mobilisation)
 
         # - opex
-        quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
-        quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
-        quay_wall.year_online = year + quay_wall.delivery_time
+        jetty.insurance = unit_rate * length * jetty.insurance_perc
+        jetty.maintenance = unit_rate * length * jetty.maintenance_perc
+        jetty.year_online = year + jetty.delivery_time
 
-        # add cash flow information to quay_wall object in a dataframe
-        quay_wall = self.add_cashflow_data_to_element(quay_wall)
+        # add cash flow information to jetty object in a dataframe
+        jetty = self.add_cashflow_data_to_element(jetty)
 
-        self.elements.append(quay_wall)
+        self.elements.append(jetty)
 
     def crane_invest(self, year):
         """current strategy is to add cranes as soon as a service trigger is achieved
@@ -497,7 +500,7 @@ class System:
         # add object to elements
         self.elements.append(crane)
 
-    def conveyor_quay_invest(self, year, hydrogen_defaults_quay_conveyor_data):
+    def pipeline_jetty_invest(self, year, hydrogen_defaults_jetty_pipeline_data):
         """current strategy is to add conveyors as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -508,7 +511,7 @@ class System:
         # find the total service rate
         service_capacity = 0
         service_capacity_online = 0
-        list_of_elements = self.find_elements(Conveyor_Quay)
+        list_of_elements = self.find_elements(Pipeline_Jetty)
         if list_of_elements != []:
             for element in list_of_elements:
                 service_capacity += element.capacity_steps
