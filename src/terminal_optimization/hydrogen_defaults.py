@@ -64,68 +64,68 @@ berth_data = {"name": 'Berth_01',
               "delivery_time": 1,
               "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
 
-# *** Default inputs: CyclicUnloader class ***
-
-gantry_crane_data = {"name": 'Gantry_crane_01',
-                     "ownership": 'Terminal operator',
-                     "delivery_time": 1,
-                     "lifespan": 40,
-                     "unit_rate": 9_750_000,
-                     "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 561,
-                     "insurance_perc": 0.01,
-                     "crew": 3,
-                     "crane_type": 'Gantry crane',
-                     "lifting_capacity": 50,
-                     "hourly_cycles": 50,
-                     "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
-
-harbour_crane_data = {"name": 'Harbour_crane_01',
-                      "ownership": 'Terminal operator',
-                      "delivery_time": 1,
-                      "lifespan": 40,
-                      "unit_rate": 7_880_000,
-                      "mobilisation_perc": 0.15,
-                      "maintenance_perc": 0.02,
-                      "consumption": 210,
-                      "insurance_perc": 0.01,
-                      "crew": 3,
-                      "crane_type": 'Harbour crane',
-                      "lifting_capacity": 25,
-                      "hourly_cycles": 40,
-                      "eff_fact": 0.40} # all values from Ijzermans, 2019, P 100
-
-mobile_crane_data = {"name": 'Mobile_crane_01',
-                     "ownership": 'Terminal operator',
-                     "delivery_time": 1,
-                     "lifespan": 40,
-                     "unit_rate": 3_325_000,
-                     "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 485,
-                     "insurance_perc": 0.01,
-                     "crew": 3,
-                     "crane_type": 'Mobile crane',
-                     "lifting_capacity": 30,
-                     "hourly_cycles": 25,
-                     "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
-
-# *** Default inputs: ContinuousUnloader class ***
-
-continuous_screw_data = {"name": 'Continuous_loader_01',
-                         "ownership": 'Terminal operator',
-                         "delivery_time": 1,
-                         "lifespan": 30,
-                         "unit_rate": 6_900_000,
-                         "mobilisation_perc": 0.15,
-                         "maintenance_perc": 0.02,
-                         "consumption": 364,
-                         "insurance_perc": 0.01,
-                         "crew": 2,
-                         "crane_type": 'Screw unloader',
-                         "peak_capacity": 700,
-                         "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
+# # *** Default inputs: CyclicUnloader class ***
+#
+# gantry_crane_data = {"name": 'Gantry_crane_01',
+#                      "ownership": 'Terminal operator',
+#                      "delivery_time": 1,
+#                      "lifespan": 40,
+#                      "unit_rate": 9_750_000,
+#                      "mobilisation_perc": 0.15,
+#                      "maintenance_perc": 0.02,
+#                      "consumption": 561,
+#                      "insurance_perc": 0.01,
+#                      "crew": 3,
+#                      "crane_type": 'Gantry crane',
+#                      "lifting_capacity": 50,
+#                      "hourly_cycles": 50,
+#                      "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
+#
+# harbour_crane_data = {"name": 'Harbour_crane_01',
+#                       "ownership": 'Terminal operator',
+#                       "delivery_time": 1,
+#                       "lifespan": 40,
+#                       "unit_rate": 7_880_000,
+#                       "mobilisation_perc": 0.15,
+#                       "maintenance_perc": 0.02,
+#                       "consumption": 210,
+#                       "insurance_perc": 0.01,
+#                       "crew": 3,
+#                       "crane_type": 'Harbour crane',
+#                       "lifting_capacity": 25,
+#                       "hourly_cycles": 40,
+#                       "eff_fact": 0.40} # all values from Ijzermans, 2019, P 100
+#
+# mobile_crane_data = {"name": 'Mobile_crane_01',
+#                      "ownership": 'Terminal operator',
+#                      "delivery_time": 1,
+#                      "lifespan": 40,
+#                      "unit_rate": 3_325_000,
+#                      "mobilisation_perc": 0.15,
+#                      "maintenance_perc": 0.02,
+#                      "consumption": 485,
+#                      "insurance_perc": 0.01,
+#                      "crew": 3,
+#                      "crane_type": 'Mobile crane',
+#                      "lifting_capacity": 30,
+#                      "hourly_cycles": 25,
+#                      "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
+#
+# # *** Default inputs: ContinuousUnloader class ***
+#
+# continuous_screw_data = {"name": 'Continuous_loader_01',
+#                          "ownership": 'Terminal operator',
+#                          "delivery_time": 1,
+#                          "lifespan": 30,
+#                          "unit_rate": 6_900_000,
+#                          "mobilisation_perc": 0.15,
+#                          "maintenance_perc": 0.02,
+#                          "consumption": 364,
+#                          "insurance_perc": 0.01,
+#                          "crew": 2,
+#                          "crane_type": 'Screw unloader',
+#                          "peak_capacity": 700,
+#                          "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
 
 # *** Default inputs: Conveyor class ***
 
@@ -143,7 +143,7 @@ jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "consumption_coefficient": 0.08,
                       "crew": 1,
                       "utilisation": 0.80,
-                      "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
+                      "capacity": 4000} # all input values from Ijzermans, 2019, P 104
 
 hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "type": 'hinterland_pipeline',
@@ -159,7 +159,7 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "consumption_coefficient": 0.08,
                             "crew": 1,
                             "utilisation": 0.80,
-                            "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
+                            "capacity": 400} # all input values from Ijzermans, 2019, P 104
 
 
 # *** Default inputs: Storage class ***
@@ -273,6 +273,7 @@ smallhydrogen_data = {"name": 'smallhydrogen_1',
                   "beam": 24,
                   "max_cranes": 3,
                   "all_turn_time": 20,
+                  "pump_capacity": 1_000,
                   "mooring_time": 3,
                   "demurrage_rate": 600}
 
@@ -284,6 +285,7 @@ largehydrogen_data = {"name": 'largehydrogen_1',
                   "beam": 43,
                   "max_cranes": 3,
                   "all_turn_time": 30,
+                  "pump_capacity": 3_000,
                   "mooring_time": 3,
                   "demurrage_rate": 700}
 
@@ -297,6 +299,7 @@ smallammonia_data = {"name": 'smallammonia_1',
                  "beam": 22,
                  "max_cranes": 2,
                  "all_turn_time": 24,
+                 "pump_capacity": 2_000,
                  "mooring_time": 3,
                  "demurrage_rate": 750}
 
@@ -308,6 +311,7 @@ largeammonia_data = {"name": 'largeammonia_1',
                  "beam": 40,
                  "max_cranes": 2,
                  "all_turn_time": 24,
+                 "pump_capacity": 5_500,
                  "mooring_time": 3,
                  "demurrage_rate": 750}
 
@@ -320,6 +324,7 @@ handysize_data = {"name": 'Handysize_1',
                   "beam": 24,
                   "max_cranes": 2,
                   "all_turn_time": 24,
+                  "pump_capacity": 3_500,
                   "mooring_time": 3,
                   "demurrage_rate": 600}
 
@@ -331,17 +336,19 @@ panamax_data = {"name": 'Panamax_1',
                 "beam": 32.2,
                 "max_cranes": 3,
                 "all_turn_time": 36,
+                "pump_capacity": 6_500,
                 "mooring_time": 3,
                 "demurrage_rate": 730}
 
 vlcc_data = {"name": 'VLCC_1',
              "type": 'VLCC',
              "call_size": 200_000,
-             "LOA": 270,
-             "draft": 15,
-             "beam": 38,
+             "LOA": 300,
+             "draft": 18.5,
+             "beam": 55,
              "max_cranes": 3,
              "all_turn_time": 40,
+             "pump_capacity": 20_000,
              "mooring_time": 3,
              "demurrage_rate": 1000}
 

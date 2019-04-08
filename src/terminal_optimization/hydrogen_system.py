@@ -11,8 +11,8 @@ from terminal_optimization import hydrogen_defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  commodity_type_defaults=hydrogen_defaults.lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data, crane_type_defaults=hydrogen_defaults.mobile_crane_data,
-                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
+                 hydrogen_defaults.storage_lh2_data, allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365,
+                 allowable_station_occupancy=0.4):
 
         # time inputs
         self.startyear = startyear
@@ -28,7 +28,7 @@ class System:
         # default values to use in selecting which commodity is imported
         self.commodity_type_defaults = commodity_type_defaults
         self.storage_type_defaults = storage_type_defaults
-        self.crane_type_defaults = crane_type_defaults
+        # self.crane_type_defaults = crane_type_defaults
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
@@ -83,21 +83,21 @@ class System:
                 print('Simulate year: {}'.format(year))
 
             # estimate traffic from commodity scenarios
-            smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, \
-            total_vol = self.calculate_vessel_calls(year)
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+                year)
 
             if self.debug:
                 print('  Total vessel calls: {}'.format(total_calls))
-                print('     Small Hydrogen  calls: {}'.format(smallhydrogen))
-                print('     Large Hydrogen calls: {}'.format(largehydrogen))
-                print('     Small ammonia calls: {}'.format(smallammonia))
-                print('     Large ammonia calls: {}'.format(largeammonia))
-                print('     Handysize calls: {}'.format(handysize))
-                print('     Panamax calls: {}'.format(panamax))
-                print('     VLCC calls: {}'.format(vlcc))
+                print('     Small Hydrogen  calls: {}'.format(smallhydrogen_calls))
+                print('     Large Hydrogen calls: {}'.format(largehydrogen_calls))
+                print('     Small ammonia calls: {}'.format(smallammonia_calls))
+                print('     Large ammonia calls: {}'.format(largeammonia_calls))
+                print('     Handysize calls: {}'.format(handysize_calls))
+                print('     Panamax calls: {}'.format(panamax_calls))
+                print('     VLCC calls: {}'.format(vlcc_calls))
                 print('  Total cargo volume: {}'.format(total_vol))
 
-            self.berth_invest(year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+            self.berth_invest(year)
 
             self.pipeline_jetty_invest(year,hydrogen_defaults.jetty_pipeline_data)
 
@@ -135,15 +135,14 @@ class System:
         """
         # implement a safetymarge
         jetty = len(self.find_elements(Jetty))
-        crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        crane_continuous = len(self.find_elements(Continuous_Unloader))
+        # crane_cyclic = len(self.find_elements(Cyclic_Unloader))
+        # crane_continuous = len(self.find_elements(Continuous_Unloader))
         pipeline_jetty = len(self.find_elements(Pipeline_Jetty))
         storage = len(self.find_elements(Storage))
         pipeline_hinter = len(self.find_elements(Pipeline_Hinter))
         station = len(self.find_elements(Unloading_station))
 
-        if jetty < 1 and pipeline_jetty < 1 and (
-                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and pipeline_hinter < 1 and station < 1:
+        if jetty < 1 and pipeline_jetty < 1 and storage < 1 and pipeline_hinter < 1 and station < 1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -160,14 +159,15 @@ class System:
         if self.debug:
             print('     Revenues (demand): {}'.format(revenues))
 
-        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+            year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
         # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in self.find_elements(Pipeline_Jetty):
             if year >= element.year_online:
-                service_rate += element.effective_capacity * crane_occupancy_online
+                service_rate += element.capacity * unloading_occupancy_online
 
         if self.debug:
             print('     Revenues (throughput): {}'.format(
@@ -187,35 +187,35 @@ class System:
         """
 
         energy = Energy(**hydrogen_defaults.energy_data)
-        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol \
-            = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+            year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
-        # calculate crane energy
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
-
-        for element in list_of_elements_Crane:
-            if year >= element.year_online:
-                consumption = element.consumption
-                hours = self.operational_hours * crane_occupancy_online
-
-                if consumption * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
+        # # calculate crane energy
+        # # list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        # # list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        # # list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
+        #
+        # for element in elf.find_elements(Pipeline_Jetty):
+        #     if year >= element.year_online:
+        #         consumption = element.consumption
+        #         hours = self.operational_hours * crane_occupancy_online
+        #
+        #         if consumption * hours * energy.price != np.inf:
+        #             element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+        #
+        #     else:
+        #         element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate pipeline jetty energy
         list_of_elements_Pipelinejetty = self.find_elements(Pipeline_Jetty)
 
         for element in list_of_elements_Pipelinejetty:
             if year >= element.year_online:
-                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
-                hours = self.operational_hours * crane_occupancy_online
+                consumption = element.capacity * element.consumption_coefficient + element.consumption_constant
+                hours = self.operational_hours * unloading_occupancy_online
 
                 if consumption * hours * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
@@ -243,7 +243,7 @@ class System:
 
         for element in list_of_elements_hinter:
             if year >= element.year_online:
-                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
+                consumption = element.capacity * element.consumption_coefficient + element.consumption_constant
                 hours = self.operational_hours * station_occupancy_online
 
                 if consumption * hours * energy.price != np.inf:
@@ -271,18 +271,19 @@ class System:
 
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol = \
-            self.calculate_vessel_calls(year)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+            year)
 
         factor, waiting_time_occupancy = self.waiting_time(year)
 
         # Find the service_rate per jetty to find the average service hours at the jetty for a vessel
         jettys = len(self.find_elements(Jetty))
 
+        # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in self.find_elements(Pipeline_Jetty):
             if year >= element.year_online:
-                service_rate += element.effective_capacity / jettys
+                service_rate += element.capacity /jettys
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
@@ -357,7 +358,7 @@ class System:
 
     # *** Investment functions
 
-    def berth_invest(self, year,smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc):
+    def berth_invest(self, year):
         """
         Given the overall objectives of the terminal
 
@@ -378,8 +379,8 @@ class System:
         # report on the status of all berth elements
         self.report_element(Berth, year)
         self.report_element(Jetty, year)
-        self.report_element(Cyclic_Unloader, year)
-        self.report_element(Continuous_Unloader, year)
+        # self.report_element(Cyclic_Unloader, year)
+        # self.report_element(Continuous_Unloader, year)
         self.report_element(Pipeline_Jetty, year)
         self.report_element(Storage, year)
         self.report_element(Pipeline_Hinter, year)
@@ -389,32 +390,34 @@ class System:
             print('  Start analysis:')
 
         # calculate berth occupancy
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+            year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
         factor, waiting_time_occupancy = self.waiting_time(year)
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
-            print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
-            print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
+            print('     Unloading occupancy planned (@ start of year): {}'.format(unloading_occupancy_planned))
+            print('     Unloading occupancy online (@ start of year): {}'.format(unloading_occupancy_online))
             print('     waiting time factor (@ start of year): {}'.format(factor))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
             # add a berth when no crane slots are available
-            if not (self.check_crane_slot_available()):
-                if self.debug:
-                    print('  *** add Berth to elements')
-                berth = Berth(**hydrogen_defaults.berth_data)
-                berth.year_online = year + berth.delivery_time
-                self.elements.append(berth)
+            # if not (self.check_crane_slot_available()):
+            if self.debug:
+                print('  *** add Berth to elements')
+            berth = Berth(**hydrogen_defaults.berth_data)
+            berth.year_online = year + berth.delivery_time
+            self.elements.append(berth)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
-                if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online= self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
+            if self.debug:
+                print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
+                print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # check if a jetty is needed
             berths = len(self.find_elements(Berth))
@@ -440,21 +443,21 @@ class System:
                 depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
                 self.jetty_invest(year, length, depth)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+                berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
                 if self.debug:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
-            # check if a crane is needed
-            if self.check_crane_slot_available():
-                self.crane_invest(year)
-
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
-                if self.debug:
-                    print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
+            # # check if a crane is needed
+            # if self.check_crane_slot_available():
+            #     self.crane_invest(year)
+            #
+            #     berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+            #
+            #     if self.debug:
+            #         print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
+            #         print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
 
     def jetty_invest(self, year, length, depth):
         """
@@ -489,50 +492,50 @@ class System:
 
         self.elements.append(jetty)
 
-    def crane_invest(self, year):
-        """current strategy is to add cranes as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
-        """
-        if self.debug:
-            print('  *** add Harbour crane to elements')
-        # add unloader object
-        if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
-                self.crane_type_defaults["crane_type"] == 'Harbour crane' or
-                self.crane_type_defaults["crane_type"] == 'Mobile crane'):
-            crane = Cyclic_Unloader(**self.crane_type_defaults)
-        elif self.crane_type_defaults["crane_type"] == 'Screw unloader':
-            crane = Continuous_Unloader(**self.crane_type_defaults)
-
-        # - capex
-        unit_rate = crane.unit_rate
-        mobilisation = unit_rate * crane.mobilisation_perc
-        crane.capex = int(unit_rate + mobilisation)
-
-        # - opex
-        crane.insurance = unit_rate * crane.insurance_perc
-        crane.maintenance = unit_rate * crane.maintenance_perc
-
-        #   labour
-        labour = Labour(**hydrogen_defaults.labour_data)
-        '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
-        crane.shift = ((crane.crew * self.operational_hours) / (
-                labour.shift_length * labour.annual_shifts))
-        crane.labour = crane.shift * labour.operational_salary
-
-        # apply proper timing for the crane to come online (in the same year as the latest jetty)
-        years_online = []
-        for element in self.find_elements(Jetty):
-            years_online.append(element.year_online)
-        crane.year_online = max([year + crane.delivery_time, max(years_online)])
-
-        # add cash flow information to jetty object in a dataframe
-        crane = self.add_cashflow_data_to_element(crane)
-
-        # add object to elements
-        self.elements.append(crane)
+    # def crane_invest(self, year):
+    #     """current strategy is to add cranes as soon as a service trigger is achieved
+    #     - find out how much service capacity is online
+    #     - find out how much service capacity is planned
+    #     - find out how much service capacity is needed
+    #     - add service capacity until service_trigger is no longer exceeded
+    #     """
+    #     if self.debug:
+    #         print('  *** add Harbour crane to elements')
+    #     # add unloader object
+    #     if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
+    #             self.crane_type_defaults["crane_type"] == 'Harbour crane' or
+    #             self.crane_type_defaults["crane_type"] == 'Mobile crane'):
+    #         crane = Cyclic_Unloader(**self.crane_type_defaults)
+    #     elif self.crane_type_defaults["crane_type"] == 'Screw unloader':
+    #         crane = Continuous_Unloader(**self.crane_type_defaults)
+    #
+    #     # - capex
+    #     unit_rate = crane.unit_rate
+    #     mobilisation = unit_rate * crane.mobilisation_perc
+    #     crane.capex = int(unit_rate + mobilisation)
+    #
+    #     # - opex
+    #     crane.insurance = unit_rate * crane.insurance_perc
+    #     crane.maintenance = unit_rate * crane.maintenance_perc
+    #
+    #     #   labour
+    #     labour = Labour(**hydrogen_defaults.labour_data)
+    #     '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
+    #     crane.shift = ((crane.crew * self.operational_hours) / (
+    #             labour.shift_length * labour.annual_shifts))
+    #     crane.labour = crane.shift * labour.operational_salary
+    #
+    #     # apply proper timing for the crane to come online (in the same year as the latest jetty)
+    #     years_online = []
+    #     for element in self.find_elements(Jetty):
+    #         years_online.append(element.year_online)
+    #     crane.year_online = max([year + crane.delivery_time, max(years_online)])
+    #
+    #     # add cash flow information to jetty object in a dataframe
+    #     crane = self.add_cashflow_data_to_element(crane)
+    #
+    #     # add object to elements
+    #     self.elements.append(crane)
 
     def pipeline_jetty_invest(self, year, hydrogen_defaults_jetty_pipeline_data):
         """current strategy is to add pipeline as soon as a service trigger is achieved
@@ -548,9 +551,9 @@ class System:
         list_of_elements = self.find_elements(Pipeline_Jetty)
         if list_of_elements != []:
             for element in list_of_elements:
-                service_capacity += element.capacity_steps
+                service_capacity += element.capacity
                 if year >= element.year_online:
-                    service_capacity_online += element.capacity_steps
+                    service_capacity_online += element.capacity
 
         if self.debug:
             print('     a total of {} ton of jetty pipeline service capacity is online; {} ton total planned'.format(
@@ -559,8 +562,11 @@ class System:
         # find the total service rate,
         service_rate = 0
         years_online = []
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-            service_rate += element.peak_capacity
+        max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
+
+        jetty = len(self.find_elements(Jetty))
+        for element in self.find_elements(Jetty):
+            service_rate += max_vessel_Capacity_vessels * jetty
             years_online.append(element.year_online)
 
         # check if total planned capacity is smaller than target capacity, if so add a pipeline
@@ -570,7 +576,7 @@ class System:
             pipeline_jetty = Pipeline_Jetty(**hydrogen_defaults_jetty_pipeline_data)
 
             # - capex
-            capacity = pipeline_jetty.capacity_steps
+            capacity = pipeline_jetty.capacity
             unit_rate = pipeline_jetty.unit_rate_factor * pipeline_jetty.length
             mobilisation = pipeline_jetty.mobilisation
             pipeline_jetty.capex = int(capacity * unit_rate + mobilisation)
@@ -588,7 +594,7 @@ class System:
             # # apply proper timing for the crane to come online (in the same year as the latest pipeline jetty )
 
             # there should always be a new crane in the planning
-            new_crane_years = [x for x in years_online if x >= year]
+            new_jetty_years = [x for x in years_online if x >= year]
 
             # find the maximum online year of pipeline_jetty or make it []
             if self.find_elements(Pipeline_Jetty) != []:
@@ -598,20 +604,20 @@ class System:
 
             # decide what online year to use
             if max_pipeline_years == []:
-                pipeline_jetty.year_online = min(new_crane_years)
-            elif max_pipeline_years < min(new_crane_years):
-                pipeline_jetty.year_online = min(new_crane_years)
-            elif max_pipeline_years == min(new_crane_years):
-                pipeline_jetty.year_online = max(new_crane_years)
-            elif max_pipeline_years > min(new_crane_years):
-                pipeline_jetty.year_online = max(new_crane_years)
+                pipeline_jetty.year_online = min(new_jetty_years)
+            elif max_pipeline_years < min(new_jetty_years):
+                pipeline_jetty.year_online = min(new_jetty_years)
+            elif max_pipeline_years == min(new_jetty_years):
+                pipeline_jetty.year_online = max(new_jetty_years)
+            elif max_pipeline_years > min(new_jetty_years):
+                pipeline_jetty.year_online = max(new_jetty_years)
 
             # add cash flow information to pipeline_jetty object in a dataframe
             pipeline_jetty = self.add_cashflow_data_to_element(pipeline_jetty)
 
             self.elements.append(pipeline_jetty)
 
-            service_capacity += pipeline_jetty.capacity_steps
+            service_capacity += pipeline_jetty.capacity
 
         if self.debug:
             print('     a total of {} ton of pipeline_jetty service capacity is online; {} ton total planned'.format(
@@ -640,17 +646,16 @@ class System:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                 storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
-        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
         max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
 
         # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in self.find_elements(Jetty):
             if year >= element.year_online:
-                service_rate += element.effective_capacity * crane_occupancy_online
+                service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
         storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
@@ -706,9 +711,9 @@ class System:
         list_of_elements_pipeline = self.find_elements(Pipeline_Hinter)
         if list_of_elements_pipeline != []:
             for element in list_of_elements_pipeline:
-                service_capacity += element.capacity_steps
+                service_capacity += element.capacity
                 if year >= element.year_online:
-                    service_capacity_online_hinter += element.capacity_steps
+                    service_capacity_online_hinter += element.capacity
 
         if self.debug:
             print('     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
@@ -728,7 +733,7 @@ class System:
             pipeline_hinter = Pipeline_Hinter(**hydrogen_defaults_hinterland_pipeline_data)
 
             # - capex
-            capacity = pipeline_hinter.capacity_steps
+            capacity = pipeline_hinter.capacity
             unit_rate = pipeline_hinter.unit_rate_factor * pipeline_hinter.length
             mobilisation = pipeline_hinter.mobilisation
             pipeline_hinter.capex = int(capacity * unit_rate + mobilisation)
@@ -751,7 +756,7 @@ class System:
 
             self.elements.append(pipeline_hinter)
 
-            service_capacity += pipeline_hinter.capacity_steps
+            service_capacity += pipeline_hinter.capacity
 
         if self.debug:
             print(
@@ -999,56 +1004,100 @@ class System:
             elif vessel.type == 'Handysize':
                 handysize_calls = int(np.ceil(handysize_vol / vessel.call_size))
             elif vessel.type == 'Panamax':
-                panamax_calls = int(np.ceil(panamax_vol/ vessel.call_size))
+                panamax_calls = int(np.ceil(panamax_vol / vessel.call_size))
             elif vessel.type == 'VLCC':
                 vlcc_calls = int(np.ceil(vlcc_vol / vessel.call_size))
-        total_calls = np.sum([smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls])
+        total_calls = np.sum(
+            [smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
+             panamax_calls, vlcc_calls])
 
-        return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol
 
-    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
-        panamax_calls, vlcc_calls):
+        # intialize values to be returned
+        smallhydrogen_vol_planned = 0
+        largehydrogen_vol_planned = 0
+        smallammonia_vol_planned = 0
+        largeammonia_vol_planned = 0
+        handysize_vol_planned = 0
+        panamax_vol_planned = 0
+        vlcc_vol_planned = 0
+        total_vol_planned = 0
+
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year + 1]['volume'].item()
+                smallhydrogen_vol_planned += volume * commodity.smallhydrogen_perc / 100
+                largehydrogen_vol_planned += volume * commodity.largehydrogen_perc / 100
+                smallammonia_vol_planned += volume * commodity.smallammonia_perc / 100
+                largeammonia_vol_planned += volume * commodity.largeammonia_perc / 100
+                handysize_vol_planned += volume * commodity.handysize_perc / 100
+                panamax_vol_planned += volume * commodity.panamax_perc / 100
+                vlcc_vol_planned += volume * commodity.vlcc_perc / 100
+                total_vol_planned += volume
+            except:
+                pass
+
+        # gather vessels and calculate the number of calls each vessel type needs to make
+        vessels = self.find_elements(Vessel)
+        for vessel in vessels:
+            if vessel.type == 'Smallhydrogen':
+                smallhydrogen_calls_planned = int(np.ceil(smallhydrogen_vol_planned / vessel.call_size))
+            elif vessel.type == 'Largehydrogen':
+                largehydrogen_calls_planned = int(np.ceil(largehydrogen_vol_planned / vessel.call_size))
+            elif vessel.type == 'Smallammonia':
+                smallammonia_calls_planned = int(np.ceil(smallammonia_vol_planned / vessel.call_size))
+            elif vessel.type == 'Largeammonia':
+                largeammonia_calls_planned = int(np.ceil(largeammonia_vol_planned / vessel.call_size))
+            elif vessel.type == 'Handysize':
+                handysize_calls_planned = int(np.ceil(handysize_vol_planned / vessel.call_size))
+            elif vessel.type == 'Panamax':
+                panamax_calls_planned = int(np.ceil(panamax_vol_planned/ vessel.call_size))
+            elif vessel.type == 'VLCC':
+                vlcc_calls_planned = int(np.ceil(vlcc_vol / vessel.call_size))
+        total_calls_planned = np.sum([smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned])
+
+        return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned
+
+    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
         """
         - Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
         - Occupancy is total_time_at_berth divided by operational hours
         """
 
-        # list all crane objects in system
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
+        # list all vessel objects in system
+        list_of_elements = self.find_elements(Jetty)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
         service_rate_online = 0
         if list_of_elements != []:
             for element in list_of_elements:
-                service_rate_planned += element.effective_capacity
+                service_rate_planned += hydrogen_defaults.largehydrogen_data["pump_capacity"]
                 if year >= element.year_online:
-                    service_rate_online += element.effective_capacity
+                    service_rate_online += hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
             # estimate berth occupancy
-            time_at_berth_smallhydrogen_planned = smallhydrogen_calls * (
-                    (hydrogen_defaults.smallhydrogen_data["call_size"] / service_rate_planned) +
+            time_at_berth_smallhydrogen_planned = smallhydrogen_calls_planned * (
+                    (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"]) +
                     hydrogen_defaults.smallhydrogen_data["mooring_time"])
-            time_at_berth_largehydrogen_planned = largehydrogen_calls * (
-                    (hydrogen_defaults.largehydrogen_data["call_size"] / service_rate_planned) +
+            time_at_berth_largehydrogen_planned = largehydrogen_calls_planned * (
+                    (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"]) +
                     hydrogen_defaults.largehydrogen_data["mooring_time"])
-            time_at_berth_smallammonia_planned = smallammonia_calls * (
-                    (hydrogen_defaults.smallammonia_data["call_size"] / service_rate_planned) +
+            time_at_berth_smallammonia_planned = smallammonia_calls_planned * (
+                    (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])  +
                     hydrogen_defaults.smallammonia_data["mooring_time"])
-            time_at_berth_largeammonia_planned = largeammonia_calls * (
-                    (hydrogen_defaults.largeammonia_data["call_size"] / service_rate_planned) +
+            time_at_berth_largeammonia_planned = largeammonia_calls_planned * (
+                    (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"]) +
                     hydrogen_defaults.largeammonia_data["mooring_time"])
-            time_at_berth_handysize_planned = handysize_calls * (
-                    (hydrogen_defaults.handysize_data["call_size"] / service_rate_planned) +
+            time_at_berth_handysize_planned = handysize_calls_planned * (
+                    (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"]) +
                     hydrogen_defaults.handysize_data["mooring_time"])
-            time_at_berth_panamax_planned = panamax_calls * (
-                    (hydrogen_defaults.panamax_data["call_size"] / service_rate_planned) +
+            time_at_berth_panamax_planned = panamax_calls_planned * (
+                    (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"]) +
                     hydrogen_defaults.panamax_data["mooring_time"])
-            time_at_berth_vlcc_planned = vlcc_calls * (
-                    (hydrogen_defaults.vlcc_data["call_size"] / service_rate_planned) +
+            time_at_berth_vlcc_planned = vlcc_calls_planned * (
+                    (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"] ) +
                     hydrogen_defaults.vlcc_data["mooring_time"])
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_smallhydrogen_planned, time_at_berth_largehydrogen_planned, time_at_berth_smallammonia_planned, time_at_berth_largeammonia_planned, time_at_berth_handysize_planned, time_at_berth_panamax_planned, time_at_berth_vlcc_planned])
@@ -1057,43 +1106,42 @@ class System:
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
 
             # estimate crane occupancy
-            time_at_crane_smallhydrogen_planned = smallhydrogen_calls * (hydrogen_defaults.smallhydrogen_data["call_size"] / service_rate_planned)
-            time_at_crane_largehydrogen_planned = largehydrogen_calls * (hydrogen_defaults.largehydrogen_data["call_size"] / service_rate_planned)
-            time_at_crane_smallammonia_planned = smallammonia_calls * (hydrogen_defaults.smallammonia_data["call_size"] / service_rate_planned)
-            time_at_crane_largeammonia_planned = largeammonia_calls * (hydrogen_defaults.largeammonia_data["call_size"] / service_rate_planned)
-            time_at_crane_handysize_planned = handysize_calls * (hydrogen_defaults.handysize_data["call_size"] / service_rate_planned)
-            time_at_crane_panamax_planned = panamax_calls * (hydrogen_defaults.panamax_data["call_size"] / service_rate_planned)
-            time_at_crane_vlcc_planned = vlcc_calls * (hydrogen_defaults.vlcc_data["call_size"] / service_rate_planned)
+            time_at_unloading_smallhydrogen_planned = smallhydrogen_calls_planned * (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"])
+            time_at_unloading_largehydrogen_planned = largehydrogen_calls_planned * (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"])
+            time_at_unloading_smallammonia_planned = smallammonia_calls_planned * (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])
+            time_at_unloading_largeammonia_planned = largeammonia_calls_planned * (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"])
+            time_at_unloading_handysize_planned = handysize_calls_planned * (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"])
+            time_at_unloading_panamax_planned = panamax_calls_planned * (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"])
+            time_at_unloading_vlcc_planned = vlcc_calls_planned * (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"])
 
-            total_time_at_crane_planned = np.sum(
-                [time_at_crane_smallhydrogen_planned, time_at_crane_largehydrogen_planned, time_at_crane_smallammonia_planned, time_at_crane_largeammonia_planned, time_at_crane_handysize_planned, time_at_crane_panamax_planned, time_at_crane_vlcc_planned])
+            total_time_at_unloading_planned = np.sum(
+                [time_at_unloading_smallhydrogen_planned, time_at_unloading_largehydrogen_planned, time_at_unloading_smallammonia_planned, time_at_unloading_largeammonia_planned, time_at_unloading_handysize_planned, time_at_unloading_panamax_planned, time_at_unloading_vlcc_planned])
 
             # berth_occupancy is the total time at berth divided by the operational hours
-            crane_occupancy_planned = total_time_at_crane_planned / self.operational_hours
+            unloading_occupancy_planned = total_time_at_unloading_planned / self.operational_hours
 
             if service_rate_online != 0:
                 time_at_berth_smallhydrogen_online = smallhydrogen_calls * (
-                        (hydrogen_defaults.smallhydrogen_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"]) +
                         hydrogen_defaults.smallhydrogen_data["mooring_time"])
                 time_at_berth_largehydrogen_online = largehydrogen_calls * (
-                        (hydrogen_defaults.largehydrogen_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"]) +
                         hydrogen_defaults.largehydrogen_data["mooring_time"])
                 time_at_berth_smallammonia_online = smallammonia_calls * (
-                        (hydrogen_defaults.smallammonia_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"]) +
                         hydrogen_defaults.smallammonia_data["mooring_time"])
                 time_at_berth_largeammonia_online = largeammonia_calls * (
-                        (hydrogen_defaults.largeammonia_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"]) +
                         hydrogen_defaults.largeammonia_data["mooring_time"])
                 time_at_berth_handysize_online = handysize_calls * (
-                        (hydrogen_defaults.handysize_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"]) +
                         hydrogen_defaults.handysize_data["mooring_time"])
                 time_at_berth_panamax_online = panamax_calls * (
-                        (hydrogen_defaults.panamax_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"]) +
                         hydrogen_defaults.panamax_data["mooring_time"])
                 time_at_berth_vlcc_online = vlcc_calls * (
-                        (hydrogen_defaults.vlcc_data["call_size"] / service_rate_online) +
+                        (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"]) +
                         hydrogen_defaults.vlcc_data["mooring_time"])
-
 
                 total_time_at_berth_online = np.sum(
                     [time_at_berth_smallhydrogen_online,time_at_berth_largehydrogen_online, time_at_berth_smallammonia_online, time_at_berth_largeammonia_online,time_at_berth_handysize_online, time_at_berth_panamax_online, time_at_berth_vlcc_online])
@@ -1101,32 +1149,32 @@ class System:
                 # berth_occupancy is the total time at berth devided by the operational hours
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
 
-                time_at_crane_smallhydrogen_online = smallhydrogen_calls * (hydrogen_defaults.smallhydrogen_data["call_size"] / service_rate_online)
-                time_at_crane_largehydrogen_online = largehydrogen_calls * (hydrogen_defaults.largehydrogen_data["call_size"] / service_rate_online)
-                time_at_crane_smallammonia_online = smallammonia_calls * (hydrogen_defaults.smallammonia_data["call_size"] / service_rate_online)
-                time_at_crane_largeammonia_online = largeammonia_calls * (hydrogen_defaults.largeammonia_data["call_size"] / service_rate_online)
-                time_at_crane_handysize_online = handysize_calls *  (hydrogen_defaults.handysize_data["call_size"] / service_rate_online)
-                time_at_crane_panamax_online = panamax_calls * (hydrogen_defaults.panamax_data["call_size"] / service_rate_online)
-                time_at_crane_vlcc_online = vlcc_calls * (hydrogen_defaults.vlcc_data["call_size"] / service_rate_online)
+                time_at_unloading_smallhydrogen_online = smallhydrogen_calls * (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"])
+                time_at_unloading_largehydrogen_online = largehydrogen_calls * (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"])
+                time_at_unloading_smallammonia_online = smallammonia_calls * (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])
+                time_at_unloading_largeammonia_online = largeammonia_calls * (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"])
+                time_at_unloading_handysize_online = handysize_calls *  (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"])
+                time_at_unloading_panamax_online = panamax_calls * (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"])
+                time_at_unloading_vlcc_online = vlcc_calls * (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"])
 
-                total_time_at_crane_online = np.sum(
-                    [time_at_crane_smallhydrogen_online, time_at_crane_largehydrogen_online, time_at_crane_smallammonia_online, time_at_crane_largeammonia_online, time_at_crane_handysize_online, time_at_crane_panamax_online, time_at_crane_vlcc_online])
+                total_time_at_unloading_online = np.sum(
+                    [time_at_unloading_smallhydrogen_online, time_at_unloading_largehydrogen_online, time_at_unloading_smallammonia_online, time_at_unloading_largeammonia_online, time_at_unloading_handysize_online, time_at_unloading_panamax_online, time_at_unloading_vlcc_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+                unloading_occupancy_online = min([total_time_at_unloading_online / self.operational_hours, 1])
 
             else:
                 berth_occupancy_online = float("inf")
-                crane_occupancy_online = float("inf")
+                unloading_occupancy_online = float("inf")
 
         else:
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
             berth_occupancy_planned = float("inf")
             berth_occupancy_online = float("inf")
-            crane_occupancy_planned = float("inf")
-            crane_occupancy_online = float("inf")
+            unloading_occupancy_planned = float("inf")
+            unloading_occupancy_online = float("inf")
 
-        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
+        return berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online
 
     def waiting_time(self, year):
         """
@@ -1135,9 +1183,8 @@ class System:
        - Waiting time is the factor times the crane occupancy
        """
 
-        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
         # find the different factors which are linked to the number of berths
         berths = len(self.find_elements(Berth))
@@ -1167,7 +1214,7 @@ class System:
             # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
             factor = float("inf")
 
-        waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
+        waiting_time_hours = factor * unloading_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         return factor, waiting_time_occupancy
@@ -1190,14 +1237,16 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.service_rate
 
-            smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+                year)
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
 
             # find the total throughput,
             service_rate_throughput = 0
-            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            for element in (self.find_elements(Pipeline_Jetty)):
                 if year >= element.year_online:
-                    service_rate_throughput += element.effective_capacity * crane_occupancy_online
+                    service_rate_throughput += hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
             time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.service_rate
 
@@ -1219,21 +1268,21 @@ class System:
 
         return station_occupancy_planned, station_occupancy_online
 
-    def check_crane_slot_available(self):
-        list_of_elements = self.find_elements(Berth)
-        slots = 0
-        for element in list_of_elements:
-            slots += element.max_cranes
-
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
-
-        # when there are more slots than installed cranes ...
-        if slots > len(list_of_elements):
-            return True
-        else:
-            return False
+    # def check_crane_slot_available(self):
+    #     list_of_elements = self.find_elements(Berth)
+    #     slots = 0
+    #     for element in list_of_elements:
+    #         slots += element.max_cranes
+    #
+    #     list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+    #     list_of_elements_2 = self.find_elements(Continuous_Unloader)
+    #     list_of_elements = list_of_elements_1 + list_of_elements_2
+    #
+    #     # when there are more slots than installed cranes ...
+    #     if slots > len(list_of_elements):
+    #         return True
+    #     else:
+    #         return False
 
     def report_element(self, Element, year):
         elements = 0
@@ -1261,14 +1310,15 @@ class System:
         station = Unloading_station(**hydrogen_defaults.hinterland_station_data)
 
         # - Trains calculated with the throughput
-        smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
+            year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
 
         service_rate_throughput = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (self.find_elements(Pipeline_Jetty)):
             if year >= element.year_online:
-                service_rate_throughput += element.effective_capacity * crane_occupancy_online
+                service_rate_throughput += hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
         train_calls = service_rate_throughput * self.operational_hours / station.call_size
 
@@ -1282,7 +1332,7 @@ class System:
         # collect elements to add to plot
         years = []
         berths = []
-        cranes = []
+        # cranes = []
         jettys = []
         pipelines_jetty = []
         storages = []
@@ -1293,7 +1343,7 @@ class System:
             years.append(year)
             berths.append(0)
             jettys.append(0)
-            cranes.append(0)
+            # cranes.append(0)
             pipelines_jetty.append(0)
             storages.append(0)
             pipelines_hinterland.append(0)
@@ -1306,9 +1356,9 @@ class System:
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
                         jettys[-1] += 1
-                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-                    if year >= element.year_online:
-                        cranes[-1] += 1
+                # if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                #     if year >= element.year_online:
+                #         cranes[-1] += 1
                 if isinstance(element, Pipeline_Jetty):
                     if year >= element.year_online:
                         pipelines_jetty[-1] += 1
@@ -1329,8 +1379,8 @@ class System:
                edgecolor='crimson')
         ax.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="jettys", color='orchid',
                edgecolor='purple')
-        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
-               edgecolor='blue')
+        # ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
+        #        edgecolor='blue')
         ax.bar([x + 3 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="pipelines jetty",
                color='lightgreen', edgecolor='green')
         ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
@@ -1342,7 +1392,7 @@ class System:
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
-        ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
+        # ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
@@ -1352,31 +1402,34 @@ class System:
 
         # get crane service capacity and storage capacity
         years = []
-        cranes = []
-        cranes_capacity = []
+        # cranes = []
+        # cranes_capacity = []
         storages = []
         storages_capacity = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
-            cranes.append(0)
-            cranes_capacity.append(0)
+            # cranes.append(0)
+            # cranes_capacity.append(0)
             storages.append(0)
             storages_capacity.append(0)
 
-            smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc, total_calls, total_vol = self.calculate_vessel_calls(
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
                 year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, smallhydrogen, largehydrogen, smallammonia, largeammonia, handysize, panamax, vlcc)
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
+                year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
+                panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
+                smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
+                vlcc_calls_planned)
 
             for element in self.elements:
-                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-                    # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
-                    if year >= element.year_online:
-                        cranes[-1] += 1
-                        cranes_capacity[
-                            -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
+                # if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                #     # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
+                #     if year >= element.year_online:
+                #         cranes[-1] += 1
+                #         cranes_capacity[
+                #             -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
@@ -1396,15 +1449,15 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
-               color='red')
-        # ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
-        #        color='green')
+        # ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
+        #        color='red')
+        ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
+               color='green')
         ax.step(years, demand['demand'].values, label="demand", where='mid')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Throughput capacity [tons/year]')
-        ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
+        # ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
