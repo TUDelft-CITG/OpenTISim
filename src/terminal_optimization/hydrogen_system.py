@@ -28,7 +28,6 @@ class System:
         # default values to use in selecting which commodity is imported
         self.commodity_type_defaults = commodity_type_defaults
         self.storage_type_defaults = storage_type_defaults
-        # self.crane_type_defaults = crane_type_defaults
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
@@ -83,8 +82,10 @@ class System:
                 print('Simulate year: {}'.format(year))
 
             # estimate traffic from commodity scenarios
-            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
-                year)
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, \
+            panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, \
+            smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, \
+            vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(year)
 
             if self.debug:
                 print('  Total vessel calls: {}'.format(total_calls))
@@ -99,11 +100,11 @@ class System:
 
             self.berth_invest(year)
 
-            self.pipeline_jetty_invest(year,hydrogen_defaults.jetty_pipeline_data)
+            self.pipeline_jetty_invest(year, hydrogen_defaults.jetty_pipeline_data)
 
             self.storage_invest(year, self.storage_type_defaults)
 
-            self.pipeline_hinter_invest(year,hydrogen_defaults.hinterland_pipeline_data)
+            self.pipeline_hinter_invest(year, hydrogen_defaults.hinterland_pipeline_data)
 
             self.unloading_station_invest(year)
 
@@ -135,8 +136,6 @@ class System:
         """
         # implement a safetymarge
         jetty = len(self.find_elements(Jetty))
-        # crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        # crane_continuous = len(self.find_elements(Continuous_Unloader))
         pipeline_jetty = len(self.find_elements(Pipeline_Jetty))
         storage = len(self.find_elements(Storage))
         pipeline_hinter = len(self.find_elements(Pipeline_Hinter))
@@ -165,9 +164,15 @@ class System:
 
         # find the total service rate,
         service_rate = 0
-        for element in self.find_elements(Pipeline_Jetty):
+        for element in self.find_elements(Jetty):
             if year >= element.year_online:
-                service_rate += element.capacity * unloading_occupancy_online
+                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                 handysize_calls *  hydrogen_defaults.handysize_data["pump_capacity"] +
+                                 panamax_calls *  hydrogen_defaults.panamax_data["pump_capacity"] +
+                                 vlcc_calls * hydrogen_defaults.vlcc_data["pump_capacity"])/total_calls * unloading_occupancy_online
 
         if self.debug:
             print('     Revenues (throughput): {}'.format(
