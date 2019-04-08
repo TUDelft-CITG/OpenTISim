@@ -176,7 +176,7 @@ class System:
 
         if self.debug:
             print('     Revenues (throughput): {}'.format(
-                int(service_rate * self.operational_hours * fee * safety_factor)))
+                int(service_rate * self.operational_hours * commodity.handling_fee * safety_factor)))
 
         try:
             self.revenues.append(
@@ -197,22 +197,6 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-
-        # # calculate crane energy
-        # # list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        # # list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        # # list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
-        #
-        # for element in elf.find_elements(Pipeline_Jetty):
-        #     if year >= element.year_online:
-        #         consumption = element.consumption
-        #         hours = self.operational_hours * crane_occupancy_online
-        #
-        #         if consumption * hours * energy.price != np.inf:
-        #             element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-        #
-        #     else:
-        #         element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate pipeline jetty energy
         list_of_elements_Pipelinejetty = self.find_elements(Pipeline_Jetty)
@@ -264,7 +248,6 @@ class System:
 
         for element in list_of_elements_Station:
             if year >= element.year_online:
-
                 if element.consumption * self.operational_hours * station_occupancy_online * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'
                     ] = element.consumption * self.operational_hours * station_occupancy_online * energy.price
@@ -276,88 +259,72 @@ class System:
 
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(
-            year)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
+        vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, \
+        smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, \
+        vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(year)
 
         factor, waiting_time_occupancy = self.waiting_time(year)
 
-        # Find the service_rate per jetty to find the average service hours at the jetty for a vessel
-        jettys = len(self.find_elements(Jetty))
-
-        # find the total service rate,
-        service_rate = 0
-        for element in self.find_elements(Pipeline_Jetty):
-            if year >= element.year_online:
-                service_rate += element.capacity /jettys
-
         # Find the demurrage cost per type of vessel
-        if service_rate != 0:
-            smallhydrogen = Vessel(**hydrogen_defaults.smallhydrogen_data)
-            service_time_smallhydrogen = smallhydrogen.call_size / service_rate
-            waiting_time_hours_smallhydrogen = factor * service_time_smallhydrogen
-            port_time_smallhydrogen = waiting_time_hours_smallhydrogen + service_time_smallhydrogen + smallhydrogen.mooring_time
-            penalty_time_smallhydrogen = max(0, waiting_time_hours_smallhydrogen - smallhydrogen.all_turn_time)
-            demurrage_time_smallhydrogen = penalty_time_smallhydrogen * smallhydrogen_calls
-            demurrage_cost_smallhydrogen = demurrage_time_smallhydrogen * smallhydrogen.demurrage_rate
+        # if service_rate != 0:
+        smallhydrogen = Vessel(**hydrogen_defaults.smallhydrogen_data)
+        service_time_smallhydrogen = smallhydrogen.call_size / smallhydrogen.pump_capacity
+        waiting_time_hours_smallhydrogen = factor * service_time_smallhydrogen
+        penalty_time_smallhydrogen = max(0, waiting_time_hours_smallhydrogen - smallhydrogen.all_turn_time)
+        demurrage_time_smallhydrogen = penalty_time_smallhydrogen * smallhydrogen_calls
+        demurrage_cost_smallhydrogen = demurrage_time_smallhydrogen * smallhydrogen.demurrage_rate
 
-            largehydrogen = Vessel(**hydrogen_defaults.largehydrogen_data)
-            service_time_largehydrogen = largehydrogen.call_size / service_rate
-            waiting_time_hours_largehydrogen = factor * service_time_largehydrogen
-            port_time_largehydrogen = waiting_time_hours_largehydrogen + service_time_largehydrogen + largehydrogen.mooring_time
-            penalty_time_largehydrogen = max(0, waiting_time_hours_largehydrogen - largehydrogen.all_turn_time)
-            demurrage_time_largehydrogen = penalty_time_largehydrogen * largehydrogen_calls
-            demurrage_cost_largehydrogen = demurrage_time_largehydrogen * largehydrogen.demurrage_rate
+        largehydrogen = Vessel(**hydrogen_defaults.largehydrogen_data)
+        service_time_largehydrogen = largehydrogen.call_size / largehydrogen.pump_capacity
+        waiting_time_hours_largehydrogen = factor * service_time_largehydrogen
+        penalty_time_largehydrogen = max(0, waiting_time_hours_largehydrogen - largehydrogen.all_turn_time)
+        demurrage_time_largehydrogen = penalty_time_largehydrogen * largehydrogen_calls
+        demurrage_cost_largehydrogen = demurrage_time_largehydrogen * largehydrogen.demurrage_rate
 
-            smallammonia = Vessel(**hydrogen_defaults.smallammonia_data)
-            service_time_smallammonia = smallammonia.call_size / service_rate
-            waiting_time_hours_smallammonia = factor * service_time_smallammonia
-            port_time_smallammonia = waiting_time_hours_smallammonia + service_time_smallammonia + smallammonia.mooring_time
-            penalty_time_smallammonia = max(0, waiting_time_hours_smallammonia - smallammonia.all_turn_time)
-            demurrage_time_smallammonia = penalty_time_smallammonia * smallammonia_calls
-            demurrage_cost_smallammonia = demurrage_time_smallammonia * smallammonia.demurrage_rate
+        smallammonia = Vessel(**hydrogen_defaults.smallammonia_data)
+        service_time_smallammonia = smallammonia.call_size / smallammonia.pump_capacity
+        waiting_time_hours_smallammonia = factor * service_time_smallammonia
+        penalty_time_smallammonia = max(0, waiting_time_hours_smallammonia - smallammonia.all_turn_time)
+        demurrage_time_smallammonia = penalty_time_smallammonia * smallammonia_calls
+        demurrage_cost_smallammonia = demurrage_time_smallammonia * smallammonia.demurrage_rate
 
-            largeammonia = Vessel(**hydrogen_defaults.largeammonia_data)
-            service_time_largeammonia = largeammonia.call_size / service_rate
-            waiting_time_hours_largeammonia = factor * service_time_largeammonia
-            port_time_largeammonia = waiting_time_hours_largeammonia + service_time_largeammonia + largeammonia.mooring_time
-            penalty_time_largeammonia = max(0, waiting_time_hours_largeammonia - largeammonia.all_turn_time)
-            demurrage_time_largeammonia = penalty_time_largeammonia * largeammonia_calls
-            demurrage_cost_largeammonia = demurrage_time_largeammonia * largeammonia.demurrage_rate
+        largeammonia = Vessel(**hydrogen_defaults.largeammonia_data)
+        service_time_largeammonia = largeammonia.call_size / largeammonia.pump_capacity
+        waiting_time_hours_largeammonia = factor * service_time_largeammonia
+        penalty_time_largeammonia = max(0, waiting_time_hours_largeammonia - largeammonia.all_turn_time)
+        demurrage_time_largeammonia = penalty_time_largeammonia * largeammonia_calls
+        demurrage_cost_largeammonia = demurrage_time_largeammonia * largeammonia.demurrage_rate
 
-            handysize = Vessel(**hydrogen_defaults.handysize_data)
-            service_time_handysize = handysize.call_size / service_rate
-            waiting_time_hours_handysize = factor * service_time_handysize
-            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
-            demurrage_time_handysize = penalty_time_handysize * handysize_calls
-            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+        handysize = Vessel(**hydrogen_defaults.handysize_data)
+        service_time_handysize = handysize.call_size / handysize.pump_capacity
+        waiting_time_hours_handysize = factor * service_time_handysize
+        penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
+        demurrage_time_handysize = penalty_time_handysize * handysize_calls
+        demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
 
-            panamax = Vessel(**hydrogen_defaults.panamax_data)
-            service_time_panamax = panamax.call_size / service_rate
-            waiting_time_hours_panamax = factor * service_time_panamax
-            port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
-            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
-            demurrage_time_panamax = penalty_time_panamax * panamax_calls
-            demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+        panamax = Vessel(**hydrogen_defaults.panamax_data)
+        service_time_panamax = panamax.call_size / panamax.pump_capacity
+        waiting_time_hours_panamax = factor * service_time_panamax
+        penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
+        demurrage_time_panamax = penalty_time_panamax * panamax_calls
+        demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
-            vlcc = Vessel(**hydrogen_defaults.vlcc_data)
-            service_time_vlcc = vlcc.call_size / service_rate
-            waiting_time_hours_vlcc = factor * service_time_vlcc
-            port_time_vlcc = waiting_time_hours_vlcc + service_time_vlcc + vlcc.mooring_time
-            penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
-            demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
-            demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
+        vlcc = Vessel(**hydrogen_defaults.vlcc_data)
+        service_time_vlcc = vlcc.call_size / vlcc.pump_capacity
+        waiting_time_hours_vlcc = factor * service_time_vlcc
+        penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
+        demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
+        demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
 
-        else:
-            demurrage_cost_smallhydrogen = 0
-            demurrage_cost_largehydrogen = 0
-            demurrage_cost_smallammonia = 0
-            demurrage_cost_largeammonia = 0
-            demurrage_cost_handysize = 0
-            demurrage_cost_panamax = 0
-            demurrage_cost_vlcc = 0
+        # vessel = Vessel(**hydrogen_defaults.vessel_data)
+        # service_time_vessel = vessel.call_size / smallhydrogen.pump_capacity
+        # waiting_time_hours_vessel = factor * service_time_vessel
+        # penalty_time_vessel = max(0, waiting_time_hours_vessel - vessel.all_turn_time)
+        # demurrage_time_vessel = penalty_time_vessel * vessel_calls
+        # demurrage_cost_vessel = demurrage_time_vessel * vessel.demurrage_rate
 
-        total_demurrage_cost = demurrage_cost_smallhydrogen + demurrage_cost_largehydrogen + demurrage_cost_smallammonia + demurrage_cost_largeammonia + demurrage_cost_handysize + demurrage_cost_panamax + demurrage_cost_vlcc
+        total_demurrage_cost = demurrage_cost_vessel + demurrage_cost_smallhydrogen + demurrage_cost_largehydrogen + demurrage_cost_smallammonia + demurrage_cost_largeammonia + demurrage_cost_handysize + demurrage_cost_panamax + demurrage_cost_vlcc
 
         self.demurrage.append(total_demurrage_cost)
 
