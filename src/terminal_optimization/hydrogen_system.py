@@ -454,7 +454,6 @@ class System:
 
         self.elements.append(jetty)
 
-
     def pipeline_jetty_invest(self, year, hydrogen_defaults_jetty_pipeline_data):
         """current strategy is to add pipeline as soon as a service trigger is achieved
         - find out how much service capacity is online
@@ -473,13 +472,10 @@ class System:
                 if year >= element.year_online:
                     service_capacity_online += element.capacity
 
-        if self.debug:
-            print('     a total of {} ton of jetty pipeline service capacity is online; {} ton total planned'.format(
-                service_capacity_online, service_capacity))
-
         # find the total service rate,
         service_rate = 0
         years_online = []
+
         max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
 
         jetty = len(self.find_elements(Jetty))
@@ -505,13 +501,12 @@ class System:
 
             #   labour
             labour = Labour(**hydrogen_defaults.labour_data)
-            pipeline_jetty.shift = (
-                    (pipeline_jetty.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            pipeline_jetty.shift = (pipeline_jetty.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts)
             pipeline_jetty.labour = pipeline_jetty.shift * labour.operational_salary
 
             # # apply proper timing for the crane to come online (in the same year as the latest pipeline jetty )
 
-            # there should always be a new crane in the planning
+            # there should always be a new jetty in the planning
             new_jetty_years = [x for x in years_online if x >= year]
 
             # find the maximum online year of pipeline_jetty or make it []
@@ -573,7 +568,14 @@ class System:
         service_rate = 0
         for element in self.find_elements(Jetty):
             if year >= element.year_online:
-                service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
+                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                 handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                 panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                 vlcc_calls * hydrogen_defaults.vlcc_data[
+                                     "pump_capacity"]) / total_calls * unloading_occupancy_online
 
         storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
@@ -633,9 +635,9 @@ class System:
                 if year >= element.year_online:
                     service_capacity_online_hinter += element.capacity
 
-        if self.debug:
-            print('     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
-                    service_capacity_online_hinter, service_capacity))
+        # if self.debug:
+        #     print('     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
+        #             service_capacity_online_hinter, service_capacity))
 
         # find the total service rate,
         service_rate = 0
