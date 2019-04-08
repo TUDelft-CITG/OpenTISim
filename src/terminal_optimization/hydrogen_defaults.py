@@ -40,9 +40,9 @@ Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
 # package(s) for data handling
 import pandas as pd
 
-# *** Default inputs: Quay class ***
+# *** Default inputs: Jetty class ***
 
-jetty_data = {"name": 'Quay_01',
+jetty_data = {"name": 'Jetty_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
@@ -129,8 +129,8 @@ continuous_screw_data = {"name": 'Continuous_loader_01',
 
 # *** Default inputs: Conveyor class ***
 
-jetty_pipeline_data = {"name": 'Quay_conveyor_01',
-                      "type": 'quay_conveyor',
+jetty_pipeline_data = {"name": 'jetty_pipeline_01',
+                      "type": 'jetty_pipeline',
                       "length": 200,
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
@@ -145,8 +145,8 @@ jetty_pipeline_data = {"name": 'Quay_conveyor_01',
                       "utilisation": 0.80,
                       "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
 
-hinterland_pipeline_data = {"name": 'Hinterland_conveyor_01',
-                            "type": 'hinterland_conveyor',
+hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
+                            "type": 'hinterland_pipeline',
                             "length": 400,
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
@@ -180,7 +180,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "insurance_perc": 0.01,
              "storage_type": 'tank',
              "consumption": 0.1,
-             "capacity": 6000} # all input values from Ijzermans, 2019, P 102
+             "capacity": 60_000} # all input values from Ijzermans, 2019, P 102
 
 "Ammonia"
 storage_nh3_data = {"name": 'ATank_01',
@@ -228,8 +228,8 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
 
 lhydrogen_data = {"name": 'Liquid hydrogen',
                   "handling_fee": 9.8,
-                  "smallhydrogen_perc": 50,
-                  "largehydrogen_perc": 50,
+                  "smallhydrogen_perc": 30,
+                  "largehydrogen_perc": 70,
                   "smallammonia_perc": 0,
                   "largeammonia_perc": 0,
                   "handysize_perc": 0,
@@ -250,6 +250,7 @@ ammonia_data = {"name": 'Ammonia',
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                 'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 MCH_data = {"name": 'MCH',
+            "handling_fee": 9.8,
             "smallhydrogen_perc": 0,
             "largehydrogen_perc": 0,
             "smallammonia_perc": 0,
@@ -264,8 +265,8 @@ MCH_data = {"name": 'MCH',
 
 "Liquid hydrogen:"
 
-smallhydrogen_data = {"name": 'Handysize_1',
-                  "type": 'Handysize',
+smallhydrogen_data = {"name": 'smallhydrogen_1',
+                  "type": 'Smallhydrogen',
                   "call_size": 10_000,
                   "LOA": 200,
                   "draft": 10,
@@ -275,8 +276,8 @@ smallhydrogen_data = {"name": 'Handysize_1',
                   "mooring_time": 3,
                   "demurrage_rate": 600}
 
-largehydrogen_data = {"name": 'Handysize_1',
-                  "type": 'Handysize',
+largehydrogen_data = {"name": 'largehydrogen_1',
+                  "type": 'Largehydrogen',
                   "call_size": 30_000,
                   "LOA": 300,
                   "draft": 12,
@@ -288,8 +289,8 @@ largehydrogen_data = {"name": 'Handysize_1',
 
 "Ammonia:"
 
-smallammonia_data = {"name": 'Handymax_1',
-                 "type": 'Handymax',
+smallammonia_data = {"name": 'smallammonia_1',
+                 "type": 'Smallammonia',
                  "call_size": 20_000,
                  "LOA": 170,
                  "draft": 9.5,
@@ -299,8 +300,8 @@ smallammonia_data = {"name": 'Handymax_1',
                  "mooring_time": 3,
                  "demurrage_rate": 750}
 
-largeammonia_data = {"name": 'Handymax_1',
-                 "type": 'Handymax',
+largeammonia_data = {"name": 'largeammonia_1',
+                 "type": 'Largeammonia',
                  "call_size": 55_000,
                  "LOA": 230,
                  "draft": 11,

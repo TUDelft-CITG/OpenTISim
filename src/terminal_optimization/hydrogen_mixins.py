@@ -205,7 +205,7 @@ class pipeline_properties_mixin(object):
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
+                 maintenance_perc, crew_min, crew_for5, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -216,7 +216,8 @@ class storage_properties_mixin(object):
         self.mobilisation_min = mobilisation_min
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
-        self.crew = crew
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
         self.insurance_perc = insurance_perc
         self.storage_type = storage_type
         self.consumption = consumption
@@ -245,7 +246,7 @@ class unloading_station_properties_mixin(object):
         self.service_rate = int(self.call_size / (self.call_size/self.production + self.prep_time)) #TUE/hour, IJzermans 2019, P30
 
 class commodity_properties_mixin(object):
-    def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):
+    def __init__(self, handling_fee, smallhydrogen_perc, largehydrogen_perc, smallammonia_perc, largeammonia_perc,handysize_perc, panamax_perc, vlcc_perc, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.handling_fee = handling_fee
