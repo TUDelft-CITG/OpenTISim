@@ -440,9 +440,9 @@ class System:
         jetty = Jetty(**hydrogen_defaults.jetty_data)
 
         # - capex
-        unit_rate = int(jetty.Gijt_constant * (depth * 2 + jetty.freeboard) ** jetty.Gijt_coefficient)
+        unit_rate = int(jetty.Gijt_constant_jetty * 2* (depth + jetty.freeboard)) #per m2
         mobilisation = int(max((length * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
-        jetty.capex = int(length * unit_rate + mobilisation)
+        jetty.capex = int(length * unit_rate + mobilisation) #todo: needs to be multiplied by width
 
         # - opex
         jetty.insurance = unit_rate * length * jetty.insurance_perc

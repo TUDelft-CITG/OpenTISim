@@ -438,7 +438,7 @@ class System:
         quay_wall = Quay_wall(**agribulk_defaults.quay_wall_data)
 
         # - capex
-        unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
+        unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         quay_wall.capex = int(length * unit_rate + mobilisation)
 
