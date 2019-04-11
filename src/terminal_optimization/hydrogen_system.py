@@ -443,10 +443,16 @@ class System:
 
         jetty = Jetty(**hydrogen_defaults.jetty_data)
 
+        width = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
+                    hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
+                    hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
+                    hydrogen_defaults.largeammonia_data["beam"])
+
+
         # - capex
-        unit_rate = int(jetty.Gijt_constant_jetty * 2* (depth + jetty.freeboard)) #per m2
+        unit_rate = int(jetty.Gijt_constant_jetty * 2 * (depth + jetty.freeboard)) #per m2
         mobilisation = int(max((length * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
-        jetty.capex = int(length * unit_rate + mobilisation) #todo: needs to be multiplied by width
+        jetty.capex = int(length * width * unit_rate + mobilisation) #todo: needs to be multiplied by width
 
         # - opex
         jetty.insurance = unit_rate * length * jetty.insurance_perc
