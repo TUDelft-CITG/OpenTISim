@@ -395,19 +395,20 @@ class System:
             jettys = len(self.find_elements(Jetty))
             if berths > jettys:
                 length_v = max(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
-                               hydrogen_defaults.panamax_data["LOA"])  # average size
+                               hydrogen_defaults.panamax_data["LOA"], hydrogen_defaults.smallhydrogen_data["LOA"],
+                               hydrogen_defaults.largehydrogen_data["LOA"], hydrogen_defaults.smallammonia_data["LOA"],
+                               hydrogen_defaults.largeammonia_data["LOA"] )  # average size
                 draft = max(hydrogen_defaults.vlcc_data["draft"], hydrogen_defaults.handysize_data["draft"],
-                            hydrogen_defaults.panamax_data["draft"])
-                # apply PIANC 2014:
-                # see Ijzermans, 2019 - infrastructure.py line 107 - 111
-                if jettys == 0:
-                    # - length when next jetty is n = 1
-                    length = length_v + 2 * 15  # ref: PIANC 2014
-                elif jettys == 1:
-                    # - length when next jetty is n > 1
-                    length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)  # ref: PIANC 2014
-                else:
-                    length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
+                               hydrogen_defaults.panamax_data["draft"], hydrogen_defaults.smallhydrogen_data["draft"],
+                               hydrogen_defaults.largehydrogen_data["draft"], hydrogen_defaults.smallammonia_data["draft"],
+                               hydrogen_defaults.largeammonia_data["draft"])
+                width = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
+                               hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
+                               hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
+                               hydrogen_defaults.largeammonia_data["beam"])
+
+                # Calculation of the length of a berth
+                length = length_v + width + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
 
                 # - depth
                 jetty = Jetty(**hydrogen_defaults.jetty_data)

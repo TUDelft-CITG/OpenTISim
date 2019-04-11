@@ -63,70 +63,8 @@ berth_data = {"name": 'Berth_01',
               "delivery_time": 1,
               "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
 
-# # *** Default inputs: CyclicUnloader class ***
-#
-# gantry_crane_data = {"name": 'Gantry_crane_01',
-#                      "ownership": 'Terminal operator',
-#                      "delivery_time": 1,
-#                      "lifespan": 40,
-#                      "unit_rate": 9_750_000,
-#                      "mobilisation_perc": 0.15,
-#                      "maintenance_perc": 0.02,
-#                      "consumption": 561,
-#                      "insurance_perc": 0.01,
-#                      "crew": 3,
-#                      "crane_type": 'Gantry crane',
-#                      "lifting_capacity": 50,
-#                      "hourly_cycles": 50,
-#                      "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
-#
-# harbour_crane_data = {"name": 'Harbour_crane_01',
-#                       "ownership": 'Terminal operator',
-#                       "delivery_time": 1,
-#                       "lifespan": 40,
-#                       "unit_rate": 7_880_000,
-#                       "mobilisation_perc": 0.15,
-#                       "maintenance_perc": 0.02,
-#                       "consumption": 210,
-#                       "insurance_perc": 0.01,
-#                       "crew": 3,
-#                       "crane_type": 'Harbour crane',
-#                       "lifting_capacity": 25,
-#                       "hourly_cycles": 40,
-#                       "eff_fact": 0.40} # all values from Ijzermans, 2019, P 100
-#
-# mobile_crane_data = {"name": 'Mobile_crane_01',
-#                      "ownership": 'Terminal operator',
-#                      "delivery_time": 1,
-#                      "lifespan": 40,
-#                      "unit_rate": 3_325_000,
-#                      "mobilisation_perc": 0.15,
-#                      "maintenance_perc": 0.02,
-#                      "consumption": 485,
-#                      "insurance_perc": 0.01,
-#                      "crew": 3,
-#                      "crane_type": 'Mobile crane',
-#                      "lifting_capacity": 30,
-#                      "hourly_cycles": 25,
-#                      "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
-#
-# # *** Default inputs: ContinuousUnloader class ***
-#
-# continuous_screw_data = {"name": 'Continuous_loader_01',
-#                          "ownership": 'Terminal operator',
-#                          "delivery_time": 1,
-#                          "lifespan": 30,
-#                          "unit_rate": 6_900_000,
-#                          "mobilisation_perc": 0.15,
-#                          "maintenance_perc": 0.02,
-#                          "consumption": 364,
-#                          "insurance_perc": 0.01,
-#                          "crew": 2,
-#                          "crane_type": 'Screw unloader',
-#                          "peak_capacity": 700,
-#                          "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
 
-# *** Default inputs: Conveyor class ***
+# *** Default inputs: Pipeline class ***
 
 jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "type": 'jetty_pipeline',
