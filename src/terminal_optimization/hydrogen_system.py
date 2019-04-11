@@ -1273,14 +1273,12 @@ class System:
 
     # *** plotting functions
 
-
     def terminal_elements_plot(self, width=0.1, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
         years = []
         berths = []
-        # cranes = []
         jettys = []
         pipelines_jetty = []
         storages = []
@@ -1291,7 +1289,6 @@ class System:
             years.append(year)
             berths.append(0)
             jettys.append(0)
-            # cranes.append(0)
             pipelines_jetty.append(0)
             storages.append(0)
             pipelines_hinterland.append(0)
@@ -1504,3 +1501,69 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
+
+
+
+
+    def terminal_occupancy_example_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        berths = []
+        berths_occupancy = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            berths.append(0)
+            berths_occupancy.append(0)
+
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, \
+            panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, \
+            smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, \
+            vlcc_calls_planned, total_vol_planned, total_calls_planned = self.calculate_vessel_calls(year)
+
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
+                year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
+                panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
+                smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
+                vlcc_calls_planned)
+
+
+            for element in self.elements:
+                if isinstance(element, Berth):
+                    if year >= element.year_online:
+                        berths[-1] += 1
+                        berths_occupancy[-1] += berth_occupancy_online
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x - 0.5 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Jettys", color='steelblue')
+
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Berth occupancy [[%}')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Jettys')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
+
+
+
+
