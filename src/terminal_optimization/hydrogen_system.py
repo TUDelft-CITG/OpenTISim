@@ -377,6 +377,7 @@ class System:
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
+
             # add a berth when no crane slots are available
             if self.debug:
                     print('  *** add Berth to elements')
@@ -389,15 +390,14 @@ class System:
             if self.debug:
                 print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                 print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
-
-            # check if a jetty is needed
+                # check if a jetty is needed
             berths = len(self.find_elements(Berth))
             jettys = len(self.find_elements(Jetty))
             if berths > jettys:
-                length_v = max(hydrogen_defaults.vlcc_data["LOA"],hydrogen_defaults.handysize_data["LOA"],
-                              hydrogen_defaults.panamax_data["LOA"])  # average size
-                draft = max(hydrogen_defaults.vlcc_data["draft"],hydrogen_defaults.handysize_data["draft"],
-                           hydrogen_defaults.panamax_data["draft"])
+                length_v = max(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
+                               hydrogen_defaults.panamax_data["LOA"])  # average size
+                draft = max(hydrogen_defaults.vlcc_data["draft"], hydrogen_defaults.handysize_data["draft"],
+                            hydrogen_defaults.panamax_data["draft"])
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if jettys == 0:
@@ -414,12 +414,15 @@ class System:
                 depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
                 self.jetty_invest(year, length, depth)
 
-                berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+                berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
+                    year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
+                    handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,
+                    largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,
+                    handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
-
 
     def jetty_invest(self, year, length, depth):
         """
@@ -1210,6 +1213,17 @@ class System:
     #     else:
     #         return False
 
+    def check_jetty_slot_available(self):
+        list_of_elements_b = self.find_elements(Berth)
+        list_of_elements = self.find_elements(Jetty)
+
+        # when there are more slots than installed cranes ...
+        if len(list_of_elements_b) > len(list_of_elements):
+            return True
+        else:
+            return False
+
+
     def report_element(self, Element, year):
         elements = 0
         elements_online = 0
@@ -1258,6 +1272,7 @@ class System:
         return train_calls
 
     # *** plotting functions
+
 
     def terminal_elements_plot(self, width=0.1, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
@@ -1335,8 +1350,6 @@ class System:
 
         # get crane service capacity and storage capacity
         years = []
-        # cranes = []
-        # cranes_capacity = []
         storages = []
         storages_capacity = []
 
@@ -1439,3 +1452,55 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
+
+    def terminal_elements_example_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        jettys = []
+        pipelines = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            jettys.append(0)
+            pipelines.append(0)
+
+            for element in self.elements:
+                if isinstance(element, Jetty):
+                    if year >= element.year_online:
+                        jettys[-1] += 1
+            for element in self.elements:
+                if isinstance(element, Pipeline_Jetty):
+                    if year >= element.year_online:
+                        pipelines[-1] += 1
+
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x - 0.5 * width for x in years], jettys, width=width, alpha=alpha, label="Jettys", color='steelblue')
+        ax1.bar([x + 0.5 * width for x in years], pipelines, width=width, alpha=alpha, label="Pipelines", color='lightblue')
+
+        ax2 = ax1.twinx()
+
+        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Elements on line [nr]')
+        ax2.set_ylabel('Throughput [t/y]')
+        ax1.set_title('Jettys')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
