@@ -51,7 +51,7 @@ jetty_data = {"name": 'Jetty_01',
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "freeboard": 4,
-                  "Gijt_constant_jetty": 1500,
+                  "Gijt_constant_jetty": 1500, #based on personal communation with de Gijt
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5} # all values from Ijzermans, 2019, P 91
@@ -101,7 +101,7 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
 
 # *** Default inputs: Storage class ***
 
-"Liquid hydrogen "
+"Liquid hydrogen"
 
 storage_lh2_data = {"name": 'HTank_01',
              "type": 'HydrogenTank',

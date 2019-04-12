@@ -402,18 +402,26 @@ class System:
                                hydrogen_defaults.panamax_data["draft"], hydrogen_defaults.smallhydrogen_data["draft"],
                                hydrogen_defaults.largehydrogen_data["draft"], hydrogen_defaults.smallammonia_data["draft"],
                                hydrogen_defaults.largeammonia_data["draft"])
-                width = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
+                width_v = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
                                hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
                                hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
                                hydrogen_defaults.largeammonia_data["beam"])
 
                 # Calculation of the length of a berth
-                length = length_v + width + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
+                # apply PIANC 2014:
+                if jettys == 0:
+                    # - length when next jetty is n = 1
+                    length = length_v + 2 * 15  # ref: PIANC 2014
+                else:
+                    length = length_v + width_v + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
+
+                # - width jetty head
+                width = width_v * 2 #todo: needs to be calcuated correctly
 
                 # - depth
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
                 depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
-                self.jetty_invest(year, length, depth)
+                self.jetty_invest(year, length, depth, width)
 
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
                     year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
@@ -425,7 +433,7 @@ class System:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
-    def jetty_invest(self, year, length, depth):
+    def jetty_invest(self, year, length, depth, width):
         """
         *** Decision recipe jetty: ***
         QSC: jetty_per_berth
@@ -443,16 +451,11 @@ class System:
 
         jetty = Jetty(**hydrogen_defaults.jetty_data)
 
-        width = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
-                    hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
-                    hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
-                    hydrogen_defaults.largeammonia_data["beam"])
-
 
         # - capex
         unit_rate = int(jetty.Gijt_constant_jetty * 2 * (depth + jetty.freeboard)) #per m2
-        mobilisation = int(max((length * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
-        jetty.capex = int(length * width * unit_rate + mobilisation) #todo: needs to be multiplied by width
+        mobilisation = int(max((length * width * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
+        jetty.capex = int(length * width * unit_rate + mobilisation)
 
         # - opex
         jetty.insurance = unit_rate * length * jetty.insurance_perc
