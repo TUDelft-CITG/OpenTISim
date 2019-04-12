@@ -422,12 +422,8 @@ class System:
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
                 depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
                 self.jetty_invest(year, length, depth, width)
-
-                berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
-                    year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
-                    handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,
-                    largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,
-                    handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+                # print(self.)
+                berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
@@ -944,7 +940,6 @@ class System:
             [smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
              panamax_calls, vlcc_calls])
 
-
         # intialize values to be returned
         smallhydrogen_vol_planned = 0
         largehydrogen_vol_planned = 0
@@ -1002,58 +997,59 @@ class System:
         list_of_elements = self.find_elements(Jetty)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        service_rate_planned = 0
-        service_rate_online = 0
+        nr_of_jetty_planned = 0
+        nr_of_jetty_online = 0
         if list_of_elements != []:
             for element in list_of_elements:
-                service_rate_planned += hydrogen_defaults.largehydrogen_data["pump_capacity"]
+                nr_of_jetty_planned += 1
                 if year >= element.year_online:
-                    service_rate_online += hydrogen_defaults.largehydrogen_data["pump_capacity"]
+                    nr_of_jetty_online += 1
 
             # estimate berth occupancy
-            time_at_berth_smallhydrogen_planned = smallhydrogen_calls_planned * (
+            time_at_berth_smallhydrogen_planned = smallhydrogen_calls * (
                     (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"]) +
                     hydrogen_defaults.smallhydrogen_data["mooring_time"])
-            time_at_berth_largehydrogen_planned = largehydrogen_calls_planned * (
+            time_at_berth_largehydrogen_planned = largehydrogen_calls * (
                     (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"]) +
                     hydrogen_defaults.largehydrogen_data["mooring_time"])
-            time_at_berth_smallammonia_planned = smallammonia_calls_planned * (
+            time_at_berth_smallammonia_planned = smallammonia_calls * (
                     (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])  +
                     hydrogen_defaults.smallammonia_data["mooring_time"])
-            time_at_berth_largeammonia_planned = largeammonia_calls_planned * (
+            time_at_berth_largeammonia_planned = largeammonia_calls * (
                     (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"]) +
                     hydrogen_defaults.largeammonia_data["mooring_time"])
-            time_at_berth_handysize_planned = handysize_calls_planned * (
+            time_at_berth_handysize_planned = handysize_calls * (
                     (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"]) +
                     hydrogen_defaults.handysize_data["mooring_time"])
-            time_at_berth_panamax_planned = panamax_calls_planned * (
+            time_at_berth_panamax_planned = panamax_calls * (
                     (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"]) +
                     hydrogen_defaults.panamax_data["mooring_time"])
-            time_at_berth_vlcc_planned = vlcc_calls_planned * (
+            time_at_berth_vlcc_planned = vlcc_calls * (
                     (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"] ) +
                     hydrogen_defaults.vlcc_data["mooring_time"])
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_smallhydrogen_planned, time_at_berth_largehydrogen_planned, time_at_berth_smallammonia_planned, time_at_berth_largeammonia_planned, time_at_berth_handysize_planned, time_at_berth_panamax_planned, time_at_berth_vlcc_planned])
 
             # berth_occupancy is the total time at berth divided by the operational hours
-            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
+
+            berth_occupancy_planned = total_time_at_berth_planned / (self.operational_hours * nr_of_jetty_planned)
 
             # estimate crane occupancy
-            time_at_unloading_smallhydrogen_planned = smallhydrogen_calls_planned * (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"])
-            time_at_unloading_largehydrogen_planned = largehydrogen_calls_planned * (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"])
-            time_at_unloading_smallammonia_planned = smallammonia_calls_planned * (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])
-            time_at_unloading_largeammonia_planned = largeammonia_calls_planned * (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"])
-            time_at_unloading_handysize_planned = handysize_calls_planned * (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"])
-            time_at_unloading_panamax_planned = panamax_calls_planned * (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"])
-            time_at_unloading_vlcc_planned = vlcc_calls_planned * (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"])
+            time_at_unloading_smallhydrogen_planned = smallhydrogen_calls * (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"])
+            time_at_unloading_largehydrogen_planned = largehydrogen_calls * (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"])
+            time_at_unloading_smallammonia_planned = smallammonia_calls * (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])
+            time_at_unloading_largeammonia_planned = largeammonia_calls * (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"])
+            time_at_unloading_handysize_planned = handysize_calls * (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"])
+            time_at_unloading_panamax_planned = panamax_calls * (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"])
+            time_at_unloading_vlcc_planned = vlcc_calls * (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"])
 
             total_time_at_unloading_planned = np.sum(
                 [time_at_unloading_smallhydrogen_planned, time_at_unloading_largehydrogen_planned, time_at_unloading_smallammonia_planned, time_at_unloading_largeammonia_planned, time_at_unloading_handysize_planned, time_at_unloading_panamax_planned, time_at_unloading_vlcc_planned])
 
             # berth_occupancy is the total time at berth divided by the operational hours
-            unloading_occupancy_planned = total_time_at_unloading_planned / self.operational_hours
+            unloading_occupancy_planned = total_time_at_unloading_planned / (self.operational_hours* nr_of_jetty_planned)
 
-            if service_rate_online != 0:
+            if nr_of_jetty_online != 0:
                 time_at_berth_smallhydrogen_online = smallhydrogen_calls * (
                         (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"]) +
                         hydrogen_defaults.smallhydrogen_data["mooring_time"])
@@ -1080,13 +1076,13 @@ class System:
                     [time_at_berth_smallhydrogen_online,time_at_berth_largehydrogen_online, time_at_berth_smallammonia_online, time_at_berth_largeammonia_online,time_at_berth_handysize_online, time_at_berth_panamax_online, time_at_berth_vlcc_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
+                berth_occupancy_online = min([total_time_at_berth_online / (self.operational_hours * nr_of_jetty_online), 1])
 
                 time_at_unloading_smallhydrogen_online = smallhydrogen_calls * (hydrogen_defaults.smallhydrogen_data["call_size"] / hydrogen_defaults.smallhydrogen_data["pump_capacity"])
                 time_at_unloading_largehydrogen_online = largehydrogen_calls * (hydrogen_defaults.largehydrogen_data["call_size"] / hydrogen_defaults.largehydrogen_data["pump_capacity"])
                 time_at_unloading_smallammonia_online = smallammonia_calls * (hydrogen_defaults.smallammonia_data["call_size"] / hydrogen_defaults.smallammonia_data["pump_capacity"])
                 time_at_unloading_largeammonia_online = largeammonia_calls * (hydrogen_defaults.largeammonia_data["call_size"] / hydrogen_defaults.largeammonia_data["pump_capacity"])
-                time_at_unloading_handysize_online = handysize_calls *  (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"])
+                time_at_unloading_handysize_online = handysize_calls * (hydrogen_defaults.handysize_data["call_size"] / hydrogen_defaults.handysize_data["pump_capacity"])
                 time_at_unloading_panamax_online = panamax_calls * (hydrogen_defaults.panamax_data["call_size"] / hydrogen_defaults.panamax_data["pump_capacity"])
                 time_at_unloading_vlcc_online = vlcc_calls * (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"])
 
@@ -1094,7 +1090,7 @@ class System:
                     [time_at_unloading_smallhydrogen_online, time_at_unloading_largehydrogen_online, time_at_unloading_smallammonia_online, time_at_unloading_largeammonia_online, time_at_unloading_handysize_online, time_at_unloading_panamax_online, time_at_unloading_vlcc_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                unloading_occupancy_online = min([total_time_at_unloading_online / self.operational_hours, 1])
+                unloading_occupancy_online = min([total_time_at_unloading_online / (self.operational_hours * nr_of_jetty_online), 1])
 
             else:
                 berth_occupancy_online = float("inf")
@@ -1512,20 +1508,15 @@ class System:
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
-
-
-
     def terminal_occupancy_example_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
         years = []
-        berths = []
         berths_occupancy = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
-            berths.append(0)
             berths_occupancy.append(0)
 
             smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, \
@@ -1543,8 +1534,7 @@ class System:
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
-                        berths[-1] += 1
-                        berths_occupancy[-1] += berth_occupancy_online
+                        berths_occupancy[-1] = berth_occupancy_online
 
         # get demand
         demand = pd.DataFrame()
@@ -1561,6 +1551,10 @@ class System:
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
         ax1.bar([x - 0.5 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Jettys", color='steelblue')
+
+        for i, occ in enumerate(berths_occupancy):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x = years[i] - 1 * width, y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
