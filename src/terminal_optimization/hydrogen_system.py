@@ -1540,14 +1540,14 @@ class System:
 
           # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x - 0.5 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy", color='steelblue')
+        ax1.bar([x  for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy", color='steelblue')
 
         horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
         plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy")
 
         for i, occ in enumerate(berths_occupancy):
             occ = occ if type(occ) != float else 0
-            ax1.text(x = years[i] - 1 * width, y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
+            ax1.text(x = years[i], y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
