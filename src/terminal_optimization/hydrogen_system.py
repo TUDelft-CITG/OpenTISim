@@ -11,7 +11,7 @@ from terminal_optimization import hydrogen_defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  commodity_type_defaults=hydrogen_defaults.lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data, allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365,
+                 hydrogen_defaults.storage_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=18 / 365,
                  allowable_station_occupancy=0.4):
 
         # time inputs
@@ -1047,7 +1047,7 @@ class System:
                 [time_at_unloading_smallhydrogen_planned, time_at_unloading_largehydrogen_planned, time_at_unloading_smallammonia_planned, time_at_unloading_largeammonia_planned, time_at_unloading_handysize_planned, time_at_unloading_panamax_planned, time_at_unloading_vlcc_planned])
 
             # berth_occupancy is the total time at berth divided by the operational hours
-            unloading_occupancy_planned = total_time_at_unloading_planned / (self.operational_hours* nr_of_jetty_planned)
+            unloading_occupancy_planned = total_time_at_unloading_planned / (self.operational_hours * nr_of_jetty_planned)
 
             if nr_of_jetty_online != 0:
                 time_at_berth_smallhydrogen_online = smallhydrogen_calls * (
@@ -1218,17 +1218,6 @@ class System:
     #         return True
     #     else:
     #         return False
-
-    def check_jetty_slot_available(self):
-        list_of_elements_b = self.find_elements(Berth)
-        list_of_elements = self.find_elements(Jetty)
-
-        # when there are more slots than installed cranes ...
-        if len(list_of_elements_b) > len(list_of_elements):
-            return True
-        else:
-            return False
-
 
     def report_element(self, Element, year):
         elements = 0
@@ -1549,9 +1538,12 @@ class System:
             except:
                 pass
 
-        # generate plot
+          # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x - 0.5 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Jettys", color='steelblue')
+        ax1.bar([x - 0.5 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy", color='steelblue')
+
+        horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
+        plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy")
 
         for i, occ in enumerate(berths_occupancy):
             occ = occ if type(occ) != float else 0
@@ -1564,7 +1556,7 @@ class System:
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Berth occupancy [[%}')
         ax2.set_ylabel('Demand [t/y]')
-        ax1.set_title('Jettys')
+        ax1.set_title('Berth occupancy')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
