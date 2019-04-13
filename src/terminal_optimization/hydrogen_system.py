@@ -1462,21 +1462,21 @@ class System:
         # collect elements to add to plot
         years = []
         jettys = []
-        pipelines = []
+        # pipelines = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             jettys.append(0)
-            pipelines.append(0)
+            # pipelines.append(0)
 
             for element in self.elements:
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
                         jettys[-1] += 1
-            for element in self.elements:
-                if isinstance(element, Pipeline_Jetty):
-                    if year >= element.year_online:
-                        pipelines[-1] += 1
+            # for element in self.elements:
+            #     if isinstance(element, Pipeline_Jetty):
+            #         if year >= element.year_online:
+            #             pipelines[-1] += 1
 
 
         # get demand
@@ -1494,7 +1494,8 @@ class System:
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
         ax1.bar([x - 0.5 * width for x in years], jettys, width=width, alpha=alpha, label="Jettys", color='steelblue')
-        ax1.bar([x + 0.5 * width for x in years], pipelines, width=width, alpha=alpha, label="Pipelines", color='lightblue')
+        # plt.ylim(0, 2)
+        # ax1.bar([x + 0.5 * width for x in years], pipelines, width=width, alpha=alpha, label="Pipelines", color='lightblue')
 
         ax2 = ax1.twinx()
 
@@ -1558,6 +1559,7 @@ class System:
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
+        plt.ylim(0, 6000000)
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Berth occupancy [[%}')
