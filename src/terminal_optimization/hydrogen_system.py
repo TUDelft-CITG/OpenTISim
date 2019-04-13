@@ -1561,6 +1561,77 @@ class System:
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
+    def terminal_pipeline_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        pipeline_jetty = []
+        jetty = []
+        pipeline_jetty_cap = []
+        jetty_cap = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            pipeline_jetty.append(0)
+            jetty.append(0)
+            pipeline_jetty_cap.append(0)
+            jetty_cap.append(0)
+
+            for element in self.elements:
+                if isinstance(element, Pipeline_Jetty):
+                    if year >= element.year_online:
+                        pipeline_jetty[-1] += 1
+            for element in self.elements:
+                if isinstance(element, Jetty):
+                    if year >= element.year_online:
+                        jetty[-1] += 1
+
+            for element in self.elements:
+                if isinstance(element, Pipeline_Jetty):
+                    if year >= element.year_online:
+                        pipeline_jetty_cap[-1] = element.capacity * len(element)
+            for element in self.elements:
+                if isinstance(element, Jetty):
+                    if year >= element.year_online:
+                        jetty_cap[-1] += hydrogen_defaults.vlcc_data["pump_capacity"] * len(element)
+        #
+        # # get demand
+        # demand = pd.DataFrame()
+        # demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        # demand['demand'] = 0
+        # for commodity in self.find_elements(Commodity):
+        #     try:
+        #         for column in commodity.scenario_data.columns:
+        #             if column in commodity.scenario_data.columns and column != "year":
+        #                 demand['demand'] += commodity.scenario_data[column]
+        #     except:
+        #         pass
+
+          # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x  for x in years], pipeline_jetty, width=width, alpha=alpha, label="pipeline_jetty", color='steelblue')
+        ax1.bar([x for x in years], jetty, width=width, alpha=alpha, label="jetty",
+                color='steelblue')
+        # horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
+        # plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy")
+        #
+        # for i, occ in enumerate(berths_occupancy):
+        #     occ = occ if type(occ) != float else 0
+        #     ax1.text(x = years[i], y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
+
+        ax2 = ax1.twinx()
+        ax2.step(years, pipeline_jetty_cap, label="pipeline_jetty_cap", where='mid', color='red')
+        ax2.step(years, jetty_cap, label="jetty_cap", where='mid', color='red')
+        # plt.ylim(0, 50000)
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Berth occupancy [[%}')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Berth occupancy')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
 
 
 
