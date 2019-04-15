@@ -629,7 +629,7 @@ class System:
 
         storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
-#todo: it follows the troughput but in year one there is no throughput, so it generate storages on vessel volume 
+#todo: it follows the troughput but in year one there is no throughput, so it generate storages on vessel volume
         # check if sufficient storage capacity is available
         while storage_capacity < storage_capacity_dwelltime or storage_capacity < max_vessel_call_size:
             if self.debug:
