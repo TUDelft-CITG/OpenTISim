@@ -202,6 +202,24 @@ class conveyor_properties_mixin(object):
         self.utilisation = utilisation
         self.capacity_steps = capacity_steps
 
+class transport_properties_mixin(object):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
+                 maintenance_perc, insurance_perc,
+                 crew, utilisation, fuel_consumption, productivity,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate_factor = unit_rate_factor
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
+        self.crew = crew
+        self.utilisation = utilisation
+        self.fuel_consumption = fuel_consumption
+        self.productivity = productivity
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
@@ -339,3 +357,4 @@ class hasscenario_properties_mixin(object):
         plt.xlabel('Time [years]')
         plt.ylabel('Demand ' + self.name + ' [TEU]')
         plt.title('Demand ' + self.name)
+

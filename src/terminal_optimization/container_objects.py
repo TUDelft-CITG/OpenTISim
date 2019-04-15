@@ -3,14 +3,13 @@
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
-    - Gantry crane
-    - Harbour crane
-    - Mobile crane
-     Continuous_Unloader
-    - Continuous screw
+    - STS crane
 - 4. Conveyor
     - Hinterland conveyor
     - Quay conveyor
+- 4. Horizontal transport
+    - Tractor trailer
+
 - 5. Storage
     - Silo
     - Warehouse
@@ -96,6 +95,21 @@ Conveyor_Hinter = type('Conveyor_Hinter', (container_mixins.identifiable_propert
                              container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
                              container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
+
+# The generic Horizontal transport class
+# - Tractor trailer
+
+
+Horizontal_Transport = type('Horizontal transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                                                       container_mixins.history_properties_mixin,  # Give it procurement history
+                                                       container_mixins.transport_properties_mixin,
+                                                       container_mixins.hascapex_properties_mixin,  # Give it capex info
+                                                       container_mixins.hasopex_properties_mixin,  # Give it opex info
+                                                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+               {})  # The dictionary is empty because the site type is generic
+
+
+
 
 # The generic Storage class
 # - Silo

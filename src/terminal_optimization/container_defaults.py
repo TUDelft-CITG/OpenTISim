@@ -56,7 +56,7 @@ quay_wall_data = {"name": 'Quay_01',
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
-              "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
+              "max_cranes": 4}  #STS cranes
 
 # *** Default inputs: CyclicUnloader class ***
 
@@ -104,6 +104,21 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
                      "lifting_capacity": 30,
                      "hourly_cycles": 25,
                      "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
+
+sts_crane_data = {"name": 'STS_crane_01',
+                     "ownership": 'Terminal operator',
+                     "delivery_time": 1,
+                     "lifespan": 40,
+                     "unit_rate": 10_000_000,
+                     "mobilisation_perc": 0.15,
+                     "maintenance_perc": 0.02,
+                     "consumption": 400, #based on 8 kWh/box move (kan ik dit wellicht ook vervangen met kWh per box move?)
+                     "insurance_perc": 0.01,
+                     "crew": 5.5, # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
+                     "crane_type": 'STS crane',
+                     "lifting_capacity":2.25 , #weighted average of TEU per lift
+                     "hourly_cycles": 28,
+                     "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
 
 # *** Default inputs: ContinuousUnloader class ***
 
@@ -155,6 +170,20 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "utilisation": 0.80,
                             "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
 
+# Default inputs: Horizontal Transport class
+tractor_trailer_data = {"name": 'Tractor-trailer',
+                            "type": 'tractor_trailer',
+                            "ownership": 'Terminal operator',
+                            "delivery_time": 1,
+                            "lifespan": 10,
+                            "mobilisation": 30_000,
+                            "unit_rate_factor": 6,
+                            "maintenance_perc": 0.10,
+                            "insurance_perc": 0.01,
+                            "crew": 1,
+                            "utilisation": 0.80
+                            "fuel_consumption": 2, #liter per box move
+                            "productivity": 1} # todo input value for tractor productivity
 
 # *** Default inputs: Storage class ***
 
@@ -259,13 +288,13 @@ handymax_data = {"name": 'Handymax_1',
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 1000,
+                "call_size": 3000,#TEU
                 "LOA": 290,
                 "draft": 13,
                 "beam": 32.2,
-                "max_cranes": 4,
-                "all_turn_time": 36,
-                "mooring_time": 3,
+                "max_cranes": 4,#STS cranes
+                "all_turn_time": 31,#UNCTAD geeft deze waarde voor container schepen
+                "mooring_time": 6, #berthing + deberthing time
                 "demurrage_rate": 730}
 
 
