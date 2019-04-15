@@ -11,8 +11,9 @@ from terminal_optimization import hydrogen_defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  commodity_type_defaults=hydrogen_defaults.lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
-                 allowable_station_occupancy=0.4):
+                 hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 h2retrieval_trigger = 0.5, allowable_station_occupancy=0.4):
 
         # time inputs
         self.startyear = startyear
@@ -28,11 +29,14 @@ class System:
         # default values to use in selecting which commodity is imported
         self.commodity_type_defaults = commodity_type_defaults
         self.storage_type_defaults = storage_type_defaults
+        self.h2retrieval_type_defaults = h2retrieval_type_defaults
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
+        self.h2retrieval_trigger = h2retrieval_trigger
         self.allowable_station_occupancy = allowable_station_occupancy
+
 
         # storage variables for revenue
         self.revenues = []
@@ -102,6 +106,8 @@ class System:
 
             self.storage_invest(year, self.storage_type_defaults)
 
+            self.h2retrieval_invest(year, self.h2retrieval_type_defaults)
+
             self.pipeline_hinter_invest(year, hydrogen_defaults.hinterland_pipeline_data)
 
             self.unloading_station_invest(year)
@@ -136,10 +142,11 @@ class System:
         jetty = len(self.find_elements(Jetty))
         pipeline_jetty = len(self.find_elements(Pipeline_Jetty))
         storage = len(self.find_elements(Storage))
+        h2retrieval = len(self.find_elements(H2retrieval))
         pipeline_hinter = len(self.find_elements(Pipeline_Hinter))
         station = len(self.find_elements(Unloading_station))
 
-        if jetty < 1 and pipeline_jetty < 1 and storage < 1 and pipeline_hinter < 1 and station < 1:
+        if jetty < 1 and pipeline_jetty < 1 and storage < 1 and h2retrieval < 1 and pipeline_hinter < 1 and station < 1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -231,20 +238,32 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        # # calculate H2 retrieval energy
-        # list_of_elements_H2retrieval = self.find_elements(H2retrieval)
-        #
-        # for element in list_of_elements_Storage:
-        #     if year >= element.year_online:
-        #         consumption = element.consumption
-        #         capacity = element.capacity
-        #         hours = self.operational_hours
-        #
-        #         if consumption * capacity * hours * energy.price != np.inf:
-        #             element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * hours * energy.price
-        #
-        #     else:
-        #         element.df.loc[element.df['year'] == year, 'energy'] = 0
+        # calculate H2 retrieval energy
+        list_of_elements_H2retrieval = self.find_elements(H2retrieval)
+
+        # find the total throughput,
+        service_rate = 0
+        for element in self.find_elements(Jetty):
+            if year >= element.year_online:
+                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                 handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                 panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                 vlcc_calls * hydrogen_defaults.vlcc_data[
+                                     "pump_capacity"]) / total_calls
+
+        throughput = (service_rate * self.operational_hours * unloading_occupancy_online)
+
+        for element in list_of_elements_H2retrieval:
+            if year >= element.year_online:
+                consumption = element.consumption
+
+                if consumption * throughput * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * throughput * energy.price
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate hinterland pipeline energy
         list_of_elements_hinter = self.find_elements(Pipeline_Hinter)
@@ -256,7 +275,6 @@ class System:
 
                 if consumption * hours * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
@@ -270,7 +288,6 @@ class System:
                 if element.consumption * self.operational_hours * station_occupancy_online * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'
                     ] = element.consumption * self.operational_hours * station_occupancy_online * energy.price
-
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
@@ -373,6 +390,7 @@ class System:
         self.report_element(Jetty, year)
         self.report_element(Pipeline_Jetty, year)
         self.report_element(Storage, year)
+        self.report_element(H2retrieval, year)
         self.report_element(Pipeline_Hinter, year)
         self.report_element(Unloading_station, year)
         if self.debug:
@@ -397,13 +415,11 @@ class System:
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
-            # add a berth when no crane slots are available
             if self.debug:
                     print('  *** add Berth to elements')
             berth = Berth(**hydrogen_defaults.berth_data)
             berth.year_online = year + berth.delivery_time
             self.elements.append(berth)
-
 
             berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
                 = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
@@ -411,7 +427,8 @@ class System:
             if self.debug:
                 print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                 print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
-                # check if a jetty is needed
+
+            # check if a jetty is needed
             berths = len(self.find_elements(Berth))
             jettys = len(self.find_elements(Jetty))
             if berths > jettys:
@@ -435,7 +452,7 @@ class System:
                     length = length_v + 2 * 15  # ref: PIANC 2014
                 else:
                     if self.commodity_type_defaults==hydrogen_defaults.lhydrogen_data:
-                        length = length_v + width_v + 2 * 15 +  hydrogen_defaults.jetty_data["Safety_margin_LH2"]  # ref:LNG master planning - D. van Niekerk
+                        length = length_v + width_v + 2 * 15 + hydrogen_defaults.jetty_data["Safety_margin_LH2"]  # ref:LNG master planning - D. van Niekerk
                     else:
                         length = length_v + width_v + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
 
@@ -446,7 +463,7 @@ class System:
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
                 depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
                 self.jetty_invest(year, length, depth, width)
-                # print(self.)
+
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,handysize_calls, panamax_calls, vlcc_calls)
 
                 if self.debug:
@@ -468,9 +485,7 @@ class System:
         if self.debug:
             print('  *** add jetty to elements')
         # add a Jetty element
-
         jetty = Jetty(**hydrogen_defaults.jetty_data)
-
 
         # - capex
         unit_rate = int(jetty.Gijt_constant_jetty * (depth + jetty.freeboard)) #per m2
@@ -478,8 +493,8 @@ class System:
         jetty.capex = int(length * width * unit_rate + mobilisation)
 
         # - opex
-        jetty.insurance = unit_rate * length * jetty.insurance_perc
-        jetty.maintenance = unit_rate * length * jetty.maintenance_perc
+        jetty.insurance = unit_rate * length * width * jetty.insurance_perc
+        jetty.maintenance = unit_rate * length * width * jetty.maintenance_perc
         jetty.year_online = year + jetty.delivery_time
 
         # add cash flow information to jetty object in a dataframe
@@ -523,7 +538,6 @@ class System:
             pipeline_jetty = Pipeline_Jetty(**hydrogen_defaults_jetty_pipeline_data)
 
             # - capex
-            capacity = pipeline_jetty.capacity
             unit_rate = pipeline_jetty.unit_rate_factor
             mobilisation = pipeline_jetty.mobilisation
             pipeline_jetty.capex = int(unit_rate + mobilisation)
@@ -537,7 +551,6 @@ class System:
             pipeline_jetty.shift = (pipeline_jetty.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts)
             pipeline_jetty.labour = pipeline_jetty.shift * labour.operational_salary
 
-
             # there should always be a new jetty in the planning
             new_jetty_years = [x for x in years_online if x >= year]
 
@@ -546,8 +559,6 @@ class System:
                 max_pipeline_years = max([x.year_online for x in self.find_elements(Pipeline_Jetty)])
             else:
                 max_pipeline_years = []
-
-            # apply proper timing for the pipeline to come online (in the same year as the latest jetty )
 
             # decide what online year to use
             if max_pipeline_years == []:
@@ -618,6 +629,7 @@ class System:
 
         storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
+#todo: it follows the troughput but in year one there is no throughput, so it generate storages on vessel volume 
         # check if sufficient storage capacity is available
         while storage_capacity < storage_capacity_dwelltime or storage_capacity < max_vessel_call_size:
             if self.debug:
@@ -651,10 +663,75 @@ class System:
             storage_capacity += storage.capacity
 
             if self.debug:
+                print('     a total of {} ton of storage capacity is online; {} ton total planned'.format(
+                        storage_capacity_online, storage_capacity))
+
+    def h2retrieval_invest(self, year, hydrogen_defaults_h2retrieval_data):
+        """current strategy is to add h2 retrieval as long as target h2 retrieval is not yet achieved
+        - find out how much h2 retrieval is online
+        - find out how much h2 retrieval is planned
+        - find out how much h2 retrieval is needed
+        - add h2 retrieval until target is reached
+        """
+
+        # from all storage objects sum online capacity
+        h2retrieval_capacity = 0
+        h2retrieval_capacity_online = 0
+        list_of_elements = self.find_elements(H2retrieval)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                if element.type == hydrogen_defaults_h2retrieval_data['type']:
+                    h2retrieval_capacity += element.capacity
+                    if year >= element.year_online:
+                        h2retrieval_capacity_online += element.capacity
+
+        if self.debug:
+            print('     a total of {} ton of h2 retrieval capacity is online; {} ton total planned'.format(
+                h2retrieval_capacity_online, h2retrieval_capacity))
+
+        #todo: needs to be specified per commodity
+
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
+        vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
+
+        # check if sufficient h2retrieval capacity is available
+        while h2retrieval_capacity < H2_retrieval_capacity_needed:
+            if self.debug:
+                print('  *** add h2retrieval to elements')
+
+            # add h2retrieval object
+            h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
+
+            # - capex
+            h2retrieval.capex = h2retrieval.unit_rate + h2retrieval.mobilisation_min
+
+            # - opex
+            h2retrieval.insurance = h2retrieval.unit_rate * h2retrieval.insurance_perc
+            h2retrieval.maintenance = h2retrieval.unit_rate * h2retrieval.maintenance_perc
+
+            #   labour**hydrogen_defaults
+            labour = Labour(**hydrogen_defaults.labour_data)
+            h2retrieval.shift = ((h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            h2retrieval.labour = h2retrieval.shift * labour.operational_salary
+
+            if year == self.startyear:
+                h2retrieval.year_online = year + h2retrieval.delivery_time + 1
+            else:
+                h2retrieval.year_online = year + h2retrieval.delivery_time
+
+            # add cash flow information to h2retrieval object in a dataframe
+            h2retrieval = self.add_cashflow_data_to_element(h2retrieval)
+
+            self.elements.append(h2retrieval)
+
+            h2retrieval_capacity += h2retrieval.capacity
+
+            if self.debug:
                 print(
-                    '     a total of {} ton of storage capacity is online; {} ton total planned'.format(
-                        storage_capacity_online,
-                        storage_capacity))
+                    '     a total of {} ton of h2retrieval capacity is online; {} ton total planned'.format(
+                        h2retrieval_capacity_online,
+                        h2retrieval_capacity))
 
     def pipeline_hinter_invest(self, year, hydrogen_defaults_hinterland_pipeline_data):
         """current strategy is to add pipeline as soon as a service trigger is achieved
@@ -1193,22 +1270,6 @@ class System:
 
         return station_occupancy_planned, station_occupancy_online
 
-    # def check_crane_slot_available(self):
-    #     list_of_elements = self.find_elements(Berth)
-    #     slots = 0
-    #     for element in list_of_elements:
-    #         slots += element.max_cranes
-    #
-    #     list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-    #     list_of_elements_2 = self.find_elements(Continuous_Unloader)
-    #     list_of_elements = list_of_elements_1 + list_of_elements_2
-    #
-    #     # when there are more slots than installed cranes ...
-    #     if slots > len(list_of_elements):
-    #         return True
-    #     else:
-    #         return False
-
     def report_element(self, Element, year):
         elements = 0
         elements_online = 0
@@ -1268,6 +1329,7 @@ class System:
         jettys = []
         pipelines_jetty = []
         storages = []
+        h2retrievals = []
         pipelines_hinterland = []
         unloading_station = []
 
@@ -1277,6 +1339,7 @@ class System:
             jettys.append(0)
             pipelines_jetty.append(0)
             storages.append(0)
+            h2retrievals.append(0)
             pipelines_hinterland.append(0)
             unloading_station.append(0)
 
@@ -1287,15 +1350,15 @@ class System:
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
                         jettys[-1] += 1
-                # if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-                #     if year >= element.year_online:
-                #         cranes[-1] += 1
                 if isinstance(element, Pipeline_Jetty):
                     if year >= element.year_online:
                         pipelines_jetty[-1] += 1
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
+                if isinstance(element, H2retrieval):
+                    if year >= element.year_online:
+                        h2retrievals[-1] += 1
                 if isinstance(element, Pipeline_Hinter):
                     if year >= element.year_online:
                         pipelines_hinterland[-1] += 1
@@ -1310,20 +1373,20 @@ class System:
                edgecolor='crimson')
         ax.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="jettys", color='orchid',
                edgecolor='purple')
-        # ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
-        #        edgecolor='blue')
-        ax.bar([x + 3 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="pipelines jetty",
+        ax.bar([x + 2 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="pipelines jetty",
                color='lightgreen', edgecolor='green')
-        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
+        ax.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
                edgecolor='orangered')
+        ax.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="h2retrievals", color='lightblue',
+               edgecolor='blue')
         ax.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="pipeline hinter",
-               color='grey', edgecolor='black')
+               color='silver', edgecolor='black')
         ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
                color='red', edgecolor='black')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
-        # ax.set_title('Terminal elements online ({})'.format(self.crane_type_defaults['crane_type']))
+        ax.set_title('Terminal elements online')
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()

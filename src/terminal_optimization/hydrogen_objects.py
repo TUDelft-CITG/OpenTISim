@@ -116,6 +116,21 @@ Storage = type('Storage', (hydrogen_mixins.identifiable_properties_mixin,  # Giv
                            hydrogen_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})  # The dictionary is empty because the site type is generic
 
+# The generic H2retrieval class
+# - LH2
+# - NH3
+# - MCH
+
+H2retrieval = type('H2retrieval', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
+                           hydrogen_mixins.history_properties_mixin,  # Give it procurement history
+                           hydrogen_mixins.h2retrieval_properties_mixin,
+                           hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
+                           hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
+                           hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                           hydrogen_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+               {})  # The dictionary is empty because the site type is generic
+
+
 # define loading station class functions **will ultimately be placed in package**
 Unloading_station = type('Unloading_station', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
                                                hydrogen_mixins.unloading_station_properties_mixin),

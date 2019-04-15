@@ -124,7 +124,7 @@ storage_lh2_data = {"name": 'HTank_01',
 
 "Ammonia"
 storage_nh3_data = {"name": 'ATank_01',
-                  "style": 'AmmoniaTank',
+                  "type": 'AmmoniaTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
                   "lifespan": 20,
@@ -141,9 +141,43 @@ storage_nh3_data = {"name": 'ATank_01',
 
 "MCH"
 
-# *** Default inputs: H2Convertion class ***
+# *** Default inputs: H2Conversion class ***
 
+"Liquid hydrogen"
+h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
+                  "type": 'HydrogenTank',
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 1,
+                  "lifespan": 10,
+                  "unit_rate": 18_000_000,
+                  "mobilisation_min": 200_000,
+                  "mobilisation_perc": 0.003,
+                  "maintenance_perc": 0.02,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "h2retrieval_type": 'tank',
+                  "consumption": 600, #in kwh/ton
+                  "capacity": 1_000_000}
 
+"Ammonia"
+h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
+             "type": 'AmmoniaTank',
+             "ownership": 'Terminal operator',
+             "delivery_time": 1,
+             "lifespan": 20,
+             "unit_rate": 500_000_000,
+             "mobilisation_min": 200_000,
+             "mobilisation_perc": 0.003,
+             "maintenance_perc": 0.02,
+             "crew_min": 3,
+             "crew_for5": 1,
+             "insurance_perc": 0.01,
+             "h2retrieval_type": 'tank',
+             "consumption": 5880,#in kwh/ton
+             "capacity": 280_000} # all input values from Ijzermans, 2019, P 102
+
+"MCH"
 
 
 # *** Default inputs: Unloading_station class ***

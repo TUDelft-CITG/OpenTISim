@@ -135,52 +135,6 @@ class berth_properties_mixin(object):
         self.max_cranes = max_cranes
         self.delivery_time = delivery_time
 
-#
-# class cyclic_properties_mixin(object):
-#     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
-#                  consumption, insurance_perc, crew, crane_type, lifting_capacity, hourly_cycles, eff_fact,
-#                  *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         "initialize"
-#         self.ownership = ownership
-#         self.delivery_time = delivery_time
-#         self.lifespan = lifespan
-#         self.unit_rate = unit_rate
-#         self.mobilisation_perc = mobilisation_perc
-#         self.maintenance_perc = maintenance_perc
-#         self.consumption = consumption
-#         self.insurance_perc = insurance_perc
-#         self.crew = crew
-#         self.crane_type = crane_type
-#         self.lifting_capacity = lifting_capacity
-#         self.hourly_cycles = hourly_cycles
-#         self.eff_fact = eff_fact
-#         self.payload = int(self.lifting_capacity * 0.7)  # Source: Nemag ((lifting_capacity - 2.4) / 1.4)
-#         self.peak_capacity = int(self.payload * self.hourly_cycles)
-#         self.effective_capacity = int(eff_fact * self.peak_capacity)  # Source: TATA steel
-#
-#
-# class continuous_properties_mixin(object):
-#     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
-#                  consumption, insurance_perc, crew, crane_type, peak_capacity, eff_fact, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         "initialize"
-#         self.ownership = ownership
-#         self.delivery_time = delivery_time
-#         self.lifespan = lifespan
-#         self.unit_rate = unit_rate
-#         self.mobilisation_perc = mobilisation_perc
-#         self.mobilisation = int(mobilisation_perc * unit_rate)
-#         self.maintenance_perc = maintenance_perc
-#         self.consumption = consumption
-#         self.insurance_perc = insurance_perc
-#         self.crew = crew
-#         self.crane_type = crane_type
-#         self.peak_capacity = peak_capacity
-#         self.eff_fact = eff_fact
-#         self.effective_capacity = eff_fact * peak_capacity
-
-
 class pipeline_properties_mixin(object):
     def __init__(self, type, length, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
                  maintenance_perc, insurance_perc,
@@ -202,7 +156,6 @@ class pipeline_properties_mixin(object):
         self.utilisation = utilisation
         self.capacity = capacity
 
-
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
                  maintenance_perc, crew_min, crew_for5, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
@@ -223,6 +176,25 @@ class storage_properties_mixin(object):
         self.consumption = consumption
         self.capacity = capacity
 
+class h2retrieval_properties_mixin(object):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
+                 maintenance_perc, crew_min, crew_for5, insurance_perc, h2retrieval_type, consumption, capacity, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
+        self.insurance_perc = insurance_perc
+        self.h2retrieval_type = h2retrieval_type
+        self.consumption = consumption
+        self.capacity = capacity
 
 class unloading_station_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
