@@ -54,7 +54,8 @@ jetty_data = {"name": 'Jetty_01',
                   "Gijt_constant_jetty": 1500, #based on personal communation with de Gijt
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
-                  "safety_margin": 0.5} # all values from Ijzermans, 2019, P 91
+                  "safety_margin": 0.5,
+                  "Safety_margin_LH2": 40} # all values from Ijzermans, 2019, P 91
 
 # *** Default inputs: Berth class ***
 
@@ -72,7 +73,7 @@ jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 10,
-                      "unit_rate_factor": 6,
+                      "unit_rate_factor": 400_000,
                       "mobilisation": 30_000,
                       "maintenance_perc": 0.10,
                       "insurance_perc": 0.01,
@@ -80,7 +81,7 @@ jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "consumption_coefficient": 0.08,
                       "crew": 1,
                       "utilisation": 0.80,
-                      "capacity": 4000} # all input values from Ijzermans, 2019, P 104
+                      "capacity": 4000}
 
 hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "type": 'hinterland_pipeline',
@@ -96,10 +97,12 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "consumption_coefficient": 0.08,
                             "crew": 1,
                             "utilisation": 0.80,
-                            "capacity": 400} # all input values from Ijzermans, 2019, P 104
+                            "capacity": 4000}
 
 
 # *** Default inputs: Storage class ***
+
+#todo: check the data of storage, really high a the moment
 
 "Liquid hydrogen"
 
@@ -108,7 +111,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "ownership": 'Terminal operator',
              "delivery_time": 1,
              "lifespan": 20,
-             "unit_rate": 800_000_000,
+             "unit_rate": 500_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.01,
@@ -117,7 +120,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "insurance_perc": 0.01,
              "storage_type": 'tank',
              "consumption": 0.1,
-             "capacity": 60_000} # all input values from Ijzermans, 2019, P 102
+             "capacity": 4_000} # all input values from Ijzermans, 2019, P 102
 
 "Ammonia"
 storage_nh3_data = {"name": 'ATank_01',
@@ -125,7 +128,7 @@ storage_nh3_data = {"name": 'ATank_01',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
                   "lifespan": 20,
-                  "unit_rate": 17_000_000,
+                  "unit_rate": 50_000_000,
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
                   "maintenance_perc": 0.01,
@@ -134,7 +137,7 @@ storage_nh3_data = {"name": 'ATank_01',
                   "insurance_perc": 0.01,
                   "storage_type": 'tank',
                   "consumption": 0.1,
-                  "capacity": 45_000}
+                  "capacity": 40_000}
 
 "MCH"
 
@@ -164,7 +167,7 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
 # *** Default inputs: Commodity class ***
 
 lhydrogen_data = {"name": 'Liquid hydrogen',
-                  "handling_fee": 9.8,
+                  "handling_fee": 1000,
                   "smallhydrogen_perc": 30,
                   "largehydrogen_perc": 70,
                   "smallammonia_perc": 0,
@@ -176,7 +179,7 @@ lhydrogen_data = {"name": 'Liquid hydrogen',
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
 ammonia_data = {"name": 'Ammonia',
-                "handling_fee": 9.8,
+                "handling_fee": 1000,
                 "smallhydrogen_perc": 0,
                 "largehydrogen_perc": 0,
                 "smallammonia_perc": 40,
@@ -187,7 +190,7 @@ ammonia_data = {"name": 'Ammonia',
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                 'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 MCH_data = {"name": 'MCH',
-            "handling_fee": 9.8,
+            "handling_fee": 1000,
             "smallhydrogen_perc": 0,
             "largehydrogen_perc": 0,
             "smallammonia_perc": 0,
