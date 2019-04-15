@@ -1324,7 +1324,7 @@ class System:
         ax.step(years, demand['demand'].values, label="demand", where='mid')
 
         ax.set_xlabel('Years')
-        ax.set_ylabel('Throughput capacity [tons/year]')
+        ax.set_ylabel('Throughput capacity [TEU/year]')
         ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)

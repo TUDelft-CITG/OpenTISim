@@ -337,5 +337,5 @@ class hasscenario_properties_mixin(object):
             pass
         plt.plot(self.scenario_data['year'], self.scenario_data['volume'], 'o:b')
         plt.xlabel('Time [years]')
-        plt.ylabel('Demand ' + self.name + ' [tons]')
+        plt.ylabel('Demand ' + self.name + ' [TEU]')
         plt.title('Demand ' + self.name)

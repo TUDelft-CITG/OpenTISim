@@ -207,31 +207,32 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
                            "prep_time": 2}
 
 # *** Default inputs: Commodity class ***
+# TODO vervang soybean, maze en wheat door reefer, empty en oog dmv input value modal split
 
-maize_data = {"name": 'Maize',
-              "handling_fee": 9.8,
-              "handysize_perc": 50,
-              "handymax_perc": 50,
-              "panamax_perc": 0,
-              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
-soybean_data = {"name": 'Soybeans',
-                "handling_fee": 9.8,
-                "handysize_perc": 50,
-                "handymax_perc": 50,
-                "panamax_perc": 0,
+# soybean_data = {"name": 'Soybeans',
+#                 "handling_fee": 9.8,
+#                 "handysize_perc": 50,
+#                 "handymax_perc": 50,
+#                 "panamax_perc": 0,
+#                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+#                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+#
+# wheat_data = {"name": 'Wheat',
+#               "handling_fee": 9.8,
+#               "handysize_perc": 0,
+#               "handymax_perc": 0,
+#               "panamax_perc": 100,
+#               "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+#                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+
+laden_data = {"name": 'Laden',
+                "handling_fee": 500,
+                "handysize_perc": 0,
+                "handymax_perc": 0,
+                "panamax_perc": 100,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-
-wheat_data = {"name": 'Wheat',
-              "handling_fee": 9.8,
-              "handysize_perc": 0,
-              "handymax_perc": 0,
-              "panamax_perc": 100,
-              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-
 # *** Default inputs: Vessel class ***
 
 handysize_data = {"name": 'Handysize_1',
@@ -258,14 +259,15 @@ handymax_data = {"name": 'Handymax_1',
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 65_000,
-                "LOA": 220,
+                "call_size": 1000,
+                "LOA": 290,
                 "draft": 13,
                 "beam": 32.2,
-                "max_cranes": 3,
+                "max_cranes": 4,
                 "all_turn_time": 36,
                 "mooring_time": 3,
                 "demurrage_rate": 730}
+
 
 # *** Default inputs: Labour class ***
 
