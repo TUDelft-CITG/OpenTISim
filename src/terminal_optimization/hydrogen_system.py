@@ -629,7 +629,8 @@ class System:
 
         storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
-#todo: it follows the troughput but in year one there is no throughput, so it generate storages on vessel volume
+        #todo: it follows the troughput but in year one there is no throughput, so it generate storages on vessel volume
+
         # check if sufficient storage capacity is available
         while storage_capacity < storage_capacity_dwelltime or storage_capacity < max_vessel_call_size:
             if self.debug:
@@ -663,8 +664,8 @@ class System:
             storage_capacity += storage.capacity
 
             if self.debug:
-                print('     a total of {} ton of storage capacity is online; {} ton total planned'.format(
-                        storage_capacity_online, storage_capacity))
+                print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
+                    storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
     def h2retrieval_invest(self, year, hydrogen_defaults_h2retrieval_data):
         """current strategy is to add h2 retrieval as long as target h2 retrieval is not yet achieved
@@ -1402,28 +1403,14 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
-            # cranes.append(0)
-            # cranes_capacity.append(0)
             storages.append(0)
             storages_capacity.append(0)
 
-            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
-            vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-                = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                                 largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-
             for element in self.elements:
-                # if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-                #     # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
-                #     if year >= element.year_online:
-                #         cranes[-1] += 1
-                #         cranes_capacity[
-                #             -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
-                        storages_capacity[-1] += element.capacity * 365 / 18
+                        storages_capacity[-1] += element.capacity
 
         # get demand
         demand = pd.DataFrame()
@@ -1436,21 +1423,22 @@ class System:
                         demand['demand'] += commodity.scenario_data[column]
             except:
                 pass
+
         # generate plot
-        fig, ax = plt.subplots(figsize=(20, 10))
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="storages", color='silver')
 
-        # ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
-        #        color='red')
-        ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
-               color='green')
-        ax.step(years, demand['demand'].values, label="demand", where='mid')
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
+        ax2.step(years, storages_capacity, label="Storages capacity", where='mid', color='green')
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Throughput capacity [tons/year]')
-        # ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Elements [nr]')
+        ax2.set_ylabel('Throughput/Capacity [t/y]')
+        ax1.set_title('Storage capacity')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
 
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""

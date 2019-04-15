@@ -128,11 +128,10 @@ class jetty_properties_mixin(object):
         self.Safety_margin_LH2 = Safety_margin_LH2
 
 class berth_properties_mixin(object):
-    def __init__(self, crane_type, max_cranes, delivery_time, *args, **kwargs):
+    def __init__(self, crane_type, delivery_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.crane_type = crane_type
-        self.max_cranes = max_cranes
         self.delivery_time = delivery_time
 
 class pipeline_properties_mixin(object):

@@ -61,8 +61,7 @@ jetty_data = {"name": 'Jetty_01',
 
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
-              "delivery_time": 1,
-              "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
+              "delivery_time": 1}  # all values from Ijzermans, 2019, P 92
 
 
 # *** Default inputs: Pipeline class ***
