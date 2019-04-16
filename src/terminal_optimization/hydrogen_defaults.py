@@ -157,7 +157,7 @@ h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
                   "insurance_perc": 0.01,
                   "h2retrieval_type": 'tank',
                   "consumption": 600, #in kwh/ton
-                  "capacity": 1_000_000}
+                  "capacity": 125} #in ton/hr
 
 "Ammonia"
 h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
@@ -174,7 +174,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 5880,#in kwh/ton
-             "capacity": 280_000} # all input values from Ijzermans, 2019, P 102
+             "capacity": 35}  #in ton/hr
 
 "MCH"
 

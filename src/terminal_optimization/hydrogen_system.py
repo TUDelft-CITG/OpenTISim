@@ -612,7 +612,6 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
             = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
                                              largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-        #todo: needs to be specified per commodity
 
         # max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
         max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
@@ -681,26 +680,47 @@ class System:
         # from all storage objects sum online capacity
         h2retrieval_capacity = 0
         h2retrieval_capacity_online = 0
+        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
+        yearly_capacity = h2retrieval.capacity * self.operational_hours
         list_of_elements = self.find_elements(H2retrieval)
         if list_of_elements != []:
             for element in list_of_elements:
                 if element.type == hydrogen_defaults_h2retrieval_data['type']:
-                    h2retrieval_capacity += element.capacity
+                    h2retrieval_capacity += yearly_capacity
                     if year >= element.year_online:
-                        h2retrieval_capacity_online += element.capacity
+                        h2retrieval_capacity_online += yearly_capacity
 
         if self.debug:
             print('     a total of {} ton of h2 retrieval capacity is online; {} ton total planned'.format(
                 h2retrieval_capacity_online, h2retrieval_capacity))
 
-        #todo: needs to be specified per commodity
-
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
         vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
+            = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+                                             largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
+
+        # find the total throughput
+        service_rate = 0
+        for element in self.find_elements(Jetty):
+            if year >= element.year_online:
+                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                 handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                 panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                 vlcc_calls * hydrogen_defaults.vlcc_data[
+                                     "pump_capacity"]) / total_calls * unloading_occupancy_online
+
+        Throughput = (service_rate * self.operational_hours)
+
+
+        # #todo: verbeter de trigger
+        # H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
 
         # check if sufficient h2retrieval capacity is available
-        while h2retrieval_capacity < H2_retrieval_capacity_needed:
+        while h2retrieval_capacity < Throughput/self.h2retrieval_trigger:
             if self.debug:
                 print('  *** add h2retrieval to elements')
 
@@ -719,8 +739,10 @@ class System:
             h2retrieval.shift = ((h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             h2retrieval.labour = h2retrieval.shift * labour.operational_salary
 
-            if year == self.startyear:
-                h2retrieval.year_online = year + h2retrieval.delivery_time + 1
+            jetty = Jetty(**hydrogen_defaults.jetty_data)
+
+            if year == self.startyear + jetty.delivery_time:
+                h2retrieval.year_online = year
             else:
                 h2retrieval.year_online = year + h2retrieval.delivery_time
 
@@ -729,7 +751,7 @@ class System:
 
             self.elements.append(h2retrieval)
 
-            h2retrieval_capacity += h2retrieval.capacity
+            h2retrieval_capacity += h2retrieval.capacity * self.operational_hours
 
             if self.debug:
                 print(
@@ -1430,13 +1452,18 @@ class System:
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
         ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="storages", color='silver')
+        plt.axvline(x=2023.3, color = 'k', linestyle = '--')
+
+        for i, occ in enumerate(storages):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x = years[i] - 0.05, y = occ + 0.2, s = "{:01.0f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
-        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
-        ax2.step(years, storages_capacity, label="Storages capacity", where='mid', color='green')
+        ax2.step(years, demand['demand'].values, label="demand", where='mid',color='red')
+        ax2.step(years, storages_capacity, label="Storages capacity", where='mid', linestyle = '--',  color='steelblue')
 
         ax1.set_xlabel('Years')
-        ax1.set_ylabel('Elements [nr]')
+        ax1.set_ylabel('Storages [nr]')
         ax2.set_ylabel('Throughput/Capacity [t/y]')
         ax1.set_title('Storage capacity')
         ax1.set_xticks([x for x in years])
@@ -1665,6 +1692,60 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
+
+    def H2retrieval_capacity_plot(self, width=0.25, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # get crane service capacity and storage capacity
+        years = []
+        h2retrievals = []
+        h2retrievals_capacity = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+
+            years.append(year)
+            h2retrievals.append(0)
+            h2retrievals_capacity.append(0)
+
+            for element in self.elements:
+                if isinstance(element, H2retrieval):
+                    if year >= element.year_online:
+                        h2retrievals[-1] += 1
+                        h2retrievals_capacity[-1] += element.capacity * self.operational_hours
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="storages", color='silver')
+        plt.axvline(x=2024.3, color = 'k', linestyle = '--')
+
+        for i, occ in enumerate(h2retrievals):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x = years[i] - 0.05, y = occ + 0.2, s = "{:01.0f}".format(occ), size=15)
+
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand", where='mid',color='red')
+        ax2.step(years, h2retrievals_capacity, label="Storages capacity", where='mid', linestyle = '--',  color='steelblue')
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('H2 retrieval [nr]')
+        ax2.set_ylabel('Throughput/Capacity [t/y]')
+        ax1.set_title('H2 retrieval capacity')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
 
 
 
