@@ -10,8 +10,8 @@ from terminal_optimization import container_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 crane_type_defaults=container_defaults.mobile_crane_data, storage_type_defaults=container_defaults.silo_data,
-                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
+                 crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
+                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -31,6 +31,9 @@ class System:
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
         self.allowable_station_occupancy = allowable_station_occupancy
+
+        # container split
+        self.laden_perc=laden_perc
 
         # storage variables for revenue
         self.revenues = []
@@ -98,6 +101,8 @@ class System:
 
             self.unloading_station_invest(year)
 
+            self.horizontal_transport_invest(year)
+
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
@@ -132,9 +137,10 @@ class System:
         storage = len(self.find_elements(Storage))
         conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
         station = len(self.find_elements(Unloading_station))
+        horizontal_transport = len(self.find_elements(Horizontal_Transport))
 
         if quay_walls < 1 and conveyor_quay < 1 and (
-                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
+                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1 and horizontal_transport<1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -464,6 +470,7 @@ class System:
         # add unloader object
         if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
                 self.crane_type_defaults["crane_type"] == 'Harbour crane' or
+                self.crane_type_defaults["crane_type"] == 'STS crane' or
                 self.crane_type_defaults["crane_type"] == 'Mobile crane'):
             crane = Cyclic_Unloader(**self.crane_type_defaults)
         elif self.crane_type_defaults["crane_type"] == 'Screw unloader':
@@ -772,6 +779,62 @@ class System:
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
+    def horizontal_transport_invest(self, year):
+        """current strategy is to add unloading stations as soon as a service trigger is achieved
+        - find out how much transport is online
+        - find out how much transport is planned
+        - find out how much transport is needed
+        - add transport until service_trigger is no longer exceeded
+        """
+        # todo Add delaying effect to the tractor invest
+        list_of_elements_tractor = self.find_elements(Horizontal_Transport)
+        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
+        sts_cranes=len(list_of_elements_sts)
+        tractor_online=len(list_of_elements_tractor)
+
+
+        tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+
+        if self.debug:
+            # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
+            print('     Horizontal transport online (@ start of year): {}'.format(tractor_online))
+            print('     Number of STS cranes (@start of year): {}'.format(sts_cranes))
+
+        while sts_cranes > (tractor_online//tractor.required):
+            # add a tractor when not enough to serve number of STS cranes
+            if self.debug:
+                print('  *** add tractor to elements')
+
+            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+
+            # - capex
+            unit_rate = tractor.unit_rate
+            mobilisation = tractor.mobilisation
+            tractor.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            tractor.insurance = unit_rate * tractor.insurance_perc
+            tractor.maintenance = unit_rate * tractor.maintenance_perc
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            tractor.shift = ((tractor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            tractor.labour = tractor.shift * labour.operational_salary
+
+            if year == self.startyear:
+                tractor.year_online = year + tractor.delivery_time + 1
+            else:
+                tractor.year_online = year + tractor.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+            tractor = self.add_cashflow_data_to_element(tractor)
+
+            self.elements.append(tractor)
+
+            list_of_elements_tractor = self.find_elements(Horizontal_Transport)
+            tractor_online = len(list_of_elements_tractor)
+
+
     # *** Financial analyses
 
     def add_cashflow_elements(self):
@@ -954,6 +1017,29 @@ class System:
         total_calls = np.sum([handysize_calls, handymax_calls, panamax_calls])
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
+
+    def laden_ground_slots(self, year, laden_perc):
+        ''' Calculate the total throughput in TEU\annum'''
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        '''determine the number of laden containers'''
+        laden_containers=int(volume*laden_perc)
+
+        laden = Container(**container_defaults.laden_container_data)
+
+        laden_stack_height=5 # todo koppel dit aan equipment
+        operational_days=self.operational_hours//365
+
+
+        laden_ground_slots = laden_containers*laden.peak_factor*laden.dwell_time/laden.occupancy/laden_stack_height/operational_days
+
+        return laden_ground_slots
+
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
@@ -1210,6 +1296,7 @@ class System:
         storages = []
         conveyors_hinterland = []
         unloading_station = []
+        tractor = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1220,6 +1307,7 @@ class System:
             storages.append(0)
             conveyors_hinterland.append(0)
             unloading_station.append(0)
+            tractor.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1243,6 +1331,9 @@ class System:
                 if isinstance(element, Unloading_station):
                     if year >= element.year_online:
                         unloading_station[-1] += 1
+                if isinstance(element, Horizontal_Transport):
+                    if year >= element.year_online:
+                        tractor[-1] += 1
 
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
@@ -1261,6 +1352,8 @@ class System:
                color='grey', edgecolor='black')
         ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
                color='red', edgecolor='black')
+        ax.bar([x + 6 * width for x in years], tractor, width=width, alpha=alpha, label="tractor",
+               color='yellow', edgecolor='black')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
@@ -1324,7 +1417,7 @@ class System:
         ax.step(years, demand['demand'].values, label="demand", where='mid')
 
         ax.set_xlabel('Years')
-        ax.set_ylabel('Throughput capacity [tons/year]')
+        ax.set_ylabel('Throughput capacity [TEU/year]')
         ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)

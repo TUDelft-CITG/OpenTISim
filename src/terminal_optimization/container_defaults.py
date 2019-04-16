@@ -1,16 +1,14 @@
 """Defaults for following objects:
-
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
-    - Gantry crane
-    - Harbour crane
-    - Mobile crane
-     Continuous_Unloader
-    - Continuous screw
+    - STS crane
 - 4. Conveyor
     - Hinterland conveyor
     - Quay conveyor
+- 4. Horizontal transport
+    - Tractor trailer
+
 - 5. Storage
     - Silo
     - Warehouse
@@ -56,7 +54,7 @@ quay_wall_data = {"name": 'Quay_01',
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
-              "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
+              "max_cranes": 4}  #STS cranes
 
 # *** Default inputs: CyclicUnloader class ***
 
@@ -104,6 +102,21 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
                      "lifting_capacity": 30,
                      "hourly_cycles": 25,
                      "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
+
+sts_crane_data = {"name": 'STS_crane_01',
+                     "ownership": 'Terminal operator',
+                     "delivery_time": 1,
+                     "lifespan": 40,
+                     "unit_rate": 10_000_000,
+                     "mobilisation_perc": 0.15,
+                     "maintenance_perc": 0.02,
+                     "consumption": 400, #based on 8 kWh/box move (kan ik dit wellicht ook vervangen met kWh per box move?)
+                     "insurance_perc": 0.01,
+                     "crew": 5.5, # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
+                     "crane_type": 'STS crane',
+                     "lifting_capacity":2.25 , #weighted average of TEU per lift
+                     "hourly_cycles": 28,
+                     "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
 
 # *** Default inputs: ContinuousUnloader class ***
 
@@ -154,6 +167,33 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "crew": 1,
                             "utilisation": 0.80,
                             "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
+
+# Default inputs: Horizontal Transport class ***
+
+tractor_trailer_data = {"name": 'Tractor-trailer',
+                            "type": 'tractor_trailer',
+                            "ownership": 'Terminal operator',
+                            "delivery_time": 0,
+                            "lifespan": 10,
+                            "mobilisation": 1_000,
+                            "unit_rate": 85_000,
+                            "maintenance_perc": 0.10,
+                            "insurance_perc": 0.01,
+                            "crew": 1,
+                            "utilisation": 0.80,
+                            "fuel_consumption": 2, #liter per box move
+                            "productivity": 1,
+                            "required" : 5} # todo input value for tractor productivity
+
+# *** Default inputs: Container class
+
+laden_container_data = {"name": 'Laden container',
+                         "type": 'laden',
+                        "teu_factor" : 1.65,
+                        "dwell_time" : 4,
+                        "peak_factor" : 1.2,
+                        "stack_occupancy" : 0.8}
+
 
 
 # *** Default inputs: Storage class ***
@@ -207,31 +247,32 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
                            "prep_time": 2}
 
 # *** Default inputs: Commodity class ***
+# TODO vervang soybean, maze en wheat door reefer, empty en oog dmv input value modal split
 
-maize_data = {"name": 'Maize',
-              "handling_fee": 9.8,
-              "handysize_perc": 50,
-              "handymax_perc": 50,
-              "panamax_perc": 0,
-              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
-soybean_data = {"name": 'Soybeans',
-                "handling_fee": 9.8,
-                "handysize_perc": 50,
-                "handymax_perc": 50,
-                "panamax_perc": 0,
+# soybean_data = {"name": 'Soybeans',
+#                 "handling_fee": 9.8,
+#                 "handysize_perc": 50,
+#                 "handymax_perc": 50,
+#                 "panamax_perc": 0,
+#                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+#                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+#
+# wheat_data = {"name": 'Wheat',
+#               "handling_fee": 9.8,
+#               "handysize_perc": 0,
+#               "handymax_perc": 0,
+#               "panamax_perc": 100,
+#               "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
+#                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+
+laden_data = {"name": 'Laden',
+                "handling_fee": 500,
+                "handysize_perc": 0,
+                "handymax_perc": 0,
+                "panamax_perc": 100,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-
-wheat_data = {"name": 'Wheat',
-              "handling_fee": 9.8,
-              "handysize_perc": 0,
-              "handymax_perc": 0,
-              "panamax_perc": 100,
-              "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-
 # *** Default inputs: Vessel class ***
 
 handysize_data = {"name": 'Handysize_1',
@@ -258,14 +299,15 @@ handymax_data = {"name": 'Handymax_1',
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 65_000,
-                "LOA": 220,
+                "call_size": 3000,#TEU
+                "LOA": 290,
                 "draft": 13,
                 "beam": 32.2,
-                "max_cranes": 3,
-                "all_turn_time": 36,
-                "mooring_time": 3,
+                "max_cranes": 4,#STS cranes
+                "all_turn_time": 31,#UNCTAD geeft deze waarde voor container schepen
+                "mooring_time": 6, #berthing + deberthing time
                 "demurrage_rate": 730}
+
 
 # *** Default inputs: Labour class ***
 

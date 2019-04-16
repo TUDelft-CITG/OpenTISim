@@ -11,6 +11,7 @@
 - cyclic_properties_mixin
 - continuous_properties_mixin
 - conveyor_properties_mixin
+- transport_properties_mixin
 - storage_properties_mixin
 - unloading_station_properties_mixin
 - commodity_properties_mixin
@@ -127,6 +128,7 @@ class quay_wall_properties_mixin(object):
         self.wave_motion = wave_motion
         self.safety_margin= safety_margin
 
+
 class berth_properties_mixin(object):
     def __init__(self, crane_type, max_cranes, delivery_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -202,6 +204,36 @@ class conveyor_properties_mixin(object):
         self.utilisation = utilisation
         self.capacity_steps = capacity_steps
 
+
+class transport_properties_mixin(object):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
+                 maintenance_perc, insurance_perc,
+                 crew, utilisation, fuel_consumption, productivity, required,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
+        self.crew = crew
+        self.utilisation = utilisation
+        self.fuel_consumption = fuel_consumption
+        self.productivity = productivity
+        self.required = required
+
+class container_properties_mixin (object):
+    def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_occupancy,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.teu_factor = teu_factor
+        self.dwell_time = dwell_time
+        self.peak_factor = peak_factor
+        self.stack_occupancy = stack_occupancy
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
@@ -337,5 +369,6 @@ class hasscenario_properties_mixin(object):
             pass
         plt.plot(self.scenario_data['year'], self.scenario_data['volume'], 'o:b')
         plt.xlabel('Time [years]')
-        plt.ylabel('Demand ' + self.name + ' [tons]')
+        plt.ylabel('Demand ' + self.name + ' [TEU]')
         plt.title('Demand ' + self.name)
+

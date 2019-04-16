@@ -3,14 +3,17 @@
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
-    - Gantry crane
-    - Harbour crane
-    - Mobile crane
-     Continuous_Unloader
-    - Continuous screw
+    - STS crane
 - 4. Conveyor
     - Hinterland conveyor
     - Quay conveyor
+- 4. Horizontal transport
+    - Tractor trailer
+- 5. Containers
+    - Laden
+    - Reefer
+    - Empty
+    - OOG
 - 5. Storage
     - Silo
     - Warehouse
@@ -97,9 +100,25 @@ Conveyor_Hinter = type('Conveyor_Hinter', (container_mixins.identifiable_propert
                              container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                 {})  # The dictionary is empty because the site type is generic
 
+# The generic Horizontal transport class
+# - Tractor trailer
+
+
+Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                                                       container_mixins.history_properties_mixin,  # Give it procurement history
+                                                       container_mixins.transport_properties_mixin,
+                                                       container_mixins.hascapex_properties_mixin,  # Give it capex info
+                                                       container_mixins.hasopex_properties_mixin,  # Give it opex info
+                                                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+               {})
+
+Container = type('Container', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                                container_mixins.container_properties_mixin),
+               {})
 # The generic Storage class
 # - Silo
 # - Warehouse
+
 Storage = type('Storage', (container_mixins.identifiable_properties_mixin,  # Give it a name
                            container_mixins.history_properties_mixin,  # Give it procurement history
                            container_mixins.storage_properties_mixin,
@@ -118,6 +137,7 @@ Unloading_station = type('Unloading_station', (container_mixins.identifiable_pro
 # - Maize
 # - Soybean
 # - Wheat
+# - Laden
 Commodity = type('Commodity', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.commodity_properties_mixin,
                                container_mixins.hasscenario_properties_mixin),
@@ -127,6 +147,7 @@ Commodity = type('Commodity', (container_mixins.identifiable_properties_mixin,  
 # - Handysize
 # - Handymax
 # - Panamax
+# - Super Post-Panamax
 Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
                          container_mixins.vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
