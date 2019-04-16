@@ -101,7 +101,7 @@ class System:
 
             self.berth_invest(year)
 
-            self.pipeline_jetty_invest(year, hydrogen_defaults.jetty_pipeline_data)
+            self.pipeline_jetty_invest(year)
 
             self.storage_invest(year, self.storage_type_defaults)
 
@@ -183,7 +183,7 @@ class System:
         throughput = self.throughput_elements(year)
         if self.debug:
             print('     Revenues (throughput): {}'.format(
-                int(Throughput * fee * safety_factor)))
+                int(throughput * fee * safety_factor)))
 
         try:
             self.revenues.append(
@@ -493,7 +493,7 @@ class System:
 
         self.elements.append(jetty)
 
-    def pipeline_jetty_invest(self, year, hydrogen_defaults_jetty_pipeline_data):
+    def pipeline_jetty_invest(self, year):
         """current strategy is to add pipeline as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -511,13 +511,12 @@ class System:
                 if year >= element.year_online:
                     service_capacity_online += element.capacity
 
-        # find the total service rate,
-        service_rate = 0
-        years_online = []
-
         #todo: max this
         # max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
+        # find the total service rate,
 
+        service_rate = 0
+        years_online = []
         for element in self.find_elements(Jetty):
             if year >= element.year_online:
                 service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
@@ -527,7 +526,7 @@ class System:
         while service_capacity < service_rate:
             if self.debug:
                 print('  *** add jetty pipeline to elements')
-            pipeline_jetty = Pipeline_Jetty(**hydrogen_defaults_jetty_pipeline_data)
+            pipeline_jetty = Pipeline_Jetty(**hydrogen_defaults.jetty_pipeline_data)
 
             # - capex
             unit_rate = pipeline_jetty.unit_rate_factor
@@ -605,22 +604,10 @@ class System:
         # max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
         max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
 
-        # find the total service rate,
-        service_rate = 0
-        for element in self.find_elements(Jetty):
-            if year >= element.year_online:
-                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
-                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
-                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
-                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
-                                 handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
-                                 panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
-                                 vlcc_calls * hydrogen_defaults.vlcc_data[
-                                     "pump_capacity"]) / total_calls * unloading_occupancy_online
+        # find the total throughput
+        throughput = self.throughput_elements(year)
 
-        storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
-
-        #todo: it follows the troughput but in year one there is no throughput, so it generate storages on vessel volume
+        storage_capacity_dwelltime = (throughput * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # check if sufficient storage capacity is available
         while storage_capacity < storage_capacity_dwelltime or storage_capacity < max_vessel_call_size:
@@ -1218,13 +1205,23 @@ class System:
                 = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
                                                  largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
             # find the total service rate,
-            throughput = self.throughput_elements(year)
+            service_rate = 0
+            for element in self.find_elements(Jetty):
+                if year >= element.year_online:
+                    service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                     largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                     smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                     largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                     handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                     panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                     vlcc_calls * hydrogen_defaults.vlcc_data[
+                                         "pump_capacity"]) / total_calls * unloading_occupancy_online
 
             # station_occupancy is the total time at station divided by the operational hours
-            plant_occupancy_planned = throughput / h2retrieval_capacity_planned
+            plant_occupancy_planned = service_rate * self.operational_hours/ h2retrieval_capacity_planned
 
             if h2retrieval_capacity_online != 0:
-                time_at_plant_online = throughput / h2retrieval_capacity_online  # element.capacity
+                time_at_plant_online = service_rate * self.operational_hours/ h2retrieval_capacity_online  # element.capacity
 
                 # station occupancy is the total time at station divided by the operational hours
                 plant_occupancy_online = min([time_at_plant_online, 1])
