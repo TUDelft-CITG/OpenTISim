@@ -100,7 +100,7 @@ Conveyor_Hinter = type('Conveyor_Hinter', (container_mixins.identifiable_propert
 # - Tractor trailer
 
 
-Horizontal_Transport = type('Horizontal transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
+Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                                        container_mixins.history_properties_mixin,  # Give it procurement history
                                                        container_mixins.transport_properties_mixin,
                                                        container_mixins.hascapex_properties_mixin,  # Give it capex info

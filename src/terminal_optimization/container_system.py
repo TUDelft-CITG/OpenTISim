@@ -98,6 +98,8 @@ class System:
 
             self.unloading_station_invest(year)
 
+            self.horizontal_transport_invest(year)
+
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
@@ -132,9 +134,10 @@ class System:
         storage = len(self.find_elements(Storage))
         conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
         station = len(self.find_elements(Unloading_station))
+        horizontal_transport = len(self.find_elements(Horizontal_Transport))
 
         if quay_walls < 1 and conveyor_quay < 1 and (
-                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
+                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1 and horizontal_transport<1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -781,14 +784,37 @@ class System:
         - add transport until service_trigger is no longer exceeded
         """
 
-        tractor_planned, tractor_online = self.calculate_horizontal_transport(year)
-        sts_cranes = self.find_elements('Cyclic_Unloader')
+        # # collect elements to add to plot
+        # years = []
+        # cranes = []
+        # tractors = []
+        #
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     years.append(year)
+        #     cranes.append(0)
+        #     tractors.append(0)
+        #
+        #     for element in self.elements:
+        #         if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+        #             if year >= element.year_online:
+        #                 cranes[-1] += 1
+        #         if isinstance(element, Horizontal_Transport) | isinstance(element, Horizontal_Transport):
+        #             if year >= element.year_online:
+        #                 tractors[-1] += 1
+        # sts_cranes = len(cranes)
+        # tractor_online = len (tractors)
+
+        list_of_elements_tractor = self.find_elements(Horizontal_Transport)
+        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
+        sts_cranes=len(list_of_elements_sts)
+        tractor_online=len(list_of_elements_tractor)
+
 
         tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
         if self.debug:
-            print('     Horizontal transport planned (@ start of year): {}'.format(horizontal_transport_planned))
-            print('     Horizontal transport online (@ start of year): {}'.format(horizontal_transport_online))
+            # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
+            print('     Horizontal transport online (@ start of year): {}'.format(tractor_online))
             print('     Number of STS cranes (@start of year): {}'.format(sts_cranes))
 
         while sts_cranes > (tractor_online/tractor.required):
@@ -820,9 +846,11 @@ class System:
             # add cash flow information to quay_wall object in a dataframe
             tractor = self.add_cashflow_data_to_element(tractor)
 
-            self.elements.append(tractor)
+            self.elements.append(Horizontal_Transport)
 
-            tractor_planned, tractor_online = self.calculate_horizontal_transport(year)
+            list_of_elements_tractor = self.find_elements(Horizontal_Transport)
+            tractor_online = len(list_of_elements_tractor)
+
 
     # *** Financial analyses
 
@@ -1193,21 +1221,22 @@ class System:
 
         return station_occupancy_planned, station_occupancy_online
 
-    def calculate_horizontal_transport(self, year):
-        """
-        - Find all tractors that are planned and online
-        """
-
-        if list_of_elements != []:
-            tractor_planned = 0
-            tractor_online = length(self.find.elements(Horizontal_Transport))
-
-        else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-            tractor_planned = float("inf")
-            tractor_online = float("inf")
-
-        return tractor_planned, tractor_online
+    # def calculate_horizontal_transport(self, year):
+    #     """
+    #     - Find all tractors that are planned and online
+    #     """
+    #     list_of_elements = self.find_elements(Horizontal_Transport)
+    #
+    #     if list_of_elements != []:
+    #         tractor_planned = 0
+    #         tractor_online = len(self.find.elements(Horizontal_Transport))
+    #
+    #     else:
+    #         # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+    #         tractor_planned = float("inf")
+    #         tractor_online = float("inf")
+    #
+    #     return tractor_planned, tractor_online
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)
@@ -1278,6 +1307,7 @@ class System:
         storages = []
         conveyors_hinterland = []
         unloading_station = []
+        tractor = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1288,6 +1318,7 @@ class System:
             storages.append(0)
             conveyors_hinterland.append(0)
             unloading_station.append(0)
+            tractor.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1311,6 +1342,9 @@ class System:
                 if isinstance(element, Unloading_station):
                     if year >= element.year_online:
                         unloading_station[-1] += 1
+                if isinstance(element, Horizontal_Transport):
+                    if year >= element.year_online:
+                        tractor[-1] += 1
 
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
@@ -1329,6 +1363,8 @@ class System:
                color='grey', edgecolor='black')
         ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
                color='red', edgecolor='black')
+        ax.bar([x + 6 * width for x in years], tractor, width=width, alpha=alpha, label="tractor",
+               color='yellow', edgecolor='black')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
