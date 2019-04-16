@@ -185,6 +185,17 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                             "productivity": 1,
                             "required" : 5} # todo input value for tractor productivity
 
+# *** Default inputs: Container class
+
+laden_container_data = {"name": 'Laden container',
+                         "type": 'laden',
+                        "teu_factor" : 1.65,
+                        "dwell_time" : 4,
+                        "peak_factor" : 1.2,
+                        "stack_occupancy" : 0.8}
+
+
+
 # *** Default inputs: Storage class ***
 
 silo_data = {"name": 'Silo_01',

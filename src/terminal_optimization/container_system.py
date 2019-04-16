@@ -11,7 +11,7 @@ from terminal_optimization import container_defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
-                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
+                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -31,6 +31,9 @@ class System:
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
         self.allowable_station_occupancy = allowable_station_occupancy
+
+        # container split
+        self.laden_perc=laden_perc
 
         # storage variables for revenue
         self.revenues = []
@@ -1015,6 +1018,29 @@ class System:
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
 
+    def laden_ground_slots(self, year, laden_perc):
+        ''' Calculate the total throughput in TEU\annum'''
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        '''determine the number of laden containers'''
+        laden_containers=int(volume*laden_perc)
+
+        laden = Container(**container_defaults.laden_container_data)
+
+        laden_stack_height=5 # todo koppel dit aan equipment
+        operational_days=self.operational_hours//365
+
+
+        laden_ground_slots = laden_containers*laden.peak_factor*laden.dwell_time/laden.occupancy/laden_stack_height/operational_days
+
+        return laden_ground_slots
+
+
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
         - Find all cranes and sum their effective_capacity to get service_capacity
@@ -1200,23 +1226,6 @@ class System:
             station_occupancy_online = float("inf")
 
         return station_occupancy_planned, station_occupancy_online
-
-    # def calculate_horizontal_transport(self, year):
-    #     """
-    #     - Find all tractors that are planned and online
-    #     """
-    #     list_of_elements = self.find_elements(Horizontal_Transport)
-    #
-    #     if list_of_elements != []:
-    #         tractor_planned = 0
-    #         tractor_online = len(self.find.elements(Horizontal_Transport))
-    #
-    #     else:
-    #         # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-    #         tractor_planned = float("inf")
-    #         tractor_online = float("inf")
-    #
-    #     return tractor_planned, tractor_online
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)

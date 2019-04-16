@@ -225,6 +225,15 @@ class transport_properties_mixin(object):
         self.productivity = productivity
         self.required = required
 
+class container_properties_mixin (object):
+    def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_occupancy,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.teu_factor = teu_factor
+        self.dwell_time = dwell_time
+        self.peak_factor = peak_factor
+        self.stack_occupancy = stack_occupancy
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,

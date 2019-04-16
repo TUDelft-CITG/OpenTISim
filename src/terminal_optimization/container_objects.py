@@ -9,7 +9,11 @@
     - Quay conveyor
 - 4. Horizontal transport
     - Tractor trailer
-
+- 5. Containers
+    - Laden
+    - Reefer
+    - Empty
+    - OOG
 - 5. Storage
     - Silo
     - Warehouse
@@ -106,14 +110,15 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
                                                        container_mixins.hascapex_properties_mixin,  # Give it capex info
                                                        container_mixins.hasopex_properties_mixin,  # Give it opex info
                                                        container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-               {})  # The dictionary is empty because the site type is generic
+               {})
 
-
-
-
+Container = type('Container', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                                container_mixins.container_properties_mixin),
+               {})
 # The generic Storage class
 # - Silo
 # - Warehouse
+
 Storage = type('Storage', (container_mixins.identifiable_properties_mixin,  # Give it a name
                            container_mixins.history_properties_mixin,  # Give it procurement history
                            container_mixins.storage_properties_mixin,
