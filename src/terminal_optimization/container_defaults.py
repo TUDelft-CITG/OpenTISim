@@ -1,16 +1,14 @@
 """Defaults for following objects:
-
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
-    - Gantry crane
-    - Harbour crane
-    - Mobile crane
-     Continuous_Unloader
-    - Continuous screw
+    - STS crane
 - 4. Conveyor
     - Hinterland conveyor
     - Quay conveyor
+- 4. Horizontal transport
+    - Tractor trailer
+
 - 5. Storage
     - Silo
     - Warehouse
@@ -170,20 +168,22 @@ hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "utilisation": 0.80,
                             "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
 
-# Default inputs: Horizontal Transport class
+# Default inputs: Horizontal Transport class ***
+
 tractor_trailer_data = {"name": 'Tractor-trailer',
                             "type": 'tractor_trailer',
                             "ownership": 'Terminal operator',
-                            "delivery_time": 1,
+                            "delivery_time": 0,
                             "lifespan": 10,
                             "mobilisation": 30_000,
                             "unit_rate_factor": 6,
                             "maintenance_perc": 0.10,
                             "insurance_perc": 0.01,
                             "crew": 1,
-                            "utilisation": 0.80
+                            "utilisation": 0.80,
                             "fuel_consumption": 2, #liter per box move
-                            "productivity": 1} # todo input value for tractor productivity
+                            "productivity": 1,
+                            "required" : 5} # todo input value for tractor productivity
 
 # *** Default inputs: Storage class ***
 

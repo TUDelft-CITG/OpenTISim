@@ -773,6 +773,57 @@ class System:
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
+    def horizontal_transport_invest(self, year):
+        """current strategy is to add unloading stations as soon as a service trigger is achieved
+        - find out how much transport is online
+        - find out how much transport is planned
+        - find out how much transport is needed
+        - add transport until service_trigger is no longer exceeded
+        """
+
+        tractor_planned, tractor_online = self.calculate_horizontal_transport(year)
+        sts_cranes = self.find_elements('Cyclic_Unloader')
+
+        tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+
+        if self.debug:
+            print('     Horizontal transport planned (@ start of year): {}'.format(horizontal_transport_planned))
+            print('     Horizontal transport online (@ start of year): {}'.format(horizontal_transport_online))
+            print('     Number of STS cranes (@start of year): {}'.format(sts_cranes))
+
+        while sts_cranes > (tractor_online/tractor.required):
+            # add a tractor when not enough to serve number of STS cranes
+            if self.debug:
+                print('  *** add tractor to elements')
+
+            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+
+            # - capex
+            unit_rate = tractor.unit_rate
+            mobilisation = tractor.mobilisation
+            tractor.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            tractor.insurance = unit_rate * tractor.insurance_perc
+            tractor.maintenance = unit_rate * tractor.maintenance_perc
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            tractor.shift = ((tractor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            tractor.labour = tractor.shift * labour.operational_salary
+
+            if year == self.startyear:
+                tractor.year_online = year + tractor.delivery_time + 1
+            else:
+                tractor.year_online = year + tractor.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+            tractor = self.add_cashflow_data_to_element(tractor)
+
+            self.elements.append(tractor)
+
+            tractor_planned, tractor_online = self.calculate_horizontal_transport(year)
+
     # *** Financial analyses
 
     def add_cashflow_elements(self):
@@ -1141,6 +1192,22 @@ class System:
             station_occupancy_online = float("inf")
 
         return station_occupancy_planned, station_occupancy_online
+
+    def calculate_horizontal_transport(self, year):
+        """
+        - Find all tractors that are planned and online
+        """
+
+        if list_of_elements != []:
+            tractor_planned = 0
+            tractor_online = length(self.find.elements(Horizontal_Transport))
+
+        else:
+            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            tractor_planned = float("inf")
+            tractor_online = float("inf")
+
+        return tractor_planned, tractor_online
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)

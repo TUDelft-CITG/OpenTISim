@@ -11,6 +11,7 @@
 - cyclic_properties_mixin
 - continuous_properties_mixin
 - conveyor_properties_mixin
+- transport_properties_mixin
 - storage_properties_mixin
 - unloading_station_properties_mixin
 - commodity_properties_mixin
@@ -127,6 +128,7 @@ class quay_wall_properties_mixin(object):
         self.wave_motion = wave_motion
         self.safety_margin= safety_margin
 
+
 class berth_properties_mixin(object):
     def __init__(self, crane_type, max_cranes, delivery_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -202,10 +204,11 @@ class conveyor_properties_mixin(object):
         self.utilisation = utilisation
         self.capacity_steps = capacity_steps
 
+
 class transport_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
                  maintenance_perc, insurance_perc,
-                 crew, utilisation, fuel_consumption, productivity,  *args, **kwargs):
+                 crew, utilisation, fuel_consumption, productivity, required,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -220,6 +223,8 @@ class transport_properties_mixin(object):
         self.utilisation = utilisation
         self.fuel_consumption = fuel_consumption
         self.productivity = productivity
+        self.required = required
+
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
