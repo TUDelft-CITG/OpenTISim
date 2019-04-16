@@ -13,7 +13,7 @@ class System:
                  commodity_type_defaults=hydrogen_defaults.lhydrogen_data, storage_type_defaults=
                  hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
                  hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
-                 h2retrieval_trigger = 0.5, allowable_station_occupancy=0.4):
+                 h2retrieval_trigger = 0.5, allowable_station_occupancy=0.5):
 
         # time inputs
         self.startyear = startyear
@@ -181,6 +181,7 @@ class System:
                                  vlcc_calls * hydrogen_defaults.vlcc_data["pump_capacity"])/total_calls * unloading_occupancy_online
 
         fee = commodity.handling_fee
+        #todo, the throughput is only depending on jetty which is not correct needs to be on total systemin
         if self.debug:
             print('     Revenues (throughput): {}'.format(
                 int(service_rate * self.operational_hours * fee * safety_factor)))
@@ -529,7 +530,7 @@ class System:
 
         for element in self.find_elements(Jetty):
             if year >= element.year_online:
-                service_rate += hydrogen_defaults.vlcc_data["pump_capacity"]
+                service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
                 years_online.append(element.year_online)
 
         # check if total planned capacity is smaller than target capacity, if so add a pipeline
@@ -675,48 +676,15 @@ class System:
         - add h2 retrieval until target is reached
         """
 
-        # from all storage objects sum online capacity
-        h2retrieval_capacity = 0
-        h2retrieval_capacity_online = 0
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        yearly_capacity = h2retrieval.capacity * self.operational_hours
-        list_of_elements = self.find_elements(H2retrieval)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                if element.type == hydrogen_defaults_h2retrieval_data['type']:
-                    h2retrieval_capacity += yearly_capacity
-                    if year >= element.year_online:
-                        h2retrieval_capacity_online += yearly_capacity
+        plant_occupancy_planned, plant_occupancy_online,  h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
 
         if self.debug:
-            print('     a total of {} ton of h2 retrieval capacity is online; {} ton total planned'.format(
-                h2retrieval_capacity_online, h2retrieval_capacity))
-
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
-        vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-            = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                             largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-
-        # find the total throughput
-        service_rate = 0
-        for element in self.find_elements(Jetty):
-            if year >= element.year_online:
-                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
-                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
-                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
-                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
-                                 handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
-                                 panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
-                                 vlcc_calls * hydrogen_defaults.vlcc_data[
-                                     "pump_capacity"]) / total_calls * unloading_occupancy_online
-
-        Throughput = (service_rate * self.operational_hours)
-
-        H2_retrieval_capacity_needed = (Throughput / self.h2retrieval_trigger)
+            print('     Plant occupancy planned (@ start of year): {}'.format(plant_occupancy_planned))
+            print('     Plant occupancy online (@ start of year): {}'.format(plant_occupancy_online))
 
         # check if sufficient h2retrieval capacity is available
-        while h2retrieval_capacity < H2_retrieval_capacity_needed:
+        while plant_occupancy_planned > self.h2retrieval_trigger:
+
             if self.debug:
                 print('  *** add h2retrieval to elements')
 
@@ -747,13 +715,13 @@ class System:
 
             self.elements.append(h2retrieval)
 
-            h2retrieval_capacity += h2retrieval.capacity * self.operational_hours
+            plant_occupancy_planned, plant_occupancy_online,  h2retrieval_capacity_planned, h2retrieval_capacity_online\
+                = self.calculate_h2retrieval_occupancy(year)
 
             if self.debug:
                 print(
                     '     a total of {} ton of h2retrieval capacity is online; {} ton total planned'.format(
-                        h2retrieval_capacity_online,
-                        h2retrieval_capacity))
+                        h2retrieval_capacity_online, h2retrieval_capacity_planned))
 
     def pipeline_hinter_invest(self, year, hydrogen_defaults_hinterland_pipeline_data):
         """current strategy is to add pipeline as soon as a service trigger is achieved
@@ -772,10 +740,6 @@ class System:
                 service_capacity += element.capacity
                 if year >= element.year_online:
                     service_capacity_online_hinter += element.capacity
-
-        # if self.debug:
-        #     print('     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
-        #             service_capacity_online_hinter, service_capacity))
 
         # find the total service rate,
         service_rate = 0
@@ -1263,14 +1227,18 @@ class System:
             service_rate_throughput = 0
             for element in self.find_elements(Jetty):
                 if year >= element.year_online:
-                    service_rate_throughput += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
-                                     largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
-                                     smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
-                                     largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
-                                     handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
-                                     panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
-                                     vlcc_calls * hydrogen_defaults.vlcc_data[
-                                         "pump_capacity"]) / total_calls * unloading_occupancy_online
+                    service_rate_throughput += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data[
+                        "pump_capacity"] +
+                                                largehydrogen_calls * hydrogen_defaults.largehydrogen_data[
+                                                    "pump_capacity"] +
+                                                smallammonia_calls * hydrogen_defaults.smallammonia_data[
+                                                    "pump_capacity"] +
+                                                largeammonia_calls * hydrogen_defaults.largeammonia_data[
+                                                    "pump_capacity"] +
+                                                handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                                panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                                vlcc_calls * hydrogen_defaults.vlcc_data[
+                                                    "pump_capacity"]) / total_calls * unloading_occupancy_online
 
             time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.service_rate
 
@@ -1291,6 +1259,62 @@ class System:
             station_occupancy_online = float("inf")
 
         return station_occupancy_planned, station_occupancy_online
+
+    def calculate_h2retrieval_occupancy(self, year):
+        """
+        - Find all stations and sum their service_rate to get service_capacity in TUE per hours
+        - Divide the throughput by the service rate to get the total hours in a year
+        - Occupancy is total_time_at_station divided by operational hours
+        """
+        # find the total service rate and determine the time at station
+
+        h2retrieval_capacity_planned = 0
+        h2retrieval_capacity_online = 0
+        yearly_capacity = hydrogen_defaults.h2retrieval_lh2_data["capacity"] * self.operational_hours
+        list_of_elements = self.find_elements(H2retrieval)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                h2retrieval_capacity_planned += yearly_capacity
+                if year >= element.year_online:
+                    h2retrieval_capacity_online += yearly_capacity
+
+
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
+            vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
+                = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+                                                 largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
+            # find the total service rate,
+            service_rate_throughput = 0
+            for element in self.find_elements(Jetty):
+                if year >= element.year_online:
+                    service_rate_throughput += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                     largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                     smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                     largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                     handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                     panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                     vlcc_calls * hydrogen_defaults.vlcc_data[
+                                         "pump_capacity"]) / total_calls * unloading_occupancy_online
+
+
+            # station_occupancy is the total time at station divided by the operational hours
+            plant_occupancy_planned = service_rate_throughput * self.operational_hours / h2retrieval_capacity_planned
+
+            if h2retrieval_capacity_online != 0:
+                time_at_plant_online = service_rate_throughput * self.operational_hours / h2retrieval_capacity_online  # element.capacity
+
+                # station occupancy is the total time at station divided by the operational hours
+                plant_occupancy_online = min([time_at_plant_online, 1])
+            else:
+                plant_occupancy_online = float("inf")
+
+        else:
+            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            plant_occupancy_planned = float("inf")
+            plant_occupancy_online = float("inf")
+
+        return plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online
 
     def report_element(self, Element, year):
         elements = 0
@@ -1395,9 +1419,9 @@ class System:
         ax.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="jettys", color='#c7c7c7')
         ax.bar([x + 2 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="pipelines jetty", color='#ffbb78')
         ax.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='#9edae5')
-        ax.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="h2retrievals", color='#98e98a')
+        ax.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="h2retrievals", color='#DBDB8D')
         ax.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="pipeline hinter", color='#c49c94')
-        ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station", color='#ff9896')
+        ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station", color='grey')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
@@ -1524,6 +1548,73 @@ class System:
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
+    def plant_occupancy_example_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        plants_occupancy = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            plants_occupancy.append(0)
+
+            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
+                year)
+
+            for element in self.elements:
+                if isinstance(element, H2retrieval):
+                    if year >= element.year_online:
+                        plants_occupancy[-1] = plant_occupancy_online
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x for x in years], plants_occupancy, width=width, alpha=alpha, label="Plant occupancy [-]",
+                color='#dbdb8d')
+
+        # added vertical lines for mentioning the different phases
+        plt.axvline(x=2024.3, color='k', linestyle='--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
+
+        # Adding a horizontal line which shows the allowable plant occupancy
+        horiz_line_data = np.array([self.h2retrieval_trigger for i in range(len(years))])
+        plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable plant occupancy [-]")
+
+        for i, occ in enumerate(plants_occupancy):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
+
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand [t/y]", where='mid', color='#ff9896')
+        plt.ylim(0, 6000000)
+
+        # added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60, 'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.57, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Plant occupancy [-]')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Plant occupancy')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
     def Jetty_capacity_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
@@ -1583,7 +1674,7 @@ class System:
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
-    def Pipeline_capacity_plot(self, width=0.2, alpha=0.6):
+    def Pipeline1_capacity_plot(self, width=0.2, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -1616,7 +1707,7 @@ class System:
             for element in self.find_elements(Jetty):
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
-                        jettys_cap[-1] += hydrogen_defaults.vlcc_data["pump_capacity"]
+                        jettys_cap[-1] += hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
         # get demand
         demand = pd.DataFrame()
@@ -1694,20 +1785,30 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="storages", color='silver')
-        plt.axvline(x=2023.3, color = 'k', linestyle = '--')
+        ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="storages", color='#9edae5')
+
+        # added vertical lines for mentioning the different phases
+        plt.axvline(x=2023.3, color='k', linestyle='--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
 
         for i, occ in enumerate(storages):
             occ = occ if type(occ) != float else 0
             ax1.text(x = years[i] - 0.05, y = occ + 0.2, s = "{:01.0f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
-        ax2.step(years, demand['demand'].values, label="demand", where='mid',color='red')
+        ax2.step(years, demand['demand'].values, label="demand", where='mid',color='#ff9896')
         ax2.step(years, storages_capacity, label="Storages capacity", where='mid', linestyle = '--',  color='steelblue')
+
+        # added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60, 'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.515, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Storages [nr]')
-        ax2.set_ylabel('Throughput/Capacity [t/y]')
+        ax2.set_ylabel('Demand/Capacity [t/y]')
         ax1.set_title('Storage capacity')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
@@ -1747,7 +1848,8 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrieval", color='steelblue')
+        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrieval", color='#DBDB8D')
+
         #added vertical lines for mentioning the different phases
         plt.axvline(x=2024.3, color = 'k', linestyle = '--')
         plt.axvline(x=2022.3, color='k', linestyle='--')
@@ -1757,7 +1859,7 @@ class System:
             ax1.text(x = years[i] - 0.05, y = occ + 0.2, s = "{:01.0f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
-        ax2.step(years, demand['demand'].values, label="demand", where='mid',color='red')
+        ax2.step(years, demand['demand'].values, label="demand", where='mid',color='#ff9896')
         ax2.step(years, h2retrievals_capacity, label="H2 retrieval capacity", where='mid', linestyle = '--',  color='steelblue')
 
         #added boxes
@@ -1770,13 +1872,94 @@ class System:
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('H2 retrieval [nr]')
-        ax2.set_ylabel('Throughput/Capacity [t/y]')
+        ax2.set_ylabel('Demand/Capacity [t/y]')
         ax1.set_title('H2 retrieval capacity')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
+    def Pipeline2_capacity_plot(self, width=0.2, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
 
+        # collect elements to add to plot
+        years = []
+        pipeline_hinterland = []
+        loadingstations = []
+        pipeline_hinterland_cap = []
+        loadingstations_cap = []
 
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            pipeline_hinterland.append(0)
+            loadingstations.append(0)
+            pipeline_hinterland_cap.append(0)
+            loadingstations_cap.append(0)
 
+            for element in self.elements:
+                if isinstance(element, Pipeline_Hinter):
+                    if year >= element.year_online:
+                        pipeline_hinterland[-1] += 1
+            for element in self.elements:
+                if isinstance(element, Unloading_station):
+                    if year >= element.year_online:
+                        loadingstations[-1] += 1
+
+            for element in self.elements:
+                if isinstance(element, Pipeline_Hinter):
+                    if year >= element.year_online:
+                        pipeline_hinterland_cap[-1] += element.capacity
+            for element in self.elements:
+                if isinstance(element, Unloading_station):
+                    if year >= element.year_online:
+                        loadingstations_cap[-1] += element.service_rate
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x - 0.5 * width for x in years], pipeline_hinterland, width=width, alpha=alpha,
+                label="Number of pipeline H2 retrieval - Hinterland", color='#c49c94')
+        ax1.bar([x + 0.5 * width for x in years], loadingstations, width=width, alpha=alpha,
+                label="Number of hinterland station", color='grey')
+
+        for i, occ in enumerate(pipeline_hinterland):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x=years[i] - 0.25, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
+        for i, occ in enumerate(loadingstations):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x=years[i] + 0.15, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
+
+        # added vertical lines for mentioning the different phases
+        plt.axvline(x=2023.3, color='k', linestyle='--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
+
+        # Plot second ax
+        ax2 = ax1.twinx()
+        ax2.step(years, pipeline_hinterland_cap, label="Pipeline hinterland capacity", where='mid', linestyle = '--', color='#aec7e8')
+        ax2.step(years, loadingstations_cap, label="Loading station capacity", where='mid', linestyle = '--', color='#ff9896')
+
+        # added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60, 'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.505, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Nr of elements')
+        ax2.set_ylabel('Capacity Pipeline & loading capacity station [t/h]')
+        ax1.set_title('Capacity Pipeline & Station')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
 
