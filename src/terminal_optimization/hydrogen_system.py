@@ -680,13 +680,15 @@ class System:
         # from all storage objects sum online capacity
         h2retrieval_capacity = 0
         h2retrieval_capacity_online = 0
+        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
+        yearly_capacity = h2retrieval.capacity * self.operational_hours
         list_of_elements = self.find_elements(H2retrieval)
         if list_of_elements != []:
             for element in list_of_elements:
                 if element.type == hydrogen_defaults_h2retrieval_data['type']:
-                    h2retrieval_capacity += element.capacity
+                    h2retrieval_capacity += yearly_capacity
                     if year >= element.year_online:
-                        h2retrieval_capacity_online += element.capacity
+                        h2retrieval_capacity_online += yearly_capacity
 
         if self.debug:
             print('     a total of {} ton of h2 retrieval capacity is online; {} ton total planned'.format(
@@ -694,12 +696,31 @@ class System:
 
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
         vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
+            = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+                                             largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
 
-        #todo: verbeter de trigger
-        H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
+        # find the total throughput
+        service_rate = 0
+        for element in self.find_elements(Jetty):
+            if year >= element.year_online:
+                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                 handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
+                                 panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
+                                 vlcc_calls * hydrogen_defaults.vlcc_data[
+                                     "pump_capacity"]) / total_calls * unloading_occupancy_online
+
+        Throughput = (service_rate * self.operational_hours)
+
+
+        # #todo: verbeter de trigger
+        # H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
 
         # check if sufficient h2retrieval capacity is available
-        while h2retrieval_capacity * self.operational_hours < H2_retrieval_capacity_needed:
+        while h2retrieval_capacity < Throughput/self.h2retrieval_trigger:
             if self.debug:
                 print('  *** add h2retrieval to elements')
 
@@ -718,8 +739,10 @@ class System:
             h2retrieval.shift = ((h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             h2retrieval.labour = h2retrieval.shift * labour.operational_salary
 
-            if year == self.startyear:
-                h2retrieval.year_online = year + h2retrieval.delivery_time + 1
+            jetty = Jetty(**hydrogen_defaults.jetty_data)
+
+            if year == self.startyear + jetty.delivery_time:
+                h2retrieval.year_online = year
             else:
                 h2retrieval.year_online = year + h2retrieval.delivery_time
 
