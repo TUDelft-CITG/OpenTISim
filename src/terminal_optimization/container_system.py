@@ -783,27 +783,7 @@ class System:
         - find out how much transport is needed
         - add transport until service_trigger is no longer exceeded
         """
-
-        # # collect elements to add to plot
-        # years = []
-        # cranes = []
-        # tractors = []
-        #
-        # for year in range(self.startyear, self.startyear + self.lifecycle):
-        #     years.append(year)
-        #     cranes.append(0)
-        #     tractors.append(0)
-        #
-        #     for element in self.elements:
-        #         if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
-        #             if year >= element.year_online:
-        #                 cranes[-1] += 1
-        #         if isinstance(element, Horizontal_Transport) | isinstance(element, Horizontal_Transport):
-        #             if year >= element.year_online:
-        #                 tractors[-1] += 1
-        # sts_cranes = len(cranes)
-        # tractor_online = len (tractors)
-
+        # todo Add delaying effect to the tractor invest
         list_of_elements_tractor = self.find_elements(Horizontal_Transport)
         list_of_elements_sts = self.find_elements(Cyclic_Unloader)
         sts_cranes=len(list_of_elements_sts)
@@ -817,7 +797,7 @@ class System:
             print('     Horizontal transport online (@ start of year): {}'.format(tractor_online))
             print('     Number of STS cranes (@start of year): {}'.format(sts_cranes))
 
-        while sts_cranes > (tractor_online/tractor.required):
+        while sts_cranes > (tractor_online//tractor.required):
             # add a tractor when not enough to serve number of STS cranes
             if self.debug:
                 print('  *** add tractor to elements')
@@ -843,10 +823,10 @@ class System:
             else:
                 tractor.year_online = year + tractor.delivery_time
 
-            # add cash flow information to quay_wall object in a dataframe
+            # add cash flow information to tractor object in a dataframe
             tractor = self.add_cashflow_data_to_element(tractor)
 
-            self.elements.append(Horizontal_Transport)
+            self.elements.append(tractor)
 
             list_of_elements_tractor = self.find_elements(Horizontal_Transport)
             tractor_online = len(list_of_elements_tractor)
