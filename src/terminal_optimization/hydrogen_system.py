@@ -527,12 +527,10 @@ class System:
         #todo: max this
         # max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
 
-        max_vessel_Capacity_vessels = hydrogen_defaults.largehydrogen_data["pump_capacity"]
-
-        jetty = len(self.find_elements(Jetty))
         for element in self.find_elements(Jetty):
-            service_rate = max_vessel_Capacity_vessels * jetty
-            years_online.append(element.year_online)
+            if year >= element.year_online:
+                service_rate += hydrogen_defaults.vlcc_data["pump_capacity"]
+                years_online.append(element.year_online)
 
         # check if total planned capacity is smaller than target capacity, if so add a pipeline
         while service_capacity < service_rate:
@@ -715,12 +713,10 @@ class System:
 
         Throughput = (service_rate * self.operational_hours)
 
-
-        # #todo: verbeter de trigger
-        # H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
+        H2_retrieval_capacity_needed = (Throughput / self.h2retrieval_trigger)
 
         # check if sufficient h2retrieval capacity is available
-        while h2retrieval_capacity < Throughput/self.h2retrieval_trigger:
+        while h2retrieval_capacity < H2_retrieval_capacity_needed:
             if self.debug:
                 print('  *** add h2retrieval to elements')
 
@@ -1395,20 +1391,13 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral',
-               edgecolor='crimson')
-        ax.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="jettys", color='orchid',
-               edgecolor='purple')
-        ax.bar([x + 2 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="pipelines jetty",
-               color='lightgreen', edgecolor='green')
-        ax.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
-               edgecolor='orangered')
-        ax.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="h2retrievals", color='lightblue',
-               edgecolor='blue')
-        ax.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="pipeline hinter",
-               color='silver', edgecolor='black')
-        ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
-               color='red', edgecolor='black')
+        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='#aec7e8')
+        ax.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="jettys", color='#c7c7c7')
+        ax.bar([x + 2 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="pipelines jetty", color='#ffbb78')
+        ax.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='#9edae5')
+        ax.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="h2retrievals", color='#98e98a')
+        ax.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="pipeline hinter", color='#c49c94')
+        ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station", color='#ff9896')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
@@ -1417,7 +1406,261 @@ class System:
         ax.set_xticklabels(years)
         ax.legend()
 
-    def terminal_capacity_plot(self, width=0.25, alpha=0.6):
+    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows['year'].values
+        revenue = self.revenues
+        capex = cash_flows['capex'].values
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+               cash_flows['labour'].values + cash_flows['demurrage'].values
+
+        # sum cash flows to get profits as a function of year
+        profits = []
+        for year in years:
+            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
+                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+
+        # cumulatively sum profits to get profits_cum
+        profits_cum = [None] * len(profits)
+        for index, value in enumerate(profits):
+            if index == 0:
+                profits_cum[index] = 0
+            else:
+                profits_cum[index] = profits_cum[index - 1] + profits[index]
+
+        # generate plot
+        fig, ax = plt.subplots(figsize=(16, 7))
+
+        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
+        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
+        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+        ax.step(years, profits, label='profits', where='mid')
+        ax.step(years, profits_cum, label='profits_cum', where='mid')
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Cashflow [000 M $]')
+        ax.set_title('Cash flow plot')
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
+
+    def terminal_occupancy_example_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        berths_occupancy = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            berths_occupancy.append(0)
+
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, \
+            panamax_calls, vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+
+
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
+                = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+                                                 largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
+
+
+            for element in self.elements:
+                if isinstance(element, Berth):
+                    if year >= element.year_online:
+                        berths_occupancy[-1] = berth_occupancy_online
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+          # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy [-]", color='#aec7e8')
+
+        # added vertical lines for mentioning the different phases
+        plt.axvline(x=2024.3, color='k', linestyle='--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
+
+        # Adding a horizontal line which shows the allowable berth occupancy
+        horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
+        plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy [-]")
+
+        for i, occ in enumerate(berths_occupancy):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x = years[i] - 0.1, y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
+
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand [t/y]", where='mid', color='#ff9896')
+        plt.ylim(0, 6000000)
+
+        # added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60, 'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.57, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Berth occupancy [-]')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Berth occupancy')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
+    def Jetty_capacity_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        jettys = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            jettys.append(0)
+
+            for element in self.elements:
+                if isinstance(element, Jetty):
+                    if year >= element.year_online:
+                        jettys[-1] += 1
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x for x in years], jettys, width=width, alpha=alpha, label="Jettys [nr]", color='#c7c7c7')
+
+        # added vertical lines for mentioning the different phases
+        plt.axvline(x=2024.3, color='k', linestyle='--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
+
+        for i, occ in enumerate(jettys):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x=years[i], y=occ + 0.02, s="{:01.0f}".format(occ), size=15)
+
+        ax2 = ax1.twinx()
+
+        ax2.step(years, demand['demand'].values, label="demand [t/y]", where='mid', color='#ff9896')
+
+        # added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60, 'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.57, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Elements on line [nr]')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Jettys')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
+    def Pipeline_capacity_plot(self, width=0.2, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = []
+        pipeline_jetty = []
+        jettys = []
+        pipeline_jetty_cap = []
+        jettys_cap = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            pipeline_jetty.append(0)
+            jettys.append(0)
+            pipeline_jetty_cap.append(0)
+            jettys_cap.append(0)
+
+            for element in self.elements:
+                if isinstance(element, Pipeline_Jetty):
+                    if year >= element.year_online:
+                        pipeline_jetty[-1] += 1
+            for element in self.elements:
+                if isinstance(element, Jetty):
+                    if year >= element.year_online:
+                        jettys[-1] += 1
+
+            for element in self.elements:
+                if isinstance(element, Pipeline_Jetty):
+                    if year >= element.year_online:
+                        pipeline_jetty_cap[-1] += element.capacity
+            for element in self.find_elements(Jetty):
+                if isinstance(element, Jetty):
+                    if year >= element.year_online:
+                        jettys_cap[-1] += hydrogen_defaults.vlcc_data["pump_capacity"]
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+          # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x - 0.5 * width for x in years], jettys_cap, width=width, alpha=alpha, label="Jetty unloading capacity", color='#c7c7c7')
+        ax1.bar([x + 0.5 * width for x in years], pipeline_jetty_cap, width=width, alpha=alpha,
+                label="Pipeline Jetty - Storage capacity", color='#ffbb78')
+
+        # added vertical lines for mentioning the different phases
+        plt.axvline(x=2024.3, color='k', linestyle='--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
+
+        # Plot second ax
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='#ff9896')
+        plt.ylim(0, 6000000)
+
+        # added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60, 'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.57, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Unloading capacity Jetty & capacity Pipeline [t/h]')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Capacity Jetty & Pipeline')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
+    def Storage_capacity_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         # get crane service capacity and storage capacity
@@ -1470,229 +1713,6 @@ class System:
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
-    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
-        revenue = self.revenues
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values + cash_flows['demurrage'].values
-
-        # sum cash flows to get profits as a function of year
-        profits = []
-        for year in years:
-            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
-                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-
-        # cumulatively sum profits to get profits_cum
-        profits_cum = [None] * len(profits)
-        for index, value in enumerate(profits):
-            if index == 0:
-                profits_cum[index] = 0
-            else:
-                profits_cum[index] = profits_cum[index - 1] + profits[index]
-
-        # generate plot
-        fig, ax = plt.subplots(figsize=(16, 7))
-
-        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
-        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
-        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
-        ax.step(years, profits, label='profits', where='mid')
-        ax.step(years, profits_cum, label='profits_cum', where='mid')
-
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Cashflow [000 M $]')
-        ax.set_title('Cash flow plot')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
-
-    def terminal_elements_example_plot(self, width=0.3, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # collect elements to add to plot
-        years = []
-        jettys = []
-        # pipelines = []
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            years.append(year)
-            jettys.append(0)
-            # pipelines.append(0)
-
-            for element in self.elements:
-                if isinstance(element, Jetty):
-                    if year >= element.year_online:
-                        jettys[-1] += 1
-            # for element in self.elements:
-            #     if isinstance(element, Pipeline_Jetty):
-            #         if year >= element.year_online:
-            #             pipelines[-1] += 1
-
-
-        # get demand
-        demand = pd.DataFrame()
-        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
-            try:
-                for column in commodity.scenario_data.columns:
-                    if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
-            except:
-                pass
-
-        # generate plot
-        fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x - 0.5 * width for x in years], jettys, width=width, alpha=alpha, label="Jettys", color='steelblue')
-        # plt.ylim(0, 2)
-        # ax1.bar([x + 0.5 * width for x in years], pipelines, width=width, alpha=alpha, label="Pipelines", color='lightblue')
-
-        ax2 = ax1.twinx()
-
-        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
-
-        ax1.set_xlabel('Years')
-        ax1.set_ylabel('Elements on line [nr]')
-        ax2.set_ylabel('Throughput [t/y]')
-        ax1.set_title('Jettys')
-        ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels(years)
-        fig.legend(loc=1)
-
-    def terminal_occupancy_example_plot(self, width=0.3, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # collect elements to add to plot
-        years = []
-        berths_occupancy = []
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            years.append(year)
-            berths_occupancy.append(0)
-
-            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, \
-            panamax_calls, vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-
-
-            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-                = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                                 largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-
-
-            for element in self.elements:
-                if isinstance(element, Berth):
-                    if year >= element.year_online:
-                        berths_occupancy[-1] = berth_occupancy_online
-
-        # get demand
-        demand = pd.DataFrame()
-        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
-            try:
-                for column in commodity.scenario_data.columns:
-                    if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
-            except:
-                pass
-
-          # generate plot
-        fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy", color='steelblue')
-
-        horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
-        plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy")
-
-        for i, occ in enumerate(berths_occupancy):
-            occ = occ if type(occ) != float else 0
-            ax1.text(x = years[i], y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
-
-        ax2 = ax1.twinx()
-        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
-        plt.ylim(0, 6000000)
-
-        ax1.set_xlabel('Years')
-        ax1.set_ylabel('Berth occupancy [%]')
-        ax2.set_ylabel('Demand [t/y]')
-        ax1.set_title('Berth occupancy')
-        ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels(years)
-        fig.legend(loc=1)
-
-    def terminal_pipeline_plot(self, width=0.2, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # collect elements to add to plot
-        years = []
-        pipeline_jetty = []
-        jettys = []
-        pipeline_jetty_cap = []
-        jettys_cap = []
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            years.append(year)
-            pipeline_jetty.append(0)
-            jettys.append(0)
-            pipeline_jetty_cap.append(0)
-            jettys_cap.append(0)
-
-            for element in self.elements:
-                if isinstance(element, Pipeline_Jetty):
-                    if year >= element.year_online:
-                        pipeline_jetty[-1] += 1
-            for element in self.elements:
-                if isinstance(element, Jetty):
-                    if year >= element.year_online:
-                        jettys[-1] += 1
-
-            for element in self.elements:
-                if isinstance(element, Pipeline_Jetty):
-                    if year >= element.year_online:
-                        pipeline_jetty_cap[-1] += element.capacity
-            for element in self.find_elements(Jetty):
-                if isinstance(element, Jetty):
-                    if year >= element.year_online:
-                        jettys_cap[-1] += hydrogen_defaults.vlcc_data["pump_capacity"]
-
-        # get demand
-        demand = pd.DataFrame()
-        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
-            try:
-                for column in commodity.scenario_data.columns:
-                    if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
-            except:
-                pass
-
-          # generate plot
-        fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x - 0.5 * width for x in years], pipeline_jetty_cap, width=width, alpha=alpha, label="Pipeline Jetty - Storage capacity", color='steelblue')
-        ax1.bar([x + 0.5 * width for x in years], jettys_cap, width=width, alpha=alpha, label="Jetty unloading capacity", color='silver')
-
-        # Plot second ax
-        ax2 = ax1.twinx()
-        ax2.step(years, demand['demand'].values, label="demand", where='mid', color='red')
-        plt.ylim(0, 6000000)
-
-        ax1.set_xlabel('Years')
-        ax1.set_ylabel('Unloading capacity Jetty & capacity Pipeline [t/h]')
-        ax2.set_ylabel('Demand [t/y]')
-        ax1.set_title('Capacity Jetty & Pipeline')
-        ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels(years)
-        fig.legend(loc=1)
-
     def H2retrieval_capacity_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
@@ -1727,8 +1747,10 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="storages", color='silver')
+        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrieval", color='steelblue')
+        #added vertical lines for mentioning the different phases
         plt.axvline(x=2024.3, color = 'k', linestyle = '--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
 
         for i, occ in enumerate(h2retrievals):
             occ = occ if type(occ) != float else 0
@@ -1736,7 +1758,15 @@ class System:
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand", where='mid',color='red')
-        ax2.step(years, h2retrievals_capacity, label="Storages capacity", where='mid', linestyle = '--',  color='steelblue')
+        ax2.step(years, h2retrievals_capacity, label="H2 retrieval capacity", where='mid', linestyle = '--',  color='steelblue')
+
+        #added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60,'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.57, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('H2 retrieval [nr]')
