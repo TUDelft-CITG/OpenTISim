@@ -715,12 +715,10 @@ class System:
 
         Throughput = (service_rate * self.operational_hours)
 
-
-        # #todo: verbeter de trigger
-        # H2_retrieval_capacity_needed = (total_vol / self.h2retrieval_trigger) # IJzerman p.26
+        H2_retrieval_capacity_needed = (Throughput / self.h2retrieval_trigger)
 
         # check if sufficient h2retrieval capacity is available
-        while h2retrieval_capacity < Throughput/self.h2retrieval_trigger:
+        while h2retrieval_capacity < H2_retrieval_capacity_needed:
             if self.debug:
                 print('  *** add h2retrieval to elements')
 
@@ -1727,8 +1725,9 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="storages", color='silver')
+        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrieval", color='steelblue')
         plt.axvline(x=2024.3, color = 'k', linestyle = '--')
+        plt.axvline(x=2022.3, color='k', linestyle='--')
 
         for i, occ in enumerate(h2retrievals):
             occ = occ if type(occ) != float else 0
@@ -1736,7 +1735,15 @@ class System:
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand", where='mid',color='red')
-        ax2.step(years, h2retrievals_capacity, label="Storages capacity", where='mid', linestyle = '--',  color='steelblue')
+        ax2.step(years, h2retrievals_capacity, label="H2 retrieval capacity", where='mid', linestyle = '--',  color='steelblue')
+
+        #added boxes
+        props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # place a text box in upper left in axes coords
+        ax1.text(0.30, 0.60,'phase 1', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.57, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=14, bbox=props)
+        ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=14, bbox=props)
+
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('H2 retrieval [nr]')
