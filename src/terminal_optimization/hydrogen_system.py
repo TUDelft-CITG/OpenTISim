@@ -524,7 +524,10 @@ class System:
         service_rate = 0
         years_online = []
 
-        max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
+        #todo: max this
+        # max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
+
+        max_vessel_Capacity_vessels = hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
         jetty = len(self.find_elements(Jetty))
         for element in self.find_elements(Jetty):
@@ -760,10 +763,10 @@ class System:
         service_rate = 0
         years_online = []
         for element in (self.find_elements(Unloading_station)):
-            service_rate += element.production
+            service_rate += element.service_rate
             years_online.append(element.year_online)
 
-        # check if total planned length is smaller than target length, if so add a jetty
+        # check if total planned length is smaller than target length, if so add a pipeline
         while service_rate > service_capacity:
             if self.debug:
                 print('  *** add Hinter Pipeline to elements')

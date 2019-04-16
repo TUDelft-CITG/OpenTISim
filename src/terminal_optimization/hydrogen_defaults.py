@@ -118,7 +118,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "crew_for5": 1,
              "insurance_perc": 0.01,
              "storage_type": 'tank',
-             "consumption": 0.1,
+             "consumption": 100,
              "capacity": 4_000} # all input values from Ijzermans, 2019, P 102
 
 "Ammonia"
@@ -135,7 +135,7 @@ storage_nh3_data = {"name": 'ATank_01',
                   "crew_for5": 1,
                   "insurance_perc": 0.01,
                   "storage_type": 'tank',
-                  "consumption": 0.1,
+                  "consumption": 100,
                   "capacity": 40_000}
 
 "MCH"
@@ -165,7 +165,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 500_000_000,
+             "unit_rate": 246_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.02,
