@@ -365,6 +365,8 @@ class System:
             print('     waiting time factor (@ start of year): {}'.format(factor))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
             print('     throughput online {}'.format(throughput_online))
+            print('     throughput planned {}'.format(throughput_planned))
+
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -608,11 +610,12 @@ class System:
         - add h2 retrieval until target is reached
         """
 
-        plant_occupancy_planned, plant_occupancy_online,  h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
+        plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
 
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {}'.format(plant_occupancy_planned))
             print('     Plant occupancy online (@ start of year): {}'.format(plant_occupancy_online))
+            print('     Plant occupancy online (@ start of year): {}'.format(plant_occupancy_online_2))
 
         # check if sufficient h2retrieval capacity is available
         while plant_occupancy_planned > self.h2retrieval_trigger:
@@ -647,8 +650,7 @@ class System:
 
             self.elements.append(h2retrieval)
 
-            plant_occupancy_planned, plant_occupancy_online,  h2retrieval_capacity_planned, h2retrieval_capacity_online\
-                = self.calculate_h2retrieval_occupancy(year)
+            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
 
             if self.debug:
                 print(
@@ -750,16 +752,13 @@ class System:
             station.insurance = unit_rate * station.insurance_perc
             station.maintenance = unit_rate * station.maintenance_perc
 
-            #   labour
+            # - labour
             labour = Labour(**hydrogen_defaults.labour_data)
             station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             station.labour = station.shift * labour.operational_salary
 
-            if year == self.startyear:
-                station.year_online = year + station.delivery_time + 1
-            else:
-                for element in self.find_elements(H2retrieval):
-                    station.year_online = element.year_online
+            # - Define online year
+            station.year_online = year + station.delivery_time
 
             # add cash flow information to station object in a dataframe
             station = self.add_cashflow_data_to_element(station)
@@ -1140,8 +1139,17 @@ class System:
         - Divide the throughput by the service rate to get the total hours in a year
         - Occupancy is total_time_at_station divided by operational hours
         """
-        # find the total service rate and determine the time at station
+        # Find demand
+        # throughput_online, throughput_planned = self.throughput_elements(year)
 
+        Demand = []
+        for commodity in self.find_elements(Commodity):
+            try:
+                Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        # find the total service rate and determine the time at station
         h2retrieval_capacity_planned = 0
         h2retrieval_capacity_online = 0
         yearly_capacity = hydrogen_defaults.h2retrieval_lh2_data["capacity"] * self.operational_hours
@@ -1152,31 +1160,27 @@ class System:
                 if year >= element.year_online:
                     h2retrieval_capacity_online += yearly_capacity
 
-            # Find demand
-            Demand = []
-            for commodity in self.find_elements(Commodity):
-                try:
-                    Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                except:
-                    pass
-
             # station_occupancy is the total time at station divided by the operational hours
             plant_occupancy_planned = Demand / h2retrieval_capacity_planned
 
             if h2retrieval_capacity_online != 0:
-                time_at_plant_online = Demand / h2retrieval_capacity_online  # element.capacity
+                time_at_plant_online = Demand / h2retrieval_capacity_online# element.capacity
+                time_at_plant_online_2 = Demand / h2retrieval_capacity_online# element.capacity
 
                 # station occupancy is the total time at station divided by the operational hours
                 plant_occupancy_online = min([time_at_plant_online, 1])
+                plant_occupancy_online_2 = min([time_at_plant_online_2, 1])
             else:
                 plant_occupancy_online = float("inf")
+                plant_occupancy_online_2 = float("inf")
 
         else:
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
             plant_occupancy_planned = float("inf")
             plant_occupancy_online = float("inf")
+            plant_occupancy_online_2 = float("inf")
 
-        return plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online
+        return plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online
 
     def calculate_station_occupancy(self, year):
         """
@@ -1184,6 +1188,14 @@ class System:
         - Divide the throughput by the service rate to get the total hours in a year
         - Occupancy is total_time_at_station divided by operational hours
         """
+
+        # Find demand
+        Demand = []
+        for commodity in self.find_elements(Commodity):
+            try:
+                Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
 
         list_of_elements = self.find_elements(Unloading_station)
         # find the total service rate and determine the time at station
@@ -1196,15 +1208,13 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.service_rate
 
-            throughput_online, throughput_planned =self.throughput_elements(year)
-
-            time_at_station_planned = throughput_planned/ service_rate_planned  # element.service_rate
+            time_at_station_planned = Demand / service_rate_planned  # element.service_rate
 
             # station_occupancy is the total time at station divided by the operational hours
             station_occupancy_planned = time_at_station_planned / self.operational_hours
 
             if service_rate_online != 0:
-                time_at_station_online = throughput_planned / service_rate_online  # element.capacity
+                time_at_station_online = Demand / service_rate_online  # element.capacity
 
                 # station occupancy is the total time at station divided by the operational hours
                 station_occupancy_online = min([time_at_station_online / self.operational_hours, 1])
@@ -1245,6 +1255,29 @@ class System:
                                  hydrogen_defaults.panamax_data["pump_capacity"] +
                                  hydrogen_defaults.vlcc_data["pump_capacity"])/7 * self.operational_hours)
 
+        # Find pipeline jetty capacity
+        pipelineJ_capacity_planned = 0
+        pipelineJ_capacity_online = 0
+        list_of_elements = self.find_elements(Pipeline_Jetty)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                pipelineJ_capacity_planned += element.capacity * self.operational_hours
+                if year >= element.year_online:
+                    pipelineJ_capacity_online += element.capacity * self.operational_hours
+
+        # Find storage capacity
+        storage_capacity_planned = 0
+        storage_capacity_online = 0
+        list_of_elements = self.find_elements(Storage)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                storage_capacity_planned += element.capacity
+                if year >= element.year_online:
+                    storage_capacity_online += element.capacity
+
+        storage_cap_planned = storage_capacity_planned / (self.h2retrieval_trigger*1.1)
+        storage_cap_online = storage_capacity_online / (self.h2retrieval_trigger*1.1)
+
         #Find H2retrieval capacity
         h2retrieval_capacity_planned = 0
         h2retrieval_capacity_online = 0
@@ -1255,6 +1288,16 @@ class System:
                 h2retrieval_capacity_planned += yearly_capacity
                 if year >= element.year_online:
                     h2retrieval_capacity_online += yearly_capacity
+
+        # Find pipeline jetty capacity
+        pipelineh_capacity_planned = 0
+        pipelineh_capacity_online = 0
+        list_of_elements = self.find_elements(Pipeline_Hinter)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                pipelineh_capacity_planned += element.capacity * self.operational_hours
+                if year >= element.year_online:
+                    pipelineh_capacity_online += element.capacity * self.operational_hours
 
         #Find Station capacity
         list_of_elements = self.find_elements(Unloading_station)
@@ -1274,8 +1317,8 @@ class System:
             except:
                 pass
 
-        throughput_planned = min(service_rate_planned, h2retrieval_capacity_planned, Jetty_cap_planned, Demand)
-        throughput_online = min(service_rate_online, h2retrieval_capacity_online, Jetty_cap, Demand)
+        throughput_planned = min(service_rate_planned, h2retrieval_capacity_planned, Jetty_cap_planned, pipelineJ_capacity_planned, pipelineh_capacity_planned, Demand)
+        throughput_online = min(service_rate_online, h2retrieval_capacity_online, Jetty_cap, pipelineJ_capacity_online, pipelineh_capacity_online, Demand)
 
 
         return throughput_online, throughput_planned
@@ -1521,6 +1564,7 @@ class System:
                     if year >= element.year_online:
                         plants_occupancy[-1] = plant_occupancy_online
 
+
         # get demand
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
@@ -1535,8 +1579,12 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
+        print(plants_occupancy)
         ax1.bar([x for x in years], plants_occupancy, width=width, alpha=alpha, label="Plant occupancy [-]",
                 color='#aec7e8')
+
+        for i, occ in enumerate(plants_occupancy):
+            ax1.text(x=years[i], y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
 
         # added vertical lines for mentioning the different phases
         plt.axvline(x=2024.3, color='k', linestyle='--')
@@ -1546,13 +1594,9 @@ class System:
         horiz_line_data = np.array([self.h2retrieval_trigger for i in range(len(years))])
         plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable plant occupancy [-]")
 
-        for i, occ in enumerate(plants_occupancy):
-            occ = occ if type(occ) != float else 0
-            ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
-
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand [t/y]", where='mid', color='#ff9896')
-        plt.ylim(0, 6000000)
+        # plt.ylim(0, 6000000)
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -1613,8 +1657,7 @@ class System:
         plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable station occupancy [-]")
 
         for i, occ in enumerate(stations_occupancy):
-            occ = occ if type(occ) != float else 0
-            ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
+           ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand [t/y]", where='mid', color='#ff9896')

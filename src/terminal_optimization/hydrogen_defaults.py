@@ -51,7 +51,7 @@ jetty_data = {"name": 'Jetty_01',
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "freeboard": 4,
-                  "Gijt_constant_jetty": 1500, #based on personal communation with de Gijt
+                  "Gijt_constant_jetty": 2000, #based on personal communation with de Gijt & Quist
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
@@ -184,7 +184,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
 
 hinterland_station_data = {"name": 'Hinterland_station_01',
                            "ownership": 'Terminal operator',
-                           "delivery_time": 1,
+                           "delivery_time": 2,
                            "lifespan": 15,
                            "unit_rate": 800_000,
                            "mobilisation": 200_000,
