@@ -137,57 +137,17 @@ class System:
         2. calculate the maximum amount that can be handled (service capacity * operational hours)
         Terminal.revenues is the minimum of 1. and 2.
         """
-        # implement a safetymarge
-        jetty = len(self.find_elements(Jetty))
-        pipeline_jetty = len(self.find_elements(Pipeline_Jetty))
-        storage = len(self.find_elements(Storage))
-        h2retrieval = len(self.find_elements(H2retrieval))
-        pipeline_hinter = len(self.find_elements(Pipeline_Hinter))
-        station = len(self.find_elements(Unloading_station))
-
-        if jetty < 1 and pipeline_jetty < 1 and storage < 1 and h2retrieval < 1 and pipeline_hinter < 1 and station < 1:
-            safety_factor = 0
-        else:
-            safety_factor = 1
 
         # gather volumes from each commodity, calculate how much revenue it would yield, and add
-        revenues = 0
         for commodity in self.find_elements(Commodity):
             fee = commodity.handling_fee
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                revenues += (volume * fee * safety_factor)
-            except:
-                pass
-        if self.debug:
-            print('     Revenues (demand): {}'.format(revenues))
 
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
-        vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-            = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                             largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-        # find the total service rate,
-        service_rate = 0
-        for element in self.find_elements(Jetty):
-            if year >= element.year_online:
-                service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
-                                 largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
-                                 smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
-                                 largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
-                                 handysize_calls *  hydrogen_defaults.handysize_data["pump_capacity"] +
-                                 panamax_calls *  hydrogen_defaults.panamax_data["pump_capacity"] +
-                                 vlcc_calls * hydrogen_defaults.vlcc_data["pump_capacity"])/total_calls * unloading_occupancy_online
-
-        fee = commodity.handling_fee
-        throughput = self.throughput_elements(year)
+        throughput_online, throughput_planned = self.throughput_elements(year)
         if self.debug:
-            print('     Revenues (throughput): {}'.format(
-                int(throughput * fee * safety_factor)))
+                print('     Revenues: {}'.format(int(throughput_online * fee)))
 
         try:
-            self.revenues.append(
-                min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
+            self.revenues.append(throughput_online * fee)
         except:
             pass
 
@@ -242,14 +202,14 @@ class System:
         list_of_elements_H2retrieval = self.find_elements(H2retrieval)
 
         # find the total throughput,
-        throughput = self.throughput_elements(year)
+        throughput_online, throughput_planned = self.throughput_elements(year)
 
         for element in list_of_elements_H2retrieval:
             if year >= element.year_online:
                 consumption = element.consumption
 
-                if consumption * throughput * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * throughput * energy.price
+                if consumption * throughput_online * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * throughput_online * energy.price
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
@@ -374,6 +334,8 @@ class System:
         """
 
         # report on the status of all berth elements
+
+        #todo; uitleg bij schrijven
         self.report_element(Berth, year)
         self.report_element(Jetty, year)
         self.report_element(Pipeline_Jetty, year)
@@ -393,7 +355,7 @@ class System:
                                              largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
 
         factor, waiting_time_occupancy = self.waiting_time(year)
-        Throughput = self.throughput_elements(year)
+        throughput_online, throughput_planned = self.throughput_elements(year)
 
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
@@ -402,7 +364,7 @@ class System:
             print('     Unloading occupancy online (@ start of year): {}'.format(unloading_occupancy_online))
             print('     waiting time factor (@ start of year): {}'.format(factor))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
-            print('throughput {}'.format(Throughput))
+            print('     throughput online {}'.format(throughput_online))
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -518,9 +480,8 @@ class System:
         service_rate = 0
         years_online = []
         for element in self.find_elements(Jetty):
-            if year >= element.year_online:
-                service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
-                years_online.append(element.year_online)
+            service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
+            years_online.append(element.year_online)
 
         # check if total planned capacity is smaller than target capacity, if so add a pipeline
         while service_capacity < service_rate:
@@ -595,19 +556,13 @@ class System:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                 storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
-        vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-            = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                             largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-
         # max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
         max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
 
         # find the total throughput
-        throughput = self.throughput_elements(year)
+        throughput_online, throughput_planned = self.throughput_elements(year)
 
-        storage_capacity_dwelltime = (throughput * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        storage_capacity_dwelltime = (throughput_planned * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # check if sufficient storage capacity is available
         while storage_capacity < storage_capacity_dwelltime or storage_capacity < max_vessel_call_size:
@@ -629,7 +584,6 @@ class System:
             storage.shift = ((storage.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             storage.labour = storage.shift * labour.operational_salary
 
-#todo: year online is for a part directly but for a part is needs to be equal to h2 retrieval
             if year == self.startyear:
                 storage.year_online = year + storage.delivery_time + 1
             else:
@@ -1198,30 +1152,19 @@ class System:
                 if year >= element.year_online:
                     h2retrieval_capacity_online += yearly_capacity
 
-
-            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
-            vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-                = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                                 largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-            # find the total service rate,
-            service_rate = 0
-            for element in self.find_elements(Jetty):
-                if year >= element.year_online:
-                    service_rate += (smallhydrogen_calls * hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
-                                     largehydrogen_calls * hydrogen_defaults.largehydrogen_data["pump_capacity"] +
-                                     smallammonia_calls * hydrogen_defaults.smallammonia_data["pump_capacity"] +
-                                     largeammonia_calls * hydrogen_defaults.largeammonia_data["pump_capacity"] +
-                                     handysize_calls * hydrogen_defaults.handysize_data["pump_capacity"] +
-                                     panamax_calls * hydrogen_defaults.panamax_data["pump_capacity"] +
-                                     vlcc_calls * hydrogen_defaults.vlcc_data[
-                                         "pump_capacity"]) / total_calls * unloading_occupancy_online
+            # Find demand
+            Demand = []
+            for commodity in self.find_elements(Commodity):
+                try:
+                    Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                except:
+                    pass
 
             # station_occupancy is the total time at station divided by the operational hours
-            plant_occupancy_planned = service_rate * self.operational_hours/ h2retrieval_capacity_planned
+            plant_occupancy_planned = Demand / h2retrieval_capacity_planned
 
             if h2retrieval_capacity_online != 0:
-                time_at_plant_online = service_rate * self.operational_hours/ h2retrieval_capacity_online  # element.capacity
+                time_at_plant_online = Demand / h2retrieval_capacity_online  # element.capacity
 
                 # station occupancy is the total time at station divided by the operational hours
                 plant_occupancy_online = min([time_at_plant_online, 1])
@@ -1253,21 +1196,15 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.service_rate
 
-            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
-            vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online \
-                = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                                 largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
-            # find the total service rate,
-            throughput=self.throughput_elements(year)
+            throughput_online, throughput_planned =self.throughput_elements(year)
 
-            time_at_station_planned = throughput/ service_rate_planned  # element.service_rate
+            time_at_station_planned = throughput_planned/ service_rate_planned  # element.service_rate
 
             # station_occupancy is the total time at station divided by the operational hours
             station_occupancy_planned = time_at_station_planned / self.operational_hours
 
             if service_rate_online != 0:
-                time_at_station_online = throughput / service_rate_online  # element.capacity
+                time_at_station_online = throughput_planned / service_rate_online  # element.capacity
 
                 # station occupancy is the total time at station divided by the operational hours
                 station_occupancy_online = min([time_at_station_online / self.operational_hours, 1])
@@ -1289,8 +1226,16 @@ class System:
         """
 
         #Find jetty capacity
+        Jetty_cap_planned = 0
         Jetty_cap = 0
         for element in self.find_elements(Jetty):
+            Jetty_cap_planned += ((hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
+                                 hydrogen_defaults.largehydrogen_data["pump_capacity"] +
+                                 hydrogen_defaults.smallammonia_data["pump_capacity"] +
+                                 hydrogen_defaults.largeammonia_data["pump_capacity"] +
+                                 hydrogen_defaults.handysize_data["pump_capacity"] +
+                                 hydrogen_defaults.panamax_data["pump_capacity"] +
+                                 hydrogen_defaults.vlcc_data["pump_capacity"])/7 * self.operational_hours)
             if year >= element.year_online:
                 Jetty_cap += ((hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
                                  hydrogen_defaults.largehydrogen_data["pump_capacity"] +
@@ -1317,7 +1262,7 @@ class System:
         service_rate_online = 0
         if list_of_elements != []:
             for element in list_of_elements:
-                service_rate_planned += element.service_rate
+                service_rate_planned += element.service_rate * self.operational_hours
                 if year >= element.year_online:
                     service_rate_online += element.service_rate * self.operational_hours
 
@@ -1329,9 +1274,11 @@ class System:
             except:
                 pass
 
-        throughput = min(service_rate_online, h2retrieval_capacity_online, Jetty_cap, Demand)
+        throughput_planned = min(service_rate_planned, h2retrieval_capacity_planned, Jetty_cap_planned, Demand)
+        throughput_online = min(service_rate_online, h2retrieval_capacity_online, Jetty_cap, Demand)
 
-        return throughput
+
+        return throughput_online, throughput_planned
 
     def report_element(self, Element, year):
         elements = 0
@@ -1365,9 +1312,9 @@ class System:
             = self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
                                              largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls)
         # find the total service rate,
-        throughput = self.throughput_elements(year)
+        throughput_online, throughput_planned = self.throughput_elements(year)
 
-        train_calls = throughput / station.call_size
+        train_calls = throughput_online / station.call_size
 
         return train_calls
 
