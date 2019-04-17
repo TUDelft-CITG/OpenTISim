@@ -834,6 +834,53 @@ class System:
             list_of_elements_tractor = self.find_elements(Horizontal_Transport)
             tractor_online = len(list_of_elements_tractor)
 
+    def laden_stack_invest(self, year):
+        '''Investment strategy, anticipate at the expected throughput'''
+        """current strategy is to add ground slots as soon as a service trigger is achieved
+        - find out how much laden capacity is online
+        - find out how much laden capacity is planned
+        - find out how much laden capacity is needed
+        - add service capacity until service_trigger is no longer exceeded
+        """
+        laden_ground_slots=self.laden_ground_slots(year,laden_perc)
+
+        if self.debug:
+            print('     Laden ground slots planned (@ start of year): {}'.format(station_occupancy_planned))
+            print('     Laden ground slots online (@ start of year): {}'.format(station_occupancy_online))
+
+        while laden_ground_slots > self.allowable_station_occupancy:
+            # add a station when station occupancy is too high
+            if self.debug:
+                print('  *** add station to elements')
+
+            station = Unloading_station(**container_defaults.hinterland_station_data)
+
+            # - capex
+            unit_rate = station.unit_rate
+            mobilisation = station.mobilisation
+            station.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            station.insurance = unit_rate * station.insurance_perc
+            station.maintenance = unit_rate * station.maintenance_perc
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            station.labour = station.shift * labour.operational_salary
+
+            if year == self.startyear:
+                station.year_online = year + station.delivery_time + 1
+            else:
+                station.year_online = year + station.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+            station = self.add_cashflow_data_to_element(station)
+
+            self.elements.append(station)
+
+            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+
 
     # *** Financial analyses
 

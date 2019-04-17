@@ -112,9 +112,22 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
                                                        container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})
 
+
 Container = type('Container', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                 container_mixins.container_properties_mixin),
                {})
+
+Stack = type('Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                                container_mixins.stack_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hasopex_properties_mixin,  # Give it opex info
+                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                 {})
+
+
+
+
 # The generic Storage class
 # - Silo
 # - Warehouse
