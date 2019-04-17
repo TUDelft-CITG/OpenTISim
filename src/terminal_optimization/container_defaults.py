@@ -194,10 +194,10 @@ laden_container_data = {"name": 'Laden container',
                         "peak_factor" : 1.2,
                         "stack_occupancy" : 0.8}
 
-# *** Default inputs: Stack class
+# *** Default inputs: Stack_Equipment class
 
-laden_stack_data = {"name": 'Laden stack',
-                         "type": 'laden_stack',
+rtg_stack_data = {"name": 'RTG stack',
+                         "type": 'RTG_stack',
                         "length": 25,
                     "pavement" : 100,
                     "drainage" : 15}

@@ -4,9 +4,6 @@
 - 2. Berth
 - 3. Cyclic_Unloader
     - STS crane
-- 4. Conveyor
-    - Hinterland conveyor
-    - Quay conveyor
 - 4. Horizontal transport
     - Tractor trailer
 - 5. Containers
@@ -14,18 +11,20 @@
     - Reefer
     - Empty
     - OOG
-- 5. Storage
-    - Silo
-    - Warehouse
-- 6. Unloading_station
-    - Hinterland station
-- 7. Commodity
-    - Maize
-    - Soybean
-    - Wheat
+- 6. Laden and reefer stack
+    - RTG stack
+    - RMG stack
+    - SC stack
+    - RS stack
+- 7. Stack equipment
+    - RTG
+    - RMG
+    - SC
+    - RS
+-8. Other stacks
+    - OOG stack
+    - Empty stack
 - 8. Vessel
-    - Handysize
-    - Handymax
     - Panamax
 - 9. Labour
 
@@ -102,8 +101,6 @@ Conveyor_Hinter = type('Conveyor_Hinter', (container_mixins.identifiable_propert
 
 # The generic Horizontal transport class
 # - Tractor trailer
-
-
 Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                                        container_mixins.history_properties_mixin,  # Give it procurement history
                                                        container_mixins.transport_properties_mixin,
@@ -116,6 +113,19 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
 Container = type('Container', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                 container_mixins.container_properties_mixin),
                {})
+
+# The generic laden and reefer stack class
+# - RTG stack
+# - RMG stack
+# - SC stack
+# - RS stack
+
+Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                                container_mixins.laden_stack_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                 {})
 
 # The generic stack equipment class
 # - RTG
