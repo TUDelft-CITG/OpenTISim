@@ -9,13 +9,17 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg', operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
+
+        # stack equipment parameters
+        self.stack_equipment = stack_equipment
+        self.laden_stack = laden_stack
 
         # provide intermediate outputs via print statements if debug = True
         self.debug = debug
@@ -102,6 +106,8 @@ class System:
             self.unloading_station_invest(year)
 
             self.horizontal_transport_invest(year)
+
+            self.laden_stack_invest(year)
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
@@ -835,51 +841,101 @@ class System:
             tractor_online = len(list_of_elements_tractor)
 
     def laden_stack_invest(self, year):
-        '''Investment strategy, anticipate at the expected throughput'''
-        """current strategy is to add ground slots as soon as a service trigger is achieved
-        - find out how much laden capacity is online
-        - find out how much laden capacity is planned
-        - find out how much laden capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
-        """
-        laden_ground_slots=self.laden_ground_slots(year,laden_perc)
+        """current strategy is to add stacks as soon as trigger is achieved
+              - find out how much stack capacity is online
+              - find out how much stack capacity is planned
+              - find out how much stack capacity is needed
+              - add stack capacity until service_trigger is no longer exceeded
+              """
+
+        stack_capacity_planned, stack_capacity_online, required_capacity = self.calculate_stack_capacity(year)
 
         if self.debug:
-            print('     Laden ground slots planned (@ start of year): {}'.format(station_occupancy_planned))
-            print('     Laden ground slots online (@ start of year): {}'.format(station_occupancy_online))
+            print('     Stack capacity planned (@ start of year): {}'.format(stack_capacity_planned))
+            print('     Stack capacity online (@ start of year): {}'.format(stack_capacity_online))
 
-        while laden_ground_slots > self.allowable_station_occupancy:
+        while required_capacity > (stack_capacity_planned+stack_capacity_online):
             # add a station when station occupancy is too high
             if self.debug:
-                print('  *** add station to elements')
+                print('  *** add stack to elements')
+            # TOT HIER AANGEPAST
 
-            station = Unloading_station(**container_defaults.hinterland_station_data)
+            stack = Laden_Stack(**container_defaults.rtg_stack_data) # todo maak dit equipment afhankelijk
 
             # - capex
-            unit_rate = station.unit_rate
-            mobilisation = station.mobilisation
-            station.capex = int(unit_rate + mobilisation)
+            area = stack.length*stack.width
+            gross_tgs = stack.gross_tgs
+            pavement = stack.pavement
+            drainage = stack.drainage
+            area_factor = stack.area_factor
+            mobilisation = stack.mobilisation
+            stack.capex = int((pavement+drainage)*gross_tgs*area*area_factor + mobilisation)
 
             # - opex
-            station.insurance = unit_rate * station.insurance_perc
-            station.maintenance = unit_rate * station.maintenance_perc
+            stack.maintenance = int((pavement+drainage)*gross_tgs*area*area_factor * stack.maintenance_perc)
 
-            #   labour
-            labour = Labour(**container_defaults.labour_data)
-            station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            station.labour = station.shift * labour.operational_salary
 
             if year == self.startyear:
-                station.year_online = year + station.delivery_time + 1
+                stack.year_online = year + stack.delivery_time + 1
             else:
-                station.year_online = year + station.delivery_time
+                stack.year_online = year + stack.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            station = self.add_cashflow_data_to_element(station)
+            stack = self.add_cashflow_data_to_element(stack)
 
-            self.elements.append(station)
+            self.elements.append(stack)
 
-            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+            stack_capacity_planned, stack_capacity_online, required_capacity = self.calculate_stack_capacity(year)
+
+    def calculate_stack_capacity(self, year):
+
+        """
+        - Find all stations and sum their service_rate to get service_capacity in TUE per hours
+        - Divide the throughput by the service rate to get the total hours in a year
+        - Occupancy is total_time_at_station divided by operational hours
+        """
+
+        list_of_elements = self.find_elements(Laden_Stack)
+        # find the total stack capacity
+
+        stack_capacity_planned = 0
+        stack_capacity_online = 0
+        required_capacity = 0
+        # if list_of_elements != []:
+        for element in list_of_elements:
+            stack_capacity_planned += element.capacity
+            if year >= element.year_online:
+                stack_capacity_online += element.capacity
+
+        ''' Calculate the total throughput in TEU per year'''
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        '''determine the number of laden containers'''
+        laden_containers = int(volume * self.laden_perc)
+
+        laden = Container(**container_defaults.laden_container_data)
+        stack = Laden_Stack(**container_defaults.rtg_stack_data) # todo maak dit afhankelijk van keuze equipment
+
+        laden_stack_height = stack.height  # todo koppel dit aan equipment
+        operational_days = self.operational_hours // 365
+
+        laden_ground_slots = laden_containers * laden.peak_factor * laden.dwell_time / laden.stack_occupancy \
+                             / laden_stack_height / operational_days
+        required_capacity = laden_ground_slots*laden_stack_height
+
+
+        # else:
+        #     # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+        #     stack_capacity_planned = float("inf")
+        #     stack_capacity_online = float("inf")
+
+        return stack_capacity_planned, stack_capacity_online, required_capacity
+
 
 
     # *** Financial analyses
@@ -1065,28 +1121,7 @@ class System:
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
 
-    def laden_ground_slots(self, year, laden_perc):
-        ''' Calculate the total throughput in TEU\annum'''
-        commodities = self.find_elements(Commodity)
-        for commodity in commodities:
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            except:
-                pass
-
-        '''determine the number of laden containers'''
-        laden_containers=int(volume*laden_perc)
-
-        laden = Container(**container_defaults.laden_container_data)
-
-        laden_stack_height=5 # todo koppel dit aan equipment
-        operational_days=self.operational_hours//365
-
-
-        laden_ground_slots = laden_containers*laden.peak_factor*laden.dwell_time/laden.occupancy/laden_stack_height/operational_days
-
-        return laden_ground_slots
-
+#HIER INVOEGEN
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """

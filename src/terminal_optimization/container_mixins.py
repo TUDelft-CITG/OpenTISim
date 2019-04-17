@@ -261,7 +261,7 @@ class laden_stack_properties_mixin (object):
 
 class stack_equipment_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew,
-                 salary, unit_rate, required, fuel_consumption, *args, **kwargs):
+                 salary, required, fuel_consumption, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type

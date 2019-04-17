@@ -191,6 +191,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 # *** Default inputs: Container class
 
 laden_container_data = {"name": 'Laden container',
+                        "type": 'laden_container',
                         "teu_factor" : 1.65,
                         "dwell_time" : 4,
                         "peak_factor" : 1.2,
