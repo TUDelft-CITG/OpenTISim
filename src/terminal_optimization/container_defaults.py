@@ -3,24 +3,27 @@
 - 2. Berth
 - 3. Cyclic_Unloader
     - STS crane
-- 4. Conveyor
-    - Hinterland conveyor
-    - Quay conveyor
 - 4. Horizontal transport
     - Tractor trailer
-
-- 5. Storage
-    - Silo
-    - Warehouse
-- 6. Unloading_station
-    - Hinterland station
-- 7. Commodity
-    - Maize
-    - Soybean
-    - Wheat
+- 5. Containers
+    - Laden
+    - Reefer
+    - Empty
+    - OOG
+- 6. Laden and reefer stack
+    - RTG stack
+    - RMG stack
+    - SC stack
+    - RS stack
+- 7. Stack equipment
+    - RTG
+    - RMG
+    - SC
+    - RS
+-8. Other stacks
+    - OOG stack
+    - Empty stack
 - 8. Vessel
-    - Handysize
-    - Handymax
     - Panamax
 - 9. Labour
 
@@ -188,19 +191,140 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 # *** Default inputs: Container class
 
 laden_container_data = {"name": 'Laden container',
-                         "type": 'laden',
                         "teu_factor" : 1.65,
                         "dwell_time" : 4,
                         "peak_factor" : 1.2,
                         "stack_occupancy" : 0.8}
 
-# *** Default inputs: Stack_Equipment class
+# *** Default inputs: Laden_Stack class
 
-rtg_stack_data = {"name": 'RTG stack',
-                         "type": 'RTG_stack',
-                        "length": 25,
-                    "pavement" : 100,
-                    "drainage" : 15}
+rtg_stack_data = {"name": 'RTG Stack',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,
+                    "lifespan": 40,
+                    "mobilisation": 25_000,
+                    "maintenance_perc": 0.1,
+                    "width": 6, #TEU
+                    "height": 5, #TEU
+                    "length": 30, #TEU
+                    "capacity": 900 , #TEU
+                    "gross_tgs": 18,
+                    "area_factor": 1.5 , # todo haal uit grasshopper model
+                    "pavement": 200, #DUMMY
+                    "drainage": 50} #DUMMY
+
+rmg_stack_data = {"name": 'RMG Stack',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,
+                    "lifespan": 40,
+                    "mobilisation": 50_000,
+                    "maintenance_perc": 0.1,
+                    "width": 6, #TEU
+                    "height": 5, #TEU
+                    "length": 40, #TEU
+                    "capacity": 1200 , #TEU
+                    "gross_tgs": 18.67,
+                    "area_factor": 1.5 , # todo haal uit grasshopper model
+                    "pavement": 200, #DUMMY
+                    "drainage": 50} #DUMMY
+
+sc_stack_data = {"name": 'SC Stack',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,
+                    "lifespan": 40,
+                    "mobilisation": 50_000,
+                    "maintenance_perc": 0.1,
+                    "width": 48, #TEU
+                    "height": 4, #TEU
+                    "length": 20, #TEU
+                    "capacity": 3840 , #TEU
+                    "gross_tgs": 26.46,
+                    "area_factor": 1.2 , # todo haal uit grasshopper model
+                    "pavement": 200, #DUMMY
+                    "drainage": 50} #DUMMY
+
+rs_stack_data = {"name": 'RS Stack',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,
+                    "lifespan": 40,
+                    "mobilisation": 10_000,
+                    "maintenance_perc": 0.1,
+                    "width": 4, #TEU
+                    "height": 4, #TEU
+                    "length": 20, #TEU
+                    "capacity": 320 , #TEU
+                    "gross_tgs": 18,
+                    "area_factor": 1.6 , # todo haal uit grasshopper model
+                    "pavement": 200, #DUMMY
+                    "drainage": 50} #DUMMY
+
+
+
+
+# *** Default inputs: Stack_Equipment class
+#RTG # todo add eRTG
+rtg_data = {"name": 'RTG',
+            "ownership": 'Terminal operator',
+            "delivery_time": 0,
+            "lifespan": 10,
+            "unit_rate": 1_400_000,
+            "mobilisation": 5000,
+            "maintenance_perc": 0.1, #dummy
+            "insurance_perc": 0,
+            "crew": 1, #dummy
+            "salary": 50_000, #dummy
+            "required": 3,
+            "fuel_consumption": 1, #dummy
+            "power_consumption": 0
+            }
+
+#Automaged RMG # todo add non-automated RMG
+rmg_data = {"name": 'RMG',
+            "ownership": 'Terminal operator',
+            "delivery_time": 0,
+            "lifespan": 10,
+            "unit_rate": 2_500_000,
+            "mobilisation": 5000,
+            "maintenance_perc": 0.1, #dummy
+            "insurance_perc": 0,
+            "crew": 0, #dummy
+            "salary": 50_000, #dummy
+            "required": 1, #one per stack
+            "fuel_consumption": 0, #dummy
+            "power_consumption": 15 #kWh/box move
+            }
+
+#Automated straddle carrier # todo add non-automated SC
+sc_data = {"name": 'Sraddle carrier',
+            "ownership": 'Terminal operator',
+            "delivery_time": 0,
+            "lifespan": 10,
+            "unit_rate": 2_000_000, #dummy
+            "mobilisation": 5000,
+            "maintenance_perc": 0.1, #dummy
+            "insurance_perc": 0,
+            "crew": 0, #dummy
+            "salary": 50_000, #dummy
+            "required": 5,
+            "fuel_consumption": 15, #dummy
+            "power_consumption": 0
+            }
+
+#Reach stacker
+rs_data = {"name": 'Reach stacker',
+            "ownership": 'Terminal operator',
+            "delivery_time": 0,
+            "lifespan": 10,
+            "unit_rate": 500_000,
+            "mobilisation": 5000,
+            "maintenance_perc": 0.1, #dummy
+            "insurance_perc": 0,
+            "crew": 2, #dummy
+            "salary": 50_000, #dummy
+            "required": 4,
+            "fuel_consumption": 1, #dummy
+            "power_consumption": 0
+            }
 
 
 # *** Default inputs: Storage class ***

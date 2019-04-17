@@ -12,6 +12,9 @@
 - continuous_properties_mixin
 - conveyor_properties_mixin
 - transport_properties_mixin
+- container_properties_mixin
+- laden_stack_properties
+- stack_equipment_properties
 - storage_properties_mixin
 - unloading_station_properties_mixin
 - commodity_properties_mixin
@@ -236,15 +239,13 @@ class container_properties_mixin (object):
         self.stack_occupancy = stack_occupancy
 
 class laden_stack_properties_mixin (object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, width, height,
+    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
                  length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
-        self.type = type
         self.ownership = ownership
         self.delivery_time = delivery_time
         self.lifespan = lifespan
-        self.unit_rate = unit_rate
         self.mobilisation = mobilisation
         self.maintenance_perc = maintenance_perc
         self.width = width
@@ -255,6 +256,8 @@ class laden_stack_properties_mixin (object):
         self.area_factor = area_factor
         self.pavement = pavement
         self.drainage = drainage
+
+
 
 class stack_equipment_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew,
@@ -271,10 +274,11 @@ class stack_equipment_properties_mixin (object):
         self.insurance_perc = insurance_perc
         self.crew = crew
         self.salary = salary
-        self.unit_rate = unit_rate
         self.required = required
         self.fuel_consumption = fuel_consumption
         self.power_consumption = power_consumption
+
+
 
 
 
