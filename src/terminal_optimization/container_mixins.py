@@ -235,12 +235,30 @@ class container_properties_mixin (object):
         self.peak_factor = peak_factor
         self.stack_occupancy = stack_occupancy
 
-class stack_properties_mixin (object):
+class stack_equipment_properties_mixin (object):
     def __init__(self, type, length, pavement, drainage,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
+        self.crew = crew
+        self.salary = salary
+        self.unit_rate = unit_rate
+        self.required = required
+        self.fuel_consumption = fuel_consumption
+        self.power_consumption = power_consumption
+        self.width = width
+        self.height = height
         self.length = length
+        self.capacity = capacity
+        self.gross_tgs = gross_tgs
+        self.area_factor =
         self.pavement = pavement
         self.drainage = drainage
 
