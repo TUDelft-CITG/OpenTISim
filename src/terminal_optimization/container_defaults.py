@@ -264,7 +264,9 @@ rs_stack_data = {"name": 'RS Stack',
 
 # *** Default inputs: Stack_Equipment class
 #RTG # todo add eRTG
+
 rtg_data = {"name": 'RTG',
+            "type": 'rtg',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
@@ -279,8 +281,9 @@ rtg_data = {"name": 'RTG',
             "power_consumption": 0
             }
 
-#Automaged RMG # todo add non-automated RMG
+#RMG
 rmg_data = {"name": 'RMG',
+            "type": 'rmg',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
@@ -295,8 +298,9 @@ rmg_data = {"name": 'RMG',
             "power_consumption": 15 #kWh/box move
             }
 
-#Automated straddle carrier # todo add non-automated SC
+#Straddle carrier #
 sc_data = {"name": 'Sraddle carrier',
+            "type": 'sc',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
@@ -313,6 +317,7 @@ sc_data = {"name": 'Sraddle carrier',
 
 #Reach stacker
 rs_data = {"name": 'Reach stacker',
+            "type": 'rs',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
@@ -450,7 +455,8 @@ labour_data = {"name": 'Labour',
                "local_staff": 10,
                "operational_salary": 16_750,
                "shift_length": 6.5,
-               "annual_shifts": 200}
+               "annual_shifts": 200,
+               "daily_shifts": 5}
 
 # *** Default inputs: Energy class ***
 

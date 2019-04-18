@@ -258,10 +258,9 @@ class laden_stack_properties_mixin (object):
         self.drainage = drainage
 
 
-
 class stack_equipment_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew,
-                 salary, required, fuel_consumption, *args, **kwargs):
+                 salary, required, fuel_consumption, power_consumption, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -277,11 +276,6 @@ class stack_equipment_properties_mixin (object):
         self.required = required
         self.fuel_consumption = fuel_consumption
         self.power_consumption = power_consumption
-
-
-
-
-
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
@@ -353,7 +347,7 @@ class vessel_properties_mixin(object):
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
-                 shift_length, annual_shifts, *args, **kwargs):
+                 shift_length, annual_shifts, daily_shifts, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.international_salary = international_salary
         self.international_staff = international_staff
@@ -362,6 +356,7 @@ class labour_properties_mixin(object):
         self.operational_salary = operational_salary
         self.shift_length = shift_length
         self.annual_shifts = annual_shifts
+        self.daily_shifts = daily_shifts
 
 
 class energy_properties_mixin(object):
