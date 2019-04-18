@@ -9,7 +9,7 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg', operational_hours=5840, debug=False, elements=[],
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg', operational_hours=7500, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
@@ -848,11 +848,14 @@ class System:
               - add stack capacity until service_trigger is no longer exceeded
               """
 
-        stack_capacity_planned, stack_capacity_online, required_capacity = self.calculate_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers = self.calculate_stack_capacity(year)
 
         if self.debug:
             print('     Stack capacity planned (@ start of year): {}'.format(stack_capacity_planned))
             print('     Stack capacity online (@ start of year): {}'.format(stack_capacity_online))
+            print('     Stack capacity required (@ start of year): {}'.format(required_capacity))
+            print('     Laden ground slots required (@ start of year): {}'.format(laden_ground_slots))
+            print('     Laden containers expected (@ start of year): {}'.format(laden_containers))
 
         while required_capacity > (stack_capacity_planned+stack_capacity_online):
             # add a station when station occupancy is too high
@@ -885,7 +888,7 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_online, required_capacity = self.calculate_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers = self.calculate_stack_capacity(year)
 
     def calculate_stack_capacity(self, year):
 
@@ -901,7 +904,6 @@ class System:
         stack_capacity_planned = 0
         stack_capacity_online = 0
         required_capacity = 0
-        # if list_of_elements != []:
         for element in list_of_elements:
             stack_capacity_planned += element.capacity
             if year >= element.year_online:
@@ -922,19 +924,12 @@ class System:
         stack = Laden_Stack(**container_defaults.rtg_stack_data) # todo maak dit afhankelijk van keuze equipment
 
         laden_stack_height = stack.height  # todo koppel dit aan equipment
-        operational_days = self.operational_hours // 365
+        operational_days = self.operational_hours // 24
 
-        laden_ground_slots = laden_containers * laden.peak_factor * laden.dwell_time / laden.stack_occupancy \
-                             / laden_stack_height / operational_days
+        laden_ground_slots = laden_containers * laden.peak_factor * laden.dwell_time / laden.stack_occupancy / laden_stack_height / operational_days
         required_capacity = laden_ground_slots*laden_stack_height
 
-
-        # else:
-        #     # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-        #     stack_capacity_planned = float("inf")
-        #     stack_capacity_online = float("inf")
-
-        return stack_capacity_planned, stack_capacity_online, required_capacity
+        return stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers
 
 
 
