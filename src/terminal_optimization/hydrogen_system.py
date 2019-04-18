@@ -596,7 +596,7 @@ class System:
 
             if year == self.startyear:
                 storage.year_online = year + storage.delivery_time + 1
-            elif storage_capacity_online < storage_capacity_dwelltime_throughput:
+            elif throughput_online < Demand:
                 storage.year_online = year + storage.delivery_time
             else:
                 storage.year_online = year + storage.delivery_time + 1
@@ -1640,8 +1640,7 @@ class System:
             years.append(year)
             plants_occupancy.append(0)
 
-            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
-                year)
+            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
 
             for element in self.elements:
                 if isinstance(element, H2retrieval):
@@ -1663,7 +1662,6 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        print(plants_occupancy)
         ax1.bar([x for x in years], plants_occupancy, width=width, alpha=alpha, label="Plant occupancy [-]",
                 color='#aec7e8')
 
@@ -1680,7 +1678,6 @@ class System:
 
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="demand [t/y]", where='mid', color='#ff9896')
-        # plt.ylim(0, 6000000)
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -1708,12 +1705,12 @@ class System:
             years.append(year)
             stations_occupancy.append(0)
 
-            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+            station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
 
             for element in self.elements:
                 if isinstance(element, Unloading_station):
                     if year >= element.year_online:
-                        stations_occupancy[-1] = station_occupancy_online
+                        stations_occupancy[-1] = station_occupancy_online_throughput
 
         # get demand
         demand = pd.DataFrame()
