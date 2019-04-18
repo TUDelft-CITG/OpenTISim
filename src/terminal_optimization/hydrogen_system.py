@@ -630,7 +630,6 @@ class System:
             #
             #     # storage_capacity += storage.capacity
 
-
     def h2retrieval_invest(self, year, hydrogen_defaults_h2retrieval_data):
         """current strategy is to add h2 retrieval as long as target h2 retrieval is not yet achieved
         - find out how much h2 retrieval is online
@@ -817,7 +816,7 @@ class System:
             self.elements.append(station)
 
             station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
-            #
+
             if station_occupancy_planned_demand > self.allowable_station_occupancy:
                 if self.debug:
                     print('  *** add station to elements')
@@ -825,6 +824,15 @@ class System:
                     station.year_online = year + station.delivery_time + 1
 
                 station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
+                if self.debug:
+                    print('     Station occupancy online throughput (after adding Station): {}'.format(station_occupancy_online_throughput))
+                    print('     Station occupancy planned throughput (after adding Station): {}'.format(station_occupancy_planned_throughput))
+                    print('     Station occupancy online demand (after adding Station): {}'.format(station_occupancy_online_demand))
+
+                    print('     Station occupancy planned demand (after adding Station): {}'.format(station_occupancy_planned_demand))
+
+
+
 
 
     # *** Financial analyses
