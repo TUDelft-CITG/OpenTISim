@@ -776,6 +776,14 @@ class System:
 
         station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
         train_calls = self.train_call(year)
+        throughput_online, throughput_planned = self.throughput_elements(year)
+
+        Demand = []
+        for commodity in self.find_elements(Commodity):
+            try:
+                Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
 
         if self.debug:
             print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned_throughput))
@@ -783,7 +791,7 @@ class System:
             print('     Number of trains (@start of year): {}'.format(train_calls))
 
 
-        while station_occupancy_planned_throughput > self.allowable_station_occupancy:
+        while station_occupancy_planned_throughput > self.allowable_station_occupancy or station_occupancy_planned_demand > self.allowable_station_occupancy:
             # add a station when station occupancy is too high
             if self.debug:
                 print('  *** add station to elements')
@@ -807,8 +815,10 @@ class System:
             # - Define online year
             if year == self.startyear:
                 station.year_online = year + station.delivery_time
-            else:
+            elif throughput_online == Demand:
                 station.year_online = year + station.delivery_time
+            else:
+                station.year_online = year + station.delivery_time + 1
 
             # add cash flow information to station object in a dataframe
             station = self.add_cashflow_data_to_element(station)
@@ -816,24 +826,20 @@ class System:
             self.elements.append(station)
 
             station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
+            #
+            # if station_occupancy_planned_demand > self.allowable_station_occupancy:
+            #     if self.debug:
+            #         print('  *** add station to elements')
+            #         station = Unloading_station(**hydrogen_defaults.hinterland_station_data)
+            #         station.year_online = year + station.delivery_time + 1
+            #
+            #     station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
+            if self.debug:
+                print('     Station occupancy online throughput (after adding Station): {}'.format(station_occupancy_online_throughput))
+                print('     Station occupancy planned throughput (after adding Station): {}'.format(station_occupancy_planned_throughput))
+                print('     Station occupancy online demand (after adding Station): {}'.format(station_occupancy_online_demand))
 
-            if station_occupancy_planned_demand > self.allowable_station_occupancy:
-                if self.debug:
-                    print('  *** add station to elements')
-                    station = Unloading_station(**hydrogen_defaults.hinterland_station_data)
-                    station.year_online = year + station.delivery_time + 1
-
-                station_occupancy_planned_demand, station_occupancy_planned_throughput, station_occupancy_online_demand, station_occupancy_online_throughput = self.calculate_station_occupancy(year)
-                if self.debug:
-                    print('     Station occupancy online throughput (after adding Station): {}'.format(station_occupancy_online_throughput))
-                    print('     Station occupancy planned throughput (after adding Station): {}'.format(station_occupancy_planned_throughput))
-                    print('     Station occupancy online demand (after adding Station): {}'.format(station_occupancy_online_demand))
-
-                    print('     Station occupancy planned demand (after adding Station): {}'.format(station_occupancy_planned_demand))
-
-
-
-
+                print('     Station occupancy planned demand (after adding Station): {}'.format(station_occupancy_planned_demand))
 
     # *** Financial analyses
 
