@@ -184,7 +184,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
 
 hinterland_station_data = {"name": 'Hinterland_station_01',
                            "ownership": 'Terminal operator',
-                           "delivery_time": 2,
+                           "delivery_time": 1,
                            "lifespan": 15,
                            "unit_rate": 800_000,
                            "mobilisation": 200_000,
