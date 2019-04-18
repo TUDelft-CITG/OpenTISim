@@ -9,7 +9,7 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg', operational_hours=7500, debug=False, elements=[],
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rtg', operational_hours=7500, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
@@ -109,6 +109,8 @@ class System:
 
             self.laden_stack_invest(year)
 
+            self.stack_equipment_invest(year)
+
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
@@ -192,7 +194,7 @@ class System:
         except:
             pass
 
-    def calculate_energy_cost(self, year):
+    def calculate_energy_cost(self, year): # todo voeg energy toe voor nieuwe elementen
         """
         1. calculate the value of the total demand in year (demand * handling fee)
         2. calculate the maximum amount that can be handled (service capacity * operational hours)
@@ -861,9 +863,17 @@ class System:
             # add a station when station occupancy is too high
             if self.debug:
                 print('  *** add stack to elements')
-            # TOT HIER AANGEPAST
 
-            stack = Laden_Stack(**container_defaults.rtg_stack_data) # todo maak dit equipment afhankelijk
+            if self.laden_stack == 'rtg':
+                stack = Laden_Stack(** container_defaults.rtg_stack_data)
+            elif self.laden_stack == 'rmg':
+                stack = Laden_Stack(** container_defaults.rmg_stack_data)
+            elif self.laden_stack == 'sc':
+                stack = Laden_Stack(**container_defaults.sc_stack_data)
+            elif self.laden_stack == 'rs':
+                stack = Laden_Stack(**container_defaults.rs_stack_data)
+
+
 
             # - capex
             area = stack.length*stack.width
@@ -890,48 +900,65 @@ class System:
 
             stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers = self.calculate_stack_capacity(year)
 
-    def calculate_stack_capacity(self, year):
-
+    def stack_equipment_invest(self, year):
+        """current strategy is to add unloading stations as soon as a service trigger is achieved
+        - find out how much stack equipment is online
+        - find out how much stack equipment is planned
+        - find out how much stack equipment is needed
+        - add equipment until service_trigger is no longer exceeded
         """
-        - Find all stations and sum their service_rate to get service_capacity in TUE per hours
-        - Divide the throughput by the service rate to get the total hours in a year
-        - Occupancy is total_time_at_station divided by operational hours
-        """
+        # todo Add delaying effect to the stack equipment invest
+        list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
+        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
+        sts_cranes=len(list_of_elements_sts)
+        stack_equipment_online=len(list_of_elements_stack_equipment)
 
-        list_of_elements = self.find_elements(Laden_Stack)
-        # find the total stack capacity
+        if self.stack_equipment == 'rtg':
+            stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
+        elif self.stack_equipment == 'rmg':
+            stack_equipment = Stack_Equipment(**container_defaults.rmg_data)
+        elif self.stack_equipment == 'sc':
+            stack_equipment = Stack_Equipment(**container_defaults.sc_data)
+        elif self.stack_equipment == 'rs':
+            stack_equipment = Stack_Equipment(**container_defaults.rs_data)
 
-        stack_capacity_planned = 0
-        stack_capacity_online = 0
-        required_capacity = 0
-        for element in list_of_elements:
-            stack_capacity_planned += element.capacity
-            if year >= element.year_online:
-                stack_capacity_online += element.capacity
+        if self.debug:
+            print('     Number of stack equipment online (@ start of year): {}'.format(stack_equipment_online))
 
-        ''' Calculate the total throughput in TEU per year'''
-        commodities = self.find_elements(Commodity)
-        for commodity in commodities:
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            except:
-                pass
+        while sts_cranes > (stack_equipment_online//stack_equipment.required):
 
-        '''determine the number of laden containers'''
-        laden_containers = int(volume * self.laden_perc)
-
-        laden = Container(**container_defaults.laden_container_data)
-        stack = Laden_Stack(**container_defaults.rtg_stack_data) # todo maak dit afhankelijk van keuze equipment
-
-        laden_stack_height = stack.height  # todo koppel dit aan equipment
-        operational_days = self.operational_hours // 24
-
-        laden_ground_slots = laden_containers * laden.peak_factor * laden.dwell_time / laden.stack_occupancy / laden_stack_height / operational_days
-        required_capacity = laden_ground_slots*laden_stack_height
-
-        return stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers
+            # add stack equipment when not enough to serve number of STS cranes
+            if self.debug:
+                print('  *** add stack equipment to elements')
 
 
+            # - capex
+            unit_rate = stack_equipment.unit_rate
+            mobilisation = stack_equipment.mobilisation
+            stack_equipment.capex = int(unit_rate + mobilisation)
+
+            # - opex # todo calculate moves for energy costs
+            stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
+            stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
+
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
+            stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
+
+            if year == self.startyear:
+                stack_equipment.year_online = year + stack_equipment.delivery_time + 1
+            else:
+                stack_equipment.year_online = year + stack_equipment.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+            stack_equipment = self.add_cashflow_data_to_element(stack_equipment)
+
+            self.elements.append(stack_equipment)
+
+            list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
+            stack_equipment_online = len(list_of_elements_stack_equipment)
 
     # *** Financial analyses
 
@@ -1116,7 +1143,53 @@ class System:
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
 
-#HIER INVOEGEN
+    def calculate_stack_capacity(self, year):
+
+        """
+        - Find all stations and sum their service_rate to get service_capacity in TUE per hours
+        - Divide the throughput by the service rate to get the total hours in a year
+        - Occupancy is total_time_at_station divided by operational hours
+        """
+
+        list_of_elements = self.find_elements(Laden_Stack)
+        # find the total stack capacity
+
+        stack_capacity_planned = 0
+        stack_capacity_online = 0
+        required_capacity = 0
+        for element in list_of_elements:
+            stack_capacity_planned += element.capacity
+            if year >= element.year_online:
+                stack_capacity_online += element.capacity
+
+        ''' Calculate the total throughput in TEU per year'''
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        '''determine the number of laden containers'''
+        laden_containers = int(volume * self.laden_perc)
+
+        laden = Container(**container_defaults.laden_container_data)
+
+        if self.laden_stack == 'rtg':
+            stack = Laden_Stack(**container_defaults.rtg_stack_data)
+        elif self.laden_stack == 'rmg':
+            stack = Laden_Stack(**container_defaults.rmg_stack_data)
+        elif self.laden_stack == 'sc':
+            stack = Laden_Stack(**container_defaults.sc_stack_data)
+        elif self.laden_stack == 'rs':
+            stack = Laden_Stack(**container_defaults.rs_stack_data)
+
+        operational_days = self.operational_hours // 24
+
+        laden_ground_slots = laden_containers * laden.peak_factor * laden.dwell_time / laden.stack_occupancy / stack.height / operational_days
+        required_capacity = laden_ground_slots*stack.height
+
+        return stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
@@ -1375,6 +1448,7 @@ class System:
         unloading_station = []
         tractor = []
         stack = []
+        stack_equipment = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1387,6 +1461,7 @@ class System:
             unloading_station.append(0)
             tractor.append(0)
             stack.append(0)
+            stack_equipment.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1413,6 +1488,9 @@ class System:
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
                         stack[-1] += 1
+                if isinstance(element, Stack_Equipment):
+                    if year >= element.year_online:
+                        stack_equipment[-1] += 1
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
                         tractor[-1] += 1
@@ -1426,18 +1504,20 @@ class System:
                edgecolor='purple')
         ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes", color='lightblue',
                edgecolor='blue')
-        ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
-               color='lightgreen', edgecolor='green')
-        ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
-               edgecolor='orangered')
-        ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
-               color='grey', edgecolor='black')
-        ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
-               color='red', edgecolor='black')
+        # ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
+        #        color='lightgreen', edgecolor='green')
+        # ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
+        #        edgecolor='orangered')
+        # ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
+        #        color='grey', edgecolor='black')
+        # ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
+        #        color='red', edgecolor='black')
         ax.bar([x + 7 * width for x in years], tractor, width=width, alpha=alpha, label="tractor",
                color='yellow', edgecolor='black')
         ax.bar([x + 8 * width for x in years], stack, width=width, alpha=alpha, label="stack",
                color='red', edgecolor='black')
+        ax.bar([x + 8 * width for x in years], stack_equipment, width=width, alpha=alpha, label=self.stack_equipment,
+               color='orange', edgecolor='orangered')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')

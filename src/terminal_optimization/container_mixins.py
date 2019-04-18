@@ -353,7 +353,7 @@ class vessel_properties_mixin(object):
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
-                 shift_length, annual_shifts, *args, **kwargs):
+                 shift_length, annual_shifts, daily_shifts, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.international_salary = international_salary
         self.international_staff = international_staff
@@ -362,6 +362,7 @@ class labour_properties_mixin(object):
         self.operational_salary = operational_salary
         self.shift_length = shift_length
         self.annual_shifts = annual_shifts
+        self.daily_shifts = daily_shifts
 
 
 class energy_properties_mixin(object):
