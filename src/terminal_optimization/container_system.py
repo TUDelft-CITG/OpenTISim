@@ -9,7 +9,7 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rtg',
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
@@ -850,14 +850,13 @@ class System:
               - add stack capacity until service_trigger is no longer exceeded
               """
 
-        stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers = self.calculate_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_stack_area = self.calculate_stack_capacity(year)
 
         if self.debug:
             print('     Stack capacity planned (@ start of year): {}'.format(stack_capacity_planned))
             print('     Stack capacity online (@ start of year): {}'.format(stack_capacity_online))
             print('     Stack capacity required (@ start of year): {}'.format(required_capacity))
             print('     Laden ground slots required (@ start of year): {}'.format(laden_ground_slots))
-            print('     Laden containers expected (@ start of year): {}'.format(laden_containers))
 
         while required_capacity > (stack_capacity_planned+stack_capacity_online):
             # add a station when station occupancy is too high
@@ -898,7 +897,8 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers = self.calculate_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_stack_area = self.calculate_stack_capacity(year)
+
 
     def stack_equipment_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -910,56 +910,94 @@ class System:
         # todo Add delaying effect to the stack equipment invest
         list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
         list_of_elements_sts = self.find_elements(Cyclic_Unloader)
+        list_of_elements_stack=self.find_elements(Laden_Stack)
         sts_cranes=len(list_of_elements_sts)
         stack_equipment_online=len(list_of_elements_stack_equipment)
+        stack=len(list_of_elements_stack)
 
-        # if self.stack_equipment == 'rtg':
-        stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
-        # elif self.stack_equipment == 'rmg':
-        #     stack_equipment = Stack_Equipment(**container_defaults.rmg_data)
-        # elif self.stack_equipment == 'sc':
-        #     stack_equipment = Stack_Equipment(**container_defaults.sc_data)
-        # elif self.stack_equipment == 'rs':
-        #     stack_equipment = Stack_Equipment(**container_defaults.rs_data)
+        if self.stack_equipment == 'rtg':
+            stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
+        elif self.stack_equipment == 'rmg':
+            stack_equipment = Stack_Equipment(**container_defaults.rmg_data)
+        elif self.stack_equipment == 'sc':
+            stack_equipment = Stack_Equipment(**container_defaults.sc_data)
+        elif self.stack_equipment == 'rs':
+            stack_equipment = Stack_Equipment(**container_defaults.rs_data)
 
         if self.debug:
             print('     Number of stack equipment online (@ start of year): {}'.format(stack_equipment_online))
 
-        while sts_cranes > (stack_equipment_online//stack_equipment.required):
+        if (self.stack_equipment == 'rtg' or
+            self.stack_equipment == 'sc' or
+            self.stack_equipment == 'rs'):
+            while sts_cranes > (stack_equipment_online//stack_equipment.required):
 
-            # add stack equipment when not enough to serve number of STS cranes
-            if self.debug:
-                print('  *** add stack equipment to elements')
-
-
-            # - capex
-            unit_rate = stack_equipment.unit_rate
-            mobilisation = stack_equipment.mobilisation
-            stack_equipment.capex = int(unit_rate + mobilisation)
-
-            # - opex # todo calculate moves for energy costs
-            stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
-            stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
+                # add stack equipment when not enough to serve number of STS cranes
+                if self.debug:
+                    print('  *** add stack equipment to elements')
 
 
-            #   labour
-            labour = Labour(**container_defaults.labour_data)
-            stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-            stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
+                # - capex
+                unit_rate = stack_equipment.unit_rate
+                mobilisation = stack_equipment.mobilisation
+                stack_equipment.capex = int(unit_rate + mobilisation)
 
-            if year == self.startyear:
-                stack_equipment.year_online = year + stack_equipment.delivery_time + 1
-            else:
-                stack_equipment.year_online = year + stack_equipment.delivery_time
+                # - opex # todo calculate moves for energy costs
+                stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
+                stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
 
-            # add cash flow information to tractor object in a dataframe
-            stack_equipment = self.add_cashflow_data_to_element(stack_equipment)
 
-            self.elements.append(stack_equipment)
+                #   labour
+                labour = Labour(**container_defaults.labour_data)
+                stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
+                stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
 
-            list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
-            stack_equipment_online = len(list_of_elements_stack_equipment)
+                if year == self.startyear:
+                    stack_equipment.year_online = year + stack_equipment.delivery_time + 1
+                else:
+                    stack_equipment.year_online = year + stack_equipment.delivery_time
 
+                # add cash flow information to tractor object in a dataframe
+                stack_equipment = self.add_cashflow_data_to_element(stack_equipment)
+
+                self.elements.append(stack_equipment)
+
+                list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
+                stack_equipment_online = len(list_of_elements_stack_equipment)
+
+        if self.stack_equipment == 'rmg':
+            while stack > stack_equipment_online:
+
+                # add stack equipment when not enough to serve number of STS cranes
+                if self.debug:
+                    print('  *** add stack equipment to elements')
+
+                # - capex
+                unit_rate = stack_equipment.unit_rate
+                mobilisation = stack_equipment.mobilisation
+                stack_equipment.capex = int(unit_rate + mobilisation)
+
+                # - opex # todo calculate moves for energy costs
+                stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
+                stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
+
+                #   labour
+                labour = Labour(**container_defaults.labour_data)
+                stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
+                stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
+
+                if year == self.startyear:
+                    stack_equipment.year_online = year + stack_equipment.delivery_time + 1
+                else:
+                    stack_equipment.year_online = year + stack_equipment.delivery_time
+
+                # add cash flow information to tractor object in a dataframe
+                stack_equipment = self.add_cashflow_data_to_element(stack_equipment)
+
+                self.elements.append(stack_equipment)
+
+                list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
+                stack_equipment_online = len(list_of_elements_stack_equipment)
     # *** Financial analyses
 
     def add_cashflow_elements(self):
@@ -1188,8 +1226,9 @@ class System:
 
         laden_ground_slots = laden_containers * laden.peak_factor * laden.dwell_time / laden.stack_occupancy / stack.height / operational_days
         required_capacity = laden_ground_slots*stack.height
+        laden_stack_area = laden_ground_slots*stack.area_factor
 
-        return stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_containers
+        return stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_stack_area
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
@@ -1495,6 +1534,7 @@ class System:
                     if year >= element.year_online:
                         tractor[-1] += 1
 
+        tractor = [x / 10 for x in tractor]
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
@@ -1512,11 +1552,11 @@ class System:
         #        color='grey', edgecolor='black')
         # ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
         #        color='red', edgecolor='black')
-        ax.bar([x + 7 * width for x in years], tractor, width=width, alpha=alpha, label="tractor",
+        ax.bar([x + 3 * width for x in years], tractor, width=width, alpha=alpha, label="tractor x10",
                color='yellow', edgecolor='black')
-        ax.bar([x + 8 * width for x in years], stack, width=width, alpha=alpha, label="stack",
+        ax.bar([x + 4 * width for x in years], stack, width=width, alpha=alpha, label="stack",
                color='red', edgecolor='black')
-        ax.bar([x + 8 * width for x in years], stack_equipment, width=width, alpha=alpha, label=self.stack_equipment,
+        ax.bar([x + 5 * width for x in years], stack_equipment, width=width, alpha=alpha, label=self.stack_equipment,
                color='orange', edgecolor='orangered')
 
         ax.set_xlabel('Years')
@@ -1631,3 +1671,53 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
+
+    def laden_stack_area_plot(self, width=0.25, alpha=0.6):
+        """Gather data from laden stack area and plot it against demand"""
+
+
+        # collect elements to add to plot
+        years = []
+        area = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            area.append(0)
+
+            stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_stack_area = self.calculate_stack_capacity(year)
+
+            for element in self.elements:
+                if isinstance(element, Laden_Stack):
+                    if year >= element.year_online:
+                        area[-1] = laden_stack_area
+        area = [x * 0.0001 for x in area]
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in self.find_elements(Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Laden stack area [ha]')
+        ax1.bar([x - 0.5 * width for x in years], area, width=width, alpha=alpha, label="laden stack area",
+               color='red')
+
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, label="demand", where='mid')
+        ax2.set_ylabel('Throughput capacity [TEU/year]')
+
+        ax2.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']))
+
+
+        ax1.legend()
+        ax2.legend()

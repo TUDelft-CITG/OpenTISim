@@ -210,7 +210,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                     "length": 30, #TEU
                     "capacity": 900 , #TEU
                     "gross_tgs": 18,
-                    "area_factor": 1.5 , # todo haal uit grasshopper model
+                    "area_factor": 2.04 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
                     "drainage": 50} #DUMMY
 
@@ -225,7 +225,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                     "length": 40, #TEU
                     "capacity": 1200 , #TEU
                     "gross_tgs": 18.67,
-                    "area_factor": 1.5 , # todo haal uit grasshopper model
+                    "area_factor": 2.79 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
                     "drainage": 50} #DUMMY
 
@@ -240,7 +240,7 @@ sc_stack_data = {"name": 'SC Stack',
                     "length": 20, #TEU
                     "capacity": 3840 , #TEU
                     "gross_tgs": 26.46,
-                    "area_factor": 1.2 , # todo haal uit grasshopper model
+                    "area_factor": 1.45 , #  Based on grasshopper layout
                     "pavement": 200, #DUMMY
                     "drainage": 50} #DUMMY
 
@@ -255,7 +255,7 @@ rs_stack_data = {"name": 'RS Stack',
                     "length": 20, #TEU
                     "capacity": 320 , #TEU
                     "gross_tgs": 18,
-                    "area_factor": 1.6 , # todo haal uit grasshopper model
+                    "area_factor": 3.23 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
                     "drainage": 50} #DUMMY
 
@@ -299,7 +299,7 @@ rmg_data = {"name": 'RMG',
             }
 
 #Straddle carrier #
-sc_data = {"name": 'Sraddle carrier',
+sc_data = {"name": 'Straddle carrier',
             "type": 'sc',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
