@@ -146,6 +146,7 @@ Stack_Equipment = type('Stack_Equipment', (container_mixins.identifiable_propert
 
 
 
+
 # The generic Storage class
 # - Silo
 # - Warehouse

@@ -9,8 +9,8 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rtg', operational_hours=7500, debug=False, elements=[],
-                 crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rtg',
+                 operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
         # time inputs
         self.startyear = startyear
@@ -913,14 +913,14 @@ class System:
         sts_cranes=len(list_of_elements_sts)
         stack_equipment_online=len(list_of_elements_stack_equipment)
 
-        if self.stack_equipment == 'rtg':
-            stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
-        elif self.stack_equipment == 'rmg':
-            stack_equipment = Stack_Equipment(**container_defaults.rmg_data)
-        elif self.stack_equipment == 'sc':
-            stack_equipment = Stack_Equipment(**container_defaults.sc_data)
-        elif self.stack_equipment == 'rs':
-            stack_equipment = Stack_Equipment(**container_defaults.rs_data)
+        # if self.stack_equipment == 'rtg':
+        stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
+        # elif self.stack_equipment == 'rmg':
+        #     stack_equipment = Stack_Equipment(**container_defaults.rmg_data)
+        # elif self.stack_equipment == 'sc':
+        #     stack_equipment = Stack_Equipment(**container_defaults.sc_data)
+        # elif self.stack_equipment == 'rs':
+        #     stack_equipment = Stack_Equipment(**container_defaults.rs_data)
 
         if self.debug:
             print('     Number of stack equipment online (@ start of year): {}'.format(stack_equipment_online))

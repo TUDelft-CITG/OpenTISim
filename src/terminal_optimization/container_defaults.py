@@ -264,6 +264,7 @@ rs_stack_data = {"name": 'RS Stack',
 
 # *** Default inputs: Stack_Equipment class
 #RTG # todo add eRTG
+
 rtg_data = {"name": 'RTG',
             "type": 'rtg',
             "ownership": 'Terminal operator',

@@ -258,10 +258,9 @@ class laden_stack_properties_mixin (object):
         self.drainage = drainage
 
 
-
 class stack_equipment_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew,
-                 salary, required, fuel_consumption, *args, **kwargs):
+                 salary, required, fuel_consumption, power_consumption, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -277,11 +276,6 @@ class stack_equipment_properties_mixin (object):
         self.required = required
         self.fuel_consumption = fuel_consumption
         self.power_consumption = power_consumption
-
-
-
-
-
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
