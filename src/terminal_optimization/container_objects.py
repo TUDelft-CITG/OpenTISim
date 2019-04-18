@@ -123,6 +123,7 @@ Container = type('Container', (container_mixins.identifiable_properties_mixin,  
 Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
                                 container_mixins.laden_stack_properties_mixin,
+                                container_mixins.hasopex_properties_mixin,
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
                                container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                  {})

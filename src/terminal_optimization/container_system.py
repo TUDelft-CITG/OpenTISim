@@ -1379,6 +1379,7 @@ class System:
         conveyors_hinterland = []
         unloading_station = []
         tractor = []
+        stack = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1390,6 +1391,7 @@ class System:
             conveyors_hinterland.append(0)
             unloading_station.append(0)
             tractor.append(0)
+            stack.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1413,6 +1415,9 @@ class System:
                 if isinstance(element, Unloading_station):
                     if year >= element.year_online:
                         unloading_station[-1] += 1
+                if isinstance(element, Laden_Stack):
+                    if year >= element.year_online:
+                        stack[-1] += 1
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
                         tractor[-1] += 1
@@ -1424,7 +1429,7 @@ class System:
                edgecolor='crimson')
         ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid',
                edgecolor='purple')
-        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="cranes", color='lightblue',
+        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes", color='lightblue',
                edgecolor='blue')
         ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
                color='lightgreen', edgecolor='green')
@@ -1434,8 +1439,10 @@ class System:
                color='grey', edgecolor='black')
         ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
                color='red', edgecolor='black')
-        ax.bar([x + 6 * width for x in years], tractor, width=width, alpha=alpha, label="tractor",
+        ax.bar([x + 7 * width for x in years], tractor, width=width, alpha=alpha, label="tractor",
                color='yellow', edgecolor='black')
+        ax.bar([x + 8 * width for x in years], stack, width=width, alpha=alpha, label="stack",
+               color='red', edgecolor='black')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')
