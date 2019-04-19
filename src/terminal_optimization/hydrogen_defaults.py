@@ -139,6 +139,22 @@ storage_nh3_data = {"name": 'ATank_01',
                   "capacity": 40_000}
 
 "MCH"
+storage_MCH_data = {"name": 'ATank_01',
+                  "type": 'AmmoniaTank',
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 1,
+                  "lifespan": 20,
+                  "unit_rate": 15_000_000,
+                  "mobilisation_min": 200_000,
+                  "mobilisation_perc": 0.003,
+                  "maintenance_perc": 0.01,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "storage_type": 'tank',
+                  "consumption": 100,
+                  "capacity": 38_500}
+
 
 # *** Default inputs: H2Conversion class ***
 
