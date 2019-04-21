@@ -671,121 +671,121 @@ class System:
                         storage_capacity_online,
                         storage_capacity))
 
-    def conveyor_hinter_invest(self, year, container_defaults_hinterland_conveyor_data):
-        """current strategy is to add conveyors as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
-        """
+    # def conveyor_hinter_invest(self, year, container_defaults_hinterland_conveyor_data):
+    #     """current strategy is to add conveyors as soon as a service trigger is achieved
+    #     - find out how much service capacity is online
+    #     - find out how much service capacity is planned
+    #     - find out how much service capacity is needed
+    #     - add service capacity until service_trigger is no longer exceeded
+    #     """
+    #
+    #     # find the total service rate
+    #     service_capacity = 0
+    #     service_capacity_online_hinter = 0
+    #     list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
+    #     if list_of_elements_conveyor != []:
+    #         for element in list_of_elements_conveyor:
+    #             service_capacity += element.capacity_steps
+    #             if year >= element.year_online:
+    #                 service_capacity_online_hinter += element.capacity_steps
+    #
+    #     if self.debug:
+    #         print(
+    #             '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+    #                 service_capacity_online_hinter, service_capacity))
+    #
+    #     # find the total service rate,
+    #     service_rate = 0
+    #     years_online = []
+    #     for element in (self.find_elements(Unloading_station)):
+    #         service_rate += element.production
+    #         years_online.append(element.year_online)
+    #
+    #     # check if total planned length is smaller than target length, if so add a quay
+    #     while service_rate > service_capacity:
+    #         if self.debug:
+    #             print('  *** add Hinter Conveyor to elements')
+    #         conveyor_hinter = Conveyor_Hinter(**container_defaults_hinterland_conveyor_data)
+    #
+    #         # - capex
+    #         capacity = conveyor_hinter.capacity_steps
+    #         unit_rate = conveyor_hinter.unit_rate_factor * conveyor_hinter.length
+    #         mobilisation = conveyor_hinter.mobilisation
+    #         conveyor_hinter.capex = int(capacity * unit_rate + mobilisation)
+    #
+    #         # - opex
+    #         conveyor_hinter.insurance = capacity * unit_rate * conveyor_hinter.insurance_perc
+    #         conveyor_hinter.maintenance = capacity * unit_rate * conveyor_hinter.maintenance_perc
+    #
+    #         # - labour
+    #         labour = Labour(**container_defaults.labour_data)
+    #         conveyor_hinter.shift = (
+    #                 (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+    #         conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
+    #
+    #         # - online year
+    #         conveyor_hinter.year_online = max(years_online)
+    #
+    #         # add cash flow information to quay_wall object in a dataframe
+    #         conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
+    #
+    #         self.elements.append(conveyor_hinter)
+    #
+    #         service_capacity += conveyor_hinter.capacity_steps
+    #
+    #     if self.debug:
+    #         print(
+    #             '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+    #                 service_capacity_online_hinter, service_capacity))
 
-        # find the total service rate
-        service_capacity = 0
-        service_capacity_online_hinter = 0
-        list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
-        if list_of_elements_conveyor != []:
-            for element in list_of_elements_conveyor:
-                service_capacity += element.capacity_steps
-                if year >= element.year_online:
-                    service_capacity_online_hinter += element.capacity_steps
-
-        if self.debug:
-            print(
-                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                    service_capacity_online_hinter, service_capacity))
-
-        # find the total service rate,
-        service_rate = 0
-        years_online = []
-        for element in (self.find_elements(Unloading_station)):
-            service_rate += element.production
-            years_online.append(element.year_online)
-
-        # check if total planned length is smaller than target length, if so add a quay
-        while service_rate > service_capacity:
-            if self.debug:
-                print('  *** add Hinter Conveyor to elements')
-            conveyor_hinter = Conveyor_Hinter(**container_defaults_hinterland_conveyor_data)
-
-            # - capex
-            capacity = conveyor_hinter.capacity_steps
-            unit_rate = conveyor_hinter.unit_rate_factor * conveyor_hinter.length
-            mobilisation = conveyor_hinter.mobilisation
-            conveyor_hinter.capex = int(capacity * unit_rate + mobilisation)
-
-            # - opex
-            conveyor_hinter.insurance = capacity * unit_rate * conveyor_hinter.insurance_perc
-            conveyor_hinter.maintenance = capacity * unit_rate * conveyor_hinter.maintenance_perc
-
-            # - labour
-            labour = Labour(**container_defaults.labour_data)
-            conveyor_hinter.shift = (
-                    (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
-
-            # - online year
-            conveyor_hinter.year_online = max(years_online)
-
-            # add cash flow information to quay_wall object in a dataframe
-            conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
-
-            self.elements.append(conveyor_hinter)
-
-            service_capacity += conveyor_hinter.capacity_steps
-
-        if self.debug:
-            print(
-                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                    service_capacity_online_hinter, service_capacity))
-
-    def unloading_station_invest(self, year):
-        """current strategy is to add unloading stations as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
-        """
-
-        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-        train_calls = self.train_call(year)
-
-        if self.debug:
-            print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
-            print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
-            print('     Number of trains (@start of year): {}'.format(train_calls))
-
-        while station_occupancy_planned > self.allowable_station_occupancy:
-            # add a station when station occupancy is too high
-            if self.debug:
-                print('  *** add station to elements')
-
-            station = Unloading_station(**container_defaults.hinterland_station_data)
-
-            # - capex
-            unit_rate = station.unit_rate
-            mobilisation = station.mobilisation
-            station.capex = int(unit_rate + mobilisation)
-
-            # - opex
-            station.insurance = unit_rate * station.insurance_perc
-            station.maintenance = unit_rate * station.maintenance_perc
-
-            #   labour
-            labour = Labour(**container_defaults.labour_data)
-            station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            station.labour = station.shift * labour.operational_salary
-
-            if year == self.startyear:
-                station.year_online = year + station.delivery_time + 1
-            else:
-                station.year_online = year + station.delivery_time
-
-            # add cash flow information to quay_wall object in a dataframe
-            station = self.add_cashflow_data_to_element(station)
-
-            self.elements.append(station)
-
-            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+    # def unloading_station_invest(self, year):
+    #     """current strategy is to add unloading stations as soon as a service trigger is achieved
+    #     - find out how much service capacity is online
+    #     - find out how much service capacity is planned
+    #     - find out how much service capacity is needed
+    #     - add service capacity until service_trigger is no longer exceeded
+    #     """
+    #
+    #     station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+    #     train_calls = self.train_call(year)
+    #
+    #     if self.debug:
+    #         print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
+    #         print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
+    #         print('     Number of trains (@start of year): {}'.format(train_calls))
+    #
+    #     while station_occupancy_planned > self.allowable_station_occupancy:
+    #         # add a station when station occupancy is too high
+    #         if self.debug:
+    #             print('  *** add station to elements')
+    #
+    #         station = Unloading_station(**container_defaults.hinterland_station_data)
+    #
+    #         # - capex
+    #         unit_rate = station.unit_rate
+    #         mobilisation = station.mobilisation
+    #         station.capex = int(unit_rate + mobilisation)
+    #
+    #         # - opex
+    #         station.insurance = unit_rate * station.insurance_perc
+    #         station.maintenance = unit_rate * station.maintenance_perc
+    #
+    #         #   labour
+    #         labour = Labour(**container_defaults.labour_data)
+    #         station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+    #         station.labour = station.shift * labour.operational_salary
+    #
+    #         if year == self.startyear:
+    #             station.year_online = year + station.delivery_time + 1
+    #         else:
+    #             station.year_online = year + station.delivery_time
+    #
+    #         # add cash flow information to quay_wall object in a dataframe
+    #         station = self.add_cashflow_data_to_element(station)
+    #
+    #         self.elements.append(station)
+    #
+    #         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
     def horizontal_transport_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved

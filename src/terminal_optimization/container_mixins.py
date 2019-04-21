@@ -277,6 +277,34 @@ class stack_equipment_properties_mixin (object):
         self.fuel_consumption = fuel_consumption
         self.power_consumption = power_consumption
 
+class gate_properties_mixin (object):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, crew,
+                 salary, canopy_costs, area, staff_gates, service_gates, design_capacity, exit_inspection_time, entry_inspection_time,
+                 peak_hour, peak_day, peak_factor, truck_moves, operating_days, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.crew = crew
+        self.salary = salary
+        self.canopy_costs = canopy_costs
+        self.area = area
+        self.staff_gates = staff_gates
+        self.service_gates = service_gates
+        self.design_capacity = design_capacity
+        self.exit_inspection_time = exit_inspection_time
+        self.entry_inspection_time = entry_inspection_time
+        self.peak_hour = peak_hour
+        self.peak_day = peak_day
+        self.peak_factor = peak_factor
+        self.truck_moves = truck_moves
+        self.operating_days = operating_days
+
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
                  maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):

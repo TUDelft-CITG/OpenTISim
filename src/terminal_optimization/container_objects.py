@@ -24,9 +24,11 @@
 -8. Other stacks
     - OOG stack
     - Empty stack
+- 9. Gates
 - 8. Vessel
     - Panamax
 - 9. Labour
+-
 
 """
 
@@ -193,6 +195,21 @@ Labour = type('Labour', (container_mixins.identifiable_properties_mixin,
 Energy = type('Energy', (container_mixins.identifiable_properties_mixin,
                          container_mixins.energy_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
+
+# The general Gates class
+Gate = type('Gate', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                                container_mixins.gate_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hasopex_properties_mixin,  # Give it opex info
+                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                 {})
+
+
+
+
+
+
 
 # The general Train class
 Train = type('Train', (container_mixins.identifiable_properties_mixin,

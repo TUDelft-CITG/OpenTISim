@@ -383,6 +383,32 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
                            "number_of_wagons": 60,
                            "prep_time": 2}
 
+# *** Default inputs: Gate class ***
+
+gate_data = {"name": 'Gate',
+                 "type": 'gate'
+               "ownership": "Terminal operator",
+               "delivery_time": 1,
+               "lifespan": 15,
+               "unit_rate": 30_000,
+               "mobilisation": 5000,
+               "maintenance_perc": 0.02,
+               "crew": 2,
+               "salary": 30_000, #dummy
+                "canopy_costs" : 250, #USD/m2 dummy
+               "area": 100 , #todo verify
+                "staff_gates" : 1,
+               "service_gates": 1,
+                "design_capacity" : 0.98,
+               "exit_inspection_time": 5,#min #dummy
+                "entry_inspection_time" : 5, #min #dummy
+               "peak_hour": 0.25,#dummy
+                "peak_day" : 0.25,#dummy
+               "peak_factor": 1.2,
+                "truck_moves" : 0.75,
+               "operating_days": 6}
+
+
 # *** Default inputs: Commodity class ***
 # TODO vervang soybean, maze en wheat door reefer, empty en oog dmv input value modal split
 
