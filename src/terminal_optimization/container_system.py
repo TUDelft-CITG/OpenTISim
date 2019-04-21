@@ -671,121 +671,121 @@ class System:
                         storage_capacity_online,
                         storage_capacity))
 
-    # def conveyor_hinter_invest(self, year, container_defaults_hinterland_conveyor_data):
-    #     """current strategy is to add conveyors as soon as a service trigger is achieved
-    #     - find out how much service capacity is online
-    #     - find out how much service capacity is planned
-    #     - find out how much service capacity is needed
-    #     - add service capacity until service_trigger is no longer exceeded
-    #     """
-    #
-    #     # find the total service rate
-    #     service_capacity = 0
-    #     service_capacity_online_hinter = 0
-    #     list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
-    #     if list_of_elements_conveyor != []:
-    #         for element in list_of_elements_conveyor:
-    #             service_capacity += element.capacity_steps
-    #             if year >= element.year_online:
-    #                 service_capacity_online_hinter += element.capacity_steps
-    #
-    #     if self.debug:
-    #         print(
-    #             '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-    #                 service_capacity_online_hinter, service_capacity))
-    #
-    #     # find the total service rate,
-    #     service_rate = 0
-    #     years_online = []
-    #     for element in (self.find_elements(Unloading_station)):
-    #         service_rate += element.production
-    #         years_online.append(element.year_online)
-    #
-    #     # check if total planned length is smaller than target length, if so add a quay
-    #     while service_rate > service_capacity:
-    #         if self.debug:
-    #             print('  *** add Hinter Conveyor to elements')
-    #         conveyor_hinter = Conveyor_Hinter(**container_defaults_hinterland_conveyor_data)
-    #
-    #         # - capex
-    #         capacity = conveyor_hinter.capacity_steps
-    #         unit_rate = conveyor_hinter.unit_rate_factor * conveyor_hinter.length
-    #         mobilisation = conveyor_hinter.mobilisation
-    #         conveyor_hinter.capex = int(capacity * unit_rate + mobilisation)
-    #
-    #         # - opex
-    #         conveyor_hinter.insurance = capacity * unit_rate * conveyor_hinter.insurance_perc
-    #         conveyor_hinter.maintenance = capacity * unit_rate * conveyor_hinter.maintenance_perc
-    #
-    #         # - labour
-    #         labour = Labour(**container_defaults.labour_data)
-    #         conveyor_hinter.shift = (
-    #                 (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-    #         conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
-    #
-    #         # - online year
-    #         conveyor_hinter.year_online = max(years_online)
-    #
-    #         # add cash flow information to quay_wall object in a dataframe
-    #         conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
-    #
-    #         self.elements.append(conveyor_hinter)
-    #
-    #         service_capacity += conveyor_hinter.capacity_steps
-    #
-    #     if self.debug:
-    #         print(
-    #             '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-    #                 service_capacity_online_hinter, service_capacity))
+    def conveyor_hinter_invest(self, year, container_defaults_hinterland_conveyor_data):
+        """current strategy is to add conveyors as soon as a service trigger is achieved
+        - find out how much service capacity is online
+        - find out how much service capacity is planned
+        - find out how much service capacity is needed
+        - add service capacity until service_trigger is no longer exceeded
+        """
 
-    # def unloading_station_invest(self, year):
-    #     """current strategy is to add unloading stations as soon as a service trigger is achieved
-    #     - find out how much service capacity is online
-    #     - find out how much service capacity is planned
-    #     - find out how much service capacity is needed
-    #     - add service capacity until service_trigger is no longer exceeded
-    #     """
-    #
-    #     station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-    #     train_calls = self.train_call(year)
-    #
-    #     if self.debug:
-    #         print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
-    #         print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
-    #         print('     Number of trains (@start of year): {}'.format(train_calls))
-    #
-    #     while station_occupancy_planned > self.allowable_station_occupancy:
-    #         # add a station when station occupancy is too high
-    #         if self.debug:
-    #             print('  *** add station to elements')
-    #
-    #         station = Unloading_station(**container_defaults.hinterland_station_data)
-    #
-    #         # - capex
-    #         unit_rate = station.unit_rate
-    #         mobilisation = station.mobilisation
-    #         station.capex = int(unit_rate + mobilisation)
-    #
-    #         # - opex
-    #         station.insurance = unit_rate * station.insurance_perc
-    #         station.maintenance = unit_rate * station.maintenance_perc
-    #
-    #         #   labour
-    #         labour = Labour(**container_defaults.labour_data)
-    #         station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-    #         station.labour = station.shift * labour.operational_salary
-    #
-    #         if year == self.startyear:
-    #             station.year_online = year + station.delivery_time + 1
-    #         else:
-    #             station.year_online = year + station.delivery_time
-    #
-    #         # add cash flow information to quay_wall object in a dataframe
-    #         station = self.add_cashflow_data_to_element(station)
-    #
-    #         self.elements.append(station)
-    #
-    #         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+        # find the total service rate
+        service_capacity = 0
+        service_capacity_online_hinter = 0
+        list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
+        if list_of_elements_conveyor != []:
+            for element in list_of_elements_conveyor:
+                service_capacity += element.capacity_steps
+                if year >= element.year_online:
+                    service_capacity_online_hinter += element.capacity_steps
+
+        if self.debug:
+            print(
+                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+                    service_capacity_online_hinter, service_capacity))
+
+        # find the total service rate,
+        service_rate = 0
+        years_online = []
+        for element in (self.find_elements(Unloading_station)):
+            service_rate += element.production
+            years_online.append(element.year_online)
+
+        # check if total planned length is smaller than target length, if so add a quay
+        while service_rate > service_capacity:
+            if self.debug:
+                print('  *** add Hinter Conveyor to elements')
+            conveyor_hinter = Conveyor_Hinter(**container_defaults_hinterland_conveyor_data)
+
+            # - capex
+            capacity = conveyor_hinter.capacity_steps
+            unit_rate = conveyor_hinter.unit_rate_factor * conveyor_hinter.length
+            mobilisation = conveyor_hinter.mobilisation
+            conveyor_hinter.capex = int(capacity * unit_rate + mobilisation)
+
+            # - opex
+            conveyor_hinter.insurance = capacity * unit_rate * conveyor_hinter.insurance_perc
+            conveyor_hinter.maintenance = capacity * unit_rate * conveyor_hinter.maintenance_perc
+
+            # - labour
+            labour = Labour(**container_defaults.labour_data)
+            conveyor_hinter.shift = (
+                    (conveyor_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            conveyor_hinter.labour = conveyor_hinter.shift * labour.operational_salary
+
+            # - online year
+            conveyor_hinter.year_online = max(years_online)
+
+            # add cash flow information to quay_wall object in a dataframe
+            conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
+
+            self.elements.append(conveyor_hinter)
+
+            service_capacity += conveyor_hinter.capacity_steps
+
+        if self.debug:
+            print(
+                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+                    service_capacity_online_hinter, service_capacity))
+
+    def unloading_station_invest(self, year):
+        """current strategy is to add unloading stations as soon as a service trigger is achieved
+        - find out how much service capacity is online
+        - find out how much service capacity is planned
+        - find out how much service capacity is needed
+        - add service capacity until service_trigger is no longer exceeded
+        """
+
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+        train_calls = self.train_call(year)
+
+        if self.debug:
+            print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
+            print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
+            print('     Number of trains (@start of year): {}'.format(train_calls))
+
+        while station_occupancy_planned > self.allowable_station_occupancy:
+            # add a station when station occupancy is too high
+            if self.debug:
+                print('  *** add station to elements')
+
+            station = Unloading_station(**container_defaults.hinterland_station_data)
+
+            # - capex
+            unit_rate = station.unit_rate
+            mobilisation = station.mobilisation
+            station.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            station.insurance = unit_rate * station.insurance_perc
+            station.maintenance = unit_rate * station.maintenance_perc
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            station.labour = station.shift * labour.operational_salary
+
+            if year == self.startyear:
+                station.year_online = year + station.delivery_time + 1
+            else:
+                station.year_online = year + station.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+            station = self.add_cashflow_data_to_element(station)
+
+            self.elements.append(station)
+
+            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
     def horizontal_transport_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -1263,6 +1263,90 @@ class System:
 
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
+
+            # berth_occupancy is the total time at berth divided by the operational hours
+            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
+
+            # estimate crane occupancy
+            time_at_crane_handysize_planned = handysize_calls * (
+                (container_defaults.handysize_data["call_size"] / service_rate_planned))
+            time_at_crane_handymax_planned = handymax_calls * (
+                (container_defaults.handymax_data["call_size"] / service_rate_planned))
+            time_at_crane_panamax_planned = panamax_calls * (
+                (container_defaults.panamax_data["call_size"] / service_rate_planned))
+
+            total_time_at_crane_planned = np.sum(
+                [time_at_crane_handysize_planned, time_at_crane_handymax_planned, time_at_crane_panamax_planned])
+
+            # berth_occupancy is the total time at berth divided by the operational hours
+            crane_occupancy_planned = total_time_at_crane_planned / self.operational_hours
+
+            if service_rate_online != 0:
+                time_at_berth_handysize_online = handysize_calls * (
+                        (container_defaults.handysize_data["call_size"] / service_rate_online) +container_defaults.handysize_data[
+                    "mooring_time"])
+                time_at_berth_handymax_online = handymax_calls * (
+                        (container_defaults.handymax_data["call_size"] / service_rate_online) +container_defaults.handymax_data[
+                    "mooring_time"])
+                time_at_berth_panamax_online = panamax_calls * (
+                        (container_defaults.panamax_data["call_size"] / service_rate_online) +container_defaults.panamax_data[
+                    "mooring_time"])
+
+                total_time_at_berth_online = np.sum(
+                    [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
+
+                # berth_occupancy is the total time at berth devided by the operational hours
+                berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
+
+                time_at_crane_handysize_online = handysize_calls * (
+                    (container_defaults.handysize_data["call_size"] / service_rate_online))
+                time_at_crane_handymax_online = handymax_calls * (
+                    (container_defaults.handymax_data["call_size"] / service_rate_online))
+                time_at_crane_panamax_online = panamax_calls * (
+                    (container_defaults.panamax_data["call_size"] / service_rate_online))
+
+                total_time_at_crane_online = np.sum(
+                    [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
+
+                # berth_occupancy is the total time at berth devided by the operational hours
+                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+
+            else:
+                berth_occupancy_online = float("inf")
+                crane_occupancy_online = float("inf")
+
+        else:
+            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            berth_occupancy_planned = float("inf")
+            berth_occupancy_online = float("inf")
+            crane_occupancy_planned = float("inf")
+            crane_occupancy_online = float("inf")
+
+        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
+
+    def calculate_gate_occupancy(self, year):
+        """
+        - Find all gates and sum their effective_capacity to get service_capacity
+        - Calculate average entry and exit time to get total time at gate
+        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
+        """
+
+        # list all gate objects in system
+        list_of_elements = self.find_elements(Gate)
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        service_rate_planned = 0
+        service_rate_online = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                service_rate_planned += element.capacity
+                if year >= element.year_online:
+                    service_rate_online += element.capacity
+
+            # estimate gate occupancy
+            '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
+            Every gate is 60 minutes, which is the capacity. Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
+
 
             # berth_occupancy is the total time at berth divided by the operational hours
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours

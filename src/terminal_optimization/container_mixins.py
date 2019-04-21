@@ -280,7 +280,7 @@ class stack_equipment_properties_mixin (object):
 class gate_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, crew,
                  salary, canopy_costs, area, staff_gates, service_gates, design_capacity, exit_inspection_time, entry_inspection_time,
-                 peak_hour, peak_day, peak_factor, truck_moves, operating_days, *args, **kwargs):
+                 peak_hour, peak_day, peak_factor, truck_moves, operating_days, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -304,6 +304,7 @@ class gate_properties_mixin (object):
         self.peak_factor = peak_factor
         self.truck_moves = truck_moves
         self.operating_days = operating_days
+        self.capacity = capacity
 
 class storage_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
