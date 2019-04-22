@@ -211,7 +211,7 @@ class conveyor_properties_mixin(object):
 class transport_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
                  maintenance_perc, insurance_perc,
-                 crew, utilisation, fuel_consumption, productivity, required,  *args, **kwargs):
+                 crew, salary, utilisation, fuel_consumption, productivity, required,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -223,6 +223,7 @@ class transport_properties_mixin(object):
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
         self.crew = crew
+        self.salary = salary
         self.utilisation = utilisation
         self.fuel_consumption = fuel_consumption
         self.productivity = productivity
@@ -355,6 +356,7 @@ class commodity_properties_mixin(object):
         self.handysize_perc = handysize_perc
         self.handymax_perc = handymax_perc
         self.panamax_perc = panamax_perc
+
 
 
 class vessel_properties_mixin(object):

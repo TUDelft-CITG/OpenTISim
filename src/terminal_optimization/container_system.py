@@ -11,7 +11,8 @@ from terminal_optimization import container_defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
-                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4, laden_perc=1):
+                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4,
+                 laden_perc=1, reefer_perc=0, empty_perc=0, oog_perc=0, transhipment_ratio=0.3):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -38,6 +39,12 @@ class System:
 
         # container split
         self.laden_perc=laden_perc
+        self.reefer_perc=reefer_perc
+        self.empty_perc=empty_perc
+        self.oog_perc=oog_perc
+
+        #modal split
+        self.transhipment_ratio=transhipment_ratio
 
         # storage variables for revenue
         self.revenues = []
@@ -1008,12 +1015,13 @@ class System:
               - add gate capacity until service_trigger is no longer exceeded
               """
 
-        gate_capacity_planned, gate_capacity_online, service_rate_planned = self.calculate_gate_minutes(year)
+        gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(year)
 
         if self.debug:
             print('     Gate capacity planned (@ start of year): {}'.format(gate_capacity_planned))
             print('     Gate capacity online (@ start of year): {}'.format(gate_capacity_online))
             print('     Service rate planned (@ start of year): {}'.format(service_rate_planned))
+            print('     Gate lane minutes  (@ start of year): {}'.format(total_design_gate_minutes))
 
         while service_rate_planned > 1:
             # add a station when station occupancy is too high
@@ -1050,7 +1058,7 @@ class System:
 
             self.elements.append(gate)
 
-            gate_capacity_planned, gate_capacity_online, service_rate_planned = self.calculate_gate_minutes(year)
+            gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(year)
 
     # *** Financial analyses
 
@@ -1235,6 +1243,68 @@ class System:
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
 
+    def throughput_characteristics(self, year):
+
+        """
+        - Find all commodities and the modal split
+        - Translate the total TEU/year to every container type troughput
+        """
+
+        ''' Calculate the total throughput in TEU per year'''
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        laden_teu = volume * self.laden_perc
+        reefer_teu = volume * self.reefer_perc
+        empty_teu = volume * self.empty_perc
+        oog_teu = volume * self.oog_perc
+
+        return laden_teu, reefer_teu, empty_teu, oog_teu
+
+    def throughput_box(self, year):
+
+        """
+        - Find all commodities and the modal split
+        - Translate the total TEU/year to every container type troughput
+        """
+
+        '''import container throughputs'''
+
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+
+        laden = Container(**container_defaults.laden_container_data)
+        reefer = Container(**container_defaults.reefer_container_data)
+        empty = Container(**container_defaults.empty_container_data)
+        oog = Container(**container_defaults.oog_container_data)
+
+        laden_box = laden_teu * laden.teu_factor
+        reefer_box = reefer_teu * reefer.teu_factor
+        empty_box = empty_teu * empty.teu_factor
+        oog_box = oog_teu * oog.teu_factor
+
+        throughput_box = laden_box + reefer_box + empty_box + oog_box
+
+        return laden_box, reefer_box, empty_box, oog_box, throughput_box
+
+        ''' Calculate the total throughput in TEU per year'''
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
+
+        laden_teu = volume * self.laden_perc
+        reefer_teu = volume * self.reefer_perc
+        empty_teu = volume * self.empty_perc
+        oog_teu = volume * self.oog_perc
+
+        return laden_teu, reefer_teu, empty_teu, oog_teu
+
     def calculate_stack_capacity(self, year):
 
         """
@@ -1391,34 +1461,42 @@ class System:
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         capacity_planned = 0
         capacity_online = 0
+        total_design_gate_minutes = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                capacity_planned += element.capacity
+                if year >= element.year_online:
+                    capacity_online += element.capacity
 
-        for element in list_of_elements:
-            capacity_planned += element.capacity
-            if year >= element.year_online:
-                capacity_online += element.capacity
+            # estimate time at gate lanes
+            '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
+            Every gate is 60 minutes, which is the capacity. Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
 
-        # estimate time at gate lanes
-        '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
-        Every gate is 60 minutes, which is the capacity. Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
 
-        # todo vervang deze fixed integer met calc_box_moves en open weeks per year als input
-        import_box_moves = 150_000
-        export_box_moves = 150_000
-        weeks_year = 52
 
-        gate = Gate(**container_defaults.gate_data)
+            ''' Calculate the total throughput in TEU per year'''
+            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
 
-        design_exit_gate_minutes = import_box_moves*gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
-                                   gate.exit_inspection_time * gate.design_capacity
+            import_box_moves = (throughput_box * (1-self.transhipment_ratio)) * 0.5
+            export_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5
+            weeks_year = 52
 
-        design_entry_gate_minutes = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
-                                   gate.entry_inspection_time * gate.design_capacity
+            gate = Gate(**container_defaults.gate_data)
 
-        total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
+            design_exit_gate_minutes = import_box_moves*gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
+                                       gate.exit_inspection_time * gate.design_capacity
 
-        service_rate_planend = total_design_gate_minutes / capacity_planned
+            design_entry_gate_minutes = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
+                                       gate.entry_inspection_time * gate.design_capacity
 
-        return capacity_planned, capacity_online, service_rate_planend
+            total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
+
+            service_rate_planend = total_design_gate_minutes / capacity_planned
+
+        else:
+            service_rate_planend = float("inf")
+
+        return capacity_planned, capacity_online, service_rate_planend, total_design_gate_minutes
 
     def waiting_time(self, year):
         """
@@ -1584,6 +1662,7 @@ class System:
         tractor = []
         stack = []
         stack_equipment = []
+        gates = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1597,6 +1676,7 @@ class System:
             tractor.append(0)
             stack.append(0)
             stack_equipment.append(0)
+            gates.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1626,6 +1706,9 @@ class System:
                 if isinstance(element, Stack_Equipment):
                     if year >= element.year_online:
                         stack_equipment[-1] += 1
+                if isinstance(element, Gate):
+                    if year >= element.year_online:
+                        gates[-1] += 1
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
                         tractor[-1] += 1
@@ -1634,26 +1717,13 @@ class System:
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
-        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths", color='coral',
-               edgecolor='crimson')
-        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays", color='orchid',
-               edgecolor='purple')
-        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes", color='lightblue',
-               edgecolor='blue')
-        # ax.bar([x + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="conveyors quay",
-        #        color='lightgreen', edgecolor='green')
-        # ax.bar([x + 4 * width for x in years], storages, width=width, alpha=alpha, label="storages", color='orange',
-        #        edgecolor='orangered')
-        # ax.bar([x + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="conveyors hinter",
-        #        color='grey', edgecolor='black')
-        # ax.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="unloading station",
-        #        color='red', edgecolor='black')
-        ax.bar([x + 3 * width for x in years], tractor, width=width, alpha=alpha, label="tractor x10",
-               color='yellow', edgecolor='black')
-        ax.bar([x + 4 * width for x in years], stack, width=width, alpha=alpha, label="stack",
-               color='red', edgecolor='black')
-        ax.bar([x + 5 * width for x in years], stack_equipment, width=width, alpha=alpha, label=self.stack_equipment,
-               color='orange', edgecolor='orangered')
+        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths")
+        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays")
+        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes")
+        ax.bar([x + 3 * width for x in years], tractor, width=width, alpha=alpha, label="tractor x10")
+        ax.bar([x + 4 * width for x in years], stack, width=width, alpha=alpha, label="stack")
+        ax.bar([x + 5 * width for x in years], stack_equipment, width=width, alpha=alpha)
+        ax.bar([x + 6 * width for x in years], gates, width=width, alpha=alpha, label="gates")
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')

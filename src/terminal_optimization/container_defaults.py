@@ -183,6 +183,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                             "maintenance_perc": 0.10,
                             "insurance_perc": 0.01,
                             "crew": 1,
+                            "salary": 30_000, #dummy
                             "utilisation": 0.80,
                             "fuel_consumption": 2, #liter per box move
                             "productivity": 1,
@@ -192,10 +193,31 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 
 laden_container_data = {"name": 'Laden container',
                         "type": 'laden_container',
-                        "teu_factor" : 1.65,
+                        "teu_factor" : 1.55,
                         "dwell_time" : 4,
                         "peak_factor" : 1.2,
                         "stack_occupancy" : 0.8}
+
+reefer_container_data = {"name": 'Empty container',
+                        "type": 'empty_container',
+                        "teu_factor" : 1.75,
+                        "dwell_time" : 4,
+                        "peak_factor" : 1.2,
+                        "stack_occupancy" : 0.8}
+
+empty_container_data = {"name": 'Empty container',
+                        "type": 'empty_container',
+                        "teu_factor" : 1.55,
+                        "dwell_time" : 10,
+                        "peak_factor" : 1.2,
+                        "stack_occupancy" : 0.7}
+
+oog_container_data = {"name": 'OOG container',
+                        "type": 'oog_container',
+                        "teu_factor" : 1.55,
+                        "dwell_time" : 5,
+                        "peak_factor" : 1.2,
+                        "stack_occupancy" : 0.9}
 
 # *** Default inputs: Laden_Stack class
 
@@ -386,8 +408,8 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
 # *** Default inputs: Gate class ***
 
 gate_data = {"name": 'Gate',
-                 "type": 'gate'
-               "ownership": "Terminal operator",
+                 "type": 'gate',
+               "ownership" :  "Terminal operator",
                "delivery_time": 1,
                "lifespan": 15,
                "unit_rate": 30_000,
@@ -400,13 +422,14 @@ gate_data = {"name": 'Gate',
                 "staff_gates" : 1,
                "service_gates": 1,
                 "design_capacity" : 0.98,
-               "exit_inspection_time": 5,#min #dummy
-                "entry_inspection_time" : 5, #min #dummy
+               "exit_inspection_time": 2,#min #dummy
+                "entry_inspection_time" : 2, #min #dummy
                "peak_hour": 0.25,#dummy
-                "peak_day" : 0.25,#dummy
+                "peak_day" : 0.1,#dummy
                "peak_factor": 1.2,
                 "truck_moves" : 0.75,
-               "operating_days": 6}
+               "operating_days": 6,
+             "capacity": 60}
 
 
 # *** Default inputs: Commodity class ***
@@ -429,13 +452,17 @@ gate_data = {"name": 'Gate',
 #               "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
 #                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
-laden_data = {"name": 'Laden',
+container_data = {"name": 'Laden',
                 "handling_fee": 500,
                 "handysize_perc": 0,
                 "handymax_perc": 0,
                 "panamax_perc": 100,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+
+
+
+
 # *** Default inputs: Vessel class ***
 
 handysize_data = {"name": 'Handysize_1',
