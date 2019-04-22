@@ -111,6 +111,8 @@ class System:
 
             self.stack_equipment_invest(year)
 
+            self.gate_invest(year)
+
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
@@ -794,7 +796,7 @@ class System:
         - find out how much transport is needed
         - add transport until service_trigger is no longer exceeded
         """
-        # todo Add delaying effect to the tractor invest
+        # todo Add delaying effect to the tractor invest and no horizontal transport if SC
         list_of_elements_tractor = self.find_elements(Horizontal_Transport)
         list_of_elements_sts = self.find_elements(Cyclic_Unloader)
         sts_cranes=len(list_of_elements_sts)
@@ -826,8 +828,8 @@ class System:
 
             #   labour
             labour = Labour(**container_defaults.labour_data)
-            tractor.shift = ((tractor.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            tractor.labour = tractor.shift * labour.operational_salary
+            tractor.shift = tractor.crew * labour.daily_shifts
+            tractor.labour = tractor.shift * tractor.salary
 
             if year == self.startyear:
                 tractor.year_online = year + tractor.delivery_time + 1
@@ -898,7 +900,6 @@ class System:
             self.elements.append(stack)
 
             stack_capacity_planned, stack_capacity_online, required_capacity, laden_ground_slots, laden_stack_area = self.calculate_stack_capacity(year)
-
 
     def stack_equipment_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -998,6 +999,59 @@ class System:
 
                 list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
                 stack_equipment_online = len(list_of_elements_stack_equipment)
+
+    def gate_invest(self, year):
+        """current strategy is to add gates as soon as trigger is achieved
+              - find out how much gate capacity is online
+              - find out how much gate capacity is planned
+              - find out how much gate capacity is needed
+              - add gate capacity until service_trigger is no longer exceeded
+              """
+
+        gate_capacity_planned, gate_capacity_online, service_rate_planned = self.calculate_gate_minutes(year)
+
+        if self.debug:
+            print('     Gate capacity planned (@ start of year): {}'.format(gate_capacity_planned))
+            print('     Gate capacity online (@ start of year): {}'.format(gate_capacity_online))
+            print('     Service rate planned (@ start of year): {}'.format(service_rate_planned))
+
+        while service_rate_planned > 1:
+            # add a station when station occupancy is too high
+            if self.debug:
+                print('  *** add gate to elements')
+
+            gate = Gate(**container_defaults.gate_data)
+
+
+            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+
+            # - capex
+            unit_rate = gate.unit_rate
+            mobilisation = gate.mobilisation
+            canopy = gate.canopy_costs * gate.area
+            gate.capex = int(unit_rate + mobilisation + canopy)
+
+            # - opex
+            gate.maintenance = unit_rate * gate.maintenance_perc
+
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            gate.shift = gate.crew * labour.daily_shifts
+            gate.labour = gate.shift * gate.salary
+
+            if year == self.startyear:
+                gate.year_online = year + gate.delivery_time + 1
+            else:
+                gate.year_online = year + gate.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+            gate = self.add_cashflow_data_to_element(gate)
+
+            self.elements.append(gate)
+
+            gate_capacity_planned, gate_capacity_online, service_rate_planned = self.calculate_gate_minutes(year)
+
     # *** Financial analyses
 
     def add_cashflow_elements(self):
@@ -1324,7 +1378,7 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
 
-    def calculate_gate_occupancy(self, year):
+    def calculate_gate_minutes(self, year):
         """
         - Find all gates and sum their effective_capacity to get service_capacity
         - Calculate average entry and exit time to get total time at gate
@@ -1335,78 +1389,36 @@ class System:
         list_of_elements = self.find_elements(Gate)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        service_rate_planned = 0
-        service_rate_online = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                service_rate_planned += element.capacity
-                if year >= element.year_online:
-                    service_rate_online += element.capacity
+        capacity_planned = 0
+        capacity_online = 0
 
-            # estimate gate occupancy
-            '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
-            Every gate is 60 minutes, which is the capacity. Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
+        for element in list_of_elements:
+            capacity_planned += element.capacity
+            if year >= element.year_online:
+                capacity_online += element.capacity
 
+        # estimate time at gate lanes
+        '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
+        Every gate is 60 minutes, which is the capacity. Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
 
-            # berth_occupancy is the total time at berth divided by the operational hours
-            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
+        # todo vervang deze fixed integer met calc_box_moves en open weeks per year als input
+        import_box_moves = 150_000
+        export_box_moves = 150_000
+        weeks_year = 52
 
-            # estimate crane occupancy
-            time_at_crane_handysize_planned = handysize_calls * (
-                (container_defaults.handysize_data["call_size"] / service_rate_planned))
-            time_at_crane_handymax_planned = handymax_calls * (
-                (container_defaults.handymax_data["call_size"] / service_rate_planned))
-            time_at_crane_panamax_planned = panamax_calls * (
-                (container_defaults.panamax_data["call_size"] / service_rate_planned))
+        gate = Gate(**container_defaults.gate_data)
 
-            total_time_at_crane_planned = np.sum(
-                [time_at_crane_handysize_planned, time_at_crane_handymax_planned, time_at_crane_panamax_planned])
+        design_exit_gate_minutes = import_box_moves*gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
+                                   gate.exit_inspection_time * gate.design_capacity
 
-            # berth_occupancy is the total time at berth divided by the operational hours
-            crane_occupancy_planned = total_time_at_crane_planned / self.operational_hours
+        design_entry_gate_minutes = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
+                                   gate.entry_inspection_time * gate.design_capacity
 
-            if service_rate_online != 0:
-                time_at_berth_handysize_online = handysize_calls * (
-                        (container_defaults.handysize_data["call_size"] / service_rate_online) +container_defaults.handysize_data[
-                    "mooring_time"])
-                time_at_berth_handymax_online = handymax_calls * (
-                        (container_defaults.handymax_data["call_size"] / service_rate_online) +container_defaults.handymax_data[
-                    "mooring_time"])
-                time_at_berth_panamax_online = panamax_calls * (
-                        (container_defaults.panamax_data["call_size"] / service_rate_online) +container_defaults.panamax_data[
-                    "mooring_time"])
+        total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
 
-                total_time_at_berth_online = np.sum(
-                    [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
+        service_rate_planend = total_design_gate_minutes / capacity_planned
 
-                # berth_occupancy is the total time at berth devided by the operational hours
-                berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
-
-                time_at_crane_handysize_online = handysize_calls * (
-                    (container_defaults.handysize_data["call_size"] / service_rate_online))
-                time_at_crane_handymax_online = handymax_calls * (
-                    (container_defaults.handymax_data["call_size"] / service_rate_online))
-                time_at_crane_panamax_online = panamax_calls * (
-                    (container_defaults.panamax_data["call_size"] / service_rate_online))
-
-                total_time_at_crane_online = np.sum(
-                    [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
-
-                # berth_occupancy is the total time at berth devided by the operational hours
-                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
-
-            else:
-                berth_occupancy_online = float("inf")
-                crane_occupancy_online = float("inf")
-
-        else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-            berth_occupancy_planned = float("inf")
-            berth_occupancy_online = float("inf")
-            crane_occupancy_planned = float("inf")
-            crane_occupancy_online = float("inf")
-
-        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
+        return capacity_planned, capacity_online, service_rate_planend
 
     def waiting_time(self, year):
         """
