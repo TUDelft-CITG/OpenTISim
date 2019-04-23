@@ -282,7 +282,37 @@ rs_stack_data = {"name": 'RS Stack',
                     "drainage": 50} #DUMMY
 
 
+# *** Default inputs: Other_Stack class
 
+empty_stack_data = {"name": 'Empty Stack',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,
+                    "lifespan": 40,
+                    "mobilisation": 25_000,
+                    "maintenance_perc": 0.1,
+                    "width": 8, #TEU
+                    "height": 6, #TEU
+                    "length": 10, #TEU
+                    "capacity": 480 , #TEU
+                    "gross_tgs": 18,
+                    "area_factor": 2.04 , # Based on grasshopper layout
+                    "pavement": 200, #DUMMY
+                    "drainage": 50} #DUMMY
+
+oog_stack_data = {"name": 'OOG Stack',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,
+                    "lifespan": 40,
+                    "mobilisation": 25_000,
+                    "maintenance_perc": 0.1,
+                    "width": 8, #TEU
+                    "height": 6, #TEU
+                    "length": 10, #TEU
+                    "capacity": 480 , #TEU
+                    "gross_tgs": 64,
+                    "area_factor": 1.05 , # Based on grasshopper layout
+                    "pavement": 200, #DUMMY
+                    "drainage": 50} #DUMMY
 
 # *** Default inputs: Stack_Equipment class
 #RTG # todo add eRTG

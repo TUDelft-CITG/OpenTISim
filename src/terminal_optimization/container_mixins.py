@@ -258,6 +258,24 @@ class laden_stack_properties_mixin (object):
         self.pavement = pavement
         self.drainage = drainage
 
+class other_stack_properties_mixin (object):
+    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
+                 length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.width = width
+        self.height = height
+        self.length = length
+        self.capacity = capacity
+        self.gross_tgs = gross_tgs
+        self.area_factor = area_factor
+        self.pavement = pavement
+        self.drainage = drainage
 
 class stack_equipment_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew,

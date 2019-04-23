@@ -147,6 +147,17 @@ Stack_Equipment = type('Stack_Equipment', (container_mixins.identifiable_propert
 
 
 
+# The generic OOG_Empty_stack
+# - Empty stack
+# - OOG stack
+
+Other_Stack = type('Other_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                                container_mixins.other_stack_properties_mixin,
+                                container_mixins.hasopex_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                 {})
 
 
 # The generic Storage class
