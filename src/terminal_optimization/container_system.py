@@ -12,7 +12,7 @@ class System:
     def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4,
-                 laden_perc=1, reefer_perc=0, empty_perc=0, oog_perc=0, transhipment_ratio=0.3):
+                 laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -116,9 +116,15 @@ class System:
 
             self.laden_stack_invest(year)
 
+            self.empty_stack_invest(year)
+
+            self.oog_stack_invest(year)
+
             self.stack_equipment_invest(year)
 
             self.gate_invest(year)
+
+
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
@@ -908,6 +914,106 @@ class System:
 
             stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area = self.laden_reefer_stack_capacity(year)
 
+    def empty_stack_invest(self, year):
+
+        """current strategy is to add stacks as soon as trigger is achieved
+                     - find out how much stack capacity is online
+                     - find out how much stack capacity is planned
+                     - find out how much stack capacity is needed
+                     - add stack capacity until service_trigger is no longer exceeded
+                     """
+
+        empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, empty_stack_area = self.empty_stack_capacity(year)
+
+        if self.debug:
+            print('     Empty stack capacity planned (@ start of year): {}'.format(empty_capacity_planned))
+            print('     Empty stack capacity online (@ start of year): {}'.format(empty_capacity_online))
+            print('     Empty stack capacity required (@ start of year): {}'.format(empty_required_capacity))
+            print('     Empty ground slots required (@ start of year): {}'.format(empty_ground_slots))
+
+        while empty_required_capacity > (empty_capacity_planned + empty_capacity_online):
+            # add a station when station occupancy is too high
+            if self.debug:
+                print('  *** add empty stack to elements')
+
+            empty_stack = Empty_Stack(**container_defaults.empty_stack_data)
+
+            # - capex
+            area = empty_stack.length * empty_stack.width
+            gross_tgs = empty_stack.gross_tgs
+            pavement = empty_stack.pavement
+            drainage = empty_stack.drainage
+            area_factor = empty_stack.area_factor
+            mobilisation = empty_stack.mobilisation
+            empty_stack.capex = int((pavement + drainage) * gross_tgs * area * area_factor + mobilisation)
+
+            # - opex
+            empty_stack.maintenance = int((pavement + drainage) * gross_tgs * area * area_factor * empty_stack.maintenance_perc)
+
+            if year == self.startyear:
+                empty_stack.year_online = year + empty_stack.delivery_time + 1
+            else:
+                empty_stack.year_online = year + empty_stack.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+            empty_stack = self.add_cashflow_data_to_element(empty_stack)
+
+            self.elements.append(empty_stack)
+
+            empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, \
+            empty_stack_area = self.empty_stack_capacity(
+                year)
+
+
+
+    def oog_stack_invest(self, year):
+
+        """current strategy is to add stacks as soon as trigger is achieved
+                     - find out how much stack capacity is online
+                     - find out how much stack capacity is planned
+                     - find out how much stack capacity is needed
+                     - add stack capacity until service_trigger is no longer exceeded
+                     """
+
+        oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
+
+        if self.debug:
+            print('     OOG slots planned (@ start of year): {}'.format(oog_capacity_planned))
+            print('     OOG slots online (@ start of year): {}'.format(oog_capacity_online))
+            print('     OOG slots required (@ start of year): {}'.format(oog_required_capacity))
+
+        while oog_required_capacity > (oog_capacity_planned + oog_capacity_online):
+            # add a station when station occupancy is too high
+            if self.debug:
+                print('  *** add empty stack to elements')
+
+            oog_stack = OOG_Stack(**container_defaults.oog_stack_data)
+
+            # - capex
+            area = oog_stack.length * oog_stack.width
+            gross_tgs = oog_stack.gross_tgs
+            pavement = oog_stack.pavement
+            drainage = oog_stack.drainage
+            area_factor = oog_stack.area_factor
+            mobilisation = oog_stack.mobilisation
+            oog_stack.capex = int((pavement + drainage) * gross_tgs * area * area_factor + mobilisation)
+
+            # - opex
+            oog_stack.maintenance = int(
+                (pavement + drainage) * gross_tgs * area * area_factor * oog_stack.maintenance_perc)
+
+            if year == self.startyear:
+                oog_stack.year_online = year + oog_stack.delivery_time + 1
+            else:
+                oog_stack.year_online = year + oog_stack.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+                oog_stack = self.add_cashflow_data_to_element(oog_stack)
+
+            self.elements.append(oog_stack)
+
+            oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
+
     def stack_equipment_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
         - find out how much stack equipment is online
@@ -959,6 +1065,7 @@ class System:
                 labour = Labour(**container_defaults.labour_data)
                 stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
                 stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
+
 
                 if year == self.startyear:
                     stack_equipment.year_online = year + stack_equipment.delivery_time + 1
@@ -1322,17 +1429,6 @@ class System:
             if year >= element.year_online:
                 stack_capacity_online += element.capacity
 
-        ''' Calculate the total throughput in TEU per year'''
-        commodities = self.find_elements(Commodity)
-        for commodity in commodities:
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            except:
-                pass
-
-        '''determine the number of laden containers'''
-        laden_containers = int(volume * self.laden_perc)
-
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
         laden = Container(**container_defaults.laden_container_data)
@@ -1359,6 +1455,72 @@ class System:
 
         return stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area
 
+    def empty_stack_capacity(self, year):
+
+
+        """
+        - #todo beschrijving empty stack
+        """
+
+        list_of_elements = self.find_elements(Empty_Stack)
+        # find the total stack capacity
+
+        empty_capacity_planned = 0
+        empty_capacity_online = 0
+        empty_required_capacity = 0
+        for element in list_of_elements:
+            empty_capacity_planned += element.capacity
+            if year >= element.year_online:
+                empty_capacity_online += element.capacity
+
+
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+
+        empty = Container(**container_defaults.empty_container_data)
+
+        stack = Empty_Stack(**container_defaults.empty_stack_data)
+
+        operational_days = self.operational_hours // 24
+
+        empty_ground_slots = empty_teu * empty.peak_factor * empty.dwell_time / empty.stack_occupancy / stack.height / operational_days
+
+        empty_required_capacity = empty_ground_slots*stack.height
+        empty_stack_area = empty_ground_slots*stack.area_factor
+
+        return empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, empty_stack_area
+
+    def oog_stack_capacity(self, year):
+
+
+        """
+        - #todo beschrijving oog stack
+        """
+
+        list_of_elements = self.find_elements(OOG_Stack)
+        # find the total stack capacity
+
+        oog_capacity_planned = 0
+        oog_capacity_online = 0
+        oog_required_capacity = 0
+        for element in list_of_elements:
+            oog_capacity_planned += element.capacity
+            if year >= element.year_online:
+                oog_capacity_online += element.capacity
+
+
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+
+        oog = Container(**container_defaults.oog_container_data)
+
+        stack = OOG_Stack(**container_defaults.oog_stack_data)
+
+        operational_days = self.operational_hours // 24
+
+        oog_spots = oog_teu * oog.peak_factor * oog.dwell_time / oog.stack_occupancy / stack.height / operational_days / oog.teu_factor
+
+        oog_required_capacity = oog_spots
+
+        return oog_capacity_planned, oog_capacity_online, oog_required_capacity
 
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
@@ -1670,6 +1832,8 @@ class System:
         stack = []
         stack_equipment = []
         gates = []
+        empty_stack = []
+        oog_stack = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -1684,6 +1848,8 @@ class System:
             stack.append(0)
             stack_equipment.append(0)
             gates.append(0)
+            empty_stack.append(0)
+            oog_stack.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1716,6 +1882,12 @@ class System:
                 if isinstance(element, Gate):
                     if year >= element.year_online:
                         gates[-1] += 1
+                if isinstance(element, OOG_Stack):
+                    if year >= element.year_online:
+                        oog_stack[-1] += 1
+                if isinstance(element, Empty_Stack):
+                    if year >= element.year_online:
+                        empty_stack[-1] += 1
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
                         tractor[-1] += 1
@@ -1729,8 +1901,10 @@ class System:
         ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes")
         ax.bar([x + 3 * width for x in years], tractor, width=width, alpha=alpha, label="tractor x10")
         ax.bar([x + 4 * width for x in years], stack, width=width, alpha=alpha, label="stack")
-        ax.bar([x + 5 * width for x in years], stack_equipment, width=width, alpha=alpha, label="stack equipment")
-        ax.bar([x + 6 * width for x in years], gates, width=width, alpha=alpha, label="gates")
+        ax.bar([x + 5 * width for x in years], empty_stack, width=width, alpha=alpha, label="empty stack")
+        ax.bar([x + 6 * width for x in years], oog_stack, width=width, alpha=alpha, label="oog stack")
+        ax.bar([x + 7 * width for x in years], stack_equipment, width=width, alpha=alpha, label="stack equipment")
+        ax.bar([x + 8 * width for x in years], gates, width=width, alpha=alpha, label="gates")
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Elements on line [nr]')

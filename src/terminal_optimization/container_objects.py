@@ -41,7 +41,8 @@ Quay_wall = type('Quay_wall', (container_mixins.identifiable_properties_mixin,  
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
                                container_mixins.hasopex_properties_mixin,  # Give it opex info
                                container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers (lambda?)
+                               container_mixins.hasland_properties_mixin),
                  {})  # The dictionary is empty because the site type is generic
 
 # The generic Berth class
@@ -127,7 +128,8 @@ Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixi
                                 container_mixins.laden_stack_properties_mixin,
                                 container_mixins.hasopex_properties_mixin,
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
-                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                                container_mixins.hasland_properties_mixin),
                  {})
 
 # The generic stack equipment class
@@ -147,17 +149,27 @@ Stack_Equipment = type('Stack_Equipment', (container_mixins.identifiable_propert
 
 
 
-# The generic OOG_Empty_stack
-# - Empty stack
-# - OOG stack
+# Empty_stack class
 
-Other_Stack = type('Other_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+Empty_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
-                                container_mixins.other_stack_properties_mixin,
+                                container_mixins.empty_stack_properties_mixin,
                                 container_mixins.hasopex_properties_mixin,
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
-                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
-                 {})
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                                container_mixins.hasland_properties_mixin),
+                            {})
+
+# OOG_stack class
+
+OOG_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                                container_mixins.oog_stack_properties_mixin,
+                                container_mixins.hasopex_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                                 container_mixins.hasland_properties_mixin),
+                {})
 
 
 # The generic Storage class
@@ -213,8 +225,9 @@ Gate = type('Gate', (container_mixins.identifiable_properties_mixin,  # Give it 
                                 container_mixins.gate_properties_mixin,
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
                                container_mixins.hasopex_properties_mixin,  # Give it opex info
-                               container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
-                 {})
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                                container_mixins.hasland_properties_mixin),
+                    {})
 
 
 

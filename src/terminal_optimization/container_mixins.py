@@ -100,6 +100,17 @@ class hasrevenue_properties_mixin(object):
         self.renevue = renevue
 
 
+class hasland_properties_mixin(object):
+    """Something has land use [ha]
+
+    land_use: list with land use to be applied from investment year"""
+
+    def __init__(self, land_use=[], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        """Initialization"""
+        self.land_use = land_use
+
+
 class hastriggers_properties_mixin(object):
     """Something has InvestmentTriggers
 
@@ -258,7 +269,27 @@ class laden_stack_properties_mixin (object):
         self.pavement = pavement
         self.drainage = drainage
 
-class other_stack_properties_mixin (object):
+class empty_stack_properties_mixin (object):
+    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
+                 length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.width = width
+        self.height = height
+        self.length = length
+        self.capacity = capacity
+        self.gross_tgs = gross_tgs
+        self.area_factor = area_factor
+        self.pavement = pavement
+        self.drainage = drainage
+
+
+class oog_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
                  length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
         super().__init__(*args, **kwargs)

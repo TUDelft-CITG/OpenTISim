@@ -305,10 +305,10 @@ oog_stack_data = {"name": 'OOG Stack',
                     "lifespan": 40,
                     "mobilisation": 25_000,
                     "maintenance_perc": 0.1,
-                    "width": 8, #TEU
-                    "height": 6, #TEU
+                    "width": 10, #TEU
+                    "height": 1, #TEU
                     "length": 10, #TEU
-                    "capacity": 480 , #TEU
+                    "capacity": 100 , #TEU
                     "gross_tgs": 64,
                     "area_factor": 1.05 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
