@@ -159,8 +159,6 @@ class System:
         except:
             pass
 
-
-
     def calculate_energy_cost(self, year):
         """
         The energy cost of all different element are calculated.
@@ -250,8 +248,6 @@ class System:
     def calculate_demurrage_cost(self, year):
 
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
-
-        #todo: make it a loop instead of different labels
 
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, \
         vlcc_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
@@ -419,7 +415,7 @@ class System:
                         length = length_v + width_v + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
 
                 # - width jetty head
-                width = 10 #todo: needs to be calcuated correctly
+                width = 10
 
                 # - depth
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
@@ -459,6 +455,10 @@ class System:
         jetty.maintenance = unit_rate * length * width * jetty.maintenance_perc
         jetty.year_online = year + jetty.delivery_time
 
+        # residual
+        jetty.assetvalue = (jetty.capex - mobilisation) * (1 - ((self.lifecycle + self.startyear - jetty.year_online) / jetty.lifespan))
+        jetty.residual = max(jetty.assetvalue, 0)
+
         # add cash flow information to jetty object in a dataframe
         jetty = self.add_cashflow_data_to_element(jetty)
 
@@ -482,10 +482,10 @@ class System:
                 if year >= element.year_online:
                     service_capacity_online += element.capacity
 
-        #todo: max this
+        #todo: max this, change this to general
         # max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
-        # find the total service rate,
 
+        # find the total service rate,
         service_rate = 0
         years_online = []
         for element in self.find_elements(Jetty):
@@ -530,6 +530,10 @@ class System:
                 pipeline_jetty.year_online = max(new_jetty_years)
             elif max_pipeline_years > min(new_jetty_years):
                 pipeline_jetty.year_online = max(new_jetty_years)
+
+            # residual
+            pipeline_jetty.assetvalue = unit_rate * (1 - (self.lifecycle + self.startyear - pipeline_jetty.year_online) / pipeline_jetty.lifespan)
+            pipeline_jetty.residual = max(pipeline_jetty.assetvalue, 0)
 
             # add cash flow information to pipeline_jetty object in a dataframe
             pipeline_jetty = self.add_cashflow_data_to_element(pipeline_jetty)
@@ -607,6 +611,10 @@ class System:
             else:
                 storage.year_online = year + storage.delivery_time
 
+            # residual
+            storage.assetvalue = storage.unit_rate * (1 - ((self.lifecycle + self.startyear - storage.year_online) / storage.lifespan))
+            storage.residual = max(storage.assetvalue, 0)
+
             # add cash flow information to storage object in a dataframe
             storage = self.add_cashflow_data_to_element(storage)
 
@@ -660,6 +668,11 @@ class System:
                 h2retrieval.year_online = year
             else:
                 h2retrieval.year_online = year + h2retrieval.delivery_time
+
+            # residual
+            h2retrieval.assetvalue = h2retrieval.unit_rate * (
+                        1 - (self.lifecycle + self.startyear - h2retrieval.year_online) / h2retrieval.lifespan)
+            h2retrieval.residual = max(h2retrieval.assetvalue, 0)
 
             # add cash flow information to h2retrieval object in a dataframe
             h2retrieval = self.add_cashflow_data_to_element(h2retrieval)
@@ -726,6 +739,11 @@ class System:
             else:
                 pipeline_hinter.year_online = year + pipeline_hinter.delivery_time
 
+            # residual
+            pipeline_hinter.assetvalue = unit_rate * (
+                    1 - (self.lifecycle + self.startyear - pipeline_hinter.year_online) / pipeline_hinter.lifespan)
+            pipeline_hinter.residual = max(pipeline_hinter.assetvalue, 0)
+
             # add cash flow information to pipeline_hinter object in a dataframe
             pipeline_hinter = self.add_cashflow_data_to_element(pipeline_hinter)
 
@@ -773,10 +791,12 @@ class System:
             # - Define online year
             if year == self.startyear:
                 station.year_online = year + station.delivery_time + 1
-            # elif throughput_online == Demand:
-            #     station.year_online = year + station.delivery_time
             else:
                 station.year_online = year + station.delivery_time
+
+            # residual
+            station.assetvalue = station.unit_rate * (1 - (self.lifecycle + self.startyear - station.year_online) / station.lifespan)
+            station.residual = max(station.assetvalue, 0)
 
             # add cash flow information to station object in a dataframe
             station = self.add_cashflow_data_to_element(station)
@@ -799,6 +819,7 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
+        cash_flows['residual'] = 0
         cash_flows['demurrage'] = self.demurrage
         cash_flows['revenues'] = self.revenues
 
@@ -843,6 +864,7 @@ class System:
         maintenance = element.maintenance
         insurance = element.insurance
         labour = element.labour
+        residual = -1 * element.residual
 
         # year online
         year_online = element.year_online
@@ -867,6 +889,8 @@ class System:
             df.loc[df["year"] >= year_online, "insurance"] = insurance
         if labour:
             df.loc[df["year"] >= year_online, "labour"] = labour
+        if residual:
+            df.loc[df["year"] == self.startyear + self.lifecycle - 1, "residual"] = residual
 
         df.fillna(0, inplace=True)
 
@@ -914,6 +938,7 @@ class System:
                cash_flows_WACC_real['maintenance'].values + \
                cash_flows_WACC_real['energy'].values + \
                cash_flows_WACC_real['demurrage'].values + \
+               cash_flows_WACC_real['residual'].values + \
                cash_flows_WACC_real['labour'].values
 
         PV = - capex - opex + revenue
@@ -1604,7 +1629,7 @@ class System:
         revenue = self.revenues
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values + cash_flows['demurrage'].values
+               cash_flows['labour'].values + cash_flows['demurrage'].values + cash_flows['residual'].values
 
         # sum cash flows to get profits as a function of year
         profits = []
