@@ -50,7 +50,8 @@ quay_wall_data = {"name": 'Quay_01',
                   "Gijt_coefficient": 1.2878,
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
-                  "safety_margin": 0.5} # all values from Ijzermans, 2019, P 91
+                  "safety_margin": 0.5,
+                  "apron_width" : 65.5} # all values from Ijzermans, 2019, P 91
 
 # *** Default inputs: Berth class ***
 
@@ -262,7 +263,7 @@ sc_stack_data = {"name": 'SC Stack',
                     "length": 20, #TEU
                     "capacity": 3840 , #TEU
                     "gross_tgs": 26.46,
-                    "area_factor": 1.45 , #  Based on grasshopper layout
+                    "area_factor": 1.45 , #Based on grasshopper layout
                     "pavement": 200, #DUMMY
                     "drainage": 50} #DUMMY
 
@@ -448,7 +449,7 @@ gate_data = {"name": 'Gate',
                "crew": 2,
                "salary": 30_000, #dummy
                 "canopy_costs" : 250, #USD/m2 dummy
-               "area": 100 , #todo verify
+               "area": 288.75 , #PIANC WG135
                 "staff_gates" : 1,
                "service_gates": 1,
                 "design_capacity" : 0.98,
