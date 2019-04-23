@@ -9,7 +9,7 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.lhydrogen_data, storage_type_defaults=
+                 commodity_type_defaults=hydrogen_defaults.commodity_lhydrogen_data, storage_type_defaults=
                  hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
                  hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
                  h2retrieval_trigger = 0.5, allowable_station_occupancy=0.5):
@@ -137,12 +137,20 @@ class System:
         2. calculate the maximum amount that can be handled (service capacity * operational hours)
         Terminal.revenues is the minimum of 1. and 2.
         """
-
+        # todo: pakt nog niet goede fee bij throuhgput!
         # gather volumes from each commodity, calculate how much revenue it would yield, and add
-        for commodity in self.find_elements(Commodity):
-            fee = commodity.handling_fee
+        # for commodity in self.find_elements(Commodity):
+        #     fee = commodity.handling_fee
 
-            throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station = self.throughput_elements(year)
+        # commodity_type_defaults
+
+        # commodity = Commodity(**hydrogen_defaults_commodity_data)
+        list_of_elements = self.find_elements(Commodity)
+        if list_of_elements != []:
+            for element in list_of_elements:
+                    fee = element.handling_fee
+
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station = self.throughput_elements(year)
         if self.debug:
                 print('     Revenues: {}'.format(int(throughput_online * fee)))
 
@@ -151,7 +159,7 @@ class System:
         except:
             pass
 
-        #todo: pakt nog niet goede fee bij throuhgput!
+
 
     def calculate_energy_cost(self, year):
         """
@@ -405,7 +413,7 @@ class System:
                     # - length when next jetty is n = 1
                     length = length_v + 2 * 15  # ref: PIANC 2014
                 else:
-                    if self.commodity_type_defaults==hydrogen_defaults.lhydrogen_data:
+                    if self.commodity_type_defaults==hydrogen_defaults.commodity_lhydrogen_data:
                         length = length_v + width_v + 2 * 15 + hydrogen_defaults.jetty_data["Safety_margin_LH2"]  # ref:LNG master planning - D. van Niekerk
                     else:
                         length = length_v + width_v + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180

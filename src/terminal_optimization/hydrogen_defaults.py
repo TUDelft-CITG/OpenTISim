@@ -101,8 +101,6 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
 
 # *** Default inputs: Storage class ***
 
-#todo: check the data of storage, really high a the moment
-
 "Liquid hydrogen"
 
 storage_lh2_data = {"name": 'HTank_01',
@@ -215,7 +213,8 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
 
 # *** Default inputs: Commodity class ***
 
-lhydrogen_data = {"name": 'Liquid hydrogen',
+commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
+                            "type": 'Liquid hydrogen',
                   "handling_fee": 1000,
                   "smallhydrogen_perc": 30,
                   "largehydrogen_perc": 70,
@@ -227,7 +226,8 @@ lhydrogen_data = {"name": 'Liquid hydrogen',
                   "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
-ammonia_data = {"name": 'Ammonia',
+commodity_ammonia_data = {"name": 'Ammonia',
+                "type": 'Ammonia',
                 "handling_fee": 1000,
                 "smallhydrogen_perc": 0,
                 "largehydrogen_perc": 0,
@@ -238,7 +238,8 @@ ammonia_data = {"name": 'Ammonia',
                 "vlcc_perc": 0,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                 'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-MCH_data = {"name": 'MCH',
+commodity_MCH_data = {"name": 'MCH',
+            "type": 'MCH',
             "handling_fee": 1000,
             "smallhydrogen_perc": 0,
             "largehydrogen_perc": 0,

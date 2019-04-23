@@ -217,9 +217,10 @@ class unloading_station_properties_mixin(object):
         self.service_rate = int(self.call_size / (self.call_size/self.production + self.prep_time)) #TUE/hour, IJzermans 2019, P30
 
 class commodity_properties_mixin(object):
-    def __init__(self, handling_fee, smallhydrogen_perc, largehydrogen_perc, smallammonia_perc, largeammonia_perc,handysize_perc, panamax_perc, vlcc_perc, *args, **kwargs):
+    def __init__(self, type, handling_fee, smallhydrogen_perc, largehydrogen_perc, smallammonia_perc, largeammonia_perc,handysize_perc, panamax_perc, vlcc_perc, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
+        self.type = type
         self.handling_fee = handling_fee
         self.smallhydrogen_perc = smallhydrogen_perc
         self.largehydrogen_perc = largehydrogen_perc
