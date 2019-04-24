@@ -301,6 +301,31 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
+        #NEW ELEMENTS FOR CONTAINER TERMINAL
+
+        sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+
+        energy_price = self.energy_price
+
+        # calculate STS crane power consumption
+
+        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
+
+        for element in list_of_elements_sts:
+            nr_sts = len(list_of_elements_sts)
+            sts_moves_per_element = sts_moves // nr_sts
+            print("test", nr_sts)
+            if year >= element.year_online:
+
+                if element.consumption * sts_moves_per_element * energy_price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = \
+                        element.consumption * sts_moves_per_element * energy_price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+
+
     def calculate_fuel_cost(self, year):
 
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
@@ -324,9 +349,7 @@ class System:
                 else:
                     element.df.loc[element.df['year'] == year, 'fuel'] = 0
 
-
         # calculate tractor fuel consumption
-
 
         list_of_elements_Tractor = self.find_elements(Horizontal_Transport)
 
@@ -338,9 +361,6 @@ class System:
 
             else:
                 element.df.loc[element.df['year'] == year, 'fuel'] = 0
-
-
-
 
     def calculate_demurrage_cost(self, year):
 

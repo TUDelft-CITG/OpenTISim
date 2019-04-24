@@ -114,7 +114,7 @@ sts_crane_data = {"name": 'STS_crane_01',
                      "unit_rate": 10_000_000,
                      "mobilisation_perc": 0.15,
                      "maintenance_perc": 0.02,
-                     "consumption": 400, #based on 8 kWh/box move (kan ik dit wellicht ook vervangen met kWh per box move?)
+                     "consumption": 8, #Peter Beamish
                      "insurance_perc": 0.01,
                      "crew": 5.5, # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                      "crane_type": 'STS crane',
