@@ -294,6 +294,8 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
+    def calculate_fuel_cost(self, year):
+
     def calculate_demurrage_cost(self, year):
 
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
@@ -1413,20 +1415,70 @@ class System:
 
         return laden_box, reefer_box, empty_box, oog_box, throughput_box
 
-        ''' Calculate the total throughput in TEU per year'''
-        commodities = self.find_elements(Commodity)
-        for commodity in commodities:
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            except:
-                pass
 
-        laden_teu = volume * self.laden_perc
-        reefer_teu = volume * self.reefer_perc
-        empty_teu = volume * self.empty_perc
-        oog_teu = volume * self.oog_perc
+    def box_moves(self, year):
+        ''''Calculate the box moves as input for the power and fuel consumption'''
 
-        return laden_teu, reefer_teu, empty_teu, oog_teu
+        laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
+
+        # calculate STS moves
+        '''STS cranes are responsible for the throughput (containers over the quay), 
+        therefore the total number of boxes is the total number of box moves for STS cranes'''
+
+        sts_moves = throughput_box
+
+        # calculate the number of tractor moves
+        tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+        tractor_moves = throughput_box * tractor.non_essential_moves
+
+        # calculate the number of empty moves
+        empty = Empty_Stack(**container_defaults.empty_stack_data)
+        empty_moves = empty_box * empty.houshold * empty.digout
+
+        #todo wellicht reefer and laden nog scheiden van elkaar in alles
+
+        #calculate laden and reefer stack moves
+        if self.laden_stack == 'rtg':
+            stack = Laden_Stack(**container_defaults.rtg_stack_data)
+        elif self.laden_stack == 'rmg':
+            stack = Laden_Stack(**container_defaults.rmg_stack_data)
+        elif self.laden_stack == 'sc':
+            stack = Laden_Stack(**container_defaults.sc_stack_data)
+        elif self.laden_stack == 'rs':
+            stack = Laden_Stack(**container_defaults.rs_stack_data)
+
+        digout_moves = (stack.height -1)/2 #JvBeemen
+        ''''The number of moves per laden box moves differs for import and export (i/e) and for transhipment (t/s)'''
+        moves_i_e = st.mean[2+stack.household+digout_moves, (2+stack.household) * stack.digout_margin]
+        moves_t_s = 0.5 * ((2+stack.household) * stack.digout_margin)
+
+        laden_reefer_box_t_s = (laden_box + reefer_box) * self.transhipment_ratio
+        laden_reefer_box_i_e = (laden_box + reefer_box) - laden_box_t_s
+
+        laden_reefer_moves_t_s = laden_reefer_box_t_s * moves_t_s
+        laden_reefer_moves_i_e = laden_reefer_box_i_e * moves_i_e
+
+        stack_moves = laden_reefer_moves_i_e + laden_reefer_moves_t_s
+
+        return  sts_moves, stack_moves, empty_moves, tractor_moves
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        return sts_moves, tractor_moves, empty_moves
+
+
 
     def laden_reefer_stack_capacity(self, year):
 

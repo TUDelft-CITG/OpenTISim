@@ -188,7 +188,8 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                             "utilisation": 0.80,
                             "fuel_consumption": 2, #liter per box move
                             "productivity": 1,
-                            "required" : 5} # todo input value for tractor productivity
+                            "required" : 5,
+                            "non_essential_moves" : 1.2} # todo input value for tractor productivity
 
 # *** Default inputs: Container class
 
@@ -235,7 +236,9 @@ rtg_stack_data = {"name": 'RTG Stack',
                     "gross_tgs": 18,
                     "area_factor": 2.04 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
-                    "drainage": 50} #DUMMY
+                    "drainage": 50, #DUMMY
+                  "household" : 0.1, #moves
+                  "digout_margin" : 1.2} #percentage
 
 rmg_stack_data = {"name": 'RMG Stack',
                     "ownership": 'Terminal operator',
@@ -250,7 +253,9 @@ rmg_stack_data = {"name": 'RMG Stack',
                     "gross_tgs": 18.67,
                     "area_factor": 2.79 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
-                    "drainage": 50} #DUMMY
+                    "drainage": 50,#DUMMY
+                    "household": 0.1,  # moves
+                    "digout_margin": 1.2}  # percentage
 
 sc_stack_data = {"name": 'SC Stack',
                     "ownership": 'Terminal operator',
@@ -265,7 +270,9 @@ sc_stack_data = {"name": 'SC Stack',
                     "gross_tgs": 26.46,
                     "area_factor": 1.45 , #Based on grasshopper layout
                     "pavement": 200, #DUMMY
-                    "drainage": 50} #DUMMY
+                    "drainage": 50, #DUMMY
+                    "household": 0.1,  # moves
+                    "digout_margin": 1.2}  # percentage
 
 rs_stack_data = {"name": 'RS Stack',
                     "ownership": 'Terminal operator',
@@ -280,8 +287,9 @@ rs_stack_data = {"name": 'RS Stack',
                     "gross_tgs": 18,
                     "area_factor": 3.23 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
-                    "drainage": 50} #DUMMY
-
+                    "drainage": 50, #DUMMY
+                    "household": 0.1,  # moves
+                    "digout_margin": 1.2}  # percentage
 
 # *** Default inputs: Other_Stack class
 
@@ -298,7 +306,9 @@ empty_stack_data = {"name": 'Empty Stack',
                     "gross_tgs": 18,
                     "area_factor": 2.04 , # Based on grasshopper layout
                     "pavement": 200, #DUMMY
-                    "drainage": 50} #DUMMY
+                    "drainage": 50,
+                    "household" : 1.05,
+                    "digout" : 1.05} #DUMMY
 
 oog_stack_data = {"name": 'OOG Stack',
                     "ownership": 'Terminal operator',

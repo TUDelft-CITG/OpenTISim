@@ -77,7 +77,7 @@ class hasopex_properties_mixin(object):
     opex: list with cost to be applied from investment year"""
 
     def __init__(self, labour=[], maintenance=[], energy=[], insurance=[],
-                 lease=[], demurrage=[], residual=[], *args, **kwargs):
+                 lease=[], demurrage=[], residual=[], fuel = [], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.labour = labour
@@ -87,6 +87,7 @@ class hasopex_properties_mixin(object):
         self.lease = lease
         self.demurrage = demurrage
         self.residual = residual
+        self.fuel = fuel
 
 
 class hasrevenue_properties_mixin(object):
@@ -223,7 +224,7 @@ class conveyor_properties_mixin(object):
 class transport_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
                  maintenance_perc, insurance_perc,
-                 crew, salary, utilisation, fuel_consumption, productivity, required,  *args, **kwargs):
+                 crew, salary, utilisation, fuel_consumption, productivity, required, non_essential_moves,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -240,6 +241,7 @@ class transport_properties_mixin(object):
         self.fuel_consumption = fuel_consumption
         self.productivity = productivity
         self.required = required
+        self.non_essential_moves = non_essential_moves
 
 class container_properties_mixin (object):
     def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_occupancy,  *args, **kwargs):
@@ -253,7 +255,7 @@ class container_properties_mixin (object):
 
 class laden_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
-                 length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
+                 length, capacity, gross_tgs, area_factor, pavement, drainage, household, digout_margin, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -269,10 +271,12 @@ class laden_stack_properties_mixin (object):
         self.area_factor = area_factor
         self.pavement = pavement
         self.drainage = drainage
+        self.household = household
+        self.digout_margin = digout_margin
 
 class empty_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
-                 length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
+                 length, capacity, gross_tgs, area_factor, pavement, drainage, household, digout, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -288,6 +292,9 @@ class empty_stack_properties_mixin (object):
         self.area_factor = area_factor
         self.pavement = pavement
         self.drainage = drainage
+        self.household = household
+        self.digout = digout
+
 
 
 class oog_stack_properties_mixin (object):
