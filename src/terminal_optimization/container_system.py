@@ -9,7 +9,7 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'sc', laden_stack = 'sc',
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.6, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4,
                  laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3):
@@ -211,9 +211,7 @@ class System:
 
     def calculate_energy_cost(self, year): # todo voeg energy toe voor nieuwe elementen
         """
-        1. calculate the value of the total demand in year (demand * handling fee)
-        2. calculate the maximum amount that can be handled (service capacity * operational hours)
-        Terminal.revenues is the minimum of 1. and 2.
+
         """
 
         energy = Energy(**container_defaults.energy_data)
@@ -1921,7 +1919,7 @@ class System:
         ax.bar([x + 4 * width for x in years], stack, width=width, alpha=alpha, label="stack")
         ax.bar([x + 5 * width for x in years], empty_stack, width=width, alpha=alpha, label="empty stack")
         ax.bar([x + 6 * width for x in years], oog_stack, width=width, alpha=alpha, label="oog stack")
-        # ax.bar([x + 7 * width for x in years], stack_equipment, width=width, alpha=alpha, label="stack equipment")
+        ax.bar([x + 7 * width for x in years], stack_equipment, width=width, alpha=alpha, label="stack equipment")
         ax.bar([x + 8 * width for x in years], gates, width=width, alpha=alpha, label="gates")
 
         ax.set_xlabel('Years')
