@@ -471,6 +471,20 @@ gate_data = {"name": 'Gate',
                 "truck_moves" : 0.75,
                "operating_days": 6,
              "capacity": 60}
+# *** Default inputs: ECH class***
+
+empty_handler_data = {"name": 'Empty Handler',
+                     "type": 'empty_handler',
+                   "ownership" :  "Terminal operator",
+                   "delivery_time": 1,
+                   "lifespan": 15,
+                   "unit_rate": 500_000,
+                   "mobilisation": 5000,
+                   "maintenance_perc": 0.02,
+                   "crew": 1,
+                   "salary": 35_000, #dummy
+                    "consumption" : 1.5,
+                    "required" : 5}
 
 
 # *** Default inputs: Commodity class ***

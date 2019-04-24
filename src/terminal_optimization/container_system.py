@@ -128,6 +128,8 @@ class System:
 
             self.gate_invest(year)
 
+            self.empty_handler_invest(year)
+
 
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
@@ -905,7 +907,6 @@ class System:
             tractor.capex = int(unit_rate + mobilisation)
 
             # - opex
-            tractor.insurance = unit_rate * tractor.insurance_perc
             tractor.maintenance = unit_rate * tractor.maintenance_perc
 
             #   labour
@@ -925,6 +926,57 @@ class System:
 
             list_of_elements_tractor = self.find_elements(Horizontal_Transport)
             tractor_online = len(list_of_elements_tractor)
+
+    def empty_handler_invest(self, year):
+        """current strategy is to add unloading stations as soon as a service trigger is achieved
+        - find out how many empty handlers are online
+        - find out how many empty handlers areplanned
+        - find out how many empty handlers are needed
+        - add empty handlers until service_trigger is no longer exceeded
+        """
+        # todo Add delaying effect to the ech invest
+        list_of_elements_empty_handler = self.find_elements(Empty_Handler)
+        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
+        sts_cranes=len(list_of_elements_sts)
+        empty_handler_online=len(list_of_elements_empty_handler)
+
+
+        empty_handler = Empty_Handler(**container_defaults.empty_handler_data)
+
+        if self.debug:
+            # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
+            print('     Empty handlers online (@ start of year): {}'.format(empty_handler_online))
+
+        while sts_cranes > (empty_handler_online//empty_handler.required):
+            # add a tractor when not enough to serve number of STS cranes
+            if self.debug:
+                print('  *** add tractor to elements')
+
+            # - capex
+            unit_rate = empty_handler.unit_rate
+            mobilisation = empty_handler.mobilisation
+            empty_handler.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            empty_handler.maintenance = unit_rate * empty_handler.maintenance_perc
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            empty_handler.shift = empty_handler.crew * labour.daily_shifts
+            empty_handler.labour = empty_handler.shift * empty_handler.salary
+
+            if year == self.startyear:
+                empty_handler.year_online = year + empty_handler.delivery_time + 1
+            else:
+                empty_handler.year_online = year + empty_handler.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+                empty_handler = self.add_cashflow_data_to_element(empty_handler)
+
+            self.elements.append(empty_handler)
+
+            list_of_elements_empty_handler = self.find_elements(Empty_Handler)
+            empty_handler_online = len(list_of_elements_empty_handler)
 
     def laden_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
