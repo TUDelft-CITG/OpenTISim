@@ -374,7 +374,7 @@ sc_data = {"name": 'Straddle carrier',
             "crew": 0, #dummy
             "salary": 50_000, #dummy
             "required": 5,
-            "fuel_consumption": 15, #dummy
+            "fuel_consumption": 1, #dummy
             "power_consumption": 0
             }
 

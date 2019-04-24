@@ -9,10 +9,10 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'sc', laden_stack = 'sc',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
                  allowable_berth_occupancy=0.6, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4,
-                 laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3):
+                 laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3, energy_price = 0.15, fuel_price = 1):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -45,6 +45,10 @@ class System:
 
         #modal split
         self.transhipment_ratio=transhipment_ratio
+
+        # fuel and electrical power price
+        self.energy_price = energy_price
+        self.fuel_price = fuel_price
 
         # storage variables for revenue
         self.revenues = []
@@ -129,6 +133,9 @@ class System:
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            self.calculate_fuel_cost(year)
 
         # 4. for each year calculate the demurrage costs (requires insight in realized demands)
         self.demurrage = []
@@ -295,6 +302,45 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
     def calculate_fuel_cost(self, year):
+
+        sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+
+        fuel_price = self.fuel_price
+
+        # calculate stack equipment fuel costs
+
+        if self.stack_equipment == 'rtg' or self.stack_equipment == 'sc':
+
+            list_of_elements_Stack = self.find_elements(Stack_Equipment)
+
+            for element in list_of_elements_Stack:
+                if year >= element.year_online:
+                    consumption = element.fuel_consumption
+                    costs = fuel_price
+
+                    if consumption * costs * stack_moves != np.inf:
+                        element.df.loc[element.df['year'] == year, 'fuel'] = consumption * costs * stack_moves
+
+                else:
+                    element.df.loc[element.df['year'] == year, 'fuel'] = 0
+
+
+        # calculate tractor fuel consumption
+
+
+        list_of_elements_Tractor = self.find_elements(Horizontal_Transport)
+
+        for element in list_of_elements_Tractor:
+            if year >= element.year_online:
+                if element.fuel_consumption * tractor_moves * fuel_price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'fuel'] = \
+                        element.fuel_consumption * tractor_moves * fuel_price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'fuel'] = 0
+
+
+
 
     def calculate_demurrage_cost(self, year):
 
@@ -1415,7 +1461,6 @@ class System:
 
         return laden_box, reefer_box, empty_box, oog_box, throughput_box
 
-
     def box_moves(self, year):
         ''''Calculate the box moves as input for the power and fuel consumption'''
 
@@ -1433,7 +1478,7 @@ class System:
 
         # calculate the number of empty moves
         empty = Empty_Stack(**container_defaults.empty_stack_data)
-        empty_moves = empty_box * empty.houshold * empty.digout
+        empty_moves = empty_box * empty.household * empty.digout
 
         #todo wellicht reefer and laden nog scheiden van elkaar in alles
 
@@ -1449,11 +1494,11 @@ class System:
 
         digout_moves = (stack.height -1)/2 #JvBeemen
         ''''The number of moves per laden box moves differs for import and export (i/e) and for transhipment (t/s)'''
-        moves_i_e = st.mean[2+stack.household+digout_moves, (2+stack.household) * stack.digout_margin]
+        moves_i_e = ((2+stack.household+digout_moves)+((2+stack.household) * stack.digout_margin))/2
         moves_t_s = 0.5 * ((2+stack.household) * stack.digout_margin)
 
         laden_reefer_box_t_s = (laden_box + reefer_box) * self.transhipment_ratio
-        laden_reefer_box_i_e = (laden_box + reefer_box) - laden_box_t_s
+        laden_reefer_box_i_e = (laden_box + reefer_box) - laden_reefer_box_t_s
 
         laden_reefer_moves_t_s = laden_reefer_box_t_s * moves_t_s
         laden_reefer_moves_i_e = laden_reefer_box_i_e * moves_i_e
@@ -1461,22 +1506,6 @@ class System:
         stack_moves = laden_reefer_moves_i_e + laden_reefer_moves_t_s
 
         return  sts_moves, stack_moves, empty_moves, tractor_moves
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        return sts_moves, tractor_moves, empty_moves
 
 
 
@@ -1589,6 +1618,8 @@ class System:
         oog_required_capacity = oog_spots
 
         return oog_capacity_planned, oog_capacity_online, oog_required_capacity
+
+
 
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
