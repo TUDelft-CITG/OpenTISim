@@ -633,6 +633,9 @@ class System:
             else:
                 storage.year_online = year + storage.delivery_time
 
+            # #reinvestment
+            # if year == storage.year_online + storage.lifespan:
+
             # residual
             storage.assetvalue = storage.unit_rate * (1 - ((self.lifecycle + self.startyear - storage.year_online) / storage.lifespan))
             storage.residual = max(storage.assetvalue, 0)
@@ -891,6 +894,7 @@ class System:
         # year online
         year_online = element.year_online
         year_delivery = element.delivery_time
+        lifespan = element.lifespan
 
         df = pd.DataFrame()
 
@@ -900,9 +904,12 @@ class System:
         # capex
         if year_delivery > 1:
             df.loc[df["year"] == year_online - 2, "capex"] = 0.6 * capex
-            df.loc[df["year"] == year_online - 1, "capex"] = 0.4 * capex
+            df.loc[df["year"] == year_online  - 1, "capex"] = 0.4 * capex
+            df.loc[df["year"] == year_online  + lifespan - 2, "capex"] = 0.6 * capex
+            df.loc[df["year"] == year_online  + lifespan - 1, "capex"] = 0.4 * capex
         else:
-            df.loc[df["year"] == year_online - 1, "capex"] = capex
+            df.loc[df["year"] == year_online  - 1, "capex"] = capex
+            df.loc[df["year"] == year_online  + lifespan- 1, "capex"] = capex
 
         # opex
         if maintenance:
