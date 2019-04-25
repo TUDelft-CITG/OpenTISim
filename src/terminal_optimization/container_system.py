@@ -143,9 +143,10 @@ class System:
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
         # 7. calculate PV's and aggregate to NPV
-        NPV = self.NPV()
+        self.NPV()
+        PV = self.NPV()
 
-        return NPV
+        return PV
 
     def calculate_revenue(self, year):
         """
@@ -1170,6 +1171,8 @@ class System:
         print('PV: {}'.format(PV))
 
         print('NPV: {}'.format(np.sum(PV)))
+
+        return PV
 
     # *** General functions
 
