@@ -9,7 +9,7 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'sc', laden_stack = 'sc',
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data,
                  allowable_berth_occupancy=0.6, allowable_dwelltime=18 / 365,
                  laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3, energy_price = 0.15, fuel_price = 1):
@@ -143,7 +143,9 @@ class System:
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
         # 7. calculate PV's and aggregate to NPV
-        self.NPV()
+        NPV = self.NPV()
+
+        return NPV
 
     def calculate_revenue(self, year):
         """
@@ -208,85 +210,155 @@ class System:
 
         """
 
-        energy = Energy(**container_defaults.energy_data)
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
-
-        # calculate crane energy
-        list_of_elements_Crane = self.find_elements(Cyclic_Unloader)
-
-        for element in list_of_elements_Crane:
-            if year >= element.year_online:
-                consumption = element.consumption
-                hours = self.operational_hours * crane_occupancy_online
-
-                if consumption * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-
-
-        #NEW ELEMENTS FOR CONTAINER TERMINAL
-
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
-
         energy_price = self.energy_price
 
-        # calculate STS crane power consumption
+        cranes = 0
+        for element in self.elements:
+            if isinstance(element, Cyclic_Unloader):
+                if year >= element.year_online:
+                    cranes += 1
 
-        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
-
-        for element in list_of_elements_sts:
-            nr_sts = len(list_of_elements_sts)
-            sts_moves_per_element = sts_moves // nr_sts
-            print("test", nr_sts)
+        for element in self.find_elements(Cyclic_Unloader):
             if year >= element.year_online:
-
+                sts_moves_per_element = sts_moves / cranes
                 if element.consumption * sts_moves_per_element * energy_price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = \
                         element.consumption * sts_moves_per_element * energy_price
-
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-    def calculate_fuel_cost(self, year):
-
-        sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
-
-        fuel_price = self.fuel_price
-
-        # calculate stack equipment fuel costs
-
-        if self.stack_equipment == 'rtg' or self.stack_equipment == 'sc':
-
+        # calculate stack equipment energy costs
+        if self.stack_equipment == 'rmg' or self.stack_equipment == 'sc':
             list_of_elements_Stack = self.find_elements(Stack_Equipment)
+            equipment = 0
+            for element in self.elements:
+                if isinstance(element, Stack_Equipment):
+                    if year >= element.year_online:
+                        equipment += 1
 
             for element in list_of_elements_Stack:
                 if year >= element.year_online:
+                    moves = stack_moves / equipment
+                    consumption = element.power_consumption
+                    costs = energy_price
+                    if consumption * costs * moves != np.inf:
+                        element.df.loc[element.df['year'] == year, 'energy'] = consumption * costs * moves
+                else:
+                    element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        cranes = 0
+        for element in self.elements:
+            if isinstance(element, Cyclic_Unloader):
+                if year >= element.year_online:
+                    cranes += 1
+
+
+
+        quay_land_use=0
+        stack_land_use=0
+        empty_land_use=0
+        oog_land_use=0
+        gate_land_use=0
+
+        for element in self.elements:
+            if isinstance(element, Quay_wall):
+                if year >= element.year_online:
+                    quay_land_use += element.land_use
+            if isinstance(element, Laden_Stack):
+                if year >= element.year_online:
+                    stack_land_use += element.land_use
+            if isinstance(element, Empty_Stack):
+                if year >= element.year_online:
+                    empty_land_use += element.land_use
+            if isinstance(element, OOG_Stack):
+                if year >= element.year_online:
+                    oog_land_use += element.land_use
+            if isinstance(element, Gate):
+                if year >= element.year_online:
+                    gate_land_use += element.land_use
+
+        print(quay_land_use, stack_land_use, empty_land_use, oog_land_use, gate_land_use)
+
+        # handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        # berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+        #     year, handysize, handymax, panamax)
+
+        # # calculate crane energy
+        # list_of_elements_Crane = self.find_elements(Cyclic_Unloader)
+        #
+        # for element in list_of_elements_Crane:
+        #     if year >= element.year_online:
+        #         consumption = element.consumption
+        #         hours = self.operational_hours * crane_occupancy_online
+        #
+        #         if consumption * hours * energy.price != np.inf:
+        #             element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+        #
+        #     else:
+        #         element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+    def calculate_fuel_cost(self, year):
+        sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+        fuel_price = self.fuel_price
+
+        # calculate empty handler fuel costs
+        list_of_elements_ech = self.find_elements(Empty_Handler)
+        equipment = 0
+        for element in self.elements:
+            if isinstance(element, Empty_Handler):
+                if year >= element.year_online:
+                    equipment += 1
+
+        for element in list_of_elements_ech:
+            if year >= element.year_online:
+                moves = empty_moves / equipment
+                consumption = element.fuel_consumption
+                costs = fuel_price
+                if consumption * costs * moves != np.inf:
+                    element.df.loc[element.df['year'] == year, 'fuel'] = consumption * costs * moves
+            else:
+                element.df.loc[element.df['year'] == year, 'fuel'] = 0
+
+        # calculate stack equipment fuel costs
+        if self.stack_equipment == 'rtg' or self.stack_equipment == 'rs':
+            list_of_elements_Stack = self.find_elements(Stack_Equipment)
+            equipment = 0
+            for element in self.elements:
+                if isinstance(element, Stack_Equipment):
+                    if year >= element.year_online:
+                        equipment += 1
+
+            for element in list_of_elements_Stack:
+                if year >= element.year_online:
+                    moves = stack_moves / equipment
                     consumption = element.fuel_consumption
                     costs = fuel_price
-
-                    if consumption * costs * stack_moves != np.inf:
-                        element.df.loc[element.df['year'] == year, 'fuel'] = consumption * costs * stack_moves
-
+                    if consumption * costs * moves != np.inf:
+                        element.df.loc[element.df['year'] == year, 'fuel'] = consumption * costs * moves
                 else:
                     element.df.loc[element.df['year'] == year, 'fuel'] = 0
 
         # calculate tractor fuel consumption
-
         list_of_elements_Tractor = self.find_elements(Horizontal_Transport)
+
+        transport = 0
+        for element in self.elements:
+            if isinstance(element, Horizontal_Transport):
+                if year >= element.year_online:
+                    transport += 1
 
         for element in list_of_elements_Tractor:
             if year >= element.year_online:
-                if element.fuel_consumption * tractor_moves * fuel_price != np.inf:
+                moves = tractor_moves / transport
+                if element.fuel_consumption * moves * fuel_price != np.inf:
                     element.df.loc[element.df['year'] == year, 'fuel'] = \
-                        element.fuel_consumption * tractor_moves * fuel_price
+                        element.fuel_consumption * moves * fuel_price
 
             else:
                 element.df.loc[element.df['year'] == year, 'fuel'] = 0
+
+
 
     def calculate_demurrage_cost(self, year):
 
@@ -479,7 +551,7 @@ class System:
         - add service capacity until service_trigger is no longer exceeded
         """
         if self.debug:
-            print('  *** add Harbour crane to elements')
+            print('  *** add STS crane to elements')
         # add unloader object
         if (self.crane_type_defaults["crane_type"] == 'Gantry crane' or
                 self.crane_type_defaults["crane_type"] == 'Harbour crane' or
@@ -522,11 +594,18 @@ class System:
         - find out how much transport is needed
         - add transport until service_trigger is no longer exceeded
         """
-        # todo Add delaying effect to the tractor invest
-        list_of_elements_tractor = self.find_elements(Horizontal_Transport)
-        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
-        sts_cranes=len(list_of_elements_sts)
-        tractor_online=len(list_of_elements_tractor)
+
+        cranes = 0
+        transport = 0
+        for element in self.elements:
+            if isinstance(element, Cyclic_Unloader):
+                if year >= element.year_online:
+                    cranes += 1
+            if isinstance(element, Horizontal_Transport):
+                if year >= element.year_online:
+                    transport += 1
+        sts_cranes = cranes
+        tractor_online = transport
 
 
         tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
@@ -570,6 +649,8 @@ class System:
 
                 list_of_elements_tractor = self.find_elements(Horizontal_Transport)
                 tractor_online = len(list_of_elements_tractor)
+
+        return sts_cranes
 
     def empty_handler_invest(self, year):
         """current strategy is to add empty hanlders as soon as a service trigger is achieved
@@ -615,7 +696,7 @@ class System:
                 empty_handler.year_online = year + empty_handler.delivery_time
 
             # add cash flow information to tractor object in a dataframe
-                empty_handler = self.add_cashflow_data_to_element(empty_handler)
+            empty_handler = self.add_cashflow_data_to_element(empty_handler)
 
             self.elements.append(empty_handler)
 
@@ -795,13 +876,24 @@ class System:
         - find out how much stack equipment is needed
         - add equipment until service_trigger is no longer exceeded
         """
-        # todo Add delaying effect to the stack equipment invest
-        list_of_elements_stack_equipment = self.find_elements(Stack_Equipment)
-        list_of_elements_sts = self.find_elements(Cyclic_Unloader)
-        list_of_elements_stack=self.find_elements(Laden_Stack)
-        sts_cranes=len(list_of_elements_sts)
-        stack_equipment_online=len(list_of_elements_stack_equipment)
-        stack=len(list_of_elements_stack)
+
+        cranes = 0
+        equipment = 0
+        stack = 0
+        for element in self.elements:
+            if isinstance(element, Cyclic_Unloader):
+                if year >= element.year_online:
+                    cranes += 1
+            if isinstance(element, Stack_Equipment):
+                if year >= element.year_online:
+                    equipment += 1
+            if isinstance(element, Laden_Stack):
+                if year >= element.year_online:
+                    stack += 1
+
+        sts_cranes = cranes
+        stack_equipment_online = equipment
+
 
         if self.stack_equipment == 'rtg':
             stack_equipment = Stack_Equipment(**container_defaults.rtg_data)

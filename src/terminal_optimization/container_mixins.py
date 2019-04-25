@@ -328,7 +328,7 @@ class gate_properties_mixin (object):
 
 class empty_handler_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
-                 maintenance_perc, crew, salary, consumption, required,  *args, **kwargs):
+                 maintenance_perc, crew, salary, fuel_consumption, required,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -340,10 +340,8 @@ class empty_handler_properties_mixin(object):
         self.maintenance_perc = maintenance_perc
         self.crew = crew
         self.salary = salary
-        self.consumption = consumption
+        self.fuel_consumption = fuel_consumption
         self.required = required
-
-
 
 
 class commodity_properties_mixin(object):

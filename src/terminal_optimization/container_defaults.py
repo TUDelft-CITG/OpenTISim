@@ -327,8 +327,8 @@ sc_data = {"name": 'Straddle carrier',
             "crew": 0, #dummy
             "salary": 50_000, #dummy
             "required": 5,
-            "fuel_consumption": 1, #dummy
-            "power_consumption": 0
+            "fuel_consumption": 0, #dummy
+            "power_consumption": 30
             }
 
 #Reach stacker
@@ -375,6 +375,7 @@ gate_data = {"name": 'Gate',
                 "truck_moves" : 0.75,
                "operating_days": 6,
              "capacity": 60}
+
 # *** Default inputs: ECH class***
 
 empty_handler_data = {"name": 'Empty Handler',
@@ -387,7 +388,7 @@ empty_handler_data = {"name": 'Empty Handler',
                    "maintenance_perc": 0.02,
                    "crew": 1,
                    "salary": 35_000, #dummy
-                    "consumption" : 1.5,
+                    "fuel_consumption" : 1.5,
                     "required" : 5}
 
 
