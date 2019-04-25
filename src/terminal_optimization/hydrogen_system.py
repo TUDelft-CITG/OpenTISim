@@ -437,6 +437,10 @@ class System:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
+            # # check if a crane is needed
+            # if self.check_throughput_available():
+            #     self.storage_invest(year)
+
     def jetty_invest(self, year, length, depth, width):
         """
         *** Decision recipe jetty: ***
@@ -1476,6 +1480,21 @@ class System:
         train_calls = throughput_online / station.call_size
 
         return train_calls
+
+    # def check_throughput_available(self):
+    #     list_of_elements = self.find_elements(Storage)
+    #     capacity = 0
+    #     for element in list_of_elements:
+    #         capacity += element.capacity
+    #
+    #     throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station = self.throughput_elements(
+    #         year)
+    #
+    #     # when there are more slots than installed cranes ...
+    #     if capacity > throughput_planned_storage:
+    #         return True
+    #     else:
+    #         return False
 
     # *** plotting functions
 
