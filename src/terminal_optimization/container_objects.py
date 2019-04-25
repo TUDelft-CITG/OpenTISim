@@ -21,9 +21,8 @@
     - RMG
     - SC
     - RS
--8. Other stacks
-    - OOG stack
-    - Empty stack
+-8. Empty stack
+-9. OOG stack
 - 9. Gates
 - 8. Vessel
     - Panamax
@@ -137,20 +136,6 @@ OOG_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,
                                container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
                                  container_mixins.hasland_properties_mixin),
                 {})
-
-
-# The generic Storage class
-# - Silo
-# - Warehouse
-
-Storage = type('Storage', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                           container_mixins.history_properties_mixin,  # Give it procurement history
-                           container_mixins.storage_properties_mixin,
-                           container_mixins.hascapex_properties_mixin,  # Give it capex info
-                           container_mixins.hasopex_properties_mixin,  # Give it opex info
-                           container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                           container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-               {})  # The dictionary is empty because the site type is generic
 
 
 # The generic Commodity class

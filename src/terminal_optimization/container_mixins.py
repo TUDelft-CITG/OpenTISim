@@ -13,7 +13,6 @@
 - container_properties_mixin
 - laden_stack_properties
 - stack_equipment_properties
-- storage_properties_mixin
 - commodity_properties_mixin
 - vessel_properties_mixin
 - labour_properties_mixin
@@ -334,25 +333,6 @@ class empty_handler_properties_mixin(object):
         self.salary = salary
         self.consumption = consumption
         self.required = required
-
-class storage_properties_mixin(object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.type = type
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate = unit_rate
-        self.mobilisation_min = mobilisation_min
-        self.mobilisation_perc = mobilisation_perc
-        self.maintenance_perc = maintenance_perc
-        self.crew = crew
-        self.insurance_perc = insurance_perc
-        self.storage_type = storage_type
-        self.consumption = consumption
-        self.capacity = capacity
 
 
 

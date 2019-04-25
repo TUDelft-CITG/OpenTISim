@@ -347,38 +347,6 @@ rs_data = {"name": 'Reach stacker',
             }
 
 
-# *** Default inputs: Storage class ***
-
-silo_data = {"name": 'Silo_01',
-             "type": 'silo',
-             "ownership": 'Terminal operator',
-             "delivery_time": 1,
-             "lifespan": 30,
-             "unit_rate": 60,
-             "mobilisation_min": 200_000,
-             "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.02,
-             "crew": 1,
-             "insurance_perc": 0.01,
-             "storage_type": 'Silos',
-             "consumption": 0.002,
-             "capacity": 6_000} # all input values from Ijzermans, 2019, P 102
-
-warehouse_data = {"name": 'Warehouse_01',
-                  "style": 'warehouse',
-                  "ownership": 'Terminal operator',
-                  "delivery_time": 1,
-                  "lifespan": 30,
-                  "unit_rate": 140,
-                  "mobilisation_min": 200_000,
-                  "mobilisation_perc": 0.001,
-                  "maintenance_perc": 0.01,
-                  "crew": 3,
-                  "insurance_perc": 0.01,
-                  "storage_type": 'Warehouse',
-                  "consumption": 0.002,
-                  "silo_capacity": 'n/a'}
-
 
 # *** Default inputs: Gate class ***
 

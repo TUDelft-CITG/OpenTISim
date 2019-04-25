@@ -10,7 +10,7 @@ from terminal_optimization import container_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'sc', laden_stack = 'sc',
-                 operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data, storage_type_defaults=container_defaults.silo_data,
+                 operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data,
                  allowable_berth_occupancy=0.6, allowable_dwelltime=18 / 365,
                  laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3, energy_price = 0.15, fuel_price = 1):
         # time inputs
@@ -30,7 +30,6 @@ class System:
 
         # default values to use in case various types can be selected
         self.crane_type_defaults = crane_type_defaults
-        self.storage_type_defaults = storage_type_defaults
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
@@ -107,8 +106,6 @@ class System:
 
             self.berth_invest(year, handysize, handymax, panamax)
 
-            self.storage_invest(year, self.storage_type_defaults)
-
             self.horizontal_transport_invest(year)
 
             self.laden_stack_invest(year)
@@ -157,11 +154,10 @@ class System:
         # implement a safetymarge
         quay_walls = len(self.find_elements(Quay_wall))
         crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        storage = len(self.find_elements(Storage))
         horizontal_transport = len(self.find_elements(Horizontal_Transport))
 
         if quay_walls < 1  and (
-                crane_cyclic > 1) and storage < 1  and horizontal_transport<1:
+                crane_cyclic > 1) and horizontal_transport<1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -227,22 +223,6 @@ class System:
 
                 if consumption * hours * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-
-        # calculate storage energy
-        list_of_elements_Storage = self.find_elements(Storage)
-
-        for element in list_of_elements_Storage:
-            if year >= element.year_online:
-                consumption = element.consumption
-                capacity = element.capacity
-                hours = self.operational_hours
-
-                if consumption * capacity * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * hours * energy.price
 
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
@@ -385,7 +365,6 @@ class System:
         self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
-        self.report_element(Storage, year)
         if self.debug:
             print('')
             print('  Start analysis:')
@@ -537,82 +516,6 @@ class System:
 
         # add object to elements
         self.elements.append(crane)
-
-    def storage_invest(self, year, container_defaults_storage_data):
-        """current strategy is to add storage as long as target storage is not yet achieved
-        - find out how much storage is online
-        - find out how much storage is planned
-        - find out how much storage is needed
-        - add storage until target is reached
-        """
-
-        # from all storage objects sum online capacity
-        storage_capacity = 0
-        storage_capacity_online = 0
-        list_of_elements = self.find_elements(Storage)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                if element.type == container_defaults_storage_data['type']:
-                    storage_capacity += element.capacity
-                    if year >= element.year_online:
-                        storage_capacity_online += element.capacity
-
-        if self.debug:
-            print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
-                storage_capacity_online, container_defaults_storage_data['type'], storage_capacity))
-
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
-
-        max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
-
-        # find the total service rate,
-        service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader)):
-            if year >= element.year_online:
-                service_rate += element.effective_capacity * crane_occupancy_online
-
-        storage_capacity_dwelltime = (
-                                             service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
-
-        # check if sufficient storage capacity is available
-        while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
-            if self.debug:
-                print('  *** add storage to elements')
-
-            # add storage object
-            storage = Storage(**container_defaults_storage_data)
-
-            # - capex
-            storage.capex = storage.unit_rate * storage.capacity + storage.mobilisation_min
-
-            # - opex
-            storage.insurance = storage.unit_rate * storage.capacity * storage.insurance_perc
-            storage.maintenance = storage.unit_rate * storage.capacity * storage.maintenance_perc
-
-            #   labour**container_defaults
-            labour = Labour(**container_defaults.labour_data)
-            storage.shift = ((storage.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            storage.labour = storage.shift * labour.operational_salary
-
-            if year == self.startyear:
-                storage.year_online = year + storage.delivery_time + 1
-            else:
-                storage.year_online = year + storage.delivery_time
-
-            # add cash flow information to quay_wall object in a dataframe
-            storage = self.add_cashflow_data_to_element(storage)
-
-            self.elements.append(storage)
-
-            storage_capacity += storage.capacity
-
-            if self.debug:
-                print(
-                    '     a total of {} ton of storage capacity is online; {} ton total planned'.format(
-                        storage_capacity_online,
-                        storage_capacity))
 
     def horizontal_transport_invest(self, year):
         """current strategy is to add horizontal transport as soon as a service trigger is achieved
@@ -1659,7 +1562,6 @@ class System:
         berths = []
         cranes = []
         quays = []
-        storages = []
         tractor = []
         stack = []
         stack_equipment = []
@@ -1672,7 +1574,6 @@ class System:
             berths.append(0)
             quays.append(0)
             cranes.append(0)
-            storages.append(0)
             tractor.append(0)
             stack.append(0)
             stack_equipment.append(0)
@@ -1690,9 +1591,6 @@ class System:
                 if isinstance(element, Cyclic_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
-                if isinstance(element, Storage):
-                    if year >= element.year_online:
-                        storages[-1] += 1
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
                         stack[-1] += 1
@@ -1740,16 +1638,16 @@ class System:
         years = []
         cranes = []
         cranes_capacity = []
-        storages = []
-        storages_capacity = []
+        # storages = []
+        # storages_capacity = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
             cranes.append(0)
             cranes_capacity.append(0)
-            storages.append(0)
-            storages_capacity.append(0)
+            # storages.append(0)
+            # storages_capacity.append(0)
 
             handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
             berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
@@ -1762,10 +1660,10 @@ class System:
                         cranes[-1] += 1
                         cranes_capacity[
                             -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
-                if isinstance(element, Storage):
-                    if year >= element.year_online:
-                        storages[-1] += 1
-                        storages_capacity[-1] += element.capacity * 365 / 18
+                # if isinstance(element, Storage):
+                #     if year >= element.year_online:
+                #         storages[-1] += 1
+                #         storages_capacity[-1] += element.capacity * 365 / 18
 
         # get demand
         demand = pd.DataFrame()
@@ -1783,8 +1681,8 @@ class System:
 
         ax.bar([x - 0.5 * width for x in years], cranes_capacity, width=width, alpha=alpha, label="cranes capacity",
                color='red')
-        ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
-               color='green')
+        # ax.bar([x + 0.5 * width for x in years], storages_capacity, width=width, alpha=alpha, label="storages",
+        #        color='green')
         ax.step(years, demand['demand'].values, label="demand", where='mid')
 
         ax.set_xlabel('Years')
