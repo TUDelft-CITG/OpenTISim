@@ -122,21 +122,6 @@ sts_crane_data = {"name": 'STS_crane_01',
                      "hourly_cycles": 28,
                      "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
 
-# *** Default inputs: ContinuousUnloader class ***
-
-continuous_screw_data = {"name": 'Continuous_loader_01',
-                         "ownership": 'Terminal operator',
-                         "delivery_time": 1,
-                         "lifespan": 30,
-                         "unit_rate": 6_900_000,
-                         "mobilisation_perc": 0.15,
-                         "maintenance_perc": 0.02,
-                         "consumption": 364,
-                         "insurance_perc": 0.01,
-                         "crew": 2,
-                         "crane_type": 'Screw unloader',
-                         "peak_capacity": 700,
-                         "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
 
 # *** Default inputs: Conveyor class ***
 

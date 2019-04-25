@@ -164,7 +164,6 @@ class System:
         # implement a safetymarge
         quay_walls = len(self.find_elements(Quay_wall))
         crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        crane_continuous = len(self.find_elements(Continuous_Unloader))
         conveyor_quay = len(self.find_elements(Conveyor_Quay))
         storage = len(self.find_elements(Storage))
         conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
@@ -172,7 +171,7 @@ class System:
         horizontal_transport = len(self.find_elements(Horizontal_Transport))
 
         if quay_walls < 1 and conveyor_quay < 1 and (
-                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1 and horizontal_transport<1:
+                crane_cyclic > 1) and storage < 1 and conveyor_hinter < 1 and station < 1 and horizontal_transport<1:
             safety_factor = 0
         else:
             safety_factor = 1
@@ -201,7 +200,7 @@ class System:
 
         # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in self.find_elements(Cyclic_Unloader) :
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
@@ -230,9 +229,7 @@ class System:
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
         # calculate crane energy
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
+        list_of_elements_Crane = self.find_elements(Cyclic_Unloader)
 
         for element in list_of_elements_Crane:
             if year >= element.year_online:
@@ -376,7 +373,7 @@ class System:
         quay_walls = len(self.find_elements(Quay_wall))
 
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (self.find_elements(Cyclic_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity / quay_walls
 
@@ -439,7 +436,6 @@ class System:
         self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
-        self.report_element(Continuous_Unloader, year)
         self.report_element(Conveyor_Quay, year)
         self.report_element(Storage, year)
         self.report_element(Conveyor_Hinter, year)
@@ -567,8 +563,6 @@ class System:
                 self.crane_type_defaults["crane_type"] == 'STS crane' or
                 self.crane_type_defaults["crane_type"] == 'Mobile crane'):
             crane = Cyclic_Unloader(**self.crane_type_defaults)
-        elif self.crane_type_defaults["crane_type"] == 'Screw unloader':
-            crane = Continuous_Unloader(**self.crane_type_defaults)
 
         # - capex
         unit_rate = crane.unit_rate
@@ -623,7 +617,7 @@ class System:
         # find the total service rate,
         service_rate = 0
         years_online = []
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (self.find_elements(Cyclic_Unloader)):
             service_rate += element.peak_capacity
             years_online.append(element.year_online)
 
@@ -712,7 +706,7 @@ class System:
 
         # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (self.find_elements(Cyclic_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
@@ -1702,9 +1696,7 @@ class System:
         """
 
         # list all crane objects in system
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
+        list_of_elements = self.find_elements(Cyclic_Unloader)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
@@ -1906,7 +1898,7 @@ class System:
 
             # find the total throughput,
             service_rate_throughput = 0
-            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            for element in self.find_elements(Cyclic_Unloader):
                 if year >= element.year_online:
                     service_rate_throughput += element.effective_capacity * crane_occupancy_online
 
@@ -1936,9 +1928,7 @@ class System:
         for element in list_of_elements:
             slots += element.max_cranes
 
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements = list_of_elements_1 + list_of_elements_2
+        list_of_elements = self.find_elements(Cyclic_Unloader)
 
         # when there are more slots than installed cranes ...
         if slots > len(list_of_elements):
@@ -1977,7 +1967,7 @@ class System:
             year, handysize, handymax, panamax)
 
         service_rate_throughput = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in self.find_elements(Cyclic_Unloader):
             if year >= element.year_online:
                 service_rate_throughput += element.effective_capacity * crane_occupancy_online
 
@@ -2029,7 +2019,7 @@ class System:
                 if isinstance(element, Quay_wall):
                     if year >= element.year_online:
                         quays[-1] += 1
-                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                if isinstance(element, Cyclic_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
                 if isinstance(element, Conveyor_Quay):
@@ -2107,7 +2097,7 @@ class System:
                 year, handysize_calls, handymax_calls, panamax_calls)
 
             for element in self.elements:
-                if isinstance(element, Cyclic_Unloader) | isinstance(element, Continuous_Unloader):
+                if isinstance(element, Cyclic_Unloader):
                     # calculate cranes service capacity: effective_capacity * operational hours * berth_occupancy?
                     if year >= element.year_online:
                         cranes[-1] += 1

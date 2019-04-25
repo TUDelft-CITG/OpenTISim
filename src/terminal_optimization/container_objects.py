@@ -69,18 +69,6 @@ Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_propert
                        # Give it investment triggers (lambda?)
                        {})  # The dictionary is empty because the site type is generic
 
-# The generic ContinuousUnloader class
-# - Continuous_screw
-Continuous_Unloader = type('Continuous_Unloader', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                                                   container_mixins.history_properties_mixin,  # Give it procurement history
-                                                   container_mixins.continuous_properties_mixin,
-                                                   container_mixins.hascapex_properties_mixin,  # Give it capex info
-                                                   container_mixins.hasopex_properties_mixin,  # Give it opex info
-                                                   container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                                                   container_mixins.hastriggers_properties_mixin),
-                           # Give it investment triggers (lambda?)
-                           {})  # The dictionary is empty because the site type is generic
-
 # The generic Conveyor class
 # - Quay_conveyor
 # - Hinterland_conveyor
