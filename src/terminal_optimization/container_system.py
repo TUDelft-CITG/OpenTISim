@@ -252,8 +252,6 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-
-
     def calculate_fuel_cost(self, year):
 
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
@@ -524,7 +522,7 @@ class System:
         - find out how much transport is needed
         - add transport until service_trigger is no longer exceeded
         """
-        # todo Add delaying effect to the tractor invest and no horizontal transport if SC
+        # todo Add delaying effect to the tractor invest
         list_of_elements_tractor = self.find_elements(Horizontal_Transport)
         list_of_elements_sts = self.find_elements(Cyclic_Unloader)
         sts_cranes=len(list_of_elements_sts)
@@ -538,38 +536,40 @@ class System:
             print('     Horizontal transport online (@ start of year): {}'.format(tractor_online))
             print('     Number of STS cranes (@start of year): {}'.format(sts_cranes))
 
-        while sts_cranes > (tractor_online//tractor.required):
-            # add a tractor when not enough to serve number of STS cranes
-            if self.debug:
-                print('  *** add tractor to elements')
+        if self.stack_equipment != 'sc' :
 
-            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+            while sts_cranes > (tractor_online//tractor.required):
+                # add a tractor when not enough to serve number of STS cranes
+                if self.debug:
+                    print('  *** add tractor to elements')
 
-            # - capex
-            unit_rate = tractor.unit_rate
-            mobilisation = tractor.mobilisation
-            tractor.capex = int(unit_rate + mobilisation)
+                tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
-            # - opex
-            tractor.maintenance = unit_rate * tractor.maintenance_perc
+                # - capex
+                unit_rate = tractor.unit_rate
+                mobilisation = tractor.mobilisation
+                tractor.capex = int(unit_rate + mobilisation)
 
-            #   labour
-            labour = Labour(**container_defaults.labour_data)
-            tractor.shift = tractor.crew * labour.daily_shifts
-            tractor.labour = tractor.shift * tractor.salary
+                # - opex
+                tractor.maintenance = unit_rate * tractor.maintenance_perc
 
-            if year == self.startyear:
-                tractor.year_online = year + tractor.delivery_time + 1
-            else:
-                tractor.year_online = year + tractor.delivery_time
+                #   labour
+                labour = Labour(**container_defaults.labour_data)
+                tractor.shift = tractor.crew * labour.daily_shifts
+                tractor.labour = tractor.shift * tractor.salary
 
-            # add cash flow information to tractor object in a dataframe
-            tractor = self.add_cashflow_data_to_element(tractor)
+                if year == self.startyear:
+                    tractor.year_online = year + tractor.delivery_time + 1
+                else:
+                    tractor.year_online = year + tractor.delivery_time
 
-            self.elements.append(tractor)
+                # add cash flow information to tractor object in a dataframe
+                tractor = self.add_cashflow_data_to_element(tractor)
 
-            list_of_elements_tractor = self.find_elements(Horizontal_Transport)
-            tractor_online = len(list_of_elements_tractor)
+                self.elements.append(tractor)
+
+                list_of_elements_tractor = self.find_elements(Horizontal_Transport)
+                tractor_online = len(list_of_elements_tractor)
 
     def empty_handler_invest(self, year):
         """current strategy is to add empty hanlders as soon as a service trigger is achieved

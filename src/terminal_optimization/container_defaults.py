@@ -1,35 +1,37 @@
-"""Defaults for following objects:
+"""Main generic object classes:
+
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
     - STS crane
 - 4. Horizontal transport
     - Tractor trailer
-- 5. Containers
+- 5. Commodity
+    - TEU
+- 6. Containers
     - Laden
     - Reefer
     - Empty
     - OOG
-- 6. Laden and reefer stack
+- 7. Laden and reefer stack
     - RTG stack
     - RMG stack
     - SC stack
     - RS stack
-- 7. Stack equipment
+- 8. Stack equipment
     - RTG
     - RMG
     - SC
     - RS
--8. Other stacks
-    - OOG stack
-    - Empty stack
-- 8. Vessel
-    - Panamax
-- 9. Labour
+- 9. Empty stack
+- 10. OOG stack
+- 11. Gates
+- 12. Empty handler
+- 13. Vessel
+- 14. Labour
+- 15. Energy
 
-Default values are based on Claes 2018; Corbeau 2018; Daas 2018; Juha 2018;
-Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
-
+#todo add sources here
 """
 
 # package(s) for data handling
