@@ -125,22 +125,6 @@ sts_crane_data = {"name": 'STS_crane_01',
 
 # *** Default inputs: Conveyor class ***
 
-quay_conveyor_data = {"name": 'Quay_conveyor_01',
-                      "type": 'quay_conveyor',
-                      "length": 200,
-                      "ownership": 'Terminal operator',
-                      "delivery_time": 1,
-                      "lifespan": 10,
-                      "unit_rate_factor": 6,
-                      "mobilisation": 30_000,
-                      "maintenance_perc": 0.10,
-                      "insurance_perc": 0.01,
-                      "consumption_constant": 81,
-                      "consumption_coefficient": 0.08,
-                      "crew": 1,
-                      "utilisation": 0.80,
-                      "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
-
 hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
                             "type": 'hinterland_conveyor',
                             "length": 400,

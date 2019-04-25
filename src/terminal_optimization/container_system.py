@@ -108,8 +108,6 @@ class System:
 
             self.berth_invest(year, handysize, handymax, panamax)
 
-            self.conveyor_quay_invest(year,container_defaults.quay_conveyor_data)
-
             self.storage_invest(year, self.storage_type_defaults)
 
             self.conveyor_hinter_invest(year,container_defaults.hinterland_conveyor_data)
@@ -164,13 +162,12 @@ class System:
         # implement a safetymarge
         quay_walls = len(self.find_elements(Quay_wall))
         crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        conveyor_quay = len(self.find_elements(Conveyor_Quay))
         storage = len(self.find_elements(Storage))
         conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
         station = len(self.find_elements(Unloading_station))
         horizontal_transport = len(self.find_elements(Horizontal_Transport))
 
-        if quay_walls < 1 and conveyor_quay < 1 and (
+        if quay_walls < 1  and (
                 crane_cyclic > 1) and storage < 1 and conveyor_hinter < 1 and station < 1 and horizontal_transport<1:
             safety_factor = 0
         else:
@@ -242,19 +239,6 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        # calculate Quay conveyor energy
-        list_of_elements_quay = self.find_elements(Conveyor_Quay)
-
-        for element in list_of_elements_quay:
-            if year >= element.year_online:
-                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
-                hours = self.operational_hours * crane_occupancy_online
-
-                if consumption * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate storage energy
         list_of_elements_Storage = self.find_elements(Storage)
@@ -436,7 +420,6 @@ class System:
         self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
-        self.report_element(Conveyor_Quay, year)
         self.report_element(Storage, year)
         self.report_element(Conveyor_Hinter, year)
         self.report_element(Unloading_station, year)
@@ -591,89 +574,6 @@ class System:
 
         # add object to elements
         self.elements.append(crane)
-
-    def conveyor_quay_invest(self, year, container_defaults_quay_conveyor_data):
-        """current strategy is to add conveyors as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
-        """
-
-        # find the total service rate
-        service_capacity = 0
-        service_capacity_online = 0
-        list_of_elements = self.find_elements(Conveyor_Quay)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                service_capacity += element.capacity_steps
-                if year >= element.year_online:
-                    service_capacity_online += element.capacity_steps
-
-        if self.debug:
-            print('     a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online, service_capacity))
-
-        # find the total service rate,
-        service_rate = 0
-        years_online = []
-        for element in (self.find_elements(Cyclic_Unloader)):
-            service_rate += element.peak_capacity
-            years_online.append(element.year_online)
-
-        # check if total planned capacity is smaller than target capacity, if so add a conveyor
-        while service_capacity < service_rate:
-            if self.debug:
-                print('  *** add Quay Conveyor to elements')
-            conveyor_quay = Conveyor_Quay(**container_defaults_quay_conveyor_data)
-
-            # - capex
-            capacity = conveyor_quay.capacity_steps
-            unit_rate = conveyor_quay.unit_rate_factor * conveyor_quay.length
-            mobilisation = conveyor_quay.mobilisation
-            conveyor_quay.capex = int(capacity * unit_rate + mobilisation)
-
-            # - opex
-            conveyor_quay.insurance = capacity * unit_rate * conveyor_quay.insurance_perc
-            conveyor_quay.maintenance = capacity * unit_rate * conveyor_quay.maintenance_perc
-
-            #   labour
-            labour = Labour(**container_defaults.labour_data)
-            conveyor_quay.shift = (
-                    (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
-
-            # # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-
-            # there should always be a new crane in the planning
-            new_crane_years = [x for x in years_online if x >= year]
-
-            # find the maximum online year of Conveyor_Quay or make it []
-            if self.find_elements(Conveyor_Quay) != []:
-                max_conveyor_years = max([x.year_online for x in self.find_elements(Conveyor_Quay)])
-            else:
-                max_conveyor_years = []
-
-            # decide what online year to use
-            if max_conveyor_years == []:
-                conveyor_quay.year_online = min(new_crane_years)
-            elif max_conveyor_years < min(new_crane_years):
-                conveyor_quay.year_online = min(new_crane_years)
-            elif max_conveyor_years == min(new_crane_years):
-                conveyor_quay.year_online = max(new_crane_years)
-            elif max_conveyor_years > min(new_crane_years):
-                conveyor_quay.year_online = max(new_crane_years)
-
-            # add cash flow information to quay_wall object in a dataframe
-            conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
-
-            self.elements.append(conveyor_quay)
-
-            service_capacity += conveyor_quay.capacity_steps
-
-        if self.debug:
-            print('     a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
-                service_capacity_online, service_capacity))
 
     def storage_invest(self, year, container_defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved
@@ -1985,7 +1885,6 @@ class System:
         berths = []
         cranes = []
         quays = []
-        conveyors_quay = []
         storages = []
         conveyors_hinterland = []
         unloading_station = []
@@ -2001,7 +1900,6 @@ class System:
             berths.append(0)
             quays.append(0)
             cranes.append(0)
-            conveyors_quay.append(0)
             storages.append(0)
             conveyors_hinterland.append(0)
             unloading_station.append(0)
@@ -2022,9 +1920,6 @@ class System:
                 if isinstance(element, Cyclic_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
-                if isinstance(element, Conveyor_Quay):
-                    if year >= element.year_online:
-                        conveyors_quay[-1] += 1
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
