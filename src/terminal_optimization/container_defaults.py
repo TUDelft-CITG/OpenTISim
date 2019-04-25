@@ -123,24 +123,6 @@ sts_crane_data = {"name": 'STS_crane_01',
                      "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
 
 
-# *** Default inputs: Conveyor class ***
-
-hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
-                            "type": 'hinterland_conveyor',
-                            "length": 400,
-                            "ownership": 'Terminal operator',
-                            "delivery_time": 1,
-                            "lifespan": 10,
-                            "mobilisation": 30_000,
-                            "unit_rate_factor": 6,
-                            "maintenance_perc": 0.10,
-                            "insurance_perc": 0.01,
-                            "consumption_constant": 81,
-                            "consumption_coefficient": 0.08,
-                            "crew": 1,
-                            "utilisation": 0.80,
-                            "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
-
 # Default inputs: Horizontal Transport class ***
 
 tractor_trailer_data = {"name": 'Tractor-trailer',
@@ -397,23 +379,6 @@ warehouse_data = {"name": 'Warehouse_01',
                   "consumption": 0.002,
                   "silo_capacity": 'n/a'}
 
-# *** Default inputs: Unloading_station class ***
-
-
-hinterland_station_data = {"name": 'Hinterland_station_01',
-                           "ownership": 'Terminal operator',
-                           "delivery_time": 1,
-                           "lifespan": 15,
-                           "unit_rate": 800_000,
-                           "mobilisation": 200_000,
-                           "maintenance_perc": 0.02,
-                           "consumption": 100,
-                           "insurance_perc": 0.01,
-                           "crew": 2,
-                           "production": 800,
-                           "wagon_payload" : 60,
-                           "number_of_wagons": 60,
-                           "prep_time": 2}
 
 # *** Default inputs: Gate class ***
 

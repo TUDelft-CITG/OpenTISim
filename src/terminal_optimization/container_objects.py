@@ -69,18 +69,6 @@ Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_propert
                        # Give it investment triggers (lambda?)
                        {})  # The dictionary is empty because the site type is generic
 
-# The generic Conveyor class
-# - Hinterland_conveyor
-
-Conveyor_Hinter = type('Conveyor_Hinter', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                             container_mixins.history_properties_mixin,  # Give it procurement history
-                             container_mixins.conveyor_properties_mixin,
-                             container_mixins.hascapex_properties_mixin,  # Give it capex info
-                             container_mixins.hasopex_properties_mixin,  # Give it opex info
-                             container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-                {})  # The dictionary is empty because the site type is generic
-
 # The generic Horizontal transport class
 # - Tractor trailer
 Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
@@ -164,10 +152,6 @@ Storage = type('Storage', (container_mixins.identifiable_properties_mixin,  # Gi
                            container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})  # The dictionary is empty because the site type is generic
 
-# define loading station class functions **will ultimately be placed in package**
-Unloading_station = type('Unloading_station', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                                               container_mixins.unloading_station_properties_mixin),
-                         {})  # The dictionary is empty because the site type is generic
 
 # The generic Commodity class
 # - Maize
