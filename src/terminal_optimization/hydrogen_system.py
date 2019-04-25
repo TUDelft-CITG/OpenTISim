@@ -391,6 +391,7 @@ class System:
                 print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                 print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
+
             # check if a jetty is needed
             berths = len(self.find_elements(Berth))
             jettys = len(self.find_elements(Jetty))
@@ -438,7 +439,11 @@ class System:
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
             # # check if a crane is needed
-            # if self.check_throughput_available():
+            # if self.check_crane_slot_available():
+            #     self.crane_invest(year)
+
+            # # check if a storage is needed
+            # if self.check_throughput_available(year):
             #     self.storage_invest(year)
 
     def jetty_invest(self, year, length, depth, width):
@@ -600,7 +605,11 @@ class System:
         storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # check if sufficient storage capacity is available
+        # while storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
+
         while storage_capacity < storage_capacity_dwelltime_throughput or storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
+            # if (self.check_throughput_available(year)):
+
             if self.debug:
                 print('  *** add storage to elements')
 
@@ -1481,20 +1490,20 @@ class System:
 
         return train_calls
 
-    # def check_throughput_available(self):
-    #     list_of_elements = self.find_elements(Storage)
-    #     capacity = 0
-    #     for element in list_of_elements:
-    #         capacity += element.capacity
-    #
-    #     throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station = self.throughput_elements(
-    #         year)
-    #
-    #     # when there are more slots than installed cranes ...
-    #     if capacity > throughput_planned_storage:
-    #         return True
-    #     else:
-    #         return False
+    def check_throughput_available(self, year):
+        list_of_elements = self.find_elements(Storage)
+        capacity = 0
+        for element in list_of_elements:
+            capacity += element.capacity
+
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station = self.throughput_elements(year)
+        storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+
+        # when there are more slots than installed cranes ...
+        if capacity < storage_capacity_dwelltime_throughput:
+            return True
+        else:
+            return False
 
     # *** plotting functions
 
