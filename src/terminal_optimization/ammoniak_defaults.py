@@ -1,6 +1,6 @@
 """Defaults for following objects:
 
-- 1. Jetty
+- 1. Production
 - 2. Berth
 - 3. Unloader
     - Liquid hydrogen
@@ -42,38 +42,33 @@ import pandas as pd
 
 # *** Default inputs: Jetty class ***
 
-jetty_data = {"name": 'Jetty_01',
-                  "ownership": 'Port authority',
+production_data = {"name": 'Production_01',
+                  "ownership": 'Producent',
                   "delivery_time": 2,
                   "lifespan": 50,
-                  "mobilisation_min": 2_500_000,
-                  "mobilisation_perc": 0.02,
+                  "construction_min": 2_500_000,
+                  "construction_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
-                  "freeboard": 4,
-                  "Gijt_constant_jetty": 2000, #based on personal communation with de Gijt & Quist
-                  "max_sinkage": 0.5,
-                  "wave_motion": 0.5,
-                  "safety_margin": 0.5,
-                  "Safety_margin_LH2": 40} # all values from Ijzermans, 2019, P 91
+                  } # all values from Ijzermans, 2019, P 91
 
 # *** Default inputs: Berth class ***
 
-berth_data = {"name": 'Berth_01',
+TransportA_data = {"name": 'TransportA_01',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1}  # all values from Ijzermans, 2019, P 92
 
 
 # *** Default inputs: Pipeline class ***
 
-jetty_pipeline_data = {"name": 'jetty_pipeline_01',
+TransportA_data = {"name": 'TransportA_01',
                       "type": 'jetty_pipeline',
                       "length": 200,
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
                       "lifespan": 20,
                       "unit_rate_factor": 400_000,
-                      "mobilisation": 30_000,
+                      "construction": 30_000,
                       "maintenance_perc": 0.10,
                       "insurance_perc": 0.01,
                       "consumption_constant": 81,
@@ -82,13 +77,13 @@ jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "utilisation": 0.80,
                       "capacity": 4000}
 
-hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
+TransportA_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "type": 'hinterland_pipeline',
                             "length": 400,
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
                             "lifespan": 20,
-                            "mobilisation": 30_000,
+                            "construction": 30_000,
                             "unit_rate_factor": 6,
                             "maintenance_perc": 0.10,
                             "insurance_perc": 0.01,

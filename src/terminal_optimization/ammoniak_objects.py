@@ -37,8 +37,8 @@ Defaults for following objects:
 from terminal_optimization import hydrogen_mixins
 
 # The generic jetty class
-Jetty = type('Jetty', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
-                               hydrogen_mixins.jetty_properties_mixin,
+Production = type('Production', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
+                               hydrogen_mixins.production_properties_mixin,
                                hydrogen_mixins.history_properties_mixin,  # Give it procurement history
                                hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
                                hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info

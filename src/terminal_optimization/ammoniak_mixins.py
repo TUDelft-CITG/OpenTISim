@@ -6,8 +6,8 @@
 - hasopex_properties_mixin
 - hasrevenue_properties_mixin
 - hastriggers_properties_mixin
-- jetty_properties_mixin
-- berth_properties_mixin
+- production_properties_mixin
+- TransportA_properties_mixin
 - cyclic_properties_mixin
 - continuous_properties_mixin
 - pipeline_properties_mixin
@@ -107,35 +107,29 @@ class hastriggers_properties_mixin(object):
         self.triggers = triggers
 
 
-class jetty_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, freeboard, Gijt_constant_jetty, max_sinkage, wave_motion,
-                 safety_margin, Safety_margin_LH2, *args, **kwargs):
+class production_properties_mixin(object):
+    def __init__(self, ownership, delivery_time, lifespan, construction_min, construction_perc,
+                 maintenance_perc, insurance_perc, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
         self.delivery_time = delivery_time
         self.lifespan = lifespan
-        self.mobilisation_min = mobilisation_min
-        self.mobilisation_perc = mobilisation_perc
+        self.construction_min = construction_min
+        self.construction_perc = construction_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
-        self.freeboard = freeboard
-        self.Gijt_constant_jetty = Gijt_constant_jetty
-        self.max_sinkage = max_sinkage
-        self.wave_motion = wave_motion
-        self.safety_margin= safety_margin
-        self.Safety_margin_LH2 = Safety_margin_LH2
 
-class berth_properties_mixin(object):
-    def __init__(self, crane_type, delivery_time, *args, **kwargs):
+
+class TransportA_properties_mixin(object):
+    def __init__(self, transport_type, delivery_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
-        self.crane_type = crane_type
+        self.transport_type = transport_type
         self.delivery_time = delivery_time
 
-class pipeline_properties_mixin(object):
-    def __init__(self, type, length, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
+class TransportA_pipeline_properties_mixin(object):
+    def __init__(self, type, length, ownership, delivery_time, lifespan, construction,
                  maintenance_perc, insurance_perc,
                  consumption_constant, consumption_coefficient, crew, utilisation, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -145,8 +139,7 @@ class pipeline_properties_mixin(object):
         self.ownership = ownership
         self.delivery_time = delivery_time
         self.lifespan = lifespan
-        self.unit_rate_factor = unit_rate_factor
-        self.mobilisation = mobilisation
+        self.construction = construction
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
         self.consumption_constant = consumption_constant
@@ -155,8 +148,8 @@ class pipeline_properties_mixin(object):
         self.utilisation = utilisation
         self.capacity = capacity
 
-class storage_properties_mixin(object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
+class storageA_properties_mixin(object):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, construction_min, construction_perc,
                  maintenance_perc, crew_min, crew_for5, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -165,8 +158,8 @@ class storage_properties_mixin(object):
         self.delivery_time = delivery_time
         self.lifespan = lifespan
         self.unit_rate = unit_rate
-        self.mobilisation_min = mobilisation_min
-        self.mobilisation_perc = mobilisation_perc
+        self.construction_min = construction_min
+        self.construction_perc = construction_perc
         self.maintenance_perc = maintenance_perc
         self.crew_min = crew_min
         self.crew_for5 = crew_for5
@@ -176,7 +169,7 @@ class storage_properties_mixin(object):
         self.capacity = capacity
 
 class h2retrieval_properties_mixin(object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, construction_min, construction_perc,
                  maintenance_perc, crew_min, crew_for5, insurance_perc, h2retrieval_type, consumption, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -185,8 +178,8 @@ class h2retrieval_properties_mixin(object):
         self.delivery_time = delivery_time
         self.lifespan = lifespan
         self.unit_rate = unit_rate
-        self.mobilisation_min = mobilisation_min
-        self.mobilisation_perc = mobilisation_perc
+        self.construction_min = construction_min
+        self.construction_perc = construction_perc
         self.maintenance_perc = maintenance_perc
         self.crew_min = crew_min
         self.crew_for5 = crew_for5
@@ -196,7 +189,7 @@ class h2retrieval_properties_mixin(object):
         self.capacity = capacity
 
 class unloading_station_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, construction, maintenance_perc,
                  insurance_perc, consumption, crew, production, wagon_payload, number_of_wagons, prep_time, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -204,7 +197,7 @@ class unloading_station_properties_mixin(object):
         self.delivery_time = delivery_time
         self.lifespan = lifespan
         self.unit_rate = unit_rate
-        self.mobilisation = mobilisation
+        self.construction = construction
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
         self.consumption = consumption
