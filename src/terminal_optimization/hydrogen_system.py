@@ -123,7 +123,7 @@ class System:
         # 5.  for each year calculate terminal revenues
         self.revenues = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_revenue(year)
+            self.calculate_revenue(year,  self.commodity_type_defaults)
 
         # 6. collect all cash flows (capex, opex, revenues)
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
@@ -131,24 +131,16 @@ class System:
         # 7. calculate PV's and aggregate to NPV
         self.NPV()
 
-    def calculate_revenue(self, year):
+    def calculate_revenue(self, year, hydrogen_defaults_commodity_data):
         """
         1. calculate the value of the total demand in year (demand * handling fee)
         2. calculate the maximum amount that can be handled (service capacity * operational hours)
         Terminal.revenues is the minimum of 1. and 2.
         """
-        # todo: pakt nog niet goede fee bij throuhgput!
-        # gather volumes from each commodity, calculate how much revenue it would yield, and add
-        # for commodity in self.find_elements(Commodity):
-        #     fee = commodity.handling_fee
 
-        # commodity_type_defaults
-
-        # commodity = Commodity(**hydrogen_defaults_commodity_data)
-        list_of_elements = self.find_elements(Commodity)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                    fee = element.handling_fee
+        # gather the fee from the selected commodity
+        commodity = Commodity(**hydrogen_defaults_commodity_data)
+        fee = commodity.handling_fee
 
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station = self.throughput_elements(year)
         if self.debug:
@@ -320,8 +312,6 @@ class System:
         self.demurrage.append(total_demurrage_cost)
 
     # *** Investment functions
-
-    # todo: add reinvestment when lifetime is bigger than lifecycle
 
     def berth_invest(self, year):
         """
