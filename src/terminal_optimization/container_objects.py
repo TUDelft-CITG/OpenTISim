@@ -6,30 +6,30 @@
     - STS crane
 - 4. Horizontal transport
     - Tractor trailer
-- 5. Containers
+- 5. Commodity
+    - TEU
+- 6. Containers
     - Laden
     - Reefer
     - Empty
     - OOG
-- 6. Laden and reefer stack
+- 7. Laden and reefer stack
     - RTG stack
     - RMG stack
     - SC stack
     - RS stack
-- 7. Stack equipment
+- 8. Stack equipment
     - RTG
     - RMG
     - SC
     - RS
--8. Other stacks
-    - OOG stack
-    - Empty stack
-- 9. Gates
-- 8. Vessel
-    - Panamax
-- 9. Labour
--
-
+- 9. Empty stack
+- 10. OOG stack
+- 11. Gates
+- 12. Empty handler
+- 13. Vessel
+- 14. Labour
+- 15. Energy
 """
 
 from terminal_optimization import container_mixins
@@ -69,39 +69,6 @@ Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_propert
                        # Give it investment triggers (lambda?)
                        {})  # The dictionary is empty because the site type is generic
 
-# The generic ContinuousUnloader class
-# - Continuous_screw
-Continuous_Unloader = type('Continuous_Unloader', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                                                   container_mixins.history_properties_mixin,  # Give it procurement history
-                                                   container_mixins.continuous_properties_mixin,
-                                                   container_mixins.hascapex_properties_mixin,  # Give it capex info
-                                                   container_mixins.hasopex_properties_mixin,  # Give it opex info
-                                                   container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                                                   container_mixins.hastriggers_properties_mixin),
-                           # Give it investment triggers (lambda?)
-                           {})  # The dictionary is empty because the site type is generic
-
-# The generic Conveyor class
-# - Quay_conveyor
-# - Hinterland_conveyor
-Conveyor_Quay = type('Conveyor_Quay', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                             container_mixins.history_properties_mixin,  # Give it procurement history
-                             container_mixins.conveyor_properties_mixin,
-                             container_mixins.hascapex_properties_mixin,  # Give it capex info
-                             container_mixins.hasopex_properties_mixin,  # Give it opex info
-                             container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-                {})  # The dictionary is empty because the site type is generic
-
-Conveyor_Hinter = type('Conveyor_Hinter', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                             container_mixins.history_properties_mixin,  # Give it procurement history
-                             container_mixins.conveyor_properties_mixin,
-                             container_mixins.hascapex_properties_mixin,  # Give it capex info
-                             container_mixins.hasopex_properties_mixin,  # Give it opex info
-                             container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                             container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-                {})  # The dictionary is empty because the site type is generic
-
 # The generic Horizontal transport class
 # - Tractor trailer
 Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
@@ -112,6 +79,15 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
                                                        container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})
 
+# The generic Commodity class
+# - Maize
+# - Soybean
+# - Wheat
+# - Laden
+Commodity = type('Commodity', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.commodity_properties_mixin,
+                               container_mixins.hasscenario_properties_mixin),
+                 {})  # The dictionary is empty because the site type is generic
 
 Container = type('Container', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                 container_mixins.container_properties_mixin),
@@ -171,54 +147,6 @@ OOG_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,
                                  container_mixins.hasland_properties_mixin),
                 {})
 
-
-# The generic Storage class
-# - Silo
-# - Warehouse
-
-Storage = type('Storage', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                           container_mixins.history_properties_mixin,  # Give it procurement history
-                           container_mixins.storage_properties_mixin,
-                           container_mixins.hascapex_properties_mixin,  # Give it capex info
-                           container_mixins.hasopex_properties_mixin,  # Give it opex info
-                           container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                           container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
-               {})  # The dictionary is empty because the site type is generic
-
-# define loading station class functions **will ultimately be placed in package**
-Unloading_station = type('Unloading_station', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                                               container_mixins.unloading_station_properties_mixin),
-                         {})  # The dictionary is empty because the site type is generic
-
-# The generic Commodity class
-# - Maize
-# - Soybean
-# - Wheat
-# - Laden
-Commodity = type('Commodity', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                               container_mixins.commodity_properties_mixin,
-                               container_mixins.hasscenario_properties_mixin),
-                 {})  # The dictionary is empty because the site type is generic
-
-# The general Vessel class
-# - Handysize
-# - Handymax
-# - Panamax
-# - Super Post-Panamax
-Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
-                         container_mixins.vessel_properties_mixin),
-              {})  # The dictionary is empty because the site type is generic
-
-# The general Labour class
-Labour = type('Labour', (container_mixins.identifiable_properties_mixin,
-                         container_mixins.labour_properties_mixin),
-              {})  # The dictionary is empty because the site type is generic
-
-# The general Energy class
-Energy = type('Energy', (container_mixins.identifiable_properties_mixin,
-                         container_mixins.energy_properties_mixin),
-              {})  # The dictionary is empty because the site type is generic
-
 # The general Gates class
 Gate = type('Gate', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
@@ -242,8 +170,26 @@ Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_
 
 
 
+# The general Vessel class
+# - Handysize
+# - Handymax
+# - Panamax
+# - Super Post-Panamax
+Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.vessel_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
 
-# The general Train class
-Train = type('Train', (container_mixins.identifiable_properties_mixin,
-                       container_mixins.train_properties_mixin),
-             {})  # The dictionary is empty because the site type is generic
+# The general Labour class
+Labour = type('Labour', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.labour_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+# The general Energy class
+Energy = type('Energy', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.energy_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+
+
+
+

@@ -1,35 +1,37 @@
-"""Defaults for following objects:
+"""Main generic object classes:
+
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
     - STS crane
 - 4. Horizontal transport
     - Tractor trailer
-- 5. Containers
+- 5. Commodity
+    - TEU
+- 6. Containers
     - Laden
     - Reefer
     - Empty
     - OOG
-- 6. Laden and reefer stack
+- 7. Laden and reefer stack
     - RTG stack
     - RMG stack
     - SC stack
     - RS stack
-- 7. Stack equipment
+- 8. Stack equipment
     - RTG
     - RMG
     - SC
     - RS
--8. Other stacks
-    - OOG stack
-    - Empty stack
-- 8. Vessel
-    - Panamax
-- 9. Labour
+- 9. Empty stack
+- 10. OOG stack
+- 11. Gates
+- 12. Empty handler
+- 13. Vessel
+- 14. Labour
+- 15. Energy
 
-Default values are based on Claes 2018; Corbeau 2018; Daas 2018; Juha 2018;
-Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
-
+#todo add sources here
 """
 
 # package(s) for data handling
@@ -122,55 +124,6 @@ sts_crane_data = {"name": 'STS_crane_01',
                      "hourly_cycles": 28,
                      "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
 
-# *** Default inputs: ContinuousUnloader class ***
-
-continuous_screw_data = {"name": 'Continuous_loader_01',
-                         "ownership": 'Terminal operator',
-                         "delivery_time": 1,
-                         "lifespan": 30,
-                         "unit_rate": 6_900_000,
-                         "mobilisation_perc": 0.15,
-                         "maintenance_perc": 0.02,
-                         "consumption": 364,
-                         "insurance_perc": 0.01,
-                         "crew": 2,
-                         "crane_type": 'Screw unloader',
-                         "peak_capacity": 700,
-                         "eff_fact": 0.55} # all values from Ijzermans, 2019, P 101
-
-# *** Default inputs: Conveyor class ***
-
-quay_conveyor_data = {"name": 'Quay_conveyor_01',
-                      "type": 'quay_conveyor',
-                      "length": 200,
-                      "ownership": 'Terminal operator',
-                      "delivery_time": 1,
-                      "lifespan": 10,
-                      "unit_rate_factor": 6,
-                      "mobilisation": 30_000,
-                      "maintenance_perc": 0.10,
-                      "insurance_perc": 0.01,
-                      "consumption_constant": 81,
-                      "consumption_coefficient": 0.08,
-                      "crew": 1,
-                      "utilisation": 0.80,
-                      "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
-
-hinterland_conveyor_data = {"name": 'Hinterland_conveyor_01',
-                            "type": 'hinterland_conveyor',
-                            "length": 400,
-                            "ownership": 'Terminal operator',
-                            "delivery_time": 1,
-                            "lifespan": 10,
-                            "mobilisation": 30_000,
-                            "unit_rate_factor": 6,
-                            "maintenance_perc": 0.10,
-                            "insurance_perc": 0.01,
-                            "consumption_constant": 81,
-                            "consumption_coefficient": 0.08,
-                            "crew": 1,
-                            "utilisation": 0.80,
-                            "capacity_steps": 400} # all input values from Ijzermans, 2019, P 104
 
 # Default inputs: Horizontal Transport class ***
 
@@ -374,8 +327,8 @@ sc_data = {"name": 'Straddle carrier',
             "crew": 0, #dummy
             "salary": 50_000, #dummy
             "required": 5,
-            "fuel_consumption": 1, #dummy
-            "power_consumption": 0
+            "fuel_consumption": 0, #dummy
+            "power_consumption": 30
             }
 
 #Reach stacker
@@ -396,55 +349,6 @@ rs_data = {"name": 'Reach stacker',
             }
 
 
-# *** Default inputs: Storage class ***
-
-silo_data = {"name": 'Silo_01',
-             "type": 'silo',
-             "ownership": 'Terminal operator',
-             "delivery_time": 1,
-             "lifespan": 30,
-             "unit_rate": 60,
-             "mobilisation_min": 200_000,
-             "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.02,
-             "crew": 1,
-             "insurance_perc": 0.01,
-             "storage_type": 'Silos',
-             "consumption": 0.002,
-             "capacity": 6_000} # all input values from Ijzermans, 2019, P 102
-
-warehouse_data = {"name": 'Warehouse_01',
-                  "style": 'warehouse',
-                  "ownership": 'Terminal operator',
-                  "delivery_time": 1,
-                  "lifespan": 30,
-                  "unit_rate": 140,
-                  "mobilisation_min": 200_000,
-                  "mobilisation_perc": 0.001,
-                  "maintenance_perc": 0.01,
-                  "crew": 3,
-                  "insurance_perc": 0.01,
-                  "storage_type": 'Warehouse',
-                  "consumption": 0.002,
-                  "silo_capacity": 'n/a'}
-
-# *** Default inputs: Unloading_station class ***
-
-
-hinterland_station_data = {"name": 'Hinterland_station_01',
-                           "ownership": 'Terminal operator',
-                           "delivery_time": 1,
-                           "lifespan": 15,
-                           "unit_rate": 800_000,
-                           "mobilisation": 200_000,
-                           "maintenance_perc": 0.02,
-                           "consumption": 100,
-                           "insurance_perc": 0.01,
-                           "crew": 2,
-                           "production": 800,
-                           "wagon_payload" : 60,
-                           "number_of_wagons": 60,
-                           "prep_time": 2}
 
 # *** Default inputs: Gate class ***
 
@@ -471,6 +375,7 @@ gate_data = {"name": 'Gate',
                 "truck_moves" : 0.75,
                "operating_days": 6,
              "capacity": 60}
+
 # *** Default inputs: ECH class***
 
 empty_handler_data = {"name": 'Empty Handler',
@@ -483,7 +388,7 @@ empty_handler_data = {"name": 'Empty Handler',
                    "maintenance_perc": 0.02,
                    "crew": 1,
                    "salary": 35_000, #dummy
-                    "consumption" : 1.5,
+                    "fuel_consumption" : 1.5,
                     "required" : 5}
 
 

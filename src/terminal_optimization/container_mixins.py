@@ -9,14 +9,14 @@
 - quay_wall_properties_mixin
 - berth_properties_mixin
 - cyclic_properties_mixin
-- continuous_properties_mixin
-- conveyor_properties_mixin
 - transport_properties_mixin
 - container_properties_mixin
-- laden_stack_properties
-- stack_equipment_properties
-- storage_properties_mixin
-- unloading_station_properties_mixin
+- laden_stack_properties_mixin
+- empty_stack_properties_mixin
+- oog_stack_properties_mixin
+- stack_equipment_properties_mixin
+- gate_properties_mixin
+- empty_handler_properties_mixin
 - commodity_properties_mixin
 - vessel_properties_mixin
 - labour_properties_mixin
@@ -178,49 +178,6 @@ class cyclic_properties_mixin(object):
         self.effective_capacity = int(eff_fact * self.peak_capacity)  # Source: TATA steel
 
 
-class continuous_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
-                 consumption, insurance_perc, crew, crane_type, peak_capacity, eff_fact, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate = unit_rate
-        self.mobilisation_perc = mobilisation_perc
-        self.mobilisation = int(mobilisation_perc * unit_rate)
-        self.maintenance_perc = maintenance_perc
-        self.consumption = consumption
-        self.insurance_perc = insurance_perc
-        self.crew = crew
-        self.crane_type = crane_type
-        self.peak_capacity = peak_capacity
-        self.eff_fact = eff_fact
-        self.effective_capacity = eff_fact * peak_capacity
-
-
-class conveyor_properties_mixin(object):
-    def __init__(self, type, length, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
-                 maintenance_perc, insurance_perc,
-                 consumption_constant, consumption_coefficient, crew, utilisation, capacity_steps, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.type = type
-        self.length = length
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate_factor = unit_rate_factor
-        self.mobilisation = mobilisation
-        self.maintenance_perc = maintenance_perc
-        self.insurance_perc = insurance_perc
-        self.consumption_constant = consumption_constant
-        self.consumption_coefficient = consumption_coefficient
-        self.crew = crew
-        self.utilisation = utilisation
-        self.capacity_steps = capacity_steps
-
-
 class transport_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
                  maintenance_perc, insurance_perc,
@@ -243,6 +200,7 @@ class transport_properties_mixin(object):
         self.required = required
         self.non_essential_moves = non_essential_moves
 
+
 class container_properties_mixin (object):
     def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_occupancy,  *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -252,6 +210,7 @@ class container_properties_mixin (object):
         self.dwell_time = dwell_time
         self.peak_factor = peak_factor
         self.stack_occupancy = stack_occupancy
+
 
 class laden_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
@@ -273,6 +232,7 @@ class laden_stack_properties_mixin (object):
         self.drainage = drainage
         self.household = household
         self.digout_margin = digout_margin
+
 
 class empty_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
@@ -296,7 +256,6 @@ class empty_stack_properties_mixin (object):
         self.digout = digout
 
 
-
 class oog_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
                  length, capacity, gross_tgs, area_factor, pavement, drainage, *args, **kwargs):
@@ -316,6 +275,7 @@ class oog_stack_properties_mixin (object):
         self.pavement = pavement
         self.drainage = drainage
 
+
 class stack_equipment_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew,
                  salary, required, fuel_consumption, power_consumption, *args, **kwargs):
@@ -334,6 +294,7 @@ class stack_equipment_properties_mixin (object):
         self.required = required
         self.fuel_consumption = fuel_consumption
         self.power_consumption = power_consumption
+
 
 class gate_properties_mixin (object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, crew,
@@ -364,9 +325,10 @@ class gate_properties_mixin (object):
         self.operating_days = operating_days
         self.capacity = capacity
 
+
 class empty_handler_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
-                 maintenance_perc, crew, salary, consumption, required,  *args, **kwargs):
+                 maintenance_perc, crew, salary, fuel_consumption, required,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -378,49 +340,9 @@ class empty_handler_properties_mixin(object):
         self.maintenance_perc = maintenance_perc
         self.crew = crew
         self.salary = salary
-        self.consumption = consumption
+        self.fuel_consumption = fuel_consumption
         self.required = required
 
-class storage_properties_mixin(object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew, insurance_perc, storage_type, consumption, capacity,  *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.type = type
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate = unit_rate
-        self.mobilisation_min = mobilisation_min
-        self.mobilisation_perc = mobilisation_perc
-        self.maintenance_perc = maintenance_perc
-        self.crew = crew
-        self.insurance_perc = insurance_perc
-        self.storage_type = storage_type
-        self.consumption = consumption
-        self.capacity = capacity
-
-
-class unloading_station_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
-                 insurance_perc, consumption, crew, production, wagon_payload, number_of_wagons, prep_time, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate = unit_rate
-        self.mobilisation = mobilisation
-        self.maintenance_perc = maintenance_perc
-        self.insurance_perc = insurance_perc
-        self.consumption = consumption
-        self.crew = crew
-        self.production = production
-        self.wagon_payload = wagon_payload
-        self.number_of_wagons = number_of_wagons
-        self.prep_time = prep_time
-        self.call_size = int(self.wagon_payload * self.number_of_wagons)
-        self.service_rate = int(self.call_size / (self.call_size/self.production + self.prep_time)) #TUE/hour, IJzermans 2019, P30
 
 class commodity_properties_mixin(object):
     def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):
@@ -430,7 +352,6 @@ class commodity_properties_mixin(object):
         self.handysize_perc = handysize_perc
         self.handymax_perc = handymax_perc
         self.panamax_perc = panamax_perc
-
 
 
 class vessel_properties_mixin(object):
@@ -469,15 +390,6 @@ class energy_properties_mixin(object):
         super().__init__(*args, **kwargs)
         self.price = price
 
-class train_properties_mixin(object):
-    def __init__(self, wagon_payload, number_of_wagons, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.wagon_payload = wagon_payload
-        self.number_of_wagons = number_of_wagons
-        self.prep_time = 2
-        self.call_size = wagon_payload * number_of_wagons
-        self.call_log = []
 
 class hasscenario_properties_mixin(object):
     """Something has a scenario
