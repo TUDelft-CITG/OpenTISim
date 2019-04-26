@@ -73,7 +73,7 @@ class hasopex_properties_mixin(object):
     opex: list with cost to be applied from investment year"""
 
     def __init__(self, labour=[], maintenance=[], energy=[], insurance=[],
-                 lease=[], demurrage=[], residual=[], *args, **kwargs):
+                 lease=[], demurrage=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.labour = labour
@@ -82,7 +82,6 @@ class hasopex_properties_mixin(object):
         self.insurance = insurance
         self.lease = lease
         self.demurrage = demurrage
-        self.residual = residual
 
 
 class hasrevenue_properties_mixin(object):
@@ -90,10 +89,11 @@ class hasrevenue_properties_mixin(object):
 
     revenue: list with revenues to be applied from investment year"""
 
-    def __init__(self, renevue=[], *args, **kwargs):
+    def __init__(self, renevue=[], residual=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.renevue = renevue
+        self.residual = residual
 
 
 class hastriggers_properties_mixin(object):

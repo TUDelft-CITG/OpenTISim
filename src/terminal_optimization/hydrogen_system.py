@@ -332,7 +332,6 @@ class System:
         """
 
         # report on the status of all berth elements
-
         self.report_element(Berth, year)
         self.report_element(Jetty, year)
         self.report_element(Pipeline_Jetty, year)
@@ -424,8 +423,6 @@ class System:
                 if self.debug:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
-
-
 
             # # check if a storage is needed
             # if self.check_throughput_available(year):
@@ -834,9 +831,9 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
-        cash_flows['residual'] = 0
         cash_flows['demurrage'] = self.demurrage
         cash_flows['revenues'] = self.revenues
+        cash_flows['residual'] = 0
 
         # add labour component for years were revenues are not zero
         cash_flows.loc[cash_flows[
@@ -879,7 +876,9 @@ class System:
         maintenance = element.maintenance
         insurance = element.insurance
         labour = element.labour
-        residual = -1 * element.residual
+
+        # revenue
+        residual = element.residual
 
         # year online
         year_online = element.year_online
@@ -908,6 +907,8 @@ class System:
             df.loc[df["year"] >= year_online, "insurance"] = insurance
         if labour:
             df.loc[df["year"] >= year_online, "labour"] = labour
+
+        #   revenue
         if residual:
             df.loc[df["year"] == self.startyear + self.lifecycle - 1, "residual"] = residual
 
@@ -951,13 +952,12 @@ class System:
 
         # prepare years, revenue, capex and opex for plotting
         years = cash_flows_WACC_real['year'].values
-        revenue = self.revenues
+        revenue = self.revenues + cash_flows_WACC_real['residual'].values
         capex = cash_flows_WACC_real['capex'].values
         opex = cash_flows_WACC_real['insurance'].values + \
                cash_flows_WACC_real['maintenance'].values + \
                cash_flows_WACC_real['energy'].values + \
                cash_flows_WACC_real['demurrage'].values + \
-               cash_flows_WACC_real['residual'].values + \
                cash_flows_WACC_real['labour'].values
 
         PV = - capex - opex + revenue
@@ -1702,10 +1702,10 @@ class System:
 
         # prepare years, revenue, capex and opex for plotting
         years = cash_flows['year'].values
-        revenue = self.revenues
+        revenue = self.revenues + cash_flows['residual'].values
         capex = cash_flows['capex'].values
         opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values + cash_flows['demurrage'].values + cash_flows['residual'].values
+               cash_flows['labour'].values + cash_flows['demurrage'].values
 
         # sum cash flows to get profits as a function of year
         profits = []
