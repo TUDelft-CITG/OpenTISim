@@ -133,9 +133,7 @@ class System:
 
     def calculate_revenue(self, year, hydrogen_defaults_commodity_data):
         """
-        1. calculate the value of the total demand in year (demand * handling fee)
-        2. calculate the maximum amount that can be handled (service capacity * operational hours)
-        Terminal.revenues is the minimum of 1. and 2.
+        1. calculate the value of the total throughput in year (throughput * handling fee)
         """
 
         # gather the fee from the selected commodity
@@ -245,8 +243,6 @@ class System:
 
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
 
-
-
         factor, waiting_time_occupancy = self.waiting_time(year)
 
         # Find the demurrage cost per type of vessel
@@ -320,15 +316,14 @@ class System:
         Decision recipe Berth:
         QSC: berth_occupancy
         Problem evaluation: there is a problem if the berth_occupancy > allowable_berth_occupancy
-            - allowable_berth_occupancy = .40 # 40%
+            - allowable_berth_occupancy = .50 # 50%
             - a berth needs:
                - a jetty
-               - cranes (min:1 and max: max_cranes)
             - berth occupancy depends on:
                 - total_calls and total_vol
-                - total_service_capacity as delivered by the cranes
+                - total_service_capacity as delivered by the vessels
         Investment decisions: invest enough to make the berth_occupancy < allowable_berth_occupancy
-            - adding jetty and cranes decreases berth_occupancy_rate
+            - adding jettys decreases berth_occupancy_rate
         """
 
         # report on the status of all berth elements
@@ -365,7 +360,6 @@ class System:
             print('     throughput online {}'.format(throughput_online))
             print('     throughput planned {}'.format(throughput_planned))
 
-
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
             if self.debug:
@@ -380,7 +374,6 @@ class System:
                 print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                 print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
-
             # check if a jetty is needed
             berths = len(self.find_elements(Berth))
             jettys = len(self.find_elements(Jetty))
@@ -388,18 +381,17 @@ class System:
                 length_v = max(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
                                hydrogen_defaults.panamax_data["LOA"], hydrogen_defaults.smallhydrogen_data["LOA"],
                                hydrogen_defaults.largehydrogen_data["LOA"], hydrogen_defaults.smallammonia_data["LOA"],
-                               hydrogen_defaults.largeammonia_data["LOA"] )  # average size
+                               hydrogen_defaults.largeammonia_data["LOA"] )  # maximum of all vessels
                 draft = max(hydrogen_defaults.vlcc_data["draft"], hydrogen_defaults.handysize_data["draft"],
                                hydrogen_defaults.panamax_data["draft"], hydrogen_defaults.smallhydrogen_data["draft"],
                                hydrogen_defaults.largehydrogen_data["draft"], hydrogen_defaults.smallammonia_data["draft"],
-                               hydrogen_defaults.largeammonia_data["draft"])
+                               hydrogen_defaults.largeammonia_data["draft"]) # maximum of all vessels
                 width_v = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
                                hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
                                hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
-                               hydrogen_defaults.largeammonia_data["beam"])
+                               hydrogen_defaults.largeammonia_data["beam"]) # maximum of all vessels
 
                 # Calculation of the length of a berth
-                # apply PIANC 2014:
                 if jettys == 0:
                     # - length when next jetty is n = 1
                     length = length_v + 2 * 15  # ref: PIANC 2014
