@@ -410,13 +410,10 @@ class System:
                     else:
                         length = length_v + width_v + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
 
-                # - width jetty head
-                width = 4
-
                 # - depth
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
                 depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
-                self.jetty_invest(year, length, depth, width)
+                self.jetty_invest(year, length, depth)
 
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
                     year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
@@ -428,15 +425,13 @@ class System:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
-            # # check if a crane is needed
-            # if self.check_crane_slot_available():
-            #     self.crane_invest(year)
+
 
             # # check if a storage is needed
             # if self.check_throughput_available(year):
             #     self.storage_invest(year)
 
-    def jetty_invest(self, year, length, depth, width):
+    def jetty_invest(self, year, length, depth):
         """
         *** Decision recipe jetty: ***
         QSC: jetty_per_berth
@@ -455,12 +450,12 @@ class System:
 
         # - capex
         unit_rate = int(jetty.Gijt_constant_jetty * (depth + jetty.freeboard)) #per m2
-        mobilisation = int(max((length * width * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
-        jetty.capex = int(length * width * unit_rate + mobilisation)
+        mobilisation = int(max((length * jetty.jettywidth * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
+        jetty.capex = int(length * jetty.jettywidth * unit_rate + mobilisation)
 
         # - opex
-        jetty.insurance = unit_rate * length * width * jetty.insurance_perc
-        jetty.maintenance = unit_rate * length * width * jetty.maintenance_perc
+        jetty.insurance = unit_rate * length * jetty.jettywidth * jetty.insurance_perc
+        jetty.maintenance = unit_rate * length * jetty.jettywidth * jetty.maintenance_perc
         jetty.year_online = year + jetty.delivery_time
 
         # residual
@@ -490,18 +485,15 @@ class System:
                 if year >= element.year_online:
                     service_capacity_online += element.capacity
 
-        #todo: max this, change this to general
-        # max_vessel_Capacity_vessels = max([x.pump_capacity for x in self.find_elements(Vessel)])
-
-        # find the total service rate,
-        service_rate = 0
+        # find the year online,
         years_online = []
         for element in self.find_elements(Jetty):
-            service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
             years_online.append(element.year_online)
 
-        # check if total planned capacity is smaller than target capacity, if so add a pipeline
-        while service_capacity < service_rate:
+        # # check if total planned capacity is smaller than target capacity, if so add a pipeline
+        pipelines = len(self.find_elements(Pipeline_Jetty))
+        jettys = len(self.find_elements(Jetty))
+        if jettys > pipelines:
             if self.debug:
                 print('  *** add jetty pipeline to elements')
             pipeline_jetty = Pipeline_Jetty(**hydrogen_defaults.jetty_pipeline_data)
@@ -519,6 +511,13 @@ class System:
             labour = Labour(**hydrogen_defaults.labour_data)
             pipeline_jetty.shift = (pipeline_jetty.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts)
             pipeline_jetty.labour = pipeline_jetty.shift * labour.operational_salary
+
+            # # find the total service rate,
+            service_rate = 0
+            years_online = []
+            for element in self.find_elements(Jetty):
+                service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
+                years_online.append(element.year_online)
 
             # there should always be a new jetty in the planning
             new_jetty_years = [x for x in years_online if x >= year]
@@ -539,6 +538,7 @@ class System:
             elif max_pipeline_years > min(new_jetty_years):
                 pipeline_jetty.year_online = max(new_jetty_years)
 
+            # pipeline_jetty.year_online = year
             # residual
             pipeline_jetty.assetvalue = unit_rate * (1 - (self.lifecycle + self.startyear - pipeline_jetty.year_online) / pipeline_jetty.lifespan)
             pipeline_jetty.residual = max(pipeline_jetty.assetvalue, 0)
@@ -548,11 +548,11 @@ class System:
 
             self.elements.append(pipeline_jetty)
 
-            service_capacity += pipeline_jetty.capacity
-
-        if self.debug:
-            print('     a total of {} ton of pipeline_jetty service capacity is online; {} ton total planned'.format(
-                service_capacity_online, service_capacity))
+        # service_capacity += pipeline_jetty.capacity
+        #
+        # if self.debug:
+        #     print('     a total of {} ton of pipeline_jetty service capacity is online; {} ton total planned'.format(
+        #         service_capacity_online, service_capacity))
 
     def storage_invest(self, year, hydrogen_defaults_storage_data):
         """current strategy is to add storage as long as target storage is not yet achieved

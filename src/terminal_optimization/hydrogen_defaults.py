@@ -55,7 +55,8 @@ jetty_data = {"name": 'Jetty_01',
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
-                  "Safety_margin_LH2": 40} # all values from Ijzermans, 2019, P 91
+                  "Safety_margin_LH2": 40,
+                    "jettywidth": 4} # all values from Ijzermans, 2019, P 91
 
 # *** Default inputs: Berth class ***
 
@@ -107,7 +108,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "type": 'HydrogenTank',
              "ownership": 'Terminal operator',
              "delivery_time": 1,
-             "lifespan": 20,
+             "lifespan": 10,
              "unit_rate": 500_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
