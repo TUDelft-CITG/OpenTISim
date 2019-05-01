@@ -9,7 +9,7 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rmg', laden_stack = 'rmg',
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data,
                  allowable_berth_occupancy=0.6, allowable_dwelltime=18 / 365,
                  laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3, energy_price = 0.15, fuel_price = 1):
@@ -175,6 +175,7 @@ class System:
         revenues = 0
         for commodity in self.find_elements(Commodity):
             fee = commodity.handling_fee
+            print(fee, safety_factor, 'ajax')
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
                 revenues += (volume * fee * safety_factor)
@@ -1852,10 +1853,11 @@ class System:
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Land use [ha]')
-        ax.set_title('Terminal land use')
+        ax.set_title('Terminal land use '+self.stack_equipment )
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
+        # ax.figure.savefig('C:/Users/908538/Google Drive/Afstuderen/02. Model/Masterfile/Plots/rs.png', dpi=400)
 
         # plt.show()
 

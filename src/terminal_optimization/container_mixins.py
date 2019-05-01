@@ -173,7 +173,7 @@ class cyclic_properties_mixin(object):
         self.lifting_capacity = lifting_capacity
         self.hourly_cycles = hourly_cycles
         self.eff_fact = eff_fact
-        self.payload = int(self.lifting_capacity * 0.7)  # Source: Nemag ((lifting_capacity - 2.4) / 1.4)
+        self.payload = int(self.lifting_capacity * 1.0)  # Source: Nemag ((lifting_capacity - 2.4) / 1.4)
         self.peak_capacity = int(self.payload * self.hourly_cycles)
         self.effective_capacity = int(eff_fact * self.peak_capacity)  # Source: TATA steel
 

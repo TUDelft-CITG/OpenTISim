@@ -109,7 +109,7 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
                      "hourly_cycles": 25,
                      "eff_fact": 0.35} # all values from Ijzermans, 2019, P 100
 
-sts_crane_data = {"name": 'STS_crane_01',
+sts_crane_data = {"name": 'STS_crane',
                      "ownership": 'Terminal operator',
                      "delivery_time": 1,
                      "lifespan": 40,
@@ -121,7 +121,7 @@ sts_crane_data = {"name": 'STS_crane_01',
                      "crew": 5.5, # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                      "crane_type": 'STS crane',
                      "lifting_capacity":2.25 , #weighted average of TEU per lift
-                     "hourly_cycles": 28,
+                     "hourly_cycles": 25, #PIANC wg135
                      "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
 
 
@@ -393,27 +393,9 @@ empty_handler_data = {"name": 'Empty Handler',
 
 
 # *** Default inputs: Commodity class ***
-# TODO vervang soybean, maze en wheat door reefer, empty en oog dmv input value modal split
-
-
-# soybean_data = {"name": 'Soybeans',
-#                 "handling_fee": 9.8,
-#                 "handysize_perc": 50,
-#                 "handymax_perc": 50,
-#                 "panamax_perc": 0,
-#                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-#                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-#
-# wheat_data = {"name": 'Wheat',
-#               "handling_fee": 9.8,
-#               "handysize_perc": 0,
-#               "handymax_perc": 0,
-#               "panamax_perc": 100,
-#               "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-#                                                   'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
 
 container_data = {"name": 'Laden',
-                "handling_fee": 500,
+                "handling_fee": 250,
                 "handysize_perc": 0,
                 "handymax_perc": 0,
                 "panamax_perc": 100,
