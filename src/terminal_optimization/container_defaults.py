@@ -120,9 +120,9 @@ sts_crane_data = {"name": 'STS_crane',
                      "insurance_perc": 0.01,
                      "crew": 5.5, # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                      "crane_type": 'STS crane',
-                     "lifting_capacity":2.25 , #weighted average of TEU per lift
+                     "lifting_capacity": 2.13 , #weighted average of TEU per lift
                      "hourly_cycles": 25, #PIANC wg135
-                     "eff_fact": 1} #dit is al afgevangen middels de lifting capacity
+                     "eff_fact": 1}
 
 
 # Default inputs: Horizontal Transport class ***

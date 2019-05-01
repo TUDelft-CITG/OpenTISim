@@ -175,7 +175,6 @@ class System:
         revenues = 0
         for commodity in self.find_elements(Commodity):
             fee = commodity.handling_fee
-            print(fee, safety_factor, 'ajax')
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
                 revenues += (volume * fee * safety_factor)
@@ -282,23 +281,6 @@ class System:
 
         print(quay_land_use, stack_land_use, empty_land_use, oog_land_use, gate_land_use)
 
-        # handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        # berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-        #     year, handysize, handymax, panamax)
-
-        # # calculate crane energy
-        # list_of_elements_Crane = self.find_elements(Cyclic_Unloader)
-        #
-        # for element in list_of_elements_Crane:
-        #     if year >= element.year_online:
-        #         consumption = element.consumption
-        #         hours = self.operational_hours * crane_occupancy_online
-        #
-        #         if consumption * hours * energy.price != np.inf:
-        #             element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-        #
-        #     else:
-        #         element.df.loc[element.df['year'] == year, 'energy'] = 0
 
     def calculate_fuel_cost(self, year):
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
@@ -1051,6 +1033,7 @@ class System:
         cash_flows['insurance'] = 0
         cash_flows['energy'] = 0
         cash_flows['labour'] = 0
+        cash_flows['fuel'] = 0
         cash_flows['demurrage'] = self.demurrage
         cash_flows['revenues'] = self.revenues
 
@@ -1459,6 +1442,8 @@ class System:
             time_at_berth_panamax_planned = panamax_calls * (
                     (container_defaults.panamax_data["call_size"] / service_rate_planned) +container_defaults.panamax_data["mooring_time"])
 
+            print(time_at_berth_panamax_planned, 'ajax', service_rate_planned)
+
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
 
@@ -1472,6 +1457,7 @@ class System:
                 (container_defaults.handymax_data["call_size"] / service_rate_planned))
             time_at_crane_panamax_planned = panamax_calls * (
                 (container_defaults.panamax_data["call_size"] / service_rate_planned))
+
 
             total_time_at_crane_planned = np.sum(
                 [time_at_crane_handysize_planned, time_at_crane_handymax_planned, time_at_crane_panamax_planned])
@@ -1861,24 +1847,6 @@ class System:
 
         # plt.show()
 
-        # generate plot 2
-        # N = 5
-        # menMeans = (20, 35, 30, 35, 27)
-        # womenMeans = (25, 32, 34, 20, 25)
-        # ind = np.arange(N)  # the x locations for the groups
-        # width = 0.35  # the width of the bars: can also be len(x) sequence
-        #
-        # p1 = plt.bar(ind, menMeans, width)
-        # p2 = plt.bar(ind, womenMeans, width,
-        #              bottom=menMeans)
-        #
-        # plt.ylabel('Scores')
-        # plt.title('Scores by group and gender')
-        # plt.xticks(ind, ('G1', 'G2', 'G3', 'G4', 'G5'))
-        # plt.yticks(np.arange(0, 81, 10))
-        # plt.legend((p1[0], p2[0]), ('Men', 'Women'))
-        #
-        # plt.show()
 
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
@@ -1974,3 +1942,58 @@ class System:
 
         ax1.legend()
         ax2.legend()
+
+    def opex_plot(self, cash_flows, width=0.3, alpha=0.6):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows['year'].values
+        insurance = cash_flows['insurance'].values
+        maintenance = cash_flows['maintenance'].values
+        energy = cash_flows['energy'].values
+        labour = cash_flows['labour'].values
+        fuel = cash_flows['fuel'].values
+        # demurrage = cash_flows['demurrage'].values
+        # opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+        #        cash_flows['labour'].values + cash_flows['demurrage'].values
+
+        # sum cash flows to get profits as a function of year
+        # profits = []
+        # for year in years:
+        #     profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
+        #                    cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
+        #                    cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
+        #                    cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
+        #                    cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
+        #                    cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
+        #                    revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+
+        # cumulatively sum profits to get profits_cum
+        # profits_cum = [None] * len(profits)
+        # for index, value in enumerate(profits):
+        #     if index == 0:
+        #         profits_cum[index] = 0
+        #     else:
+        #         profits_cum[index] = profits_cum[index - 1] + profits[index]
+
+        # generate plot
+        fig, ax = plt.subplots(figsize=(16, 7))
+
+        # ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
+        # ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
+        # ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
+        # ax.step(years, profits, label='profits', where='mid')
+        # ax.step(years, profits_cum, label='profits_cum', where='mid')
+
+        ax.step(years, insurance, label='insurance', where='mid')
+        ax.step(years, labour, label='labour', where='mid')
+        ax.step(years, fuel, label='fuel', where='mid')
+        ax.step(years, energy, label='energy', where='mid')
+        ax.step(years, maintenance, label='maintenance', where='mid')
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Opex [$]')
+        ax.set_title('Overview of Opex')
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
