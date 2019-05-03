@@ -40,6 +40,61 @@ Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
 # package(s) for data handling
 import pandas as pd
 
+
+# *** - Carrier plant data
+
+"Liquid hydrogen"
+carrierplant_lh2_data = {"name": 'Carrierplant_LH2_01',
+                  "type": 'HydrogenTank',
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 2,
+                  "lifespan": 10,
+                  "unit_rate": 18_000_000,
+                  "mobilisation_min": 200_000,
+                  "mobilisation_perc": 0.003,
+                  "maintenance_perc": 0.02,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "h2retrieval_type": 'tank',
+                  "consumption": 600, #in kwh/ton
+                  "capacity": 125} #in ton/hr
+
+"Ammonia"
+carrierplant_nh3_data = {"name": 'Carrierplant_NH3_01',
+             "type": 'AmmoniaTank',
+             "ownership": 'Terminal operator',
+             "delivery_time": 2,
+             "lifespan": 20,
+             "unit_rate": 246_000_000,
+             "mobilisation_min": 200_000,
+             "mobilisation_perc": 0.003,
+             "maintenance_perc": 0.02,
+             "crew_min": 3,
+             "crew_for5": 1,
+             "insurance_perc": 0.01,
+             "h2retrieval_type": 'tank',
+             "consumption": 5880,#in kwh/ton
+             "capacity": 35}  #in ton/hr
+
+"MCH"
+carrierplant_MCH_data = {"name": 'Carrierplant_MCH_01',
+             "type": 'MCHTank',
+             "ownership": 'Terminal operator',
+             "delivery_time": 2,
+             "lifespan": 20,
+             "unit_rate": 246_000_000,
+             "mobilisation_min": 200_000,
+             "mobilisation_perc": 0.003,
+             "maintenance_perc": 0.02,
+             "crew_min": 3,
+             "crew_for5": 1,
+             "insurance_perc": 0.01,
+             "h2retrieval_type": 'tank',
+             "consumption": 5880,#in kwh/ton
+             "capacity": 35}  #in ton/hr
+
+
 # *** Default inputs: Jetty class ***
 
 jetty_data = {"name": 'Jetty_01',
@@ -117,7 +172,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "crew_for5": 1,
              "insurance_perc": 0.005,
              "storage_type": 'tank',
-             "consumption": 100,
+             "consumption": 300, #navragen emma
              "capacity": 4_000} # all input values from Ijzermans, 2019, P 102
 
 "Ammonia"
@@ -134,12 +189,12 @@ storage_nh3_data = {"name": 'ATank_01',
                   "crew_for5": 1,
                   "insurance_perc": 0.005,
                   "storage_type": 'tank',
-                  "consumption": 100,
+                  "consumption": 100, #in kwh/ton
                   "capacity": 40_000}
 
 "MCH"
-storage_MCH_data = {"name": 'ATank_01',
-                  "type": 'AmmoniaTank',
+storage_MCH_data = {"name": 'MCHTank_01',
+                  "type": 'MCHTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
                   "lifespan": 20,
@@ -192,6 +247,21 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "capacity": 35}  #in ton/hr
 
 "MCH"
+h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
+             "type": 'MCHTank',
+             "ownership": 'Terminal operator',
+             "delivery_time": 2,
+             "lifespan": 20,
+             "unit_rate": 246_000_000,
+             "mobilisation_min": 200_000,
+             "mobilisation_perc": 0.003,
+             "maintenance_perc": 0.02,
+             "crew_min": 3,
+             "crew_for5": 1,
+             "insurance_perc": 0.01,
+             "h2retrieval_type": 'tank',
+             "consumption": 5880,#in kwh/ton
+             "capacity": 35}  #in ton/hr
 
 
 # *** Default inputs: Unloading_station class ***
@@ -351,8 +421,8 @@ labour_data = {"name": 'Labour',
                "international_staff": 4,
                "local_salary": 18_850,
                "local_staff": 10,
-               "operational_salary": 16_750,
-               "shift_length": 6.5,
+               "operational_salary": 46_000,
+               "shift_length": 8,
                "annual_shifts": 200}
 
 # *** Default inputs: Energy class ***

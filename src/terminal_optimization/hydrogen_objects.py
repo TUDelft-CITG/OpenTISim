@@ -36,6 +36,22 @@ Defaults for following objects:
 
 from terminal_optimization import hydrogen_mixins
 
+# The generic carrierplant class
+# - LH2
+# - NH3
+# - MCH
+
+Carrierplant = type('H2retrieval', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
+                           hydrogen_mixins.history_properties_mixin,  # Give it procurement history
+                           hydrogen_mixins.carrierplant_properties_mixin,
+                           hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
+                           hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
+                           hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                           hydrogen_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+               {})  # The dictionary is empty because the site type is generic
+
+
+
 # The generic jetty class
 Jetty = type('Jetty', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
                                hydrogen_mixins.jetty_properties_mixin,
@@ -56,31 +72,6 @@ Berth = type('Berth', (hydrogen_mixins.identifiable_properties_mixin,  # Give it
                        hydrogen_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
              {})  # The dictionary is empty because the site type is generic
 
-# # The generic Cyclic_Unloader class
-# # - Gantry_crane
-# # - Harbour_crane
-# # - Mobile_crane
-# Cyclic_Unloader = type('Cyclic_Unloader', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
-#                                            hydrogen_mixins.history_properties_mixin,  # Give it procurement history
-#                                            hydrogen_mixins.cyclic_properties_mixin,
-#                                            hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
-#                                            hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
-#                                            hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-#                                            hydrogen_mixins.hastriggers_properties_mixin),
-#                        # Give it investment triggers (lambda?)
-#                        {})  # The dictionary is empty because the site type is generic
-#
-# # The generic ContinuousUnloader class
-# # - Continuous_screw
-# Continuous_Unloader = type('Continuous_Unloader', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
-#                                                    hydrogen_mixins.history_properties_mixin,  # Give it procurement history
-#                                                    hydrogen_mixins.continuous_properties_mixin,
-#                                                    hydrogen_mixins.hascapex_properties_mixin,  # Give it capex info
-#                                                    hydrogen_mixins.hasopex_properties_mixin,  # Give it opex info
-#                                                    hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-#                                                    hydrogen_mixins.hastriggers_properties_mixin),
-#                            # Give it investment triggers (lambda?)
-#                            {})  # The dictionary is empty because the site type is generic
 
 # The generic Conveyor class
 # - Quay_conveyor
