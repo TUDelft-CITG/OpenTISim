@@ -107,7 +107,7 @@ class System:
 
             self.unloading_station_invest(year)
 
-            self.pipeline_hinter_invest(year, hydrogen_defaults.hinterland_pipeline_data)
+            self.pipeline_hinter_invest(year)
 
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
@@ -690,7 +690,7 @@ class System:
                     '     a total of {} ton of h2retrieval capacity is online; {} ton total planned'.format(
                         h2retrieval_capacity_online, h2retrieval_capacity_planned))
 
-    def pipeline_hinter_invest(self, year, hydrogen_defaults_hinterland_pipeline_data):
+    def pipeline_hinter_invest(self, year):
         """current strategy is to add pipeline as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
@@ -720,7 +720,7 @@ class System:
             if self.debug:
                 print('  *** add Hinter Pipeline to elements')
 
-            pipeline_hinter = Pipeline_Hinter(**hydrogen_defaults_hinterland_pipeline_data)
+            pipeline_hinter = Pipeline_Hinter(**hydrogen_defaults.hinterland_pipeline_data)
 
             # - capex
             capacity = pipeline_hinter.capacity
@@ -1248,9 +1248,12 @@ class System:
         # find the total service rate and determine the time at station
         h2retrieval_capacity_planned = 0
         h2retrieval_capacity_online = 0
+
         h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
         capacity = h2retrieval.capacity
+
         yearly_capacity = capacity * self.operational_hours
+
         list_of_elements = self.find_elements(H2retrieval)
         if list_of_elements != []:
             for element in list_of_elements:
@@ -1845,6 +1848,8 @@ class System:
             years.append(year)
             plants_occupancy.append(0)
 
+            hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+
             plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
             for element in self.elements:
@@ -2106,6 +2111,7 @@ class System:
                     if year >= element.year_online:
                         jettys_cap[-1] += hydrogen_defaults.largehydrogen_data["pump_capacity"]
 
+            #todo: change this to general info
         # get demand
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
