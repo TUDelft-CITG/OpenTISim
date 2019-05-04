@@ -11,7 +11,7 @@ class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
                  hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_nh3_data, callowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 hydrogen_defaults.h2retrieval_nh3_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
                  h2retrieval_trigger = 0.5, allowable_station_occupancy=0.5):
 
         # time inputs
