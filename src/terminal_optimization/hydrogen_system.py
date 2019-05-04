@@ -10,9 +10,8 @@ from terminal_optimization import hydrogen_defaults
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
-                 hydrogen_defaults.storage_nh3_data,  carrier_type_defaults=
-                 hydrogen_defaults.carrierplant_nh3_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_nh3_data, carrierplant_trigger = 1.0, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_nh3_data, callowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
                  h2retrieval_trigger = 0.5, allowable_station_occupancy=0.5):
 
         # time inputs
@@ -27,13 +26,11 @@ class System:
         self.elements = elements
 
         # default values to use in selecting which commodity is imported
-        self.carrier_type_defaults = carrier_type_defaults
         self.commodity_type_defaults = commodity_type_defaults
         self.storage_type_defaults = storage_type_defaults
         self.h2retrieval_type_defaults = h2retrieval_type_defaults
 
         # triggers for the various elements (berth, storage and station)
-        self.carrierplant_trigger = carrierplant_trigger
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
         self.h2retrieval_trigger = h2retrieval_trigger
@@ -101,8 +98,6 @@ class System:
                 print('  Total cargo volume: {}'.format(total_vol))
 
             self.berth_invest(year)
-
-            self.carrier_plant_invest(year, self.carrier_type_defaults)
 
             self.pipeline_jetty_invest(year)
 
@@ -331,7 +326,6 @@ class System:
         """
 
         # report on the status of all berth elements
-        self.report_element(Carrierplant, year)
         self.report_element(Berth, year)
         self.report_element(Jetty, year)
         self.report_element(Pipeline_Jetty, year)
@@ -424,65 +418,6 @@ class System:
             # # check if a storage is needed
             # if self.check_throughput_available(year):
             #     self.storage_invest(year)
-
-    def carrier_plant_invest(self, year, hydrogen_defaults_carrier_data):
-        """current strategy is to add h2 retrieval as long as target h2 retrieval is not yet achieved
-        - find out how much h2 retrieval is online
-        - find out how much h2 retrieval is planned
-        - find out how much h2 retrieval is needed
-        - add h2 retrieval until target is reached
-        """
-
-        carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online= self.calculate_carrierplant_occupancy(year, hydrogen_defaults_carrier_data)
-
-        if self.debug:
-            print('     Plant occupancy planned (@ start of year): {}'.format(carrier_occupancy_planned))
-            print('     Plant occupancy online (@ start of year): {}'.format(carrier_occupancy_online))
-
-        # check if sufficient carrierplant capacity is available
-        while carrier_occupancy_planned > self.carrierplant_trigger:
-
-            if self.debug:
-                print('  *** add carrier plant to elements')
-
-            # add carrier plant object
-            carrier = Carrierplant(**hydrogen_defaults_carrier_data)
-
-            # - capex
-            carrier.capex = carrier.unit_rate + carrier.mobilisation_min
-
-            # - opex
-            carrier.insurance = carrier.unit_rate * carrier.insurance_perc
-            carrier.maintenance = carrier.unit_rate * carrier.maintenance_perc
-
-            #   labour**hydrogen_defaults
-            labour = Labour(**hydrogen_defaults.labour_data)
-            carrier.shift = ((carrier.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            carrier.labour = carrier.shift * labour.operational_salary
-
-            jetty = Jetty(**hydrogen_defaults.jetty_data)
-
-            if year == self.startyear + jetty.delivery_time:
-                carrier.year_online = year
-            else:
-                carrier.year_online = year + carrier.delivery_time
-
-            # residual
-                carrier.assetvalue = carrier.unit_rate * (
-                        1 - (self.lifecycle + self.startyear - carrier.year_online) / carrier.lifespan)
-                carrier.residual = max(carrier.assetvalue, 0)
-
-            # add cash flow information to carrierplant object in a dataframe
-            carrier = self.add_cashflow_data_to_element(carrier)
-
-            self.elements.append(carrier)
-
-            carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online = self.calculate_carrierplant_occupancy(year, hydrogen_defaults_carrier_data)
-
-            if self.debug:
-                print(
-                    '     a total of {} ton of carrierplant capacity is online; {} ton total planned'.format(
-                        carrier_capacity_online, carrier_capacity_planned))
 
     def jetty_invest(self, year, length, depth):
         """
@@ -704,12 +639,11 @@ class System:
         - add h2 retrieval until target is reached
         """
 
-        plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {}'.format(plant_occupancy_planned))
             print('     Plant occupancy online (@ start of year): {}'.format(plant_occupancy_online))
-            print('     Plant occupancy online (@ start of year): {}'.format(plant_occupancy_online_2))
 
         # check if sufficient h2retrieval capacity is available
         while plant_occupancy_planned > self.h2retrieval_trigger:
@@ -749,7 +683,7 @@ class System:
 
             self.elements.append(h2retrieval)
 
-            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
             if self.debug:
                 print(
@@ -1132,54 +1066,6 @@ class System:
 
         return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned
 
-    def calculate_carrierplant_occupancy(self, year, hydrogen_defaults_carrier_data):
-        """
-        - Find all stations and sum their service_rate to get service_capacity in TUE per hours
-        - Divide the throughput by the service rate to get the total hours in a year
-        - Occupancy is total_time_at_station divided by operational hours
-        """
-        # Find throughput
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh, throughput_planned_station= self.throughput_elements(year)
-
-        Demand = []
-        for commodity in self.find_elements(Commodity):
-            try:
-                Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-            except:
-                pass
-
-        # find the total service rate and determine the time at station
-        carrier_capacity_planned = 0
-        carrier_capacity_online = 0
-        carrier = Carrierplant(**hydrogen_defaults_carrier_data)
-        capacity = carrier.capacity
-        yearly_capacity = capacity * self.operational_hours
-        list_of_elements = self.find_elements(Carrierplant)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                carrier_capacity_planned += yearly_capacity
-                if year >= element.year_online:
-                    carrier_capacity_online += yearly_capacity
-
-            # station_occupancy is the total time at station divided by the operational hours
-            carrier_occupancy_planned = Demand / carrier_capacity_planned
-
-            if carrier_capacity_online != 0:
-                time_at_plant_online = throughput_online / carrier_capacity_online# element.capacity
-
-                # station occupancy is the total time at station divided by the operational hours
-                carrier_occupancy_online = min([time_at_plant_online, 1])
-            else:
-                carrier_occupancy_online = float("inf")
-
-        else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-            carrier_occupancy_planned = float("inf")
-            carrier_occupancy_online = float("inf")
-
-        return carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online
-
-
     def calculate_berth_occupancy(self, year,  smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls,\
         vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, \
         largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
@@ -1377,22 +1263,18 @@ class System:
 
             if h2retrieval_capacity_online != 0:
                 time_at_plant_online = throughput_online / h2retrieval_capacity_online# element.capacity
-                time_at_plant_online_2 = throughput_online / h2retrieval_capacity_online# element.capacity
 
                 # station occupancy is the total time at station divided by the operational hours
                 plant_occupancy_online = min([time_at_plant_online, 1])
-                plant_occupancy_online_2 = min([time_at_plant_online_2, 1])
             else:
                 plant_occupancy_online = float("inf")
-                plant_occupancy_online_2 = float("inf")
 
         else:
             # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
             plant_occupancy_planned = float("inf")
             plant_occupancy_online = float("inf")
-            plant_occupancy_online_2 = float("inf")
 
-        return plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online
+        return plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online
 
     def calculate_station_occupancy(self, year):
         """
@@ -1963,7 +1845,7 @@ class System:
             years.append(year)
             plants_occupancy.append(0)
 
-            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
             for element in self.elements:
                 if isinstance(element, H2retrieval):

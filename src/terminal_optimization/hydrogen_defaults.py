@@ -41,60 +41,6 @@ Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
 import pandas as pd
 
 
-# *** - Carrier plant data
-
-"Liquid hydrogen"
-carrierplant_lh2_data = {"name": 'Carrierplant_LH2_01',
-                  "type": 'CarrierplantLH2',
-                  "ownership": 'SupplyChain',
-                  "delivery_time": 2,
-                  "lifespan": 10,
-                  "unit_rate": 211_000_000,
-                  "mobilisation_min": 200_000,
-                  "mobilisation_perc": 0.003,
-                  "maintenance_perc": 0.01,
-                  "crew_min": 3,
-                  "crew_for5": 1,
-                  "insurance_perc": 0.005,
-                  "h2retrieval_type": 'tank',
-                  "consumption": 6400, #in kwh/ton
-                  "capacity": 8.6} #in ton/hr
-
-"Ammonia"
-carrierplant_nh3_data = {"name": 'Carrierplant_NH3_01',
-             "type": 'CarrierplantAmmonia',
-             "ownership": 'SupplyChain',
-             "delivery_time": 2,
-             "lifespan": 20,
-             "unit_rate": 350_000_000,
-             "mobilisation_min": 200_000,
-             "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.01,
-             "crew_min": 3,
-             "crew_for5": 1,
-             "insurance_perc": 0.005,
-             "carrier_type": 'plant',
-             "consumption": 640,#in kwh/ton
-             "capacity": 125}  #in ton/hr
-
-"MCH"
-carrierplant_MCH_data = {"name": 'Carrierplant_MCH_01',
-             "type": 'CarrierplantMCH',
-             "ownership": 'SupplyChain',
-             "delivery_time": 2,
-             "lifespan": 20,
-             "unit_rate": 20_000_000,
-             "mobilisation_min": 200_000,
-             "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.01,
-             "crew_min": 3,
-             "crew_for5": 1,
-             "insurance_perc": 0.005,
-             "h2retrieval_type": 'tank',
-             "consumption": 24,#in kwh/ton
-             "capacity": 41.67}  #in ton/hr
-
-
 # *** Default inputs: Jetty class ***
 
 jetty_data = {"name": 'Jetty_01',

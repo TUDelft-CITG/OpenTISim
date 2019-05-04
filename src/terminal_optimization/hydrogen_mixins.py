@@ -107,27 +107,6 @@ class hastriggers_properties_mixin(object):
         self.triggers = triggers
 
 
-
-class carrierplant_properties_mixin(object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew_min, crew_for5, insurance_perc, carrier_type, consumption, capacity, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.type = type
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate = unit_rate
-        self.mobilisation_min = mobilisation_min
-        self.mobilisation_perc = mobilisation_perc
-        self.maintenance_perc = maintenance_perc
-        self.crew_min = crew_min
-        self.crew_for5 = crew_for5
-        self.insurance_perc = insurance_perc
-        self.carrier_type = carrier_type
-        self.consumption = consumption
-        self.capacity = capacity
-
 class jetty_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
                  maintenance_perc, insurance_perc, freeboard, Gijt_constant_jetty, max_sinkage, wave_motion,
