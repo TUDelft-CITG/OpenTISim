@@ -9,10 +9,10 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.commodity_lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data,  carrier_type_defaults=
-                 hydrogen_defaults.carrierplant_lh2_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_lh2_data, carrierplant_trigger = 0.5, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
+                 hydrogen_defaults.storage_nh3_data,  carrier_type_defaults=
+                 hydrogen_defaults.carrierplant_nh3_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_nh3_data, carrierplant_trigger = 1.0, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
                  h2retrieval_trigger = 0.5, allowable_station_occupancy=0.5):
 
         # time inputs
@@ -433,7 +433,7 @@ class System:
         - add h2 retrieval until target is reached
         """
 
-        carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online= self.calculate_carrierplant_occupancy(year)
+        carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online= self.calculate_carrierplant_occupancy(year, hydrogen_defaults_carrier_data)
 
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {}'.format(carrier_occupancy_planned))
@@ -477,7 +477,7 @@ class System:
 
             self.elements.append(carrier)
 
-            carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online = self.calculate_carrierplant_occupancy(year)
+            carrier_occupancy_planned, carrier_occupancy_online, carrier_capacity_planned, carrier_capacity_online = self.calculate_carrierplant_occupancy(year, hydrogen_defaults_carrier_data)
 
             if self.debug:
                 print(
@@ -630,6 +630,8 @@ class System:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                 storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
+        #todo: change this to general comment
+
         # max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
         max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
 
@@ -702,7 +704,7 @@ class System:
         - add h2 retrieval until target is reached
         """
 
-        plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
+        plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {}'.format(plant_occupancy_planned))
@@ -747,7 +749,7 @@ class System:
 
             self.elements.append(h2retrieval)
 
-            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
+            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
             if self.debug:
                 print(
@@ -1130,7 +1132,7 @@ class System:
 
         return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned
 
-    def calculate_carrierplant_occupancy(self, year):
+    def calculate_carrierplant_occupancy(self, year, hydrogen_defaults_carrier_data):
         """
         - Find all stations and sum their service_rate to get service_capacity in TUE per hours
         - Divide the throughput by the service rate to get the total hours in a year
@@ -1149,7 +1151,9 @@ class System:
         # find the total service rate and determine the time at station
         carrier_capacity_planned = 0
         carrier_capacity_online = 0
-        yearly_capacity = hydrogen_defaults.carrierplant_lh2_data["capacity"] * self.operational_hours
+        carrier = Carrierplant(**hydrogen_defaults_carrier_data)
+        capacity = carrier.capacity
+        yearly_capacity = capacity * self.operational_hours
         list_of_elements = self.find_elements(Carrierplant)
         if list_of_elements != []:
             for element in list_of_elements:
@@ -1339,7 +1343,7 @@ class System:
 
         return factor, waiting_time_occupancy
 
-    def calculate_h2retrieval_occupancy(self, year):
+    def calculate_h2retrieval_occupancy(self, year, hydrogen_defaults_h2retrieval_data):
         """
         - Find all stations and sum their service_rate to get service_capacity in TUE per hours
         - Divide the throughput by the service rate to get the total hours in a year
@@ -1358,7 +1362,9 @@ class System:
         # find the total service rate and determine the time at station
         h2retrieval_capacity_planned = 0
         h2retrieval_capacity_online = 0
-        yearly_capacity = hydrogen_defaults.h2retrieval_lh2_data["capacity"] * self.operational_hours
+        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
+        capacity = h2retrieval.capacity
+        yearly_capacity = capacity * self.operational_hours
         list_of_elements = self.find_elements(H2retrieval)
         if list_of_elements != []:
             for element in list_of_elements:
@@ -1957,7 +1963,7 @@ class System:
             years.append(year)
             plants_occupancy.append(0)
 
-            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year)
+            plant_occupancy_planned, plant_occupancy_online, plant_occupancy_online_2, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
             for element in self.elements:
                 if isinstance(element, H2retrieval):

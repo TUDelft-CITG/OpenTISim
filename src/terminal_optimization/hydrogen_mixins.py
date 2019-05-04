@@ -106,9 +106,11 @@ class hastriggers_properties_mixin(object):
         """Initialization"""
         self.triggers = triggers
 
+
+
 class carrierplant_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew_min, crew_for5, insurance_perc, h2retrieval_type, consumption, capacity, *args, **kwargs):
+                 maintenance_perc, crew_min, crew_for5, insurance_perc, carrier_type, consumption, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -122,7 +124,7 @@ class carrierplant_properties_mixin(object):
         self.crew_min = crew_min
         self.crew_for5 = crew_for5
         self.insurance_perc = insurance_perc
-        self.h2retrieval_type = h2retrieval_type
+        self.carrier_type = carrier_type
         self.consumption = consumption
         self.capacity = capacity
 
