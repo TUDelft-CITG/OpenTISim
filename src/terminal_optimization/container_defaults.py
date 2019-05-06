@@ -395,7 +395,7 @@ empty_handler_data = {"name": 'Empty Handler',
 # *** Default inputs: Commodity class ***
 
 container_data = {"name": 'Laden',
-                "handling_fee": 250,
+                "handling_fee": 150,
                 "handysize_perc": 0,
                 "handymax_perc": 0,
                 "panamax_perc": 100,

@@ -144,9 +144,9 @@ class System:
 
         # 7. calculate PV's and aggregate to NPV
         self.NPV()
-        PV = self.NPV()
+        NPV = self.NPV()
 
-        return PV
+        return NPV
 
     def calculate_revenue(self, year):
         """
@@ -279,7 +279,6 @@ class System:
                 if year >= element.year_online:
                     gate_land_use += element.land_use
 
-        print(quay_land_use, stack_land_use, empty_land_use, oog_land_use, gate_land_use)
 
 
     def calculate_fuel_cost(self, year):
@@ -1149,14 +1148,16 @@ class System:
                cash_flows_WACC_real['maintenance'].values + \
                cash_flows_WACC_real['energy'].values + \
                cash_flows_WACC_real['demurrage'].values + \
+               cash_flows_WACC_real['fuel'].values + \
                cash_flows_WACC_real['labour'].values
 
         PV = - capex - opex + revenue
-        print('PV: {}'.format(PV))
+        NPV = np.sum(PV)
+        # print('PV: {}'.format(PV))
+        #
+        # print('NPV: {}'.format(np.sum(PV)))
 
-        print('NPV: {}'.format(np.sum(PV)))
-
-        return PV
+        return NPV
 
     # *** General functions
 
@@ -1442,7 +1443,6 @@ class System:
             time_at_berth_panamax_planned = panamax_calls * (
                     (container_defaults.panamax_data["call_size"] / service_rate_planned) +container_defaults.panamax_data["mooring_time"])
 
-            print(time_at_berth_panamax_planned, 'ajax', service_rate_planned)
 
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
@@ -1954,36 +1954,10 @@ class System:
         labour = cash_flows['labour'].values
         fuel = cash_flows['fuel'].values
         # demurrage = cash_flows['demurrage'].values
-        # opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-        #        cash_flows['labour'].values + cash_flows['demurrage'].values
-
-        # sum cash flows to get profits as a function of year
-        # profits = []
-        # for year in years:
-        #     profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-        #                    cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-        #                    cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-        #                    cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-        #                    cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-        #                    cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
-        #                    revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-
-        # cumulatively sum profits to get profits_cum
-        # profits_cum = [None] * len(profits)
-        # for index, value in enumerate(profits):
-        #     if index == 0:
-        #         profits_cum[index] = 0
-        #     else:
-        #         profits_cum[index] = profits_cum[index - 1] + profits[index]
 
         # generate plot
-        fig, ax = plt.subplots(figsize=(16, 7))
+        fig, ax = plt.subplots(figsize=(14, 5))
 
-        # ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
-        # ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
-        # ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
-        # ax.step(years, profits, label='profits', where='mid')
-        # ax.step(years, profits_cum, label='profits_cum', where='mid')
 
         ax.step(years, insurance, label='insurance', where='mid')
         ax.step(years, labour, label='labour', where='mid')
