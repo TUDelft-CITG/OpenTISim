@@ -1423,6 +1423,10 @@ class System:
 
         # list all crane objects in system
         list_of_elements = self.find_elements(Cyclic_Unloader)
+        list_of_elements_berth = self.find_elements(Berth)
+        nr_berths=len(list_of_elements_berth)
+
+        # list the number of berths online
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
@@ -1435,13 +1439,13 @@ class System:
 
             # estimate berth occupancy
             time_at_berth_handysize_planned = handysize_calls * (
-                    (container_defaults.handysize_data["call_size"] / service_rate_planned) +container_defaults.handysize_data[
-                "mooring_time"])
+                    (container_defaults.handysize_data["call_size"] / service_rate_planned) +(container_defaults.handysize_data[
+                "mooring_time"]/nr_berths))
             time_at_berth_handymax_planned = handymax_calls * (
-                    (container_defaults.handymax_data["call_size"] / service_rate_planned) +container_defaults.handymax_data[
-                "mooring_time"])
+                    (container_defaults.handymax_data["call_size"] / service_rate_planned) +(container_defaults.handymax_data[
+                "mooring_time"]/nr_berths))
             time_at_berth_panamax_planned = panamax_calls * (
-                    (container_defaults.panamax_data["call_size"] / service_rate_planned) +container_defaults.panamax_data["mooring_time"])
+                    (container_defaults.panamax_data["call_size"] / service_rate_planned) +(container_defaults.panamax_data["mooring_time"]/nr_berths))
 
 
             total_time_at_berth_planned = np.sum(
