@@ -214,6 +214,8 @@ class System:
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
         energy_price = self.energy_price
 
+
+        # STS crane energy costs
         cranes = 0
         for element in self.elements:
             if isinstance(element, Cyclic_Unloader):
@@ -230,7 +232,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate stack equipment energy costs
-        if self.stack_equipment == 'rmg' or self.stack_equipment == 'sc':
+        if self.stack_equipment == 'rmg':
             list_of_elements_Stack = self.find_elements(Stack_Equipment)
             equipment = 0
             for element in self.elements:
@@ -248,11 +250,11 @@ class System:
                 else:
                     element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        cranes = 0
-        for element in self.elements:
-            if isinstance(element, Cyclic_Unloader):
-                if year >= element.year_online:
-                    cranes += 1
+        # cranes = 0
+        # for element in self.elements:
+        #     if isinstance(element, Cyclic_Unloader):
+        #         if year >= element.year_online:
+        #             cranes += 1
 
 
 
@@ -279,6 +281,17 @@ class System:
                 if year >= element.year_online:
                     gate_land_use += element.land_use
 
+        total_land_use=quay_land_use+stack_land_use+empty_land_use+oog_land_use+gate_land_use
+
+        for element in self.find_elements(Cyclic_Unloader):
+            if year >= element.year_online:
+                sts_moves_per_element = sts_moves / cranes
+                if element.consumption * sts_moves_per_element * energy_price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = \
+                        element.consumption * sts_moves_per_element * energy_price
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
 
 
     def calculate_fuel_cost(self, year):
@@ -304,7 +317,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'fuel'] = 0
 
         # calculate stack equipment fuel costs
-        if self.stack_equipment == 'rtg' or self.stack_equipment == 'rs':
+        if self.stack_equipment == 'rtg' or self.stack_equipment == 'rs' or self.stack_equipment == 'sc':
             list_of_elements_Stack = self.find_elements(Stack_Equipment)
             equipment = 0
             for element in self.elements:
@@ -554,9 +567,9 @@ class System:
         #   labour
         labour = Labour(**container_defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
-        crane.shift = ((crane.crew * self.operational_hours) / (
-                labour.shift_length * labour.annual_shifts))
-        crane.labour = crane.shift * labour.operational_salary
+        crane.shift = crane.crew * labour.daily_shifts
+        crane.labour = crane.shift * labour.blue_collar_salary
+
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
@@ -618,7 +631,7 @@ class System:
                 #   labour
                 labour = Labour(**container_defaults.labour_data)
                 tractor.shift = tractor.crew * labour.daily_shifts
-                tractor.labour = tractor.shift * tractor.salary
+                tractor.labour = tractor.shift * labour.blue_collar_salary
 
                 if year == self.startyear:
                     tractor.year_online = year + tractor.delivery_time + 1
@@ -642,7 +655,6 @@ class System:
         - find out how many empty handlers are needed
         - add empty handlers until service_trigger is no longer exceeded
         """
-        # todo Add delaying effect to the ech invest
         list_of_elements_empty_handler = self.find_elements(Empty_Handler)
         list_of_elements_sts = self.find_elements(Cyclic_Unloader)
         sts_cranes=len(list_of_elements_sts)
@@ -671,7 +683,7 @@ class System:
             #   labour
             labour = Labour(**container_defaults.labour_data)
             empty_handler.shift = empty_handler.crew * labour.daily_shifts
-            empty_handler.labour = empty_handler.shift * empty_handler.salary
+            empty_handler.labour = empty_handler.shift * labour.blue_collar_salary
 
             if year == self.startyear:
                 empty_handler.year_online = year + empty_handler.delivery_time + 1
@@ -913,7 +925,7 @@ class System:
                 #   labour
                 labour = Labour(**container_defaults.labour_data)
                 stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-                stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
+                stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
 
                 if year == self.startyear:
@@ -948,7 +960,7 @@ class System:
                 #   labour
                 labour = Labour(**container_defaults.labour_data)
                 stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-                stack_equipment.labour = stack_equipment.shift * stack_equipment.salary
+                stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
                 if year == self.startyear:
                     stack_equipment.year_online = year + stack_equipment.delivery_time + 1
@@ -1004,7 +1016,7 @@ class System:
             #   labour
             labour = Labour(**container_defaults.labour_data)
             gate.shift = gate.crew * labour.daily_shifts
-            gate.labour = gate.shift * gate.salary
+            gate.labour = gate.shift * labour.blue_collar_salary
 
             if year == self.startyear:
                 gate.year_online = year + gate.delivery_time + 1
@@ -1022,46 +1034,45 @@ class System:
 
     def add_cashflow_elements(self):
 
-        cash_flows = pd.DataFrame()
-        labour = Labour(**container_defaults.labour_data)
+            cash_flows = pd.DataFrame()
+            labour = Labour(**container_defaults.labour_data)
 
-        # initialise cash_flows
-        cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        cash_flows['capex'] = 0
-        cash_flows['maintenance'] = 0
-        cash_flows['insurance'] = 0
-        cash_flows['energy'] = 0
-        cash_flows['labour'] = 0
-        cash_flows['fuel'] = 0
-        cash_flows['demurrage'] = self.demurrage
-        cash_flows['revenues'] = self.revenues
+            # initialise cash_flows
+            cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+            cash_flows['capex'] = 0
+            cash_flows['maintenance'] = 0
+            cash_flows['insurance'] = 0
+            cash_flows['energy'] = 0
+            cash_flows['labour'] = 0
+            cash_flows['fuel'] = 0
+            cash_flows['demurrage'] = self.demurrage
+            cash_flows['revenues'] = self.revenues
 
-        # add labour component for years were revenues are not zero
-        cash_flows.loc[cash_flows[
-                           'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+            # add labour component for years where revenues are not zero
+            # cash_flows.loc[cash_flows[
+            #                    'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+            for element in self.elements:
+                if hasattr(element, 'df'):
+                    for column in cash_flows.columns:
+                        if column in element.df.columns and column != "year":
+                            cash_flows[column] += element.df[column]
 
-        for element in self.elements:
-            if hasattr(element, 'df'):
+            cash_flows.fillna(0)
+
+            # calculate WACC real cashflows
+            cash_flows_WACC_real = pd.DataFrame()
+            cash_flows_WACC_real['year'] = cash_flows['year']
+            for year in range(self.startyear, self.startyear + self.lifecycle):
                 for column in cash_flows.columns:
-                    if column in element.df.columns and column != "year":
-                        cash_flows[column] += element.df[column]
+                    if column != "year":
+                        cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
+                            cash_flows.loc[
+                                cash_flows[
+                                    'year'] == year, column] / (
+                                    (1 + self.WACC_real()) ** (
+                                    year - self.startyear))
 
-        cash_flows.fillna(0)
-
-        # calculate WACC real cashflows
-        cash_flows_WACC_real = pd.DataFrame()
-        cash_flows_WACC_real['year'] = cash_flows['year']
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            for column in cash_flows.columns:
-                if column != "year":
-                    cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
-                        cash_flows.loc[
-                            cash_flows[
-                                'year'] == year, column] / (
-                                (1 + self.WACC_real()) ** (
-                                year - self.startyear))
-
-        return cash_flows, cash_flows_WACC_real
+            return cash_flows, cash_flows_WACC_real
 
     def add_cashflow_data_to_element(self, element):
 

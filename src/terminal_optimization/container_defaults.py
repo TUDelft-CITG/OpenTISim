@@ -451,7 +451,9 @@ labour_data = {"name": 'Labour',
                "operational_salary": 16_750,
                "shift_length": 6.5,
                "annual_shifts": 200,
-               "daily_shifts": 5}
+               "daily_shifts": 5,
+               "blue_collar_salary": 30_000,
+               "white_collar_salary": 70_000}
 
 # *** Default inputs: Energy class ***
 

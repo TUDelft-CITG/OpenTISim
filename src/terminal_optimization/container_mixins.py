@@ -373,7 +373,7 @@ class vessel_properties_mixin(object):
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
-                 shift_length, annual_shifts, daily_shifts, *args, **kwargs):
+                 shift_length, annual_shifts, daily_shifts, blue_collar_salary, white_collar_salary, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.international_salary = international_salary
         self.international_staff = international_staff
@@ -383,6 +383,8 @@ class labour_properties_mixin(object):
         self.shift_length = shift_length
         self.annual_shifts = annual_shifts
         self.daily_shifts = daily_shifts
+        self.blue_collar_salary = blue_collar_salary
+        self.white_collar_salary = white_collar_salary
 
 
 class energy_properties_mixin(object):
@@ -431,4 +433,27 @@ class hasscenario_properties_mixin(object):
         plt.xlabel('Time [years]')
         plt.ylabel('Demand ' + self.name + ' [TEU]')
         plt.title('Demand ' + self.name)
+
+class general_services_mixin(object):
+    def __init__(self,
+                 type,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.office = office
+        self.office_cost = office_cost
+        self.workshop = workshop
+        self.workshop_cost = workshop_cost
+        self.fuel_station_cost = fuel_station_cost
+        self.scanning_inspection_area = scanning_inspection_area
+        self.scanning_inspection_area_cost = scanning_inspection_area_cost
+        self.lighting_mast = lighting_mast
+        self.lighting_mast_cost = lighting_mast_cost
+        self.firefight_cost = firefight_cost
+        self.maintenance_tools_cost = maintenance_tools_cost
+        self.terminal_operating_software_cost = terminal_operating_software_cost
+        self.electrical_station_cost = electrical_station_cost
+        self.repair_building = repair_building
+        self.repair_building_cost = repair_building_cost
 

@@ -30,6 +30,7 @@
 - 13. Vessel
 - 14. Labour
 - 15. Energy
+- 16. General
 """
 
 from terminal_optimization import container_mixins
@@ -187,6 +188,16 @@ Labour = type('Labour', (container_mixins.identifiable_properties_mixin,
 # The general Energy class
 Energy = type('Energy', (container_mixins.identifiable_properties_mixin,
                          container_mixins.energy_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+# The general services class
+
+General_Services = type('General_Services', (container_mixins.identifiable_properties_mixin,
+                                             container_mixins.hasland_properties_mixin,
+                                             container_mixins.hasopex_properties_mixin,
+                                             container_mixins.hascapex_properties_mixin,
+                                             container_mixins.labour_properties_mixin,
+                                             container_mixins.general_services_mixin),
               {})  # The dictionary is empty because the site type is generic
 
 
