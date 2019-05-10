@@ -393,18 +393,8 @@ class System:
                 else:
                     nrofdolphins=6
 
-                # draft = max(hydrogen_defaults.vlcc_data["draft"], hydrogen_defaults.handysize_data["draft"],
-                #                hydrogen_defaults.panamax_data["draft"], hydrogen_defaults.smallhydrogen_data["draft"],
-                #                hydrogen_defaults.largehydrogen_data["draft"], hydrogen_defaults.smallammonia_data["draft"],
-                #                hydrogen_defaults.largeammonia_data["draft"]) # maximum of all vessels
-                # # width_v = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
-                # #                hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
-                # #                hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
-                # #                hydrogen_defaults.largeammonia_data["beam"]) # maximum of all vessels
-
                 # - depth
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
-                # depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
                 self.jetty_invest(year, nrofdolphins)
 
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
