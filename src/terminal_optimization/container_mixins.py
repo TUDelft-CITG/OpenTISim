@@ -214,7 +214,8 @@ class container_properties_mixin (object):
 
 class laden_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
-                 length, capacity, gross_tgs, area_factor, pavement, drainage, household, digout_margin, *args, **kwargs):
+                 length, capacity, gross_tgs, area_factor, pavement, drainage, household, digout_margin,
+                 reefer_factor, consumption, reefer_rack, reefers_present, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -232,6 +233,11 @@ class laden_stack_properties_mixin (object):
         self.drainage = drainage
         self.household = household
         self.digout_margin = digout_margin
+        self.reefer_factor = reefer_factor
+        self.consumption = consumption
+        self.reefer_rack = reefer_rack
+        self.reefers_present = reefers_present
+
 
 
 class empty_stack_properties_mixin (object):
@@ -437,10 +443,10 @@ class hasscenario_properties_mixin(object):
 class general_services_mixin(object):
     def __init__(self,
                  type, office, office_cost, workshop, workshop_cost, fuel_station_cost, scanning_inspection_area,
-                 scanning_inspection_area_cost, lighting_mast, lighting_mast_cost, firefight_cost, maintenance_tools_cost,
-                 terminal_operating_software_cost, electrical_station_cost, repair_building, repair_building_cost,
-                 ceo, secretary, administration, hr, commercial, operations, engineering, security, maintenance,
-                 crew_required, *args, **kwargs):
+                 scanning_inspection_area_cost, lighting_mast_required, lighting_mast_cost, firefight_cost,
+                 maintenance_tools_cost, terminal_operating_software_cost, electrical_station_cost, repair_building, repair_building_cost,
+                 ceo, secretary, administration, hr, commercial, operations, engineering, security, general_maintenance,
+                 crew_required, delivery_time, lighting_consumption, general_consumption, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -451,7 +457,7 @@ class general_services_mixin(object):
         self.fuel_station_cost = fuel_station_cost
         self.scanning_inspection_area = scanning_inspection_area
         self.scanning_inspection_area_cost = scanning_inspection_area_cost
-        self.lighting_mast = lighting_mast
+        self.lighting_mast_required = lighting_mast_required
         self.lighting_mast_cost = lighting_mast_cost
         self.firefight_cost = firefight_cost
         self.maintenance_tools_cost = maintenance_tools_cost
@@ -467,7 +473,10 @@ class general_services_mixin(object):
         self.operations = operations
         self.engineering = engineering
         self.security = security
-        self.maintenance = maintenance
+        self.general_maintenance = general_maintenance
         self.crew_required = crew_required
+        self.delivery_time = delivery_time
+        self.lighting_consumption = lighting_consumption
+        self.general_consumption = general_consumption
 
 

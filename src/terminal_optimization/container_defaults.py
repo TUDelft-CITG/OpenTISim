@@ -177,72 +177,98 @@ oog_container_data = {"name": 'OOG container',
 # *** Default inputs: Laden_Stack class
 
 rtg_stack_data = {"name": 'RTG Stack',
-                    "ownership": 'Terminal operator',
-                    "delivery_time": 1,
-                    "lifespan": 40,
-                    "mobilisation": 25_000,
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 1,
+                  "lifespan": 40,
+                  "mobilisation": 25_000,
                     "maintenance_perc": 0.1,
-                    "width": 6, #TEU
-                    "height": 5, #TEU
-                    "length": 30, #TEU
-                    "capacity": 900 , #TEU
+                    "width": 6,  #TEU
+                    "height": 5,  #TEU
+                    "length": 30,  #TEU
+                    "capacity": 900 ,  #TEU
                     "gross_tgs": 18,
-                    "area_factor": 2.04 , # Based on grasshopper layout
-                    "pavement": 200, #DUMMY
-                    "drainage": 50, #DUMMY
-                  "household" : 0.1, #moves
-                  "digout_margin" : 1.2} #percentage
+                    "area_factor": 2.04 ,  # Based on grasshopper layout
+                    "pavement": 200,  #DUMMY
+                    "drainage": 50,  #DUMMY
+                  "household" : 0.1,  #moves
+                  "digout_margin" : 1.2, #percentage
+                  "reefer_factor": 2.33,  # RHDHV
+                  "consumption": 4,  # kWh per active reefer
+                  "reefer_rack": 3500,
+                  "reefers_present": 0.5}  # per reefer spot
+
 
 rmg_stack_data = {"name": 'RMG Stack',
-                    "ownership": 'Terminal operator',
-                    "delivery_time": 1,
-                    "lifespan": 40,
-                    "mobilisation": 50_000,
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 1,
+                  "lifespan": 40,
+                  "mobilisation": 50_000,
                     "maintenance_perc": 0.1,
-                    "width": 6, #TEU
-                    "height": 5, #TEU
-                    "length": 40, #TEU
-                    "capacity": 1200 , #TEU
+                    "width": 6,  #TEU
+                    "height": 5,  #TEU
+                    "length": 40,  #TEU
+                    "capacity": 1200 ,  #TEU
                     "gross_tgs": 18.67,
-                    "area_factor": 2.79 , # Based on grasshopper layout
-                    "pavement": 200, #DUMMY
-                    "drainage": 50,#DUMMY
+                    "area_factor": 2.79 ,  # Based on grasshopper layout
+                    "pavement": 200,  #DUMMY
+                    "drainage": 50,  #DUMMY
                     "household": 0.1,  # moves
-                    "digout_margin": 1.2}  # percentage
+                    "digout_margin": 1.2, #percentage
+                  "reefer_factor": 2.33,  # RHDHV
+                  "consumption": 4,  # kWh per active reefer
+                  "reefer_rack": 3500,
+                  "reefers_present": 0.5}  # per reefer spot
+
 
 sc_stack_data = {"name": 'SC Stack',
-                    "ownership": 'Terminal operator',
-                    "delivery_time": 1,
-                    "lifespan": 40,
-                    "mobilisation": 50_000,
+                 "ownership": 'Terminal operator',
+                 "delivery_time": 1,
+                 "lifespan": 40,
+                 "mobilisation": 50_000,
                     "maintenance_perc": 0.1,
-                    "width": 48, #TEU
-                    "height": 4, #TEU
-                    "length": 20, #TEU
-                    "capacity": 3840 , #TEU
+                    "width": 48,  #TEU
+                    "height": 4,  #TEU
+                    "length": 20,  #TEU
+                    "capacity": 3840 ,  #TEU
                     "gross_tgs": 26.46,
-                    "area_factor": 1.45 , #Based on grasshopper layout
-                    "pavement": 200, #DUMMY
-                    "drainage": 50, #DUMMY
+                    "area_factor": 1.45 ,  #Based on grasshopper layout
+                    "pavement": 200,  #DUMMY
+                    "drainage": 50,  #DUMMY
                     "household": 0.1,  # moves
-                    "digout_margin": 1.2}  # percentage
+                    "digout_margin": 1.2, #percentage
+                 "reefer_factor": 2.33,  # RHDHV
+                 "consumption": 4,  # kWh per active reefer
+                 "reefer_rack": 3500,
+                  "reefers_present": 0.5}  # per reefer spot
 
 rs_stack_data = {"name": 'RS Stack',
-                    "ownership": 'Terminal operator',
-                    "delivery_time": 1,
-                    "lifespan": 40,
-                    "mobilisation": 10_000,
+                 "ownership": 'Terminal operator',
+                 "delivery_time": 1,
+                 "lifespan": 40,
+                 "mobilisation": 10_000,
                     "maintenance_perc": 0.1,
-                    "width": 4, #TEU
-                    "height": 4, #TEU
-                    "length": 20, #TEU
-                    "capacity": 320 , #TEU
+                    "width": 4,  #TEU
+                    "height": 4,  #TEU
+                    "length": 20,  #TEU
+                    "capacity": 320 ,  #TEU
                     "gross_tgs": 18,
-                    "area_factor": 3.23 , # Based on grasshopper layout
-                    "pavement": 200, #DUMMY
-                    "drainage": 50, #DUMMY
+                    "area_factor": 3.23 ,  # Based on grasshopper layout
+                    "pavement": 200,  #DUMMY
+                    "drainage": 50,  #DUMMY
                     "household": 0.1,  # moves
-                    "digout_margin": 1.2}  # percentage
+                    "digout_margin": 1.2, #percentage
+                 "reefer_factor": 2.33,  # RHDHV
+                 "consumption": 4,  # kWh per active reefer
+                 "reefer_rack": 3500,
+                  "reefers_present": 0.5}  # per reefer spot
+
+
+# #*** Default inputs: Reefer data
+# reefer_rack_data = {"reefer_factor":2.33, #RHDHV
+#                  "consumption":4, #kWh per active reefer
+#                  "reefer_rack": 3500} #per reefer spot
+
+
 
 # *** Default inputs: Other_Stack class
 
@@ -478,7 +504,7 @@ general_services_data = {"name": 'General_Services"',
                          "terminal_operating_software_cost": 10_000_000,
                          "electrical_station_cost": 2_000_000,
                          "repair_building": 100,
-                         "repair_building_costs": 1000,
+                         "repair_building_cost": 1000,
                          "ceo": 1, #FTE per 500 k TEU
                          "secretary": 1, #FTE per 500 k TEU
                          "administration": 3, #FTE per 500 k TEU
@@ -486,7 +512,10 @@ general_services_data = {"name": 'General_Services"',
                          "commercial": 1, #FTE per 500 k TEU
                          "operations": 4, #FTE/shirt per 500 k TEU
                          "engineering": 2, #FTE/shift per 500 k TEU
-                         "security": 2,
-                         "maintenance": 0.015,
-                         "crew_required": 500_000} #FTE/shift per 500 k TEU
+                         "security": 2, #FTE/shift per 500 k TEU
+                         "general_maintenance": 0.015,
+                         "crew_required": 500_000, #for each 500_k TEU an additional crew team is added
+                         "delivery_time": 1,
+                         "lighting_consumption": 1,
+                         "general_consumption":1000}
 

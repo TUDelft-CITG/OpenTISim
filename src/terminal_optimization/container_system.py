@@ -120,6 +120,8 @@ class System:
 
             self.empty_handler_invest(year)
 
+            self.general_services_invest(year)
+
 
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
@@ -249,20 +251,36 @@ class System:
                         element.df.loc[element.df['year'] == year, 'energy'] = consumption * costs * moves
                 else:
                     element.df.loc[element.df['year'] == year, 'energy'] = 0
+        # reefer energy costs
+        stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area, \
+        reefer_slots = self.laden_reefer_stack_capacity(year)
 
-        # cranes = 0
-        # for element in self.elements:
-        #     if isinstance(element, Cyclic_Unloader):
-        #         if year >= element.year_online:
-        #             cranes += 1
+        stacks = 0
+        for element in self.elements:
+            if isinstance(element, Laden_Stack):
+                if year >= element.year_online:
+                    stacks += 1
 
+        for element in self.find_elements(Laden_Stack):
+            if year >= element.year_online:
+                slots_per_stack = reefer_slots / stacks
+                if slots_per_stack * element.reefers_present * energy_price * 24*365 != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = slots_per_stack * element.reefers_present\
+                                                                           * energy_price * 24*365
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
 
+        #Calculate general power use
 
+        general = General_Services(**container_defaults.general_services_data)
+
+        #lighting
         quay_land_use=0
         stack_land_use=0
         empty_land_use=0
         oog_land_use=0
         gate_land_use=0
+        general_land_use=0
 
         for element in self.elements:
             if isinstance(element, Quay_wall):
@@ -280,17 +298,23 @@ class System:
             if isinstance(element, Gate):
                 if year >= element.year_online:
                     gate_land_use += element.land_use
+            if isinstance(element, General_Services):
+                if year >= element.year_online:
+                    general_land_use += element.land_use
 
-        total_land_use=quay_land_use+stack_land_use+empty_land_use+oog_land_use+gate_land_use
+        total_land_use=quay_land_use+stack_land_use+empty_land_use+oog_land_use+gate_land_use+general_land_use
+        lighting = total_land_use * energy_price * general.lighting_consumption
 
-        for element in self.find_elements(Cyclic_Unloader):
+        #Office, gates, workshops power use
+        general_consumption=general.general_consumption*energy_price
+
+        for element in self.find_elements(General_Services):
             if year >= element.year_online:
-                sts_moves_per_element = sts_moves / cranes
-                if element.consumption * sts_moves_per_element * energy_price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = \
-                        element.consumption * sts_moves_per_element * energy_price
+                if lighting +general_consumption != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = lighting +general_consumption
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
+
 
 
 
@@ -706,7 +730,8 @@ class System:
               - add stack capacity until service_trigger is no longer exceeded
               """
 
-        stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area = self.laden_reefer_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area, \
+        reefer_slots = self.laden_reefer_stack_capacity(year)
 
         if self.debug:
             print('     Stack capacity planned (@ start of year): {}'.format(stack_capacity_planned))
@@ -735,8 +760,9 @@ class System:
             pavement = stack.pavement
             drainage = stack.drainage
             area_factor = stack.area_factor
+            reefer_rack=reefer_slots*stack.reefer_rack
             mobilisation = stack.mobilisation
-            stack.capex = int((pavement+drainage)*gross_tgs*area*area_factor + mobilisation)
+            stack.capex = int((pavement+drainage)*gross_tgs*area*area_factor + mobilisation + reefer_rack)
 
             # - opex
             stack.maintenance = int((pavement+drainage)*gross_tgs*area*area_factor * stack.maintenance_perc)
@@ -756,7 +782,8 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area = self.laden_reefer_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area, \
+            reefer_slots = self.laden_reefer_stack_capacity(year)
 
     def empty_stack_invest(self, year):
 
@@ -1032,7 +1059,7 @@ class System:
 
     def general_services_invest(self, year):
 
-        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(self,year)
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
         throughput = laden_teu + reefer_teu + oog_teu + empty_teu
 
         cranes = 0
@@ -1043,6 +1070,7 @@ class System:
         sts_cranes = cranes
 
         general = General_Services(**container_defaults.general_services_data)
+        labour = Labour(**container_defaults.labour_data)
 
         quay_land_use=0
         stack_land_use=0
@@ -1068,9 +1096,9 @@ class System:
                     gate_land_use += element.land_use
 
         total_land_use=(quay_land_use+stack_land_use+empty_land_use+oog_land_use+gate_land_use + general.office
-                        + general.workshop + general.scanning_inspection_area + general.repair_buliding)*0.0001
+                        + general.workshop + general.scanning_inspection_area + general.repair_building)*0.0001
 
-        if sts_cranes = 1:
+        if sts_cranes == 1:
             # add general services as soon as STS crane is online
             if self.debug:
                 print('  *** add general services to elements')
@@ -1081,13 +1109,13 @@ class System:
             inspection = general.scanning_inspection_area * general.scanning_inspection_area_cost
             light = general.lighting_mast_cost * (total_land_use/general.lighting_mast_required)
             repair = general.repair_building * general.repair_building_cost
-            basic = general.fuel_station_cost + general.firefight + general.maintenance_tools_cost\
+            basic = general.fuel_station_cost + general.firefight_cost + general.maintenance_tools_cost\
                     + general.terminal_operating_software_cost + general.electrical_station_cost
             general.capex = office + workshop + inspection + light + repair + basic
 
 
             # - opex # todo calculate moves for energy costs
-            general.maintenance = general.capex * general.maintenance
+            general.maintenance = general.capex * general.general_maintenance
 
             # #   labour
             # labour = Labour(**container_defaults.labour_data)
@@ -1096,7 +1124,7 @@ class System:
 
             # land use
             general.land_use = general.office + general.workshop + general.scanning_inspection_area\
-                               + general.repair_buliding
+                               + general.repair_building
 
             if year == self.startyear:
                 general.year_online = year + general.delivery_time + 1
@@ -1108,10 +1136,54 @@ class System:
 
             self.elements.append(general)
 
-            list_of_elements_general = self.find_elements(General_Services)
-            general_online = len(list_of_elements_general)
+            # list_of_elements_general = self.find_elements(General_Services)
+            # general_online = len(list_of_elements_general)
 
-        if throughput/general.crew_required
+        if sts_cranes != 0:
+            crew_required = np.ceil(throughput/general.crew_required)
+
+
+            #fixed labour
+            total_fte_fixed = crew_required*(general.ceo + general.secretary + general.administration + general.hr + general.commercial)
+            fixed_labour = total_fte_fixed * labour.white_collar_salary
+
+            #shift labour
+            white_collar = crew_required * labour.daily_shifts * (general.operations)*labour.white_collar_salary
+            blue_collar = crew_required * labour.daily_shifts * (general.engineering + general.security) *labour.blue_collar_salary
+
+            shift_labour = white_collar + blue_collar
+
+            #total labour
+
+            # general.labour = fixed_labour + shift_labour
+            #
+            # general = self.add_cashflow_data_to_element(general)
+            #
+            # self.elements.append(general)
+
+            # #   labour
+            # labour = Labour(**container_defaults.labour_data)
+            # stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
+            # stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
+
+
+            # if year == self.startyear:
+            #     general.year_online = year + general.delivery_time + 1
+            # else:
+            #     general.year_online = year + general.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+
+            # calculate empty handler fuel costs
+            list_of_elements_general = self.find_elements(General_Services)
+
+            for element in list_of_elements_general:
+                if year >= element.year_online:
+                    if fixed_labour+shift_labour != np.inf:
+                        element.df.loc[element.df['year'] == year, 'labour'] = fixed_labour+shift_labour
+                else:
+                    element.df.loc[element.df['year'] == year, 'labour'] = 0
+
 
 
     # *** Financial analyses
@@ -1417,6 +1489,7 @@ class System:
 
         laden = Container(**container_defaults.laden_container_data)
         reefer = Container(**container_defaults.reefer_container_data)
+        stack = Laden_Stack(**container_defaults.rtg_stack_data)
 
         if self.laden_stack == 'rtg':
             stack = Laden_Stack(**container_defaults.rtg_stack_data)
@@ -1431,13 +1504,14 @@ class System:
 
         laden_ground_slots = laden_teu * laden.peak_factor * laden.dwell_time / laden.stack_occupancy / stack.height / operational_days
         reefer_ground_slots = reefer_teu * reefer.peak_factor * reefer.dwell_time / reefer.stack_occupancy / \
-                              stack.height / operational_days * 2.33 #TGS per reefer ground slot (J. van Beemen)
+                              stack.height / operational_days * stack.reefer_factor
         total_ground_slots = laden_ground_slots + reefer_ground_slots
+        reefer_slots = reefer_ground_slots * stack.height
 
         required_capacity = (laden_ground_slots+reefer_ground_slots)*stack.height
         laden_stack_area = total_ground_slots*stack.area_factor
 
-        return stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area
+        return stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area, reefer_slots
 
     def empty_stack_capacity(self, year):
 

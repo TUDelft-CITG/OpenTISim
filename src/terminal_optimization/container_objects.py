@@ -196,8 +196,8 @@ General_Services = type('General_Services', (container_mixins.identifiable_prope
                                              container_mixins.hasland_properties_mixin,
                                              container_mixins.hasopex_properties_mixin,
                                              container_mixins.hascapex_properties_mixin,
-                                             container_mixins.labour_properties_mixin,
-                                             container_mixins.general_services_mixin),
+                                             container_mixins.general_services_mixin,
+                                             container_mixins.history_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
 
