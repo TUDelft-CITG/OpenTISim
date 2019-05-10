@@ -436,8 +436,11 @@ class hasscenario_properties_mixin(object):
 
 class general_services_mixin(object):
     def __init__(self,
-                 type,
-                 *args, **kwargs):
+                 type, office, office_cost, workshop, workshop_cost, fuel_station_cost, scanning_inspection_area,
+                 scanning_inspection_area_cost, lighting_mast, lighting_mast_cost, firefight_cost, maintenance_tools_cost,
+                 terminal_operating_software_cost, electrical_station_cost, repair_building, repair_building_cost,
+                 ceo, secretary, administration, hr, commercial, operations, engineering, security, maintenance,
+                 crew_required, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -456,4 +459,15 @@ class general_services_mixin(object):
         self.electrical_station_cost = electrical_station_cost
         self.repair_building = repair_building
         self.repair_building_cost = repair_building_cost
+        self.ceo = ceo
+        self.secretary = secretary
+        self.administration = administration
+        self.hr = hr
+        self.commercial = commercial
+        self.operations = operations
+        self.engineering = engineering
+        self.security = security
+        self.maintenance = maintenance
+        self.crew_required = crew_required
+
 

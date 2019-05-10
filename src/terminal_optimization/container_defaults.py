@@ -460,7 +460,33 @@ labour_data = {"name": 'Labour',
 energy_data = {"name": 'Energy',
                "price": 0.10}
 
-# *** Default inputs: Train class ***
+# *** Default inputs: General_Services class ***
 
-train_data = {"wagon_payload": 60,
-              "number_of_wagons": 60}
+general_services_data = {"name": 'General_Services"',
+                         "type": 'general_services',
+                         "office": 2400,
+                         "office_cost": 1500,
+                         "workshop": 2400,
+                         "workshop_cost": 1000,
+                         "fuel_station_cost": 500_000,
+                         "scanning_inspection_area": 2700,
+                         "scanning_inspection_area_cost": 1000,
+                         "lighting_mast_required": 1.2, #masts per ha
+                         "lighting_mast_cost": 30_000,
+                         "firefight_cost": 2_000_000,
+                         "maintenance_tools_cost": 10_000_000,
+                         "terminal_operating_software_cost": 10_000_000,
+                         "electrical_station_cost": 2_000_000,
+                         "repair_building": 100,
+                         "repair_building_costs": 1000,
+                         "ceo": 1, #FTE per 500 k TEU
+                         "secretary": 1, #FTE per 500 k TEU
+                         "administration": 3, #FTE per 500 k TEU
+                         "hr": 2, #FTE per 500 k TEU
+                         "commercial": 1, #FTE per 500 k TEU
+                         "operations": 4, #FTE/shirt per 500 k TEU
+                         "engineering": 2, #FTE/shift per 500 k TEU
+                         "security": 2,
+                         "maintenance": 0.015,
+                         "crew_required": 500_000} #FTE/shift per 500 k TEU
+

@@ -942,7 +942,7 @@ class System:
                 stack_equipment_online = len(list_of_elements_stack_equipment)
 
         if self.stack_equipment == 'rmg':
-            while stack > stack_equipment_online:
+            while stack > (stack_equipment_online * 0.5):
 
                 # add stack equipment when not enough to serve number of STS cranes
                 if self.debug:
@@ -1029,6 +1029,90 @@ class System:
             self.elements.append(gate)
 
             gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(year)
+
+    def general_services_invest(self, year):
+
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(self,year)
+        throughput = laden_teu + reefer_teu + oog_teu + empty_teu
+
+        cranes = 0
+        for element in self.elements:
+            if isinstance(element, Cyclic_Unloader):
+                if year >= element.year_online:
+                    cranes += 1
+        sts_cranes = cranes
+
+        general = General_Services(**container_defaults.general_services_data)
+
+        quay_land_use=0
+        stack_land_use=0
+        empty_land_use=0
+        oog_land_use=0
+        gate_land_use=0
+
+        for element in self.elements:
+            if isinstance(element, Quay_wall):
+                if year >= element.year_online:
+                    quay_land_use += element.land_use
+            if isinstance(element, Laden_Stack):
+                if year >= element.year_online:
+                    stack_land_use += element.land_use
+            if isinstance(element, Empty_Stack):
+                if year >= element.year_online:
+                    empty_land_use += element.land_use
+            if isinstance(element, OOG_Stack):
+                if year >= element.year_online:
+                    oog_land_use += element.land_use
+            if isinstance(element, Gate):
+                if year >= element.year_online:
+                    gate_land_use += element.land_use
+
+        total_land_use=(quay_land_use+stack_land_use+empty_land_use+oog_land_use+gate_land_use + general.office
+                        + general.workshop + general.scanning_inspection_area + general.repair_buliding)*0.0001
+
+        if sts_cranes = 1:
+            # add general services as soon as STS crane is online
+            if self.debug:
+                print('  *** add general services to elements')
+
+            # - capex
+            office = general.office * general.office_cost
+            workshop = general.workshop * general.workshop_cost
+            inspection = general.scanning_inspection_area * general.scanning_inspection_area_cost
+            light = general.lighting_mast_cost * (total_land_use/general.lighting_mast_required)
+            repair = general.repair_building * general.repair_building_cost
+            basic = general.fuel_station_cost + general.firefight + general.maintenance_tools_cost\
+                    + general.terminal_operating_software_cost + general.electrical_station_cost
+            general.capex = office + workshop + inspection + light + repair + basic
+
+
+            # - opex # todo calculate moves for energy costs
+            general.maintenance = general.capex * general.maintenance
+
+            # #   labour
+            # labour = Labour(**container_defaults.labour_data)
+            # stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
+            # stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
+
+            # land use
+            general.land_use = general.office + general.workshop + general.scanning_inspection_area\
+                               + general.repair_buliding
+
+            if year == self.startyear:
+                general.year_online = year + general.delivery_time + 1
+            else:
+                general.year_online = year + general.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+            general = self.add_cashflow_data_to_element(general)
+
+            self.elements.append(general)
+
+            list_of_elements_general = self.find_elements(General_Services)
+            general_online = len(list_of_elements_general)
+
+        if throughput/general.crew_required
+
 
     # *** Financial analyses
 
@@ -1792,7 +1876,7 @@ class System:
     def land_use_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
-        # get crane service capacity and storage capacity
+        # get land use
         years = []
         quay_land_use = []
         stack_land_use = []
