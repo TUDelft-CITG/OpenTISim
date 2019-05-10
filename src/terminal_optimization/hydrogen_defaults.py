@@ -47,17 +47,18 @@ jetty_data = {"name": 'Jetty_01',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
-                  "mobilisation_min": 2_500_000,
+                  "mobilisation_min": 1_000_000,
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
-                  "freeboard": 4,
-                  "Gijt_constant_jetty": 2000, #based on personal communation with de Gijt & Quist
-                  "max_sinkage": 0.5,
-                  "wave_motion": 0.5,
-                  "safety_margin": 0.5,
-                  "Safety_margin_LH2": 40,
-                    "jettywidth": 4} # all values from Ijzermans, 2019, P 91
+                  "Gijt_constant_jetty": 2000, #based on personal communation with de Gijt
+                  "jettywidth": 16,
+                  "jettylength": 30,
+                  "mooring_dolphins":250_000,
+                  "catwalkwidth": 5,
+                  "catwalklength":100,
+                  "Catwalk_rate": 1000,
+                            } # all values from P. Quist personnal communication
 
 # *** Default inputs: Berth class ***
 

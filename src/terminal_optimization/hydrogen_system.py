@@ -2,6 +2,9 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly
+import plotly.plotly as py
+import plotly.graph_objs as go
 
 # terminal_optimization package
 from terminal_optimization.hydrogen_objects import *
@@ -377,33 +380,32 @@ class System:
             berths = len(self.find_elements(Berth))
             jettys = len(self.find_elements(Jetty))
             if berths > jettys:
-                length_v = max(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
+                length_max = max(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
                                hydrogen_defaults.panamax_data["LOA"], hydrogen_defaults.smallhydrogen_data["LOA"],
                                hydrogen_defaults.largehydrogen_data["LOA"], hydrogen_defaults.smallammonia_data["LOA"],
                                hydrogen_defaults.largeammonia_data["LOA"] )  # maximum of all vessels
-                draft = max(hydrogen_defaults.vlcc_data["draft"], hydrogen_defaults.handysize_data["draft"],
-                               hydrogen_defaults.panamax_data["draft"], hydrogen_defaults.smallhydrogen_data["draft"],
-                               hydrogen_defaults.largehydrogen_data["draft"], hydrogen_defaults.smallammonia_data["draft"],
-                               hydrogen_defaults.largeammonia_data["draft"]) # maximum of all vessels
-                width_v = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
-                               hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
-                               hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
-                               hydrogen_defaults.largeammonia_data["beam"]) # maximum of all vessels
-
-                # Calculation of the length of a berth
-                if jettys == 0:
-                    # - length when next jetty is n = 1
-                    length = length_v + 2 * 15  # ref: PIANC 2014
+                length_min = min(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
+                               hydrogen_defaults.panamax_data["LOA"], hydrogen_defaults.smallhydrogen_data["LOA"],
+                               hydrogen_defaults.largehydrogen_data["LOA"], hydrogen_defaults.smallammonia_data["LOA"],
+                               hydrogen_defaults.largeammonia_data["LOA"])  # maximum of all vessels
+                if length_max-length_min > 100:
+                    nrofdolphins=8
                 else:
-                    if self.commodity_type_defaults==hydrogen_defaults.commodity_lhydrogen_data:
-                        length = length_v + width_v + 2 * 15 + hydrogen_defaults.jetty_data["Safety_margin_LH2"]  # ref:LNG master planning - D. van Niekerk
-                    else:
-                        length = length_v + width_v + 2 * 15  # ref: Ports & Terminal, H ligteringen, H. Velsink p. 180
+                    nrofdolphins=6
+
+                # draft = max(hydrogen_defaults.vlcc_data["draft"], hydrogen_defaults.handysize_data["draft"],
+                #                hydrogen_defaults.panamax_data["draft"], hydrogen_defaults.smallhydrogen_data["draft"],
+                #                hydrogen_defaults.largehydrogen_data["draft"], hydrogen_defaults.smallammonia_data["draft"],
+                #                hydrogen_defaults.largeammonia_data["draft"]) # maximum of all vessels
+                # # width_v = max(hydrogen_defaults.vlcc_data["beam"], hydrogen_defaults.handysize_data["beam"],
+                # #                hydrogen_defaults.panamax_data["beam"], hydrogen_defaults.smallhydrogen_data["beam"],
+                # #                hydrogen_defaults.largehydrogen_data["beam"], hydrogen_defaults.smallammonia_data["beam"],
+                # #                hydrogen_defaults.largeammonia_data["beam"]) # maximum of all vessels
 
                 # - depth
                 jetty = Jetty(**hydrogen_defaults.jetty_data)
-                depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
-                self.jetty_invest(year, length, depth)
+                # depth = np.sum([draft, jetty.max_sinkage, jetty.wave_motion, jetty.safety_margin])
+                self.jetty_invest(year, nrofdolphins)
 
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
                     year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
@@ -415,11 +417,7 @@ class System:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
-            # # check if a storage is needed
-            # if self.check_throughput_available(year):
-            #     self.storage_invest(year)
-
-    def jetty_invest(self, year, length, depth):
+    def jetty_invest(self, year,nrofdolphins):
         """
         *** Decision recipe jetty: ***
         QSC: jetty_per_berth
@@ -437,17 +435,17 @@ class System:
         jetty = Jetty(**hydrogen_defaults.jetty_data)
 
         # - capex
-        unit_rate = int(jetty.Gijt_constant_jetty * (depth + jetty.freeboard)) #per m2
-        mobilisation = int(max((length * jetty.jettywidth * unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
-        jetty.capex = int(length * jetty.jettywidth * unit_rate + mobilisation)
+        unit_rate = int((nrofdolphins * jetty.mooring_dolphins) + (jetty.Gijt_constant_jetty * jetty.jettywidth * jetty.jettylength) + (jetty.Catwalk_rate* jetty.catwalklength*jetty.catwalkwidth))
+        mobilisation = int(max((unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
+        jetty.capex = int(unit_rate + mobilisation)
 
         # - opex
-        jetty.insurance = unit_rate * length * jetty.jettywidth * jetty.insurance_perc
-        jetty.maintenance = unit_rate * length * jetty.jettywidth * jetty.maintenance_perc
+        jetty.insurance = unit_rate * jetty.insurance_perc
+        jetty.maintenance = unit_rate * jetty.maintenance_perc
         jetty.year_online = year + jetty.delivery_time
 
         # residual
-        jetty.assetvalue = (jetty.capex - mobilisation) * (1 - ((self.lifecycle + self.startyear - jetty.year_online) / jetty.lifespan))
+        jetty.assetvalue = (unit_rate) * (1 - ((self.lifecycle + self.startyear - jetty.year_online) / jetty.lifespan))
         jetty.residual = max(jetty.assetvalue, 0)
 
         # add cash flow information to jetty object in a dataframe

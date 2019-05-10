@@ -109,8 +109,7 @@ class hastriggers_properties_mixin(object):
 
 class jetty_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, freeboard, Gijt_constant_jetty, max_sinkage, wave_motion,
-                 safety_margin, Safety_margin_LH2, jettywidth, *args, **kwargs):
+                 maintenance_perc, insurance_perc, Gijt_constant_jetty, jettywidth,jettylength, mooring_dolphins, catwalkwidth,catwalklength, Catwalk_rate, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -120,13 +119,15 @@ class jetty_properties_mixin(object):
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
-        self.freeboard = freeboard
         self.Gijt_constant_jetty = Gijt_constant_jetty
-        self.max_sinkage = max_sinkage
-        self.wave_motion = wave_motion
-        self.safety_margin= safety_margin
-        self.Safety_margin_LH2 = Safety_margin_LH2
         self.jettywidth = jettywidth
+        self.jettylength = jettylength
+        self.mooring_dolphins= mooring_dolphins
+        self.catwalkwidth = catwalkwidth
+        self.catwalklength = catwalklength
+        self.Catwalk_rate=Catwalk_rate
+
+
 
 class berth_properties_mixin(object):
     def __init__(self, crane_type, delivery_time, *args, **kwargs):
