@@ -12,7 +12,7 @@ class System:
     def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data,
                  allowable_berth_occupancy=0.6, allowable_dwelltime=18 / 365,
-                 laden_perc=0.85, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3, energy_price = 0.15, fuel_price = 1):
+                 laden_perc=0.9, reefer_perc=0.05, empty_perc=0.025, oog_perc=0.025, transhipment_ratio=0.3, energy_price = 0.15, fuel_price = 1):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -124,7 +124,7 @@ class System:
 
 
 
-        # 3. for each year calculate the energy costs (requires insight in realized demands)
+        # 3. for each year calculate the general labour, fuel and energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
 
@@ -133,6 +133,8 @@ class System:
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_fuel_cost(year)
+
+
 
         # 4. for each year calculate the demurrage costs (requires insight in realized demands)
         self.demurrage = []
@@ -146,6 +148,11 @@ class System:
 
         # 6. collect all cash flows (capex, opex, revenues)
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
+
+
+        # # 7. add indirect costs to capex
+        #
+        # self.calculate_indirect_costs()
 
         # 7. calculate PV's and aggregate to NPV
         self.NPV()
@@ -189,7 +196,7 @@ class System:
             print('     Revenues (demand): {}'.format(revenues))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
             year, handysize, handymax, panamax)
 
         # find the total service rate,
@@ -355,8 +362,6 @@ class System:
                 else:
                     element.df.loc[element.df['year'] == year, 'labour'] = 0
 
-
-
     def calculate_fuel_cost(self, year):
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
         fuel_price = self.fuel_price
@@ -470,6 +475,31 @@ class System:
 
         self.demurrage.append(total_demurrage_cost)
 
+    def calculate_indirect_costs(self):
+        # todo fix this element, or remove it
+        indirect = Indirect_Costs(**container_defaults.indirect_costs_data)
+        cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
+        capex = cash_flows['capex'].values
+        print(capex)
+        if self.stack_equipment == 'rtg' or self.stack_equipment == 'rs' or self.stack_equipment == 'sc':
+            electrical_works = indirect.electrical_works_fuel_terminal * capex
+        elif self.stack_equipment == 'rmg' or self.stack_equipment == 'ertg':
+            electrical_works = indirect.electrical_works_power_terminal * capex
+
+        miscellaneous = indirect.miscellaneous * capex
+        preliminaries = indirect.preliminaries * capex
+        engineering = indirect.engineering * capex
+
+        indirect_costs = capex+electrical_works+miscellaneous+preliminaries+engineering
+        print(indirect_costs)
+        # cash_flows['capex'].values = indirect_costs
+
+
+
+
+
+
+
     # *** Investment functions
 
     def berth_invest(self, year, handysize, handymax, panamax):
@@ -499,7 +529,7 @@ class System:
             print('  Start analysis:')
 
         # calculate berth occupancy
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
             year, handysize, handymax, panamax)
         factor, waiting_time_occupancy = self.waiting_time(year)
         if self.debug:
@@ -520,7 +550,7 @@ class System:
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
@@ -550,7 +580,7 @@ class System:
                 depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
@@ -560,7 +590,7 @@ class System:
             if self.check_crane_slot_available():
                 self.crane_invest(year)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
@@ -601,7 +631,6 @@ class System:
         quay_wall = self.add_cashflow_data_to_element(quay_wall)
 
         self.elements.append(quay_wall)
-
     def crane_invest(self, year):
         """current strategy is to add cranes as soon as a service trigger is achieved
         - find out how much service capacity is online
@@ -1401,10 +1430,10 @@ class System:
         empty = Container(**container_defaults.empty_container_data)
         oog = Container(**container_defaults.oog_container_data)
 
-        laden_box = laden_teu * laden.teu_factor
-        reefer_box = reefer_teu * reefer.teu_factor
-        empty_box = empty_teu * empty.teu_factor
-        oog_box = oog_teu * oog.teu_factor
+        laden_box = laden_teu / laden.teu_factor
+        reefer_box = reefer_teu / reefer.teu_factor
+        empty_box = empty_teu / empty.teu_factor
+        oog_box = oog_teu / oog.teu_factor
 
         throughput_box = laden_box + reefer_box + empty_box + oog_box
 
@@ -1604,7 +1633,8 @@ class System:
                     (container_defaults.handymax_data["call_size"] / service_rate_planned) +(container_defaults.handymax_data[
                 "mooring_time"]/nr_berths))
             time_at_berth_panamax_planned = panamax_calls * (
-                    (container_defaults.panamax_data["call_size"] / service_rate_planned) +(container_defaults.panamax_data["mooring_time"]/nr_berths))
+                    (container_defaults.panamax_data["call_size"] / service_rate_planned) +(container_defaults.panamax_data[
+                "mooring_time"]/nr_berths))
 
 
             total_time_at_berth_planned = np.sum(
@@ -1636,8 +1666,11 @@ class System:
                         (container_defaults.handymax_data["call_size"] / service_rate_online) +container_defaults.handymax_data[
                     "mooring_time"])
                 time_at_berth_panamax_online = panamax_calls * (
-                        (container_defaults.panamax_data["call_size"] / service_rate_online) +container_defaults.panamax_data[
-                    "mooring_time"])
+                        (container_defaults.panamax_data["call_size"] / service_rate_online) +(container_defaults.panamax_data[
+                    "mooring_time"]/nr_berths))
+
+
+
 
                 total_time_at_berth_online = np.sum(
                     [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
@@ -1668,8 +1701,30 @@ class System:
             berth_occupancy_online = float("inf")
             crane_occupancy_planned = float("inf")
             crane_occupancy_online = float("inf")
+        throughput_online = panamax_calls * service_rate_online
+        print(throughput_online, 'ajax')
+        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online
 
-        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
+    def calculate_throughput(self,year):
+        list_of_elements = self.find_elements(Cyclic_Unloader)
+        list_of_elements_berth = self.find_elements(Berth)
+
+        # list the number of berths online
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        service_rate_planned = 0
+        service_rate_online = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                service_rate_planned += element.effective_capacity
+                if year >= element.year_online:
+                    service_rate_online += element.effective_capacity
+
+        return service_rate_online, service_rate_planned
+
+
+
+
 
     def calculate_gate_minutes(self, year):
         """
@@ -1729,7 +1784,7 @@ class System:
        """
 
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
             year, handysize_calls, handymax_calls, panamax_calls)
 
         # find the different factors which are linked to the number of berths
@@ -1895,7 +1950,7 @@ class System:
             # storages_capacity.append(0)
 
             handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online, throughput_online = self.calculate_berth_occupancy(
                 year, handysize_calls, handymax_calls, panamax_calls)
 
             for element in self.elements:
@@ -2010,7 +2065,6 @@ class System:
 
         # plt.show()
 
-
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
@@ -2117,6 +2171,7 @@ class System:
         labour = cash_flows['labour'].values
         fuel = cash_flows['fuel'].values
         # demurrage = cash_flows['demurrage'].values
+        print(cash_flows)
 
         # generate plot
         fig, ax = plt.subplots(figsize=(14, 5))

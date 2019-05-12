@@ -479,4 +479,14 @@ class general_services_mixin(object):
         self.lighting_consumption = lighting_consumption
         self.general_consumption = general_consumption
 
+class indirect_costs_mixin(object):
+    def __init__(self, preliminaries, engineering, miscellaneous, electrical_works_fuel_terminal,
+                 electrical_works_power_terminal, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.preliminaries = preliminaries
+        self.engineering = engineering
+        self.miscellaneous = miscellaneous
+        self.electrical_works_fuel_terminal = electrical_works_fuel_terminal
+        self.electrical_works_power_terminal = electrical_works_power_terminal
+
 

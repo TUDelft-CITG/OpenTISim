@@ -200,6 +200,11 @@ General_Services = type('General_Services', (container_mixins.identifiable_prope
                                              container_mixins.history_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
+# The indirect costs class
+Indirect_Costs = type('Indirect Costs', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.indirect_costs_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
 
 
 

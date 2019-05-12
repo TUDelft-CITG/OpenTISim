@@ -478,8 +478,8 @@ labour_data = {"name": 'Labour',
                "shift_length": 6.5,
                "annual_shifts": 200,
                "daily_shifts": 5,
-               "blue_collar_salary": 30_000,
-               "white_collar_salary": 70_000}
+               "blue_collar_salary": 25_000,
+               "white_collar_salary": 35_000}
 
 # *** Default inputs: Energy class ***
 
@@ -518,4 +518,12 @@ general_services_data = {"name": 'General_Services"',
                          "delivery_time": 1,
                          "lighting_consumption": 1,
                          "general_consumption": 1000}
+
+indirect_costs_data = {"name": 'Indirect_Costs',
+               "preliminaries": 0.15,
+               "engineering": 0.05,
+               "miscellaneous": 0.15,
+               "electrical_works_fuel_terminal": 0.12,
+               "electrical_works_power_terminal": 0.15}
+
 
