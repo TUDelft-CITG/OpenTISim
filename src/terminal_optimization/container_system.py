@@ -129,6 +129,9 @@ class System:
             self.calculate_energy_cost(year)
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
+            self.calculate_general_labour_cost(year)
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_fuel_cost(year)
 
         # 4. for each year calculate the demurrage costs (requires insight in realized demands)
@@ -216,8 +219,7 @@ class System:
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
         energy_price = self.energy_price
 
-
-        # STS crane energy costs
+        '''STS crane energy costs'''
         cranes = 0
         for element in self.elements:
             if isinstance(element, Cyclic_Unloader):
@@ -233,7 +235,7 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        # calculate stack equipment energy costs
+        '''calculate stack equipment energy costs'''
         if self.stack_equipment == 'rmg':
             list_of_elements_Stack = self.find_elements(Stack_Equipment)
             equipment = 0
@@ -270,7 +272,7 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-        #Calculate general power use
+        '''Calculate general power use'''
 
         general = General_Services(**container_defaults.general_services_data)
 
@@ -306,8 +308,7 @@ class System:
         lighting = total_land_use * energy_price * general.lighting_consumption
 
         #Office, gates, workshops power use
-        general_consumption=general.general_consumption*energy_price
-
+        general_consumption=general.general_consumption*energy_price*self.operational_hours
         for element in self.find_elements(General_Services):
             if year >= element.year_online:
                 if lighting +general_consumption != np.inf:
@@ -315,6 +316,44 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
+    def calculate_general_labour_cost(self,year):
+        '''General labour'''
+        general = General_Services(**container_defaults.general_services_data)
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+        throughput = laden_teu + reefer_teu + oog_teu + empty_teu
+        labour = Labour(**container_defaults.labour_data)
+
+        cranes = 0
+        for element in self.elements:
+            if isinstance(element, Cyclic_Unloader):
+                if year >= element.year_online:
+                    cranes += 1
+        sts_cranes = cranes
+        if sts_cranes != 0:
+            crew_required = np.ceil(throughput / general.crew_required)
+
+            # fixed labour
+            total_fte_fixed = crew_required * (
+                        general.ceo + general.secretary + general.administration + general.hr + general.commercial)
+            fixed_labour = total_fte_fixed * labour.white_collar_salary
+
+            # shift labour
+            white_collar = crew_required * labour.daily_shifts * (general.operations) * labour.white_collar_salary
+            blue_collar = crew_required * labour.daily_shifts * (
+                        general.engineering + general.security) * labour.blue_collar_salary
+
+            shift_labour = white_collar + blue_collar
+
+            # total labour
+
+            list_of_elements_general = self.find_elements(General_Services)
+
+            for element in list_of_elements_general:
+                if year >= element.year_online:
+                    if fixed_labour + shift_labour != np.inf:
+                        element.df.loc[element.df['year'] == year, 'labour'] = fixed_labour + shift_labour
+                else:
+                    element.df.loc[element.df['year'] == year, 'labour'] = 0
 
 
 
@@ -1070,7 +1109,7 @@ class System:
         sts_cranes = cranes
 
         general = General_Services(**container_defaults.general_services_data)
-        labour = Labour(**container_defaults.labour_data)
+
 
         quay_land_use=0
         stack_land_use=0
@@ -1113,14 +1152,11 @@ class System:
                     + general.terminal_operating_software_cost + general.electrical_station_cost
             general.capex = office + workshop + inspection + light + repair + basic
 
+            print(general.capex, 'ajax')
 
-            # - opex # todo calculate moves for energy costs
+
+            # - opex
             general.maintenance = general.capex * general.general_maintenance
-
-            # #   labour
-            # labour = Labour(**container_defaults.labour_data)
-            # stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-            # stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
             # land use
             general.land_use = general.office + general.workshop + general.scanning_inspection_area\
@@ -1136,53 +1172,7 @@ class System:
 
             self.elements.append(general)
 
-            # list_of_elements_general = self.find_elements(General_Services)
-            # general_online = len(list_of_elements_general)
 
-        if sts_cranes != 0:
-            crew_required = np.ceil(throughput/general.crew_required)
-
-
-            #fixed labour
-            total_fte_fixed = crew_required*(general.ceo + general.secretary + general.administration + general.hr + general.commercial)
-            fixed_labour = total_fte_fixed * labour.white_collar_salary
-
-            #shift labour
-            white_collar = crew_required * labour.daily_shifts * (general.operations)*labour.white_collar_salary
-            blue_collar = crew_required * labour.daily_shifts * (general.engineering + general.security) *labour.blue_collar_salary
-
-            shift_labour = white_collar + blue_collar
-
-            #total labour
-
-            # general.labour = fixed_labour + shift_labour
-            #
-            # general = self.add_cashflow_data_to_element(general)
-            #
-            # self.elements.append(general)
-
-            # #   labour
-            # labour = Labour(**container_defaults.labour_data)
-            # stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-            # stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
-
-
-            # if year == self.startyear:
-            #     general.year_online = year + general.delivery_time + 1
-            # else:
-            #     general.year_online = year + general.delivery_time
-
-            # add cash flow information to tractor object in a dataframe
-
-            # calculate empty handler fuel costs
-            list_of_elements_general = self.find_elements(General_Services)
-
-            for element in list_of_elements_general:
-                if year >= element.year_online:
-                    if fixed_labour+shift_labour != np.inf:
-                        element.df.loc[element.df['year'] == year, 'labour'] = fixed_labour+shift_labour
-                else:
-                    element.df.loc[element.df['year'] == year, 'labour'] = 0
 
 
 

@@ -517,5 +517,5 @@ general_services_data = {"name": 'General_Services"',
                          "crew_required": 500_000, #for each 500_k TEU an additional crew team is added
                          "delivery_time": 1,
                          "lighting_consumption": 1,
-                         "general_consumption":1000}
+                         "general_consumption": 1000}
 
