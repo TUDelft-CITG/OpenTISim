@@ -335,7 +335,6 @@ class System:
         self.report_element(Storage, year)
         self.report_element(H2retrieval, year)
         self.report_element(Pipeline_Hinter, year)
-        self.report_element(Unloading_station, year)
         if self.debug:
             print('')
             print('  Start analysis:')
