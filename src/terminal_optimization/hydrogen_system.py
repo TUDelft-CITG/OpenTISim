@@ -1546,8 +1546,8 @@ class System:
         ax1.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="Unloading station", color='grey', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.6, color='k', linestyle='--')
-        plt.axvline(x=2022.4, color='k', linestyle='--')
+        plt.axvline(x=2025.6, color='k', linestyle='--')
+        plt.axvline(x=2023.4, color='k', linestyle='--')
 
         # get demand
         demand = pd.DataFrame()
@@ -1661,8 +1661,8 @@ class System:
         ax1.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.6, color='k', linestyle='--')
-        plt.axvline(x=2022.4, color='k', linestyle='--')
+        plt.axvline(x=2025.6, color='k', linestyle='--')
+        plt.axvline(x=2023.4, color='k', linestyle='--')
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -1790,8 +1790,8 @@ class System:
         # ax1.bar([x + 1 * width for x in years], waiting_factor, width=width, alpha=alpha, label="Berth occupancy [-]", color='grey', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Adding a horizontal line which shows the allowable berth occupancy
         horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
@@ -1882,8 +1882,8 @@ class System:
             ax1.text(x=years[i], y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Adding a horizontal line which shows the allowable plant occupancy
         horiz_line_data = np.array([self.h2retrieval_trigger for i in range(len(years))])
@@ -1959,8 +1959,8 @@ class System:
                 color='#aec7e8', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Adding a horizontal line which shows the allowable plant occupancy
         horiz_line_data = np.array([self.allowable_station_occupancy for i in range(len(years))])
@@ -2038,8 +2038,8 @@ class System:
         ax1.bar([x for x in years], jettys, width=width, alpha=alpha, label="Jettys [nr]", color='#c7c7c7', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         for i, occ in enumerate(jettys):
             occ = occ if type(occ) != float else 0
@@ -2135,8 +2135,8 @@ class System:
                 label="Pipeline Jetty - Storage capacity", color='#ffbb78', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Plot second ax
         ax2 = ax1.twinx()
@@ -2212,8 +2212,8 @@ class System:
         ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.5, color='k', linestyle='--')
+        plt.axvline(x=2023.5, color='k', linestyle='--')
 
         for i, occ in enumerate(storages):
             occ = occ if type(occ) != float else 0
@@ -2292,8 +2292,8 @@ class System:
         ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrieval", color='#DBDB8D', edgecolor='darkgrey')
 
         #added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color = 'k', linestyle = '--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color = 'k', linestyle = '--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         for i, occ in enumerate(h2retrievals):
             occ = occ if type(occ) != float else 0
@@ -2381,8 +2381,8 @@ class System:
             ax1.text(x=years[i] + 0.15, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Plot second ax
         ax2 = ax1.twinx()
