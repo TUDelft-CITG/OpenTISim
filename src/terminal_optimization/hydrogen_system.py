@@ -12,10 +12,10 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.commodity_lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
-                 h2retrieval_trigger=0.5, allowable_station_occupancy=0.5):
+                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
+                 hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_nh3_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 h2retrieval_trigger=1, allowable_station_occupancy=0.5):
 
         # time inputs
         self.startyear = startyear
@@ -335,7 +335,6 @@ class System:
         self.report_element(Storage, year)
         self.report_element(H2retrieval, year)
         self.report_element(Pipeline_Hinter, year)
-        self.report_element(Unloading_station, year)
         if self.debug:
             print('')
             print('  Start analysis:')
@@ -574,8 +573,7 @@ class System:
 
         # check if sufficient storage capacity is available
         # while storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
-
-        while storage_capacity < storage_capacity_dwelltime_throughput or storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
+        while  storage_capacity < storage_capacity_dwelltime_throughput or storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
             # if (self.check_throughput_available(year)):
 
             if self.debug:
@@ -1496,7 +1494,6 @@ class System:
         storages = []
         h2retrievals = []
         pipelines_hinterland = []
-        unloading_station = []
         throughputs_online = []
 
 
@@ -1508,7 +1505,6 @@ class System:
             storages.append(0)
             h2retrievals.append(0)
             pipelines_hinterland.append(0)
-            unloading_station.append(0)
             throughputs_online.append(0)
 
             for element in self.elements:
@@ -1530,9 +1526,7 @@ class System:
                 if isinstance(element, Pipeline_Hinter):
                     if year >= element.year_online:
                         pipelines_hinterland[-1] += 1
-                if isinstance(element, Unloading_station):
-                    if year >= element.year_online:
-                        unloading_station[-1] += 1
+
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
@@ -1543,11 +1537,10 @@ class System:
         ax1.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5', edgecolor='darkgrey')
         ax1.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrievals", color='#DBDB8D', edgecolor='darkgrey')
         ax1.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="Pipeline hinter", color='#c49c94', edgecolor='darkgrey')
-        ax1.bar([x + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="Unloading station", color='grey', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.6, color='k', linestyle='--')
-        plt.axvline(x=2022.4, color='k', linestyle='--')
+        plt.axvline(x=2025.6, color='k', linestyle='--')
+        plt.axvline(x=2023.4, color='k', linestyle='--')
 
         # get demand
         demand = pd.DataFrame()
@@ -1580,7 +1573,7 @@ class System:
         #Making a second graph
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
-        ax2.step(years, throughputs_online, label="Throughput_online [t/y]", where='mid', color='#aec7e8')
+        ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -1591,7 +1584,7 @@ class System:
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Elements on line [nr]')
-        ax2.set_ylabel('Elements on line [nr]')
+        ax2.set_ylabel('Demand/throughput[t/y]')
         ax1.set_title('Terminal elements online')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
@@ -1661,8 +1654,8 @@ class System:
         ax1.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.6, color='k', linestyle='--')
-        plt.axvline(x=2022.4, color='k', linestyle='--')
+        plt.axvline(x=2025.6, color='k', linestyle='--')
+        plt.axvline(x=2023.4, color='k', linestyle='--')
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -1790,8 +1783,8 @@ class System:
         # ax1.bar([x + 1 * width for x in years], waiting_factor, width=width, alpha=alpha, label="Berth occupancy [-]", color='grey', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Adding a horizontal line which shows the allowable berth occupancy
         horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
@@ -1882,8 +1875,8 @@ class System:
             ax1.text(x=years[i], y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Adding a horizontal line which shows the allowable plant occupancy
         horiz_line_data = np.array([self.h2retrieval_trigger for i in range(len(years))])
@@ -1959,8 +1952,8 @@ class System:
                 color='#aec7e8', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Adding a horizontal line which shows the allowable plant occupancy
         horiz_line_data = np.array([self.allowable_station_occupancy for i in range(len(years))])
@@ -2038,8 +2031,8 @@ class System:
         ax1.bar([x for x in years], jettys, width=width, alpha=alpha, label="Jettys [nr]", color='#c7c7c7', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         for i, occ in enumerate(jettys):
             occ = occ if type(occ) != float else 0
@@ -2135,8 +2128,8 @@ class System:
                 label="Pipeline Jetty - Storage capacity", color='#ffbb78', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Plot second ax
         ax2 = ax1.twinx()
@@ -2212,8 +2205,8 @@ class System:
         ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.5, color='k', linestyle='--')
+        plt.axvline(x=2023.5, color='k', linestyle='--')
 
         for i, occ in enumerate(storages):
             occ = occ if type(occ) != float else 0
@@ -2292,8 +2285,8 @@ class System:
         ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrieval", color='#DBDB8D', edgecolor='darkgrey')
 
         #added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color = 'k', linestyle = '--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color = 'k', linestyle = '--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         for i, occ in enumerate(h2retrievals):
             occ = occ if type(occ) != float else 0
@@ -2325,34 +2318,34 @@ class System:
         # collect elements to add to plot
         years = []
         pipeline_hinterland = []
-        loadingstations = []
+        h2retrievals = []
         pipeline_hinterland_cap = []
-        loadingstations_cap = []
+        h2retrieval_cap = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             pipeline_hinterland.append(0)
-            loadingstations.append(0)
+            h2retrievals.append(0)
             pipeline_hinterland_cap.append(0)
-            loadingstations_cap.append(0)
+            h2retrieval_cap.append(0)
 
             for element in self.elements:
                 if isinstance(element, Pipeline_Hinter):
                     if year >= element.year_online:
                         pipeline_hinterland[-1] += 1
             for element in self.elements:
-                if isinstance(element, Unloading_station):
+                if isinstance(element, H2retrieval):
                     if year >= element.year_online:
-                        loadingstations[-1] += 1
+                        h2retrievals[-1] += 1
 
             for element in self.elements:
                 if isinstance(element, Pipeline_Hinter):
                     if year >= element.year_online:
                         pipeline_hinterland_cap[-1] += element.capacity
             for element in self.elements:
-                if isinstance(element, Unloading_station):
+                if isinstance(element, H2retrieval):
                     if year >= element.year_online:
-                        loadingstations_cap[-1] += element.service_rate
+                        h2retrieval_cap[-1] += element.capacity
 
         # get demand
         demand = pd.DataFrame()
@@ -2370,24 +2363,24 @@ class System:
         fig, ax1 = plt.subplots(figsize=(20, 10))
         ax1.bar([x - 0.5 * width for x in years], pipeline_hinterland, width=width, alpha=alpha,
                 label="Number of pipeline H2 retrieval - Hinterland", color='#c49c94', edgecolor='darkgrey')
-        ax1.bar([x + 0.5 * width for x in years], loadingstations, width=width, alpha=alpha,
-                label="Number of hinterland station", color='grey', edgecolor='darkgrey')
+        ax1.bar([x + 0.5 * width for x in years], h2retrievals, width=width, alpha=alpha,
+                label="Number of H2 retrievals", color='#DBDB8D', edgecolor='darkgrey')
 
         for i, occ in enumerate(pipeline_hinterland):
             occ = occ if type(occ) != float else 0
             ax1.text(x=years[i] - 0.25, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
-        for i, occ in enumerate(loadingstations):
+        for i, occ in enumerate(h2retrievals):
             occ = occ if type(occ) != float else 0
             ax1.text(x=years[i] + 0.15, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
 
         # added vertical lines for mentioning the different phases
-        plt.axvline(x=2024.3, color='k', linestyle='--')
-        plt.axvline(x=2022.3, color='k', linestyle='--')
+        plt.axvline(x=2025.3, color='k', linestyle='--')
+        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Plot second ax
         ax2 = ax1.twinx()
         ax2.step(years, pipeline_hinterland_cap, label="Pipeline hinterland capacity", where='mid', linestyle = '--', color='#c49c94')
-        ax2.step(years, loadingstations_cap, label="Loading station capacity", where='mid', linestyle = '--', color='darkgrey')
+        ax2.step(years, h2retrieval_cap, label="H2 retrieval capacity", where='mid', linestyle = '--', color='darkgrey')
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -2398,8 +2391,8 @@ class System:
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Nr of elements')
-        ax2.set_ylabel('Capacity Pipeline & loading capacity station [t/h]')
-        ax1.set_title('Capacity Pipeline & Station')
+        ax2.set_ylabel('Capacity Pipeline & loading capacity H2 retrieval [t/h]')
+        ax1.set_title('Capacity Pipeline & H2 retrieval')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
