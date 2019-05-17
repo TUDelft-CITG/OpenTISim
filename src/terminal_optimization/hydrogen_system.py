@@ -12,10 +12,10 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.commodity_lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
-                 h2retrieval_trigger=0.5, allowable_station_occupancy=0.5):
+                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
+                 hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_nh3_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 h2retrieval_trigger=1, allowable_station_occupancy=0.5):
 
         # time inputs
         self.startyear = startyear
@@ -573,8 +573,7 @@ class System:
 
         # check if sufficient storage capacity is available
         # while storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
-
-        while storage_capacity < storage_capacity_dwelltime_throughput or storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
+        while  storage_capacity < storage_capacity_dwelltime_throughput or storage_capacity < max_vessel_call_size and storage_capacity < storage_capacity_dwelltime_demand:
             # if (self.check_throughput_available(year)):
 
             if self.debug:
@@ -1574,7 +1573,7 @@ class System:
         #Making a second graph
         ax2 = ax1.twinx()
         ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
-        ax2.step(years, throughputs_online, label="Throughput_online [t/y]", where='mid', color='#aec7e8')
+        ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
 
         # added boxes
         props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -1585,7 +1584,7 @@ class System:
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Elements on line [nr]')
-        ax2.set_ylabel('Elements on line [nr]')
+        ax2.set_ylabel('Demand/throughput[t/y]')
         ax1.set_title('Terminal elements online')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
