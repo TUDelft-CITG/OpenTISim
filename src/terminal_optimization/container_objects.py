@@ -205,7 +205,13 @@ Indirect_Costs = type('Indirect Costs', (container_mixins.identifiable_propertie
                          container_mixins.indirect_costs_mixin),
               {})  # The dictionary is empty because the site type is generic
 
+# The land costs class
+Land_Price = type('Land Price', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.hascapex_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
 
-
-
+# The land costs class
+Land_Price = type('Land Price', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.hascapex_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
 

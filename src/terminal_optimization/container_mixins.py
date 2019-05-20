@@ -126,7 +126,7 @@ class hastriggers_properties_mixin(object):
 class quay_wall_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
                  maintenance_perc, insurance_perc, freeboard, Gijt_constant, Gijt_coefficient, max_sinkage, wave_motion,
-                 safety_margin, apron_width,  *args, **kwargs):
+                 safety_margin, apron_width, apron_pavement, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -143,6 +143,7 @@ class quay_wall_properties_mixin(object):
         self.wave_motion = wave_motion
         self.safety_margin= safety_margin
         self.apron_width = apron_width
+        self.apron_pavement = apron_pavement
 
 
 class berth_properties_mixin(object):
@@ -489,4 +490,8 @@ class indirect_costs_mixin(object):
         self.electrical_works_fuel_terminal = electrical_works_fuel_terminal
         self.electrical_works_power_terminal = electrical_works_power_terminal
 
+class land_price_mixin(object):
+    def __init__(self, price, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.price = price
 

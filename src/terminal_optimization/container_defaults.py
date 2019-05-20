@@ -40,20 +40,22 @@ import pandas as pd
 # *** Default inputs: Quay class ***
 
 quay_wall_data = {"name": 'Quay_01',
-                  "ownership": 'Port authority',
-                  "delivery_time": 2,
-                  "lifespan": 50,
-                  "mobilisation_min": 2_500_000,
-                  "mobilisation_perc": 0.02,
-                  "maintenance_perc": 0.01,
-                  "insurance_perc": 0.01,
-                  "freeboard": 4,
-                  "Gijt_constant": 757.20,
-                  "Gijt_coefficient": 1.2878,
-                  "max_sinkage": 0.5,
-                  "wave_motion": 0.5,
-                  "safety_margin": 0.5,
-                  "apron_width" : 65.5} # all values from Ijzermans, 2019, P 91
+                 "ownership": 'Port authority',
+                 "delivery_time": 2,
+                 "lifespan": 50,
+                 "mobilisation_min": 2_500_000,
+                 "mobilisation_perc": 0.02,
+                 "maintenance_perc": 0.01,
+                 "insurance_perc": 0.01,
+                 "freeboard": 4,
+                 "Gijt_constant": 757.20,
+                 "Gijt_coefficient": 1.2878,
+                 "max_sinkage": 0.5,
+                 "wave_motion": 0.5,
+                 "safety_margin": 0.5,
+                 "apron_width" : 65.5,
+                 "apron_pavement" : 125} # all values from Ijzermans, 2019, P 91
+
 
 # *** Default inputs: Berth class ***
 
