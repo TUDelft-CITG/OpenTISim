@@ -92,14 +92,14 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "delivery_time": 1,
                             "lifespan": 20,
                             "mobilisation": 30_000,
-                            "unit_rate_factor": 6,
+                            "unit_rate_factor": 0.25,
                             "maintenance_perc": 0.10,
                             "insurance_perc": 0.01,
                             "consumption_constant": 81,
-                            "consumption_coefficient": 0.08,
+                            "consumption_coefficient": 80, #in kwh/ton
                             "crew": 1,
                             "utilisation": 0.80,
-                            "capacity": 4000}
+                            "capacity": 4000} #ton/hr
 
 
 # *** Default inputs: Storage class ***
@@ -137,7 +137,7 @@ storage_nh3_data = {"name": 'ATank_01',
                   "insurance_perc": 0.005,
                   "storage_type": 'tank',
                   "consumption": 100, #in kwh/ton
-                  "capacity": 40_000}
+                  "capacity": 34_130}
 
 "MCH"
 storage_MCH_data = {"name": 'MCHTank_01',
@@ -190,8 +190,8 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "crew_for5": 1,
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
-             "consumption": 5880,#in kwh/ton
-             "capacity": 35}  #in ton/hr
+             "consumption": 5887,#in kwh/ton
+             "capacity": 55}  #in ton/hr
 
 "MCH"
 h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
@@ -246,7 +246,7 @@ commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
 
 commodity_ammonia_data = {"name": 'Ammonia',
                 "type": 'Ammonia',
-                "handling_fee": 1000,
+                "handling_fee": 300,
                 "smallhydrogen_perc": 0,
                 "largehydrogen_perc": 0,
                 "smallammonia_perc": 40,
@@ -375,7 +375,7 @@ labour_data = {"name": 'Labour',
 # *** Default inputs: Energy class ***
 
 energy_data = {"name": 'Energy',
-               "price": 0.10}
+               "price": 0.014}
 
 # *** Default inputs: Train class ***
 
