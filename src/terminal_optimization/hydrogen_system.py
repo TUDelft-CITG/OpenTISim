@@ -12,9 +12,9 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
-                 hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_nh3_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 commodity_type_defaults=hydrogen_defaults.commodity_lhydrogen_data, storage_type_defaults=
+                 hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
                  h2retrieval_trigger=1):
 
         # time inputs
@@ -183,6 +183,7 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
+#todo: make general call size
         # calculate storage energy
         list_of_elements_Storage = self.find_elements(Storage)
         max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
@@ -709,13 +710,13 @@ class System:
 
             # - capex
             capacity = pipeline_hinter.capacity
-            unit_rate = pipeline_hinter.unit_rate_factor * pipeline_hinter.length
+            unit_rate = pipeline_hinter.unit_rate_factor * pipeline_hinter.length * capacity
             mobilisation = pipeline_hinter.mobilisation
-            pipeline_hinter.capex = int(capacity * unit_rate + mobilisation)
+            pipeline_hinter.capex = int( unit_rate + mobilisation)
 
             # - opex
-            pipeline_hinter.insurance = capacity * unit_rate * pipeline_hinter.insurance_perc
-            pipeline_hinter.maintenance = capacity * unit_rate * pipeline_hinter.maintenance_perc
+            pipeline_hinter.insurance =  unit_rate * pipeline_hinter.insurance_perc
+            pipeline_hinter.maintenance = unit_rate * pipeline_hinter.maintenance_perc
 
             # - labour
             labour = Labour(**hydrogen_defaults.labour_data)
@@ -732,6 +733,7 @@ class System:
             pipeline_hinter.assetvalue = unit_rate * (
                     1 - (self.lifecycle + self.startyear - pipeline_hinter.year_online) / pipeline_hinter.lifespan)
             pipeline_hinter.residual = max(pipeline_hinter.assetvalue, 0)
+
 
             # add cash flow information to pipeline_hinter object in a dataframe
             pipeline_hinter = self.add_cashflow_data_to_element(pipeline_hinter)
@@ -1705,7 +1707,7 @@ class System:
         ax.bar(years, -capex, width=width, alpha=alpha, label="Capex", color='red')
         ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="Revenue", color='lightgreen')
         ax.step(years, profits, label='Profits', where='mid')
-        ax.step(years, profits_cum, label='Profits_cum', where='mid')
+        # ax.step(years, profits_cum, label='Profits_cum', where='mid')
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [000 M $]')
