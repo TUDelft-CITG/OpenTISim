@@ -12,9 +12,9 @@ from terminal_optimization import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.commodity_lhydrogen_data, storage_type_defaults=
-                 hydrogen_defaults.storage_lh2_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_lh2_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
+                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
+                 hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
+                 hydrogen_defaults.h2retrieval_nh3_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
                  h2retrieval_trigger=1):
 
         # time inputs
@@ -186,7 +186,7 @@ class System:
 #todo: make general call size
         # calculate storage energy
         list_of_elements_Storage = self.find_elements(Storage)
-        max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
+        max_vessel_call_size = hydrogen_defaults.largeammonia_data["call_size"]
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
             year)
         storage_capacity_dwelltime_throughput = (throughput_online * self.allowable_dwelltime) * 1.1
@@ -555,7 +555,7 @@ class System:
         #todo: change this to general comment
 
         # max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
-        max_vessel_call_size = hydrogen_defaults.largehydrogen_data["call_size"]
+        max_vessel_call_size = hydrogen_defaults.largeammonia_data["call_size"]
 
         Demand = []
         for commodity in self.find_elements(Commodity):
@@ -870,11 +870,38 @@ class System:
         df["year"] = years
 
         # capex
-        if year_delivery > 1:
+        if year_delivery == 2:
             df.loc[df["year"] == year_online - 2, "capex"] = 0.6 * capex
             df.loc[df["year"] == year_online  - 1, "capex"] = 0.4 * capex
             df.loc[df["year"] == year_online  + lifespan - 2, "capex"] = 0.6 * capex
             df.loc[df["year"] == year_online  + lifespan - 1, "capex"] = 0.4 * capex
+        if year_delivery == 3:
+            df.loc[df["year"] == year_online - 3, "capex"] = 0.5 * capex
+            df.loc[df["year"] == year_online  - 2, "capex"] = 0.35 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.15 * capex
+            df.loc[df["year"] == year_online  + lifespan - 3, "capex"] = 0.5 * capex
+            df.loc[df["year"] == year_online  + lifespan - 2, "capex"] = 0.35 * capex
+            df.loc[df["year"] == year_online + lifespan - 1, "capex"] = 0.15 * capex
+        if year_delivery == 4:
+            df.loc[df["year"] == year_online - 3, "capex"] = 0.4 * capex
+            df.loc[df["year"] == year_online - 2, "capex"] = 0.3 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.2 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.1 * capex
+            df.loc[df["year"] == year_online + lifespan - 3, "capex"] = 0.4 * capex
+            df.loc[df["year"] == year_online + lifespan - 2, "capex"] = 0.3 * capex
+            df.loc[df["year"] == year_online + lifespan - 1, "capex"] = 0.2 * capex
+            df.loc[df["year"] == year_online + lifespan - 1, "capex"] = 0.1 * capex
+        if year_delivery == 5:
+            df.loc[df["year"] == year_online - 3, "capex"] = 0.30 * capex
+            df.loc[df["year"] == year_online - 2, "capex"] = 0.25 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.20 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.15 * capex
+            df.loc[df["year"] == year_online - 1, "capex"] = 0.1 * capex
+            df.loc[df["year"] == year_online + lifespan - 3, "capex"] = 0.3 * capex
+            df.loc[df["year"] == year_online + lifespan - 2, "capex"] = 0.25 * capex
+            df.loc[df["year"] == year_online + lifespan - 1, "capex"] = 0.20 * capex
+            df.loc[df["year"] == year_online + lifespan - 1, "capex"] = 0.15 * capex
+            df.loc[df["year"] == year_online + lifespan - 1, "capex"] = 0.1 * capex
         else:
             df.loc[df["year"] == year_online  - 1, "capex"] = capex
             df.loc[df["year"] == year_online  + lifespan- 1, "capex"] = capex
@@ -897,7 +924,7 @@ class System:
 
         return element
 
-    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
+    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.15, Tc=.25):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
         to receive and expenses it expects to pay out, including inflation.
         When all cashflows within the model are denoted in real terms and including inflation."""
@@ -913,7 +940,7 @@ class System:
 
         return WACC_nominal
 
-    def WACC_real(self, inflation=0.02):  # old: interest=0.0604
+    def WACC_real(self, inflation=0.0321):  # old: interest=0.0604
         """Real cash flow expresses a company's cash flow with adjustments for inflation.
         When all cashflows within the model are denoted in real terms and have been
         adjusted for inflation (no inlfation has been taken into account),
@@ -2090,7 +2117,7 @@ class System:
             for element in self.find_elements(Jetty):
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
-                        jettys_cap[-1] += hydrogen_defaults.largehydrogen_data["pump_capacity"]
+                        jettys_cap[-1] += hydrogen_defaults.largeammonia_data["pump_capacity"]
 
             #todo: change this to general info
         # get demand
