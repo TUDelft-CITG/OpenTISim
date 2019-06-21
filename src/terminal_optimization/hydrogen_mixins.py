@@ -12,7 +12,6 @@
 - continuous_properties_mixin
 - pipeline_properties_mixin
 - storage_properties_mixin
-- unloading_station_properties_mixin
 - commodity_properties_mixin
 - vessel_properties_mixin
 - labour_properties_mixin
@@ -138,8 +137,7 @@ class berth_properties_mixin(object):
 
 class pipeline_properties_mixin(object):
     def __init__(self, type, length, ownership, delivery_time, lifespan, unit_rate_factor, mobilisation,
-                 maintenance_perc, insurance_perc,
-                 consumption_constant, consumption_coefficient, crew, utilisation, capacity, *args, **kwargs):
+                 maintenance_perc, insurance_perc, consumption_coefficient, crew, utilisation, capacity, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -151,7 +149,6 @@ class pipeline_properties_mixin(object):
         self.mobilisation = mobilisation
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
-        self.consumption_constant = consumption_constant
         self.consumption_coefficient = consumption_coefficient
         self.crew = crew
         self.utilisation = utilisation
@@ -196,27 +193,6 @@ class h2retrieval_properties_mixin(object):
         self.h2retrieval_type = h2retrieval_type
         self.consumption = consumption
         self.capacity = capacity
-
-class unloading_station_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
-                 insurance_perc, consumption, crew, production, wagon_payload, number_of_wagons, prep_time, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.ownership = ownership
-        self.delivery_time = delivery_time
-        self.lifespan = lifespan
-        self.unit_rate = unit_rate
-        self.mobilisation = mobilisation
-        self.maintenance_perc = maintenance_perc
-        self.insurance_perc = insurance_perc
-        self.consumption = consumption
-        self.crew = crew
-        self.production = production
-        self.wagon_payload = wagon_payload
-        self.number_of_wagons = number_of_wagons
-        self.prep_time = prep_time
-        self.call_size = int(self.wagon_payload * self.number_of_wagons)
-        self.service_rate = int(self.call_size / (self.call_size/self.production + self.prep_time)) #TUE/hour, IJzermans 2019, P30
 
 class commodity_properties_mixin(object):
     def __init__(self, type, handling_fee, smallhydrogen_perc, largehydrogen_perc, smallammonia_perc, largeammonia_perc,handysize_perc, panamax_perc, vlcc_perc, *args, **kwargs):

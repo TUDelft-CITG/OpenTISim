@@ -17,13 +17,11 @@ Defaults for following objects:
 - 6. H2 retrieval
     - Ammonia
     - MCH
-- 6. Unloading_station
-    - Hinterland station
-- 7. Commodity
+- 6. Commodity
     - Liquid hydrogen
     - Ammonia
     - MCH
-- 8. Vessel
+- 7. Vessel
     - smallhydrogen
     - largehydrogen
     - smallammonia
@@ -31,7 +29,7 @@ Defaults for following objects:
     - Handysize
     - Panamax
     - VLCC
-- 9. Labour
+- 8. Labour
 """
 
 from terminal_optimization import hydrogen_mixins
@@ -104,12 +102,6 @@ H2retrieval = type('H2retrieval', (hydrogen_mixins.identifiable_properties_mixin
                            hydrogen_mixins.hasrevenue_properties_mixin,  # Give it revenue info
                            hydrogen_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})  # The dictionary is empty because the site type is generic
-
-
-# define loading station class functions **will ultimately be placed in package**
-Unloading_station = type('Unloading_station', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
-                                               hydrogen_mixins.unloading_station_properties_mixin),
-                         {})  # The dictionary is empty because the site type is generic
 
 # The generic Commodity class
 # - Liquid hydrogen

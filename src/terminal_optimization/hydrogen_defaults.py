@@ -16,13 +16,11 @@
 - 6. H2 retrieval
     - Ammonia
     - MCH
-- 6. Unloading_station
-    - Hinterland station
-- 7. Commodity
+- 6. Commodity
     - Liquid hydrogen
     - Ammonia
     - MCH
-- 8. Vessel
+- 7. Vessel
     - smallhydrogen
     - largehydrogen
     - smallammonia
@@ -30,7 +28,7 @@
     - Handysize
     - Panamax
     - VLCC
-- 9. Labour
+- 8. Labour
 
 Default values are based on Claes 2018; Corbeau 2018; Daas 2018; Juha 2018;
 Kranendonk 2018; Schutz 2018; Schuurmans 2018 and Verstegen 2018
@@ -71,15 +69,14 @@ berth_data = {"name": 'Berth_01',
 
 jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "type": 'jetty_pipeline',
-                      "length": 200,
+                      "length": 600,
                       "ownership": 'Terminal operator',
                       "delivery_time": 1,
-                      "lifespan": 20,
-                      "unit_rate_factor": 400_000,
+                      "lifespan": 26,
+                      "unit_rate_factor": 193_000,
                       "mobilisation": 30_000,
-                      "maintenance_perc": 0.10,
+                      "maintenance_perc": 0.01,
                       "insurance_perc": 0.01,
-                      "consumption_constant": 81,
                       "consumption_coefficient": 0.08,
                       "crew": 1,
                       "utilisation": 0.80,
@@ -92,10 +89,9 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "delivery_time": 1,
                             "lifespan": 20,
                             "mobilisation": 30_000,
-                            "unit_rate_factor": 0.25,
-                            "maintenance_perc": 0.10,
+                            "unit_rate_factor": 193_000,
+                            "maintenance_perc": 0.01,
                             "insurance_perc": 0.01,
-                            "consumption_constant": 81,
                             "consumption_coefficient": 80, #in kwh/ton
                             "crew": 1,
                             "utilisation": 0.80,
@@ -110,31 +106,31 @@ storage_lh2_data = {"name": 'HTank_01',
              "type": 'HydrogenTank',
              "ownership": 'Terminal operator',
              "delivery_time": 1,
-             "lifespan": 20,
-             "unit_rate": 500_000_000,
+             "lifespan": 30,
+             "unit_rate": 200_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.005,
+             "maintenance_perc": 0.01,
              "crew_min": 3,
              "crew_for5": 1,
-             "insurance_perc": 0.005,
+             "insurance_perc": 0.01,
              "storage_type": 'tank',
-             "consumption": 300, #navragen emma
-             "capacity": 4_000} # all input values from Ijzermans, 2019, P 102
+             "consumption": 610,
+             "capacity": 3_540} # all input values from Ijzermans, 2019, P 102
 
 "Ammonia"
 storage_nh3_data = {"name": 'ATank_01',
                   "type": 'AmmoniaTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
-                  "lifespan": 20,
-                  "unit_rate": 50_000_000,
+                  "lifespan": 30,
+                  "unit_rate": 60_000_000,
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
-                  "maintenance_perc": 0.005,
+                  "maintenance_perc": 0.01,
                   "crew_min": 3,
                   "crew_for5": 1,
-                  "insurance_perc": 0.005,
+                  "insurance_perc": 0.01,
                   "storage_type": 'tank',
                   "consumption": 100, #in kwh/ton
                   "capacity": 34_130}
@@ -144,14 +140,14 @@ storage_MCH_data = {"name": 'MCHTank_01',
                   "type": 'MCHTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
-                  "lifespan": 20,
-                  "unit_rate": 15_000_000,
+                  "lifespan": 50,
+                  "unit_rate": 35_000_000,
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
-                  "maintenance_perc": 0.005,
+                  "maintenance_perc": 0.01,
                   "crew_min": 3,
                   "crew_for5": 1,
-                  "insurance_perc": 0.005,
+                  "insurance_perc": 0.01,
                   "storage_type": 'tank',
                   "consumption": 100,
                   "capacity": 38_500}
@@ -164,17 +160,17 @@ h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
                   "type": 'HydrogenTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 2,
-                  "lifespan": 20,
+                  "lifespan": 10,
                   "unit_rate": 18_000_000,
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
-                  "maintenance_perc": 0.02,
+                  "maintenance_perc": 0.015,
                   "crew_min": 3,
                   "crew_for5": 1,
                   "insurance_perc": 0.01,
                   "h2retrieval_type": 'tank',
                   "consumption": 600, #in kwh/ton
-                  "capacity": 125} #in ton/hr
+                  "capacity": 171} #in ton/hr
 
 "Ammonia"
 h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
@@ -182,10 +178,10 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 246_000_000,
+             "unit_rate": 350_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.02,
+             "maintenance_perc": 0.015,
              "crew_min": 3,
              "crew_for5": 1,
              "insurance_perc": 0.01,
@@ -199,35 +195,17 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 246_000_000,
+             "unit_rate": 200_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
-             "maintenance_perc": 0.02,
+             "maintenance_perc": 0.015,
              "crew_min": 3,
              "crew_for5": 1,
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
-             "consumption": 5880,#in kwh/ton
-             "capacity": 35}  #in ton/hr
+             "consumption": 9360,#in kwh/ton
+             "capacity": 57}  #in ton/hr
 
-
-# *** Default inputs: Unloading_station class ***
-
-
-hinterland_station_data = {"name": 'Hinterland_station_01',
-                           "ownership": 'Terminal operator',
-                           "delivery_time": 1,
-                           "lifespan": 15,
-                           "unit_rate": 800_000,
-                           "mobilisation": 200_000,
-                           "maintenance_perc": 0.02,
-                           "consumption": 100,
-                           "insurance_perc": 0.01,
-                           "crew": 2,
-                           "production": 800,
-                           "wagon_payload" : 60,
-                           "number_of_wagons": 60,
-                           "prep_time": 2}
 
 # *** Default inputs: Commodity class ***
 
@@ -246,7 +224,7 @@ commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
 
 commodity_ammonia_data = {"name": 'Ammonia',
                 "type": 'Ammonia',
-                "handling_fee": 300,
+                "handling_fee": 150,
                 "smallhydrogen_perc": 0,
                 "largehydrogen_perc": 0,
                 "smallammonia_perc": 40,
@@ -375,9 +353,5 @@ labour_data = {"name": 'Labour',
 # *** Default inputs: Energy class ***
 
 energy_data = {"name": 'Energy',
-               "price": 0.014}
+               "price": 0.09}
 
-# *** Default inputs: Train class ***
-
-train_data = {"wagon_payload": 60,
-              "number_of_wagons": 60}
