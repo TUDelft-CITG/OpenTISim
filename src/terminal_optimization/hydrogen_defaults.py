@@ -77,7 +77,7 @@ jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "mobilisation": 30_000,
                       "maintenance_perc": 0.01,
                       "insurance_perc": 0.01,
-                      "consumption_coefficient": 0.08,
+                      "consumption_coefficient": 80, #kwh/ton
                       "crew": 1,
                       "utilisation": 0.80,
                       "capacity": 4000}
@@ -211,7 +211,7 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
 
 commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
                             "type": 'Liquid hydrogen',
-                  "handling_fee": 1000,
+                  "handling_fee": 490,
                   "smallhydrogen_perc": 30,
                   "largehydrogen_perc": 70,
                   "smallammonia_perc": 0,
