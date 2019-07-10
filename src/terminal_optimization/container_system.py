@@ -9,11 +9,11 @@ from terminal_optimization import container_defaults
 
 
 class System:
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rtg', laden_stack = 'rtg',
+    def __init__(self, startyear=2019, lifecycle=20, stack_equipment = 'rs', laden_stack = 'rs',
                  operational_hours=7500, debug=False, elements=[], crane_type_defaults=container_defaults.sts_crane_data,
                  allowable_berth_occupancy=0.6,
-                 laden_perc=0.92 , reefer_perc=0.05, empty_perc=0.02, oog_perc=0.01, transhipment_ratio=0.3,
-                 energy_price = 0.075, fuel_price = 1.5, land_price = 50):
+                 laden_perc=0.80 , reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.69,
+                 energy_price = 0.17, fuel_price = 1, land_price = 0):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -152,15 +152,35 @@ class System:
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
 
-        # # 7. add indirect costs to capex
-        #
-        # self.calculate_indirect_costs()
+        # 7. calculate key numbers
 
-        # 7. calculate PV's and aggregate to NPV
-        self.NPV()
-        NPV = self.NPV()
+        NPV, capex_normal, opex_normal, labour_normal = self.NPV()
+        total_land_use = self.calculate_land_use(year)
+        land = total_land_use
+        labour = labour_normal[-1]
+        opex = opex_normal[-1]
+        capex_normal = np.nan_to_num(capex_normal)
+        capex = np.sum(capex_normal)
 
-        return NPV
+        data = {"equipment": self.stack_equipment,
+                "cost_land": self.land_price,
+                "cost_fuel": self.fuel_price,
+                "cost_power": self.energy_price,
+                "land": land,
+                "labour": labour,
+                "opex": opex,
+                "capex": capex,
+                "NPV": NPV}
+
+        cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
+
+
+
+        # 8. calculate PV's and aggregate to NPV
+        # self.NPV()
+        # NPV, capex_normal, opex_normal, labour_normal = self.NPV()
+
+        return NPV, data
 
     # def calculate_revenue(self, year):
     #     """
@@ -424,8 +444,6 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'fuel'] = 0
 
-
-
     def calculate_demurrage_cost(self, year):
 
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
@@ -495,9 +513,6 @@ class System:
         indirect_costs = capex+electrical_works+miscellaneous+preliminaries+engineering
         print(indirect_costs)
         # cash_flows['capex'].values = indirect_costs
-
-
-
 
 
 
@@ -918,8 +933,6 @@ class System:
             empty_stack_area = self.empty_stack_capacity(
                 year)
 
-
-
     def oog_stack_invest(self, year):
 
         """current strategy is to add stacks as soon as trigger is achieved
@@ -1234,7 +1247,6 @@ class System:
     def add_cashflow_elements(self):
 
             cash_flows = pd.DataFrame()
-            labour = Labour(**container_defaults.labour_data)
 
             # initialise cash_flows
             cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
@@ -1248,8 +1260,6 @@ class System:
             # cash_flows['revenues'] = self.revenues
 
             # add labour component for years where revenues are not zero
-            # cash_flows.loc[cash_flows[
-            #                    'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
             for element in self.elements:
                 if hasattr(element, 'df'):
                     for column in cash_flows.columns:
@@ -1270,6 +1280,7 @@ class System:
                                     'year'] == year, column] / (
                                     (1 + self.WACC_real()) ** (
                                     year - self.startyear))
+
 
             return cash_flows, cash_flows_WACC_real
 
@@ -1360,15 +1371,25 @@ class System:
                cash_flows_WACC_real['demurrage'].values + \
                cash_flows_WACC_real['fuel'].values + \
                cash_flows_WACC_real['labour'].values
+        opex = np.nan_to_num(opex)
 
-        PV = - capex - opex
-        PV = np.nan_to_num(PV)
-        NPV = np.sum(PV)
-        # print('PV: {}'.format(PV))
-        #
-        # print('NPV: {}'.format(np.sum(PV)))
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows_WACC_real['year'].values
+        # revenue = self.revenues
+        capex_normal = cash_flows['capex'].values
+        opex_normal = cash_flows['insurance'].values + \
+               cash_flows['maintenance'].values + \
+               cash_flows['energy'].values + \
+               cash_flows['demurrage'].values + \
+               cash_flows['fuel'].values + \
+               cash_flows['labour'].values
+        labour_normal = cash_flows['labour'].values
 
-        return NPV
+        NPV = - capex - opex
+        NPV = np.sum(NPV)
+
+
+        return NPV, capex_normal, opex_normal, labour_normal
 
     # *** General functions
 
@@ -1442,7 +1463,6 @@ class System:
 
         return laden_teu, reefer_teu, empty_teu, oog_teu
 
-
     def throughput_box(self, year):
 
         """
@@ -1514,6 +1534,40 @@ class System:
 
         return  sts_moves, stack_moves, empty_moves, tractor_moves
 
+    def calculate_land_use(self, year):
+
+        quay_land_use=0
+        stack_land_use=0
+        empty_land_use=0
+        oog_land_use=0
+        gate_land_use=0
+        general_land_use=0
+
+        for element in self.elements:
+            if isinstance(element, Quay_wall):
+                if year >= element.year_online:
+                    quay_land_use += element.land_use
+            if isinstance(element, Laden_Stack):
+                if year >= element.year_online:
+                    stack_land_use += element.land_use
+            if isinstance(element, Empty_Stack):
+                if year >= element.year_online:
+                    empty_land_use += element.land_use
+            if isinstance(element, OOG_Stack):
+                if year >= element.year_online:
+                    oog_land_use += element.land_use
+            if isinstance(element, Gate):
+                if year >= element.year_online:
+                    gate_land_use += element.land_use
+            if isinstance(element, General_Services):
+                if year >= element.year_online:
+                    general_land_use += element.land_use
+
+
+        total_land_use=quay_land_use+stack_land_use+empty_land_use+oog_land_use+gate_land_use+general_land_use
+
+        return total_land_use
+
 
 
     def laden_reefer_stack_capacity(self, year):
@@ -1535,6 +1589,11 @@ class System:
                 stack_capacity_online += element.capacity
 
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+
+        ts=self.transhipment_ratio
+
+        laden_teu = (laden_teu*ts*0.5)+(laden_teu*(1-ts))
+        reefer_teu = (reefer_teu * ts * 0.5) + (reefer_teu * (1 - ts))
 
         laden = Container(**container_defaults.laden_container_data)
         reefer = Container(**container_defaults.reefer_container_data)
@@ -1580,6 +1639,7 @@ class System:
             if year >= element.year_online:
                 empty_capacity_online += element.capacity
 
+        ts=self.transhipment_ratio
 
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
@@ -1588,7 +1648,7 @@ class System:
         stack = Empty_Stack(**container_defaults.empty_stack_data)
 
         operational_days = self.operational_hours // 24
-
+        empty_teu = (empty_teu * ts * 0.5) + (empty_teu * (1 - ts))
         empty_ground_slots = empty_teu * empty.peak_factor * empty.dwell_time / empty.stack_occupancy / stack.height / operational_days
 
         empty_required_capacity = empty_ground_slots*stack.height
@@ -1613,9 +1673,11 @@ class System:
             oog_capacity_planned += element.capacity
             if year >= element.year_online:
                 oog_capacity_online += element.capacity
-
+        ts=self.transhipment_ratio
 
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+
+        oog_teu = (oog_teu * ts * 0.5) + (oog_teu * (1 - ts))
 
         oog = Container(**container_defaults.oog_container_data)
 
@@ -1628,9 +1690,6 @@ class System:
         oog_required_capacity = oog_spots
 
         return oog_capacity_planned, oog_capacity_online, oog_required_capacity
-
-
-
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
@@ -1814,24 +1873,18 @@ class System:
         # storage_capacity_online = laden_capacity_online + empty_capacity_online + oog_capacity_online
 
 
-        # print(quay_capacity_online, quay_capacity_planned , demand,  'ajax')
 
         if quay_capacity_online is not 0:
             throughput_online = min(quay_capacity_online, demand)
         else:
             throughput_online = demand
 
-        print(throughput_online)
 
 
 
 
 
         return throughput_online
-
-
-
-
 
     def calculate_gate_minutes(self, year):
         """
@@ -2184,7 +2237,7 @@ class System:
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
         #prepare NPV
-        NPV = self.NPV()
+        NPV, capex_normal, opex_normal, labour_normal = self.NPV()
         print(NPV)
 
 
