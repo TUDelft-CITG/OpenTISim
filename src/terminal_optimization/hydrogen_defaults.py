@@ -87,7 +87,7 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "length": 400,
                             "ownership": 'Terminal operator',
                             "delivery_time": 1,
-                            "lifespan": 20,
+                            "lifespan": 26,
                             "mobilisation": 30_000,
                             "unit_rate_factor": 193_000,
                             "maintenance_perc": 0.01,
@@ -149,7 +149,7 @@ storage_MCH_data = {"name": 'MCHTank_01',
                   "crew_for5": 1,
                   "insurance_perc": 0.01,
                   "storage_type": 'tank',
-                  "consumption": 100,
+                  "consumption": 10,
                   "capacity": 38_500}
 
 
@@ -178,7 +178,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 350_000_000,
+             "unit_rate": 100_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.015,
@@ -186,7 +186,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "crew_for5": 1,
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
-             "consumption": 5887,#in kwh/ton
+             "consumption": 5889,#in kwh/ton
              "capacity": 55}  #in ton/hr
 
 "MCH"
