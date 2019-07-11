@@ -56,7 +56,6 @@ quay_wall_data = {"name": 'Quay_01',
                  "apron_width" : 65.5,
                  "apron_pavement" : 125} # all values from Ijzermans, 2019, P 91
 
-
 # *** Default inputs: Berth class ***
 
 berth_data = {"name": 'Berth_01',
@@ -125,7 +124,6 @@ sts_crane_data = {"name": 'STS_crane',
                      "lifting_capacity": 2.13 , #weighted average of TEU per lift
                      "hourly_cycles": 25, #PIANC wg135
                      "eff_fact": 1}
-
 
 # Default inputs: Horizontal Transport class ***
 
@@ -199,7 +197,6 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
 
-
 rmg_stack_data = {"name": 'RMG Stack',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
@@ -220,7 +217,6 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "consumption": 4,  # kWh per active reefer
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
-
 
 sc_stack_data = {"name": 'SC Stack',
                  "ownership": 'Terminal operator',
@@ -264,13 +260,10 @@ rs_stack_data = {"name": 'RS Stack',
                  "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
 
-
 # #*** Default inputs: Reefer data
 # reefer_rack_data = {"reefer_factor":2.33, #RHDHV
 #                  "consumption":4, #kWh per active reefer
 #                  "reefer_rack": 3500} #per reefer spot
-
-
 
 # *** Default inputs: Other_Stack class
 
@@ -306,8 +299,7 @@ oog_stack_data = {"name": 'OOG Stack',
                     "pavement": 200, #DUMMY
                     "drainage": 50} #DUMMY
 
-# *** Default inputs: Stack_Equipment class
-#RTG # todo add eRTG
+# *** Default inputs: Stack_Equipment class #todo add eRTG
 
 rtg_data = {"name": 'RTG',
             "type": 'rtg',
@@ -325,7 +317,6 @@ rtg_data = {"name": 'RTG',
             "power_consumption": 0
             }
 
-#RMG
 rmg_data = {"name": 'RMG',
             "type": 'rmg',
             "ownership": 'Terminal operator',
@@ -342,7 +333,6 @@ rmg_data = {"name": 'RMG',
             "power_consumption": 15 #kWh/box move
             }
 
-#Straddle carrier #
 sc_data = {"name": 'Straddle carrier',
             "type": 'sc',
             "ownership": 'Terminal operator',
@@ -359,7 +349,6 @@ sc_data = {"name": 'Straddle carrier',
             "power_consumption": 30
             }
 
-#Reach stacker
 rs_data = {"name": 'Reach stacker',
             "type": 'rs',
             "ownership": 'Terminal operator',
@@ -375,8 +364,6 @@ rs_data = {"name": 'Reach stacker',
             "fuel_consumption": 1, #dummy
             "power_consumption": 0
             }
-
-
 
 # *** Default inputs: Gate class ***
 
@@ -419,7 +406,6 @@ empty_handler_data = {"name": 'Empty Handler',
                     "fuel_consumption" : 1.5,
                     "required" : 5}
 
-
 # *** Default inputs: Commodity class ***
 
 container_data = {"name": 'Laden',
@@ -429,8 +415,6 @@ container_data = {"name": 'Laden',
                 "panamax_perc": 100,
                 "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                     'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
-
-
 
 
 # *** Default inputs: Vessel class ***
@@ -467,7 +451,6 @@ panamax_data = {"name": 'Panamax_1',
                 "all_turn_time": 31,#UNCTAD geeft deze waarde voor container schepen
                 "mooring_time": 6, #berthing + deberthing time
                 "demurrage_rate": 730}
-
 
 # *** Default inputs: Labour class ***
 
@@ -520,6 +503,8 @@ general_services_data = {"name": 'General_Services"',
                          "delivery_time": 1,
                          "lighting_consumption": 1,
                          "general_consumption": 1000}
+
+# *** Default inputs: Indirect_Costs class ***
 
 indirect_costs_data = {"name": 'Indirect_Costs',
                "preliminaries": 0.15,

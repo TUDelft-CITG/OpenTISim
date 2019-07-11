@@ -240,7 +240,6 @@ class laden_stack_properties_mixin (object):
         self.reefers_present = reefers_present
 
 
-
 class empty_stack_properties_mixin (object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
                  length, capacity, gross_tgs, area_factor, pavement, drainage, household, digout, *args, **kwargs):
@@ -441,6 +440,7 @@ class hasscenario_properties_mixin(object):
         plt.ylabel('Demand ' + self.name + ' [TEU]')
         plt.title('Demand ' + self.name)
 
+
 class general_services_mixin(object):
     def __init__(self,
                  type, office, office_cost, workshop, workshop_cost, fuel_station_cost, scanning_inspection_area,
@@ -480,6 +480,7 @@ class general_services_mixin(object):
         self.lighting_consumption = lighting_consumption
         self.general_consumption = general_consumption
 
+
 class indirect_costs_mixin(object):
     def __init__(self, preliminaries, engineering, miscellaneous, electrical_works_fuel_terminal,
                  electrical_works_power_terminal, *args, **kwargs):
@@ -490,8 +491,8 @@ class indirect_costs_mixin(object):
         self.electrical_works_fuel_terminal = electrical_works_fuel_terminal
         self.electrical_works_power_terminal = electrical_works_power_terminal
 
+
 class land_price_mixin(object):
     def __init__(self, price, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.price = price
-
