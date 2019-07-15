@@ -161,11 +161,10 @@ Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_
                                container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                  {})
 
-# The general Vessel class
+# The general Vessel class #todo add container ship types
 # - Handysize
 # - Handymax
 # - Panamax
-# - Super Post-Panamax
 Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
                          container_mixins.vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic

@@ -350,7 +350,7 @@ class empty_handler_properties_mixin(object):
         self.required = required
 
 
-class commodity_properties_mixin(object):
+class commodity_properties_mixin(object): #todo add ships
     def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
