@@ -1,39 +1,25 @@
-[ ![Documentation](https://img.shields.io/badge/sphinx-documentation-informational.svg)](https://oedm.vanoord.com/proxy/circleci_no_redirect/github/TUDelft-CITG/Terminal-Optimization/master/latest/07f3adf51970049c681fce29419db5d9f7aa596d/tmp/artifacts/docs/index.html)
+[ ![Documentation](https://img.shields.io/badge/sphinx-documentation-informational.svg)](https://opentisim.readthedocs.org)
 [ ![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](https://github.com/TUDelft-CITG/Terminal-Optimization/blob/master/LICENSE.txt)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3341606.svg)](https://doi.org/10.5281/zenodo.3341606)
 
-[![CircleCI](https://circleci.com/gh/TUDelft-CITG/Terminal-Optimization.svg?style=svg&circle-token=e80be990a1415185a3aee7c7304e86bbef094eb5)](https://circleci.com/gh/TUDelft-CITG/Terminal-Optimization)
+[![CircleCI](https://circleci.com/gh/TUDelft-CITG/OpenTISim.svg?style=svg&circle-token=e80be990a1415185a3aee7c7304e86bbef094eb5)](https://circleci.com/gh/TUDelft-CITG/OpenTISim)
 
-Terminal-Optimization
-=====================
+# OpenTISim
 
-* Documentation can be found: [here](https://oedm.vanoord.com/proxy/circleci_no_redirect/github/TUDelft-CITG/Terminal-Optimization/master/latest/07f3adf51970049c681fce29419db5d9f7aa596d/tmp/artifacts/docs/index.html)
+**Open** source **T**erminal **I**nvestmnent **Sim**ulation - Adaptive infrastructure development parametrically driven by changing demand scenarios.
 
-Features
---------
-
-Investment Strategy Simulation - Adaptive infrastructure development parametrically driven by changing demand scenarios
-
-Example notebooks:
-* **Example 01** - Basic example of terminal development in response to changing throughput scenarios.
+Documentation can be found: [here](https://opentisim.readthedocs.org)
 
 ## Installation
 
-Installation using *pip install terminal_optimization* is not yet available. Running following three lines in your command prompt will allow you installing the package as well:
+To install OpenTISim, run this command in your terminal:
 
 ``` bash
-# Download the package
-git clone https://github.com/TUDelft-CITG/Terminal-Optimization
-
-# Go to the correct folder
-cd Terminal-Optimization
-
-# Install package
-pip install -e .
+pip install opentisim
 ```
 
-Note
-====
+This is the preferred method to install OpenTISim, as it will always install the most recent stable release.
 
-This project has been set up using PyScaffold 3.1. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+If you don not have [pip](https://pip.pypa.io) installed, this [Python installation guide](http://docs.python-guide.org/en/latest/starting/installation/) can guide you through the process.
 
+You can read the [documentation](https://opentisim.readthedocs.io/en/latest/installation.html) for other installation methods.
