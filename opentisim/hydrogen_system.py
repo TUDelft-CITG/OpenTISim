@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
-# terminal_optimization package
-from terminal_optimization.hydrogen_objects import *
-from terminal_optimization import hydrogen_defaults
+# opentisim package
+from opentisim.hydrogen_objects import *
+from opentisim import hydrogen_defaults
 
 class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],

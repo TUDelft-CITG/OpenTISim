@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# terminal_optimization package
-from terminal_optimization.agribulk_objects import *
-from terminal_optimization import agribulk_defaults
+# opentisim package
+from opentisim.agribulk_objects import *
+from opentisim import agribulk_defaults
 
 
 class System:
