@@ -406,51 +406,111 @@ empty_handler_data = {"name": 'Empty Handler',
                       "fuel_consumption": 1.5,
                       "required": 5}
 
-# *** Default inputs: Commodity class *** #todo edit vessel percentages
+# *** Default inputs: Commodity class ***
 
 container_data = {"name": 'Laden',
                   "handling_fee": 150,
-                  "handysize_perc": 0,
-                  "handymax_perc": 0,
+                  "fully_cellular_perc": 0,
                   "panamax_perc": 100,
+                  "panamax_max_perc": 0,
+                  "post_panamax_I_perc": 0,
+                  "post_panamax_II_perc": 0,
+                  "new_panamax_perc": 0,
+                  "VLCS_perc": 0,
+                  "ULCS_perc": 0,
                   "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
                                                       'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000,
                                                                  1_500_000]})}
 
-# *** Default inputs: Vessel class *** #todo add container ships
+# *** Default inputs: Vessel class ***
 
-handysize_data = {"name": 'Handysize_1',
-                  "type": 'Handysize',
-                  "call_size": 35_000,
-                  "LOA": 130,
-                  "draft": 10,
-                  "beam": 24,
-                  "max_cranes": 2,
-                  "all_turn_time": 24,
-                  "mooring_time": 3,
-                  "demurrage_rate": 600}
-
-handymax_data = {"name": 'Handymax_1',
-                 "type": 'Handymax',
-                 "call_size": 55_000,
-                 "LOA": 180,
-                 "draft": 11.5,
-                 "beam": 28,
-                 "max_cranes": 2,
-                 "all_turn_time": 24,
-                 "mooring_time": 3,
-                 "demurrage_rate": 750}
+fully_cellular_data = {"name": 'Fully_Cellular_1',
+                "type": 'Fully_Cellular',
+                "call_size": 2500, #TEU
+                "LOA": 215,
+                "draft": 10.0,
+                "beam": 20.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 3000,  # TEU
-                "LOA": 290,
-                "draft": 13,
+                "call_size": 3400, #TEU
+                "LOA": 250,
+                "draft": 12.5,
                 "beam": 32.2,
-                "max_cranes": 4,  # STS cranes
-                "all_turn_time": 31,  # UNCTAD geeft deze waarde voor container schepen todo waar komt dit vandaan?
-                "mooring_time": 6,  # berthing + deberthing time
-                "demurrage_rate": 730}
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
+
+panamax_max_data = {"name": 'Panamax_Max_1',
+                "type": 'Panamax_Max',
+                "call_size": 4500, #TEU
+                "LOA": 290,
+                "draft": 12.5,
+                "beam": 32.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
+
+post_panamax_I_data = {"name": 'Post_Panamax_I_1',
+                "type": 'Post_Panamax_I',
+                "call_size": 6000, #TEU
+                "LOA": 300,
+                "draft": 13.0,
+                "beam": 40.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
+
+post_panamax_II_data = {"name": 'Post_Panamax_II_1',
+                "type": 'Post_Panamax_II',
+                "call_size": 8500, #TEU
+                "LOA": 340,
+                "draft": 14.5,
+                "beam": 43.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
+
+new_panamax_data = {"name": 'New_Panamax_1',
+                "type": 'New_Panamax',
+                "call_size": 12500, #TEU
+                "LOA": 366,
+                "draft": 15.2,
+                "beam": 49.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
+
+VLCS_data = {"name": 'VLCS_1',
+                "type": 'VLCS',
+                "call_size": 15000, #TEU
+                "LOA": 397,
+                "draft": 15.5,
+                "beam": 56.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
+
+ULCS_data = {"name": 'ULCS_1',
+                "type": 'ULCS',
+                "call_size": 21000, #TEU
+                "LOA": 400,
+                "draft": 16.0,
+                "beam": 59.0,
+                "max_cranes": 4, #STS cranes
+                "all_turn_time": 31, #UNCTAD
+                "mooring_time": 6, #berthing + deberthing time
+                "demurrage_rate": 730} #Add sources
 
 # *** Default inputs: Labour class ***
 
