@@ -6,7 +6,7 @@
 
 # OpenTISim
 
-**Open** source **T**erminal **I**nvestmnent **Sim**ulation - Adaptive infrastructure development parametrically driven by changing demand scenarios.
+**Open** source **T**erminal **I**nvestment **Sim**ulation - Adaptive infrastructure development parametrically driven by changing demand scenarios.
 
 Documentation can be found: [here](https://opentisim.readthedocs.org)
 
