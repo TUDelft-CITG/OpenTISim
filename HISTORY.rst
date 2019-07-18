@@ -2,7 +2,12 @@
 History
 =======
 
-0.3.0 (2019-07-10)
+v0.4.0 (2019-07-18)
+------------------
+
+* Renamed and first release to PyPi
+
+v0.3.0 (2019-07-10)
 ------------------
 
 * Merged multiple terminal types to the master
