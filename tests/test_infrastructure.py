@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `terminal_optimization` package."""
+"""Tests for `opentisim` package."""
 
 def test_berth():
 	"""Test to see if object initialisation works properly"""
 
-	from terminal_optimization import agribulk_objects
-	from terminal_optimization import agribulk_defaults
+	from opentisim import agribulk_objects
+	from opentisim import agribulk_defaults
 	
 	berth_data = {"name": 'Berth_01',
 	              "crane_type": 'Mobile cranes',

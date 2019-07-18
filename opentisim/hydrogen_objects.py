@@ -32,7 +32,7 @@ Defaults for following objects:
 - 8. Labour
 """
 
-from terminal_optimization import hydrogen_mixins
+from opentisim import hydrogen_mixins
 
 # The generic jetty class
 Jetty = type('Jetty', (hydrogen_mixins.identifiable_properties_mixin,  # Give it a name
