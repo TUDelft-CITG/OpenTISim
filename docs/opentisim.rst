@@ -9,18 +9,18 @@ Submodules
 
 The main components are the Model module and the Core module. All of their components are listed below. 
 
-opentnsim\.model module
---------------------------
+opentisim\.agribulk_objects module
+----------------------------------
 
-.. automodule:: opentisim.model
+.. automodule:: opentisim.agribulk_objects
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentnsim\.core module
---------------------------
+opentisim\.agribulk_system module
+---------------------------------
 
-.. automodule:: opentisim.core
+.. automodule:: opentisim.agribulk_system
    :members:
    :undoc-members:
    :show-inheritance:
