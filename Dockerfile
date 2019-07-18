@@ -2,11 +2,10 @@
 FROM continuumio/miniconda3
 
 # Install conda stuff first
-RUN conda install numpy pandas nomkl pyproj
-RUN pip install pint
+RUN conda install nomkl pyproj
 
-WORKDIR /Terminal-Optimization
-ADD . /Terminal-Optimization
+WORKDIR /OpenTISim
+ADD . /OpenTISim
 
-# Then install rest via pip
-RUN python setup.py develop
+# Install the application
+RUN pip install -e .
