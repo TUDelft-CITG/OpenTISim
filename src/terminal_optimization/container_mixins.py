@@ -21,6 +21,9 @@
 - vessel_properties_mixin
 - labour_properties_mixin
 - hasscenario_properties_mixin
+- general_services_mixin
+- indirect_costs_mixin
+- land_price_mixin
 
 """
 
@@ -368,7 +371,7 @@ class commodity_properties_mixin(object):
 
 class vessel_properties_mixin(object):
     def __init__(self,
-                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, *args, **kwargs):
+                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, transport_costs, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -380,6 +383,7 @@ class vessel_properties_mixin(object):
         self.all_turn_time = all_turn_time
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
+        self.transport_costs = transport_costs
 
 
 class labour_properties_mixin(object):

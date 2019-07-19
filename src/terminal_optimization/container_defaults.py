@@ -1,4 +1,5 @@
-"""Main generic object classes:
+"""
+Main generic object classes:
 
 - 1. Quay_wall
 - 2. Berth
@@ -14,15 +15,7 @@
     - Empty
     - OOG
 - 7. Laden and reefer stack
-    - RTG stack
-    - RMG stack
-    - SC stack
-    - RS stack
 - 8. Stack equipment
-    - RTG
-    - RMG
-    - SC
-    - RS
 - 9. Empty stack
 - 10. OOG stack
 - 11. Gates
@@ -46,9 +39,9 @@ quay_wall_data = {"name": 'Quay_01',
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
-                  "freeboard": 4,
-                  "Gijt_constant": 757.20,
-                  "Gijt_coefficient": 1.2878,
+                  "freeboard": 4,  # m todo vragen of dit realistisch is
+                  "Gijt_constant": 757.8,  # USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
+                  "Gijt_coefficient": 1.2729,
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
@@ -111,18 +104,17 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
 
 sts_crane_data = {"name": 'STS_crane',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,
-                  "lifespan": 40,
-                  "unit_rate": 10_000_000,  # todo is dit TEU?
-                  "mobilisation_perc": 0.15,
-                  "maintenance_perc": 0.02,
-                  "consumption": 8,  # Peter Beamish (RHDHV)
-                  "insurance_perc": 0.01,
-                  "crew": 5.5,
-                  # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
+                  "delivery_time": 1,           # years
+                  "lifespan": 40,               # years
+                  "unit_rate": 10_000_000,      # USD per unit
+                  "mobilisation_perc": 0.15,    # percentage
+                  "maintenance_perc": 0.02,     # percentage
+                  "insurance_perc": 0.01,       # percentage
+                  "consumption": 8,             # Source: Peter Beamish (RHDHV)
+                  "crew": 5.5,                  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                   "crane_type": 'STS crane',
-                  "lifting_capacity": 2.13,  # weighted average of TEU per lift
-                  "hourly_cycles": 25,  # PIANC wg135
+                  "lifting_capacity": 2.13,     # weighted average of TEU per lift
+                  "hourly_cycles": 25,          # PIANC wg135
                   "eff_fact": 1}
 
 # Default inputs: Horizontal Transport class *** #todo add sources
@@ -422,95 +414,103 @@ container_data = {"name": 'Laden',
                                                       'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000,
                                                                  1_500_000]})}
 
-# *** Default inputs: Vessel class ***
+# *** Default inputs: Vessel class *** (Source: i) The Geography of Transport Systems, Jean-Paul Rodrigue (2017), ii) UNCTAD)
 
 fully_cellular_data = {"name": 'Fully_Cellular_1',
                 "type": 'Fully_Cellular',
-                "call_size": 2500, #TEU
-                "LOA": 215,
-                "draft": 10.0,
-                "beam": 20.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 2500,  # TEU
+                "LOA": 215,         # m
+                "draft": 10.0,      # m
+                "beam": 20.0,       # m
+                "max_cranes": 4,    # STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 200}  # USD per TEU
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 3400, #TEU
-                "LOA": 250,
-                "draft": 12.5,
-                "beam": 32.2,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 3400,  # TEU
+                "LOA": 250,         # m
+                "draft": 12.5,      # m
+                "beam": 32.2,       # m
+                "max_cranes": 4,    # STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 180}  # USD per TEU
 
 panamax_max_data = {"name": 'Panamax_Max_1',
                 "type": 'Panamax_Max',
-                "call_size": 4500, #TEU
-                "LOA": 290,
-                "draft": 12.5,
-                "beam": 32.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 4500,  # TEU
+                "LOA": 290,         # m
+                "draft": 12.5,      # m
+                "beam": 32.0,       # m
+                "max_cranes": 4,    # STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 160}  # USD per TEU
 
 post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                 "type": 'Post_Panamax_I',
-                "call_size": 6000, #TEU
-                "LOA": 300,
-                "draft": 13.0,
-                "beam": 40.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 6000,  # TEU
+                "LOA": 300 ,        # m
+                "draft": 13.0,      # m
+                "beam": 40.0,       # m
+                "max_cranes": 4,    # STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 140}  # USD per TEU
 
 post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                 "type": 'Post_Panamax_II',
-                "call_size": 8500, #TEU
-                "LOA": 340,
-                "draft": 14.5,
-                "beam": 43.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 8500,  # TEU
+                "LOA": 340,         # m
+                "draft": 14.5,      # m
+                "beam": 43.0,       # m
+                "max_cranes": 4,    #STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 140}  # USD per TEU
 
 new_panamax_data = {"name": 'New_Panamax_1',
                 "type": 'New_Panamax',
-                "call_size": 12500, #TEU
-                "LOA": 366,
-                "draft": 15.2,
-                "beam": 49.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 12500,  # TEU
+                "LOA": 366,          # m
+                "draft": 15.2,       # m
+                "beam": 49.0,        # m
+                "max_cranes": 4,     # STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 120}  # USD per TEU
 
 VLCS_data = {"name": 'VLCS_1',
                 "type": 'VLCS',
-                "call_size": 15000, #TEU
-                "LOA": 397,
-                "draft": 15.5,
-                "beam": 56.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 15000,  # TEU
+                "LOA": 397,          # m
+                "draft": 15.5,       # m
+                "beam": 56.0,        # m
+                "max_cranes": 4,     # STS cranes
+                "all_turn_time": 31,     # todo source
+                "mooring_time": 6,       # berthing + deberthing time
+                "demurrage_rate": 730,   # todo source
+                "transport_costs": 100}  # USD per TEU
 
 ULCS_data = {"name": 'ULCS_1',
                 "type": 'ULCS',
-                "call_size": 21000, #TEU
-                "LOA": 400,
-                "draft": 16.0,
-                "beam": 59.0,
-                "max_cranes": 4, #STS cranes
-                "all_turn_time": 31, #UNCTAD
-                "mooring_time": 6, #berthing + deberthing time
-                "demurrage_rate": 730} #Add sources
+                "call_size": 21000,  # TEU
+                "LOA": 400,          # m
+                "draft": 16.0,       # m
+                "beam": 59.0,        # m
+                "max_cranes": 4,     # STS cranes
+                "all_turn_time": 31,    # todo source
+                "mooring_time": 6,      # berthing + deberthing time
+                "demurrage_rate": 730,  # todo source
+                "transport_costs": 80}  # USD per TEU
 
 # *** Default inputs: Labour class ***
 
@@ -520,11 +520,11 @@ labour_data = {"name": 'Labour',
                "local_salary": 18_850,
                "local_staff": 10,
                "operational_salary": 16_750,
-               "shift_length": 6.5,
+               "shift_length": 6.5,             # hr 
                "annual_shifts": 200,
-               "daily_shifts": 5,
-               "blue_collar_salary": 25_000,
-               "white_collar_salary": 35_000}
+               "daily_shifts": 5,               # shifts per day
+               "blue_collar_salary": 25_000,    # USD per crew per day
+               "white_collar_salary": 35_000}   # USD per crew per day
 
 # *** Default inputs: Energy class ***
 

@@ -56,7 +56,7 @@ class System:
         # storage variables for revenue
         # self.revenues = []
 
-    " Simulation engine "
+    """ Simulation engine """
 
     def simulate(self):
         """ Terminal investment strategy simulation
@@ -157,7 +157,7 @@ class System:
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
         # 7. calculate key numbers
-        NPV, capex_normal, opex_normal, labour_normal = self.NPV()
+        PV, capex_normal, opex_normal, labour_normal = self.NPV()
         total_land_use = self.calculate_land_use(year)
         land = total_land_use
         labour = labour_normal[-1]
@@ -173,15 +173,15 @@ class System:
                 "labour": labour,
                 "opex": opex,
                 "capex": capex,
-                "NPV": NPV}
+                "PV": PV}
 
-        # 8. calculate PV's and aggregate to NPV
-        # self.NPV()
-        # NPV, capex_normal, opex_normal, labour_normal = self.NPV()
+        # 8. calculate PV's and aggregate to NPV # todo hier kan je varieeren welke kosten je wilt printen
+        self.NPV()
 
-        return NPV, data
+        PV, capex_normal, opex_normal, labour_normal = self.NPV()
+        return PV, data
 
-    " Revenue functions "
+    """ Revenue functions """
     # def calculate_revenue(self, year):
     #     """
     #     1. calculate the value of the total demand in year (demand * handling fee)
@@ -240,11 +240,13 @@ class System:
     #     except:
     #         pass
 
-    " Operational expenditures "
+    """ Operational expenditures """
 
     def calculate_energy_cost(self, year):  # todo voeg energy toe voor nieuwe elementen
         """
-
+        The energy cost of all different element are calculated.
+        1. At first find the consumption, capacity and working hours per element
+        2. Find the total energy price to multiply the consumption with the energy price
         """
 
         sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
@@ -545,7 +547,7 @@ class System:
 
         self.demurrage.append(total_demurrage_cost)
 
-    def calculate_indirect_costs(self):
+    def calculate_indirect_costs(self, year):
         # todo fix this element, or remove it
         indirect = Indirect_Costs(**container_defaults.indirect_costs_data)
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
@@ -564,7 +566,24 @@ class System:
         print(indirect_costs)
         # cash_flows['capex'].values = indirect_costs
 
-    " Investment functions "
+    def calculate_OGV_transport_costs(self, year):
+        """" The ocean transport depends on the ship size and the average overseas distance. """
+
+        fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol \
+            = self.calculate_vessel_calls(year)
+
+        # initialize values to be returned
+        fully_cellular_costs = 0
+        panamax_costs = 0
+        panamax_max_costs = 0
+        post_panamax_I_costs = 0
+        post_panamax_II_costs = 0
+        new_panamax_costs = 0
+        VLCS_costs = 0
+        ULCS_costs = 0
+        total_costs = 0
+
+    """ Investment functions """
 
     def berth_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax,
                      VLCS, ULCS):
@@ -597,6 +616,7 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
             year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
         factor, waiting_time_occupancy = self.waiting_time(year)
+
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
@@ -605,9 +625,8 @@ class System:
             print('     waiting time factor (@ start of year): {}'.format(factor))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
 
+        # if the planned berth occupancy is higher than the allowable berth occupancy, add a berth when no crane slots are available
         while berth_occupancy_planned > self.allowable_berth_occupancy:
-
-            # add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
                 if self.debug:
                     print('  *** add Berth to elements')
@@ -626,39 +645,41 @@ class System:
             berths = len(self.find_elements(Berth))
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
-                length_v = max(container_defaults.fully_cellular_data["LOA"], container_defaults.panamax_data["LOA"],
+                length_v = max(container_defaults.fully_cellular_data["LOA"],
+                               container_defaults.panamax_data["LOA"],
                                container_defaults.panamax_max_data["LOA"],
                                container_defaults.post_panamax_I_data["LOA"],
                                container_defaults.post_panamax_II_data["LOA"],
                                container_defaults.new_panamax_data["LOA"],
-                               container_defaults.VLCS_data["LOA"], container_defaults.ULCS_data[
-                                   "LOA"])  # The Geography of Transport Systems, Jean-Paul Rodrigue (2017)
-                draft = max(container_defaults.fully_cellular_data["draft"], container_defaults.panamax_data["draft"],
+                               container_defaults.VLCS_data["LOA"],
+                               container_defaults.ULCS_data["LOA"])
+                draft = max(container_defaults.fully_cellular_data["draft"],
+                            container_defaults.panamax_data["draft"],
                             container_defaults.panamax_max_data["draft"],
                             container_defaults.post_panamax_I_data["draft"],
                             container_defaults.post_panamax_II_data["draft"],
                             container_defaults.new_panamax_data["draft"],
-                            container_defaults.VLCS_data["draft"], container_defaults.ULCS_data[
-                                "draft"])  # The Geography of Transport Systems, Jean-Paul Rodrigue (2017)
-                # apply PIANC 2014:
-                # see Ijzermans, 2019 - infrastructure.py line 107 - 111
+                            container_defaults.VLCS_data["draft"],
+                            container_defaults.ULCS_data["draft"])
+
+                # PIANC 2014 (see Ijzermans, 2019 - infrastructure.py line 107 - 111)
+                # quay wall length
                 if quay_walls == 0:
                     # length when next quay is n = 1
-                    length = length_v + 2 * 15  # ref: PIANC 2014
+                    length = length_v + 2 * 15
                 elif quay_walls == 1:
                     # length when next quay is n > 1
-                    length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)  # ref: PIANC 2014
+                    length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)
                 else:
                     length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
-                # depth
+                # quay wall depth
                 quay_wall = Quay_wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
-                self.quay_invest(year, length, depth)
+                self.quay_invest(year, length, depth)  # todo check
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS,
-                    ULCS)
+                    year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
@@ -668,8 +689,7 @@ class System:
                 self.crane_invest(year)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS,
-                    ULCS)
+                    year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
@@ -692,8 +712,8 @@ class System:
 
         quay_wall = Quay_wall(**container_defaults.quay_wall_data)
 
-        # - capex
-        unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
+        # capex
+        unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient) # todo check haakjes, staat anders in rapport Wijnand
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
         cost_of_land = length * quay_wall.apron_width * self.land_price
@@ -705,7 +725,7 @@ class System:
         quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
 
-        # - land use
+        # land use
         quay_wall.land_use = length * quay_wall.apron_width
 
         # add cash flow information to quay_wall object in a dataframe
@@ -714,7 +734,8 @@ class System:
         self.elements.append(quay_wall)
 
     def crane_invest(self, year):
-        """current strategy is to add cranes as soon as a service trigger is achieved
+        """
+        Current strategy is to add cranes as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
         - find out how much service capacity is needed
@@ -741,8 +762,8 @@ class System:
         #   labour
         labour = Labour(**container_defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
-        crane.shift = crane.crew * labour.daily_shifts
-        crane.labour = crane.shift * labour.blue_collar_salary
+        crane.shift = crane.crew * labour.daily_shifts          # (27.5) crew per crane per day
+        crane.labour = crane.shift * labour.blue_collar_salary  # USD per day
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
@@ -750,7 +771,7 @@ class System:
             years_online.append(element.year_online)
         crane.year_online = max([year + crane.delivery_time, max(years_online)])
 
-        # add cash flow information to quay_wall object in a dataframe
+        # add cash flow information to quay_wall object in a data frame
         crane = self.add_cashflow_data_to_element(crane)
 
         # add object to elements
@@ -1425,10 +1446,13 @@ class System:
                       cash_flows['labour'].values
         labour_normal = cash_flows['labour'].values
 
-        NPV = - capex - opex
-        NPV = np.sum(NPV)
+        PV = - capex - opex
+        print('PV: {}'.format(PV))
+        print('NPV: {}'.format(np.sum(PV)))
 
-        return NPV, capex_normal, opex_normal, labour_normal
+        # NPV = np.sum(NPV)
+        #
+        return PV, capex_normal, opex_normal, labour_normal
 
     """ General functions """
 
@@ -1740,8 +1764,7 @@ class System:
         return oog_capacity_planned, oog_capacity_online, oog_required_capacity
 
     def calculate_berth_occupancy(self, year, fully_cellular_calls, panamax_calls, panamax_max_calls,
-                                  post_panamax_I_calls,
-                                  post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls):
+                                  post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls):
         """
         - Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
