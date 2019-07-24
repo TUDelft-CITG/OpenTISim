@@ -371,13 +371,13 @@ class commodity_properties_mixin(object):
 
 class vessel_properties_mixin(object):
     def __init__(self,
-                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, transport_costs, *args, **kwargs):
+                 type, call_size, LOA, draught, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, starting_fee, variable_fee, avg_overseas_distance, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
         self.call_size = call_size
         self.LOA = LOA
-        self.draft = draft
+        self.draught = draught
         self.beam = beam
         self.max_cranes = max_cranes
         self.all_turn_time = all_turn_time
@@ -385,6 +385,7 @@ class vessel_properties_mixin(object):
         self.demurrage_rate = demurrage_rate
         self.starting_fee = starting_fee
         self.variable_fee = variable_fee
+        self.avg_overseas_distance = avg_overseas_distance
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
