@@ -23,13 +23,14 @@ Main generic object classes:
 - 13. Vessel
 - 14. Labour
 - 15. Energy
-
+- 16. General
+- 17. Indirect Costs
 """
 
 # package(s) for data handling
 import pandas as pd
 
-# *** Default inputs: Quay class *** todo add values of RHDHV or general (e.g. PIANC)
+# *** Default inputs: Quay_Wall class *** todo add values of RHDHV or general (e.g. PIANC)
 
 quay_wall_data = {"name": 'Quay_01',
                   "ownership": 'Port authority',
@@ -55,7 +56,7 @@ berth_data = {"name": 'Berth_01',
               "delivery_time": 1,
               "max_cranes": 4}  # STS cranes
 
-# *** Default inputs: CyclicUnloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
+# *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
 
 gantry_crane_data = {"name": 'Gantry_crane_01',
                      "ownership": 'Terminal operator',
@@ -104,20 +105,20 @@ mobile_crane_data = {"name": 'Mobile_crane_01',
 
 sts_crane_data = {"name": 'STS_crane',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,           # years
-                  "lifespan": 40,               # years
-                  "unit_rate": 10_000_000,      # USD per unit
-                  "mobilisation_perc": 0.15,    # percentage
-                  "maintenance_perc": 0.02,     # percentage
-                  "insurance_perc": 0.01,       # percentage
-                  "consumption": 8,             # Source: Peter Beamish (RHDHV)
-                  "crew": 5.5,                  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
+                  "delivery_time": 1,  # years
+                  "lifespan": 40,  # years
+                  "unit_rate": 10_000_000,  # USD per unit
+                  "mobilisation_perc": 0.15,  # percentage
+                  "maintenance_perc": 0.02,  # percentage
+                  "insurance_perc": 0.01,  # percentage
+                  "consumption": 8,  # Source: Peter Beamish (RHDHV)
+                  "crew": 5.5,  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                   "crane_type": 'STS crane',
-                  "lifting_capacity": 2.13,     # weighted average of TEU per lift
-                  "hourly_cycles": 25,          # PIANC wg135
+                  "lifting_capacity": 2.13,  # weighted average of TEU per lift
+                  "hourly_cycles": 25,  # PIANC wg135
                   "eff_fact": 1}
 
-# Default inputs: Horizontal Transport class *** #todo add sources
+# Default inputs: Horizontal_Transport class *** #todo add sources
 
 tractor_trailer_data = {"name": 'Tractor-trailer',
                         "type": 'tractor_trailer',
@@ -185,7 +186,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "household": 0.1,  # moves
                   "digout_margin": 1.2,  # percentage
                   "reefer_factor": 2.33,  # RHDHV
-                  "consumption": 4,     # kWh per active reefer
+                  "consumption": 4,  # kWh per active reefer
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
 
@@ -362,26 +363,52 @@ rs_data = {"name": 'Reach stacker',
 gate_data = {"name": 'Gate',
              "type": 'gate',
              "ownership": "Terminal operator",
-             "delivery_time": 1,
-             "lifespan": 15,
-             "unit_rate": 30_000,
-             "mobilisation": 5000,
-             "maintenance_perc": 0.02,
-             "crew": 2,
+             "delivery_time": 1,  # years
+             "lifespan": 15,  # years
+             "unit_rate": 30_000,  # USD/gate
+             "mobilisation": 5000,  # USD/gate
+             "maintenance_perc": 0.02,  # percentage
+             "crew": 2,  # crew
              "salary": 30_000,  # dummy
-             "canopy_costs": 250,  # USD/m2 dummy
+             "canopy_costs": 250,  # USD/m2
              "area": 288.75,  # PIANC WG135
-             "staff_gates": 1,
-             "service_gates": 1,
-             "design_capacity": 0.98,
+             "staff_gates": 1,  #
+             "service_gates": 1,  #
+             "design_capacity": 0.98,  #
              "exit_inspection_time": 2,  # min #dummy
              "entry_inspection_time": 2,  # min #dummy
              "peak_hour": 0.25,  # dummy
              "peak_day": 0.1,  # dummy
-             "peak_factor": 1.2,
-             "truck_moves": 0.75,
-             "operating_days": 6,
-             "capacity": 60}
+             "peak_factor": 1.2,  #
+             "truck_moves": 0.75,  #
+             "operating_days": 6,  #
+             "capacity": 60}  # todo ask Piebe, TEU/hr?
+
+# *** Default inputs: Barge_Berth class ***
+
+barge_berth_data = {"name": 'Barge_Berth',
+                    "type": 'barge_berth',
+                    "ownership": "Terminal operator",
+                    "delivery_time": 1,  #
+                    "lifespan": 50,  # equal to quay wall OGV
+                    "unit_rate": 30_000,  # USD/barge_berth
+                    "mobilisation": 5000,  # USD/barge_berth
+                    "maintenance_perc": 0.02,  # percentage
+                    "crew": 2,  # crew/barge_berth
+                    "salary": 30_000,  # todo check
+                    "canopy_costs": 250,  # USD/m2
+                    "area": 288.75,  # PIANC WG135
+                    "staff_gates": 1,  # ?
+                    "service_gates": 1,  # ?
+                    "design_capacity": 0.98,  # ?
+                    "exit_inspection_time": 2,  # ?
+                    "entry_inspection_time": 2,  # ?
+                    "peak_hour": 0.25,  # ?
+                    "peak_day": 0.1,  # ?
+                    "peak_factor": 1.2,  # ?
+                    "truck_moves": 0.75,  # ?
+                    "operating_days": 6,  # ?
+                    "capacity": 60}  # ?
 
 # *** Default inputs: ECH class***
 
@@ -417,100 +444,116 @@ container_data = {"name": 'Laden',
 # *** Default inputs: Vessel class *** (Source: i) The Geography of Transport Systems, Jean-Paul Rodrigue (2017), ii) UNCTAD)
 
 fully_cellular_data = {"name": 'Fully_Cellular_1',
-                "type": 'Fully_Cellular',
-                "call_size": 2500,  # TEU
-                "LOA": 215,         # m
-                "draft": 10.0,      # m
-                "beam": 20.0,       # m
-                "max_cranes": 4,    # STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 200}  # USD per TEU
+                       "type": 'Fully_Cellular',
+                       "call_size": 2500,  # TEU
+                       "LOA": 215,  # m
+                       "draught": 10.0,  # m
+                       "beam": 20.0,  # m
+                       "max_cranes": 4,  # STS cranes
+                       "all_turn_time": 31,  # todo source
+                       "mooring_time": 6,  # berthing + deberthing time
+                       "demurrage_rate": 730,  # USD todo edit
+                       "starting_fee": 30,  # USD per TEU
+                       "variable_fee": 0.045,  # USD per TEU per km
+                       "avg_overseas_distance": 3000}  # km
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
                 "call_size": 3400,  # TEU
-                "LOA": 250,         # m
-                "draft": 12.5,      # m
-                "beam": 32.2,       # m
-                "max_cranes": 4,    # STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 180}  # USD per TEU
+                "LOA": 250,  # m
+                "draught": 12.5,  # m
+                "beam": 32.2,  # m
+                "max_cranes": 4,  # STS cranes
+                "all_turn_time": 31,  # todo source
+                "mooring_time": 6,  # berthing + deberthing time
+                "demurrage_rate": 730,  # USD todo edit
+                "starting_fee": 34,  # USD per TEU
+                "variable_fee": 0.040,# USD per TEU per km
+                "avg_overseas_distance": 3000}  # km
 
 panamax_max_data = {"name": 'Panamax_Max_1',
-                "type": 'Panamax_Max',
-                "call_size": 4500,  # TEU
-                "LOA": 290,         # m
-                "draft": 12.5,      # m
-                "beam": 32.0,       # m
-                "max_cranes": 4,    # STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 160}  # USD per TEU
+                    "type": 'Panamax_Max',
+                    "call_size": 4500,  # TEU
+                    "LOA": 290,  # m
+                    "draught": 12.5,  # m
+                    "beam": 32.0,  # m
+                    "max_cranes": 4,  # STS cranes
+                    "all_turn_time": 31,  # todo source
+                    "mooring_time": 6,  # berthing + deberthing time
+                    "demurrage_rate": 730,  # USD todo edit
+                    "starting_fee": 38,  # USD per TEU
+                    "variable_fee": 0.035,  # USD per TEU per km
+                    "avg_overseas_distance": 3000}  # km
 
 post_panamax_I_data = {"name": 'Post_Panamax_I_1',
-                "type": 'Post_Panamax_I',
-                "call_size": 6000,  # TEU
-                "LOA": 300 ,        # m
-                "draft": 13.0,      # m
-                "beam": 40.0,       # m
-                "max_cranes": 4,    # STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 140}  # USD per TEU
+                       "type": 'Post_Panamax_I',
+                       "call_size": 6000,  # TEU
+                       "LOA": 300,  # m
+                       "draught": 13.0,  # m
+                       "beam": 40.0,  # m
+                       "max_cranes": 4,  # STS cranes
+                       "all_turn_time": 31,  # todo source
+                       "mooring_time": 6,  # berthing + deberthing time
+                       "demurrage_rate": 730,  # USD todo edit
+                       "starting_fee": 42,  # USD per TEU
+                       "variable_fee": 0.030,  # USD per TEU per km
+                       "avg_overseas_distance": 3000}  # km
 
 post_panamax_II_data = {"name": 'Post_Panamax_II_1',
-                "type": 'Post_Panamax_II',
-                "call_size": 8500,  # TEU
-                "LOA": 340,         # m
-                "draft": 14.5,      # m
-                "beam": 43.0,       # m
-                "max_cranes": 4,    #STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 140}  # USD per TEU
+                        "type": 'Post_Panamax_II',
+                        "call_size": 8500,  # TEU
+                        "LOA": 340,  # m
+                        "draught": 14.5,  # m
+                        "beam": 43.0,  # m
+                        "max_cranes": 4,  # STS cranes
+                        "all_turn_time": 31,  # todo source
+                        "mooring_time": 6,  # berthing + deberthing time
+                        "demurrage_rate": 730,  # USD todo edit
+                        "starting_fee": 46,  # USD per TEU
+                        "variable_fee": 0.025,  # USD per TEU per km
+                        "avg_overseas_distance": 3000}  # km
 
 new_panamax_data = {"name": 'New_Panamax_1',
-                "type": 'New_Panamax',
-                "call_size": 12500,  # TEU
-                "LOA": 366,          # m
-                "draft": 15.2,       # m
-                "beam": 49.0,        # m
-                "max_cranes": 4,     # STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 120}  # USD per TEU
+                    "type": 'New_Panamax',
+                    "call_size": 12500,  # TEU
+                    "LOA": 366,  # m
+                    "draught": 15.2,  # m
+                    "beam": 49.0,  # m
+                    "max_cranes": 4,  # STS cranes
+                    "all_turn_time": 31,  # todo source
+                    "mooring_time": 6,  # berthing + deberthing time
+                    "demurrage_rate": 730,  # USD todo edit
+                    "starting_fee": 50,  # USD per TEU
+                    "variable_fee": 0.020,  # USD per TEU per km
+                    "avg_overseas_distance": 3000}  # km
 
 VLCS_data = {"name": 'VLCS_1',
-                "type": 'VLCS',
-                "call_size": 15000,  # TEU
-                "LOA": 397,          # m
-                "draft": 15.5,       # m
-                "beam": 56.0,        # m
-                "max_cranes": 4,     # STS cranes
-                "all_turn_time": 31,     # todo source
-                "mooring_time": 6,       # berthing + deberthing time
-                "demurrage_rate": 730,   # todo source
-                "transport_costs": 100}  # USD per TEU
+             "type": 'VLCS',
+             "call_size": 15000,  # TEU
+             "LOA": 397,  # m
+             "draught": 15.5,  # m
+             "beam": 56.0,  # m
+             "max_cranes": 4,  # STS cranes
+             "all_turn_time": 31,  # todo source
+             "mooring_time": 6,  # berthing + deberthing time
+             "demurrage_rate": 730,  # USD todo edit
+             "starting_fee": 54,  # USD per TEU
+             "variable_fee": 0.015,  # USD per TEU per km
+             "avg_overseas_distance": 3000}  # km
 
 ULCS_data = {"name": 'ULCS_1',
-                "type": 'ULCS',
-                "call_size": 21000,  # TEU
-                "LOA": 400,          # m
-                "draft": 16.0,       # m
-                "beam": 59.0,        # m
-                "max_cranes": 4,     # STS cranes
-                "all_turn_time": 31,    # todo source
-                "mooring_time": 6,      # berthing + deberthing time
-                "demurrage_rate": 730,  # todo source
-                "transport_costs": 80}  # USD per TEU
+             "type": 'ULCS',
+             "call_size": 21000,  # TEU
+             "LOA": 400,  # m
+             "draught": 16.0,  # m
+             "beam": 59.0,  # m
+             "max_cranes": 4,  # STS cranes
+             "all_turn_time": 31,  # todo source
+             "mooring_time": 6,  # berthing + deberthing time
+             "demurrage_rate": 730,  # USD todo edit
+             "starting_fee": 60,  # USD per TEU
+             "variable_fee": 0.010,  # USD per TEU per km
+             "avg_overseas_distance": 3000}  # km
 
 # *** Default inputs: Labour class ***
 
@@ -520,11 +563,11 @@ labour_data = {"name": 'Labour',
                "local_salary": 18_850,
                "local_staff": 10,
                "operational_salary": 16_750,
-               "shift_length": 6.5,             # hr 
+               "shift_length": 6.5,  # hr per shift
                "annual_shifts": 200,
-               "daily_shifts": 5,               # shifts per day
-               "blue_collar_salary": 25_000,    # USD per crew per day
-               "white_collar_salary": 35_000}   # USD per crew per day
+               "daily_shifts": 5,  # shifts per day
+               "blue_collar_salary": 25_000,  # USD per crew per day
+               "white_collar_salary": 35_000}  # USD per crew per day
 
 # *** Default inputs: Energy class ***
 
