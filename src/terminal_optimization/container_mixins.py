@@ -370,8 +370,17 @@ class commodity_properties_mixin(object):
 
 
 class vessel_properties_mixin(object):
+    average_distance_fully_cellular = 3000
+    average_distance_panamax = 3000
+    average_distance_panamax_max = 3000
+    average_distance_post_panamax_I = 3000
+    average_distance_post_panamax_II = 3000
+    average_distance_new_panamax = 3000
+    average_distance_VLCS = 3000
+    average_distance_ULCS = 3000
+
     def __init__(self,
-                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, transport_costs, *args, **kwargs):
+                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, starting_fee, variable_fee, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -383,8 +392,8 @@ class vessel_properties_mixin(object):
         self.all_turn_time = all_turn_time
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
-        self.transport_costs = transport_costs
-
+        self.starting_fee = starting_fee
+        self.variable_fee = variable_fee
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
