@@ -26,7 +26,7 @@
 - 17. Indirect Costs
 """
 
-from terminal_optimization import container_mixins
+from opentisim import container_mixins
 
 # The generic Quay_wall class
 Quay_Wall = type('Quay_Wall', (container_mixins.identifiable_properties_mixin,  # Give it a name

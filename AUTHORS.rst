@@ -20,3 +20,10 @@ Various MSc projects
 .. _Wijnand Ijzermans: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24
 .. _Stephanie Lanphen: https://repository.tudelft.nl
 .. _Piebe Koster: https://repository.tudelft.nl
+
+Ongoing MSc work
+
+* `Hugo Stam`_, 2019. **Logistical optimisation of offshore onshore port systems from a economic perspective.** MSc thesis. Delft University of Technology, Civil Engineering and Geosciences, Environmental Fluid Mechanics. Delft, the Netherlands.
+
+.. _Hugo Stam: https://repository.tudelft.nl
+

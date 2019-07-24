@@ -28,7 +28,7 @@
 
 """
 
-from terminal_optimization import agribulk_mixins
+from opentisim import agribulk_mixins
 
 # The generic Quay_wall class
 Quay_wall = type('Quay_wall', (agribulk_mixins.identifiable_properties_mixin,  # Give it a name

@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# terminal_optimization package
-from terminal_optimization.container_objects import *
-from terminal_optimization import container_defaults
+# opentisim package
+from opentisim.container_objects import *
+from opentisim import container_defaults
 
 
 class System:

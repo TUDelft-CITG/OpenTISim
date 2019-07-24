@@ -11,26 +11,26 @@ jobs:
       - run:
           name: Install coverage badge beforte running tests
           command: |
-            docker exec -it terminal_optimization bash -c "pip install coverage coverage-badge "
+            docker exec -it opentisim bash -c "pip install coverage coverage-badge "
       
       - run:
           name: Run tests
           command: |
-            docker exec -it terminal_optimization bash -c "python setup.py test"
-            docker cp terminal_optimization:/Terminal-Optimization/htmlcov /tmp/artifacts
+            docker exec -it opentisim bash -c "python setup.py test"
+            docker cp opentisim:/OpenTISim/htmlcov /tmp/artifacts
       
       - run:
           name: Build docs
           command: |
-            docker exec -it terminal_optimization bash -c "pip install sphinx"
-            docker exec -it terminal_optimization bash -c "python setup.py docs"
-            docker cp terminal_optimization:/Terminal-Optimization/docs/_build/html /tmp/artifacts/docs
+            docker exec -it opentisim bash -c "pip install sphinx"
+            docker exec -it opentisim bash -c "python setup.py docs"
+            docker cp opentisim:/OpenTISim/docs/_build/html /tmp/artifacts/docs
       
       - run:
           name: Generate coverage badge
           command: |
-            docker exec -it terminal_optimization bash -c "coverage-badge -o coverage.svg"
-            docker cp terminal_optimization:/Terminal-Optimization/coverage.svg /tmp/artifacts/
+            docker exec -it opentisim bash -c "coverage-badge -o coverage.svg"
+            docker cp opentisim:/OpenTISim/coverage.svg /tmp/artifacts/
       
       - store_artifacts:
           path: /tmp/artifacts
