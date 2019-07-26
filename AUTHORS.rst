@@ -18,7 +18,7 @@ Various MSc projects
 * `Piebe Koster`_, 2019. **Optimisation of concept level container terminal design. Accelerate the generation and visualisation of the terminal design to reduce the probability of a sub-optimal solution.** MSc thesis. Delft University of Technology, Civil Engineering and Geosciences, Hydraulic Engineering - Ports and Waterways. Delft, the Netherlands.
 
 .. _Wijnand Ijzermans: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24
-.. _Stephanie Lanphen: https://repository.tudelft.nl
+.. _Stephanie Lanphen: http://resolver.tudelft.nl/uuid:d2429b05-1881-4e42-9bb3-ed604bc15255
 .. _Piebe Koster: https://repository.tudelft.nl
 
 Ongoing MSc work
