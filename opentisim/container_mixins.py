@@ -176,10 +176,10 @@ class cyclic_properties_mixin(object):
         self.crane_type = crane_type
         self.lifting_capacity = lifting_capacity
         self.hourly_cycles = hourly_cycles
-        self.eff_fact = eff_fact
+        self.eff_fact = eff_fact  # effectiveness factor
         self.payload = self.lifting_capacity * 1.0  # for lashing
         self.peak_capacity = self.payload * self.hourly_cycles
-        self.effective_capacity = int(eff_fact * self.peak_capacity)
+        self.effective_capacity = int(eff_fact * self.peak_capacity) # TEU/hr
 
 
 class transport_properties_mixin(object):
@@ -371,7 +371,8 @@ class commodity_properties_mixin(object):
 
 class vessel_properties_mixin(object):
     def __init__(self,
-                 type, call_size, LOA, draught, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate, starting_fee, variable_fee, avg_overseas_distance, *args, **kwargs):
+                 type, call_size, LOA, draught, beam, max_cranes, all_turn_time,
+                 mooring_time, demurrage_rate, starting_fee, variable_fee, avg_overseas_distance, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -386,6 +387,7 @@ class vessel_properties_mixin(object):
         self.starting_fee = starting_fee
         self.variable_fee = variable_fee
         self.avg_overseas_distance = avg_overseas_distance
+
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,

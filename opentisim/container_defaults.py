@@ -32,7 +32,7 @@ import pandas as pd
 
 # *** Default inputs: Quay_Wall class *** todo add values of RHDHV or general (e.g. PIANC)
 
-quay_wall_data = {"name": 'Quay_01',
+quay_wall_data = {"name": 'Quay',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
@@ -46,62 +46,62 @@ quay_wall_data = {"name": 'Quay_01',
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
-                  "apron_width": 65.5,
+                  "apron_width": 65.5,  # m
                   "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
 
-# *** Default inputs: Berth class *** todo add STS crane source
+# *** Default inputs: Berth class *** #todo add min_cranes
 
-berth_data = {"name": 'Berth_01',
+berth_data = {"name": 'Berth',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
               "max_cranes": 4}  # STS cranes
 
 # *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
 
-gantry_crane_data = {"name": 'Gantry_crane_01',
-                     "ownership": 'Terminal operator',
-                     "delivery_time": 1,
-                     "lifespan": 40,
-                     "unit_rate": 9_750_000,
-                     "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 561,
-                     "insurance_perc": 0.01,
-                     "crew": 3,
-                     "crane_type": 'Gantry crane',
-                     "lifting_capacity": 50,
-                     "hourly_cycles": 50,
-                     "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
-
-harbour_crane_data = {"name": 'Harbour_crane_01',
-                      "ownership": 'Terminal operator',
-                      "delivery_time": 1,
-                      "lifespan": 40,
-                      "unit_rate": 7_880_000,
-                      "mobilisation_perc": 0.15,
-                      "maintenance_perc": 0.02,
-                      "consumption": 210,
-                      "insurance_perc": 0.01,
-                      "crew": 3,
-                      "crane_type": 'Harbour crane',
-                      "lifting_capacity": 25,
-                      "hourly_cycles": 40,
-                      "eff_fact": 0.40}  # all values from Ijzermans, 2019, P 100
-
-mobile_crane_data = {"name": 'Mobile_crane_01',
-                     "ownership": 'Terminal operator',
-                     "delivery_time": 1,
-                     "lifespan": 40,
-                     "unit_rate": 3_325_000,
-                     "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 485,
-                     "insurance_perc": 0.01,
-                     "crew": 3,
-                     "crane_type": 'Mobile crane',
-                     "lifting_capacity": 30,
-                     "hourly_cycles": 25,
-                     "eff_fact": 0.35}  # all values from Ijzermans, 2019, P 100
+# gantry_crane_data = {"name": 'Gantry_crane',
+#                      "ownership": 'Terminal operator',
+#                      "delivery_time": 1,
+#                      "lifespan": 40,
+#                      "unit_rate": 9_750_000,
+#                      "mobilisation_perc": 0.15,
+#                      "maintenance_perc": 0.02,
+#                      "consumption": 561,
+#                      "insurance_perc": 0.01,
+#                      "crew": 3,
+#                      "crane_type": 'Gantry crane',
+#                      "lifting_capacity": 50,
+#                      "hourly_cycles": 50,
+#                      "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
+#
+# harbour_crane_data = {"name": 'Harbour_crane',
+#                       "ownership": 'Terminal operator',
+#                       "delivery_time": 1,
+#                       "lifespan": 40,
+#                       "unit_rate": 7_880_000,
+#                       "mobilisation_perc": 0.15,
+#                       "maintenance_perc": 0.02,
+#                       "consumption": 210,
+#                       "insurance_perc": 0.01,
+#                       "crew": 3,
+#                       "crane_type": 'Harbour crane',
+#                       "lifting_capacity": 25,
+#                       "hourly_cycles": 40,
+#                       "eff_fact": 0.40}  # all values from Ijzermans, 2019, P 100
+#
+# mobile_crane_data = {"name": 'Mobile_crane',
+#                      "ownership": 'Terminal operator',
+#                      "delivery_time": 1,
+#                      "lifespan": 40,
+#                      "unit_rate": 3_325_000,
+#                      "mobilisation_perc": 0.15,
+#                      "maintenance_perc": 0.02,
+#                      "consumption": 485,
+#                      "insurance_perc": 0.01,
+#                      "crew": 3,
+#                      "crane_type": 'Mobile crane',
+#                      "lifting_capacity": 30,
+#                      "hourly_cycles": 25,
+#                      "eff_fact": 0.35}  # all values from Ijzermans, 2019, P 100
 
 sts_crane_data = {"name": 'STS_crane',
                   "ownership": 'Terminal operator',
@@ -180,7 +180,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "length": 30,  # TEU
                   "capacity": 900,  # TEU
                   "gross_tgs": 18,
-                  "area_factor": 2.04,  # Based on grasshopper layout
+                  "area_factor": 2.04,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
                   "household": 0.1,  # moves
@@ -201,7 +201,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
                   "gross_tgs": 18.67,
-                  "area_factor": 2.79,  # Based on grasshopper layout
+                  "area_factor": 2.79,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
                   "household": 0.1,  # moves
@@ -222,7 +222,7 @@ sc_stack_data = {"name": 'SC Stack',
                  "length": 20,  # TEU
                  "capacity": 3840,  # TEU
                  "gross_tgs": 26.46,
-                 "area_factor": 1.45,  # Based on grasshopper layout
+                 "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
                  "household": 0.1,  # moves
@@ -243,7 +243,7 @@ rs_stack_data = {"name": 'RS Stack',
                  "length": 20,  # TEU
                  "capacity": 320,  # TEU
                  "gross_tgs": 18,
-                 "area_factor": 3.23,  # Based on grasshopper layout
+                 "area_factor": 3.23,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
                  "household": 0.1,  # moves
@@ -288,7 +288,7 @@ oog_stack_data = {"name": 'OOG Stack',
                   "length": 10,  # TEU
                   "capacity": 100,  # TEU
                   "gross_tgs": 64,
-                  "area_factor": 1.05,  # Based on grasshopper layout
+                  "area_factor": 1.05,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # DUMMY
                   "drainage": 50}  # DUMMY
 
@@ -436,10 +436,7 @@ container_data = {"name": 'Laden',
                   "post_panamax_II_perc": 0,
                   "new_panamax_perc": 0,
                   "VLCS_perc": 0,
-                  "ULCS_perc": 0,
-                  "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                      'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000,
-                                                                 1_500_000]})}
+                  "ULCS_perc": 0}
 
 # *** Default inputs: Vessel class *** (Source: i) The Geography of Transport Systems, Jean-Paul Rodrigue (2017), ii) UNCTAD)
 
@@ -464,8 +461,8 @@ panamax_data = {"name": 'Panamax_1',
                 "draught": 12.5,  # m
                 "beam": 32.2,  # m
                 "max_cranes": 4,  # STS cranes
-                "all_turn_time": 31,  # todo source
-                "mooring_time": 6,  # berthing + deberthing time
+                "all_turn_time": 31,  # todo source [hr]
+                "mooring_time": 6,  # berthing + deberthing time [hr]
                 "demurrage_rate": 730,  # USD todo edit
                 "starting_fee": 34,  # USD per TEU
                 "variable_fee": 0.040,# USD per TEU per km
@@ -478,8 +475,8 @@ panamax_max_data = {"name": 'Panamax_Max_1',
                     "draught": 12.5,  # m
                     "beam": 32.0,  # m
                     "max_cranes": 4,  # STS cranes
-                    "all_turn_time": 31,  # todo source
-                    "mooring_time": 6,  # berthing + deberthing time
+                    "all_turn_time": 31,  # todo source [hr]
+                    "mooring_time": 2,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
                     "starting_fee": 38,  # USD per TEU
                     "variable_fee": 0.035,  # USD per TEU per km
@@ -492,8 +489,8 @@ post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "draught": 13.0,  # m
                        "beam": 40.0,  # m
                        "max_cranes": 4,  # STS cranes
-                       "all_turn_time": 31,  # todo source
-                       "mooring_time": 6,  # berthing + deberthing time
+                       "all_turn_time": 31,  # todo source [hr]
+                       "mooring_time": 2,  # berthing + deberthing time [hr]
                        "demurrage_rate": 730,  # USD todo edit
                        "starting_fee": 42,  # USD per TEU
                        "variable_fee": 0.030,  # USD per TEU per km
@@ -506,8 +503,8 @@ post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                         "draught": 14.5,  # m
                         "beam": 43.0,  # m
                         "max_cranes": 4,  # STS cranes
-                        "all_turn_time": 31,  # todo source
-                        "mooring_time": 6,  # berthing + deberthing time
+                        "all_turn_time": 31,  # todo source [hr]
+                        "mooring_time": 2,  # berthing + deberthing time [hr]
                         "demurrage_rate": 730,  # USD todo edit
                         "starting_fee": 46,  # USD per TEU
                         "variable_fee": 0.025,  # USD per TEU per km
@@ -520,8 +517,8 @@ new_panamax_data = {"name": 'New_Panamax_1',
                     "draught": 15.2,  # m
                     "beam": 49.0,  # m
                     "max_cranes": 4,  # STS cranes
-                    "all_turn_time": 31,  # todo source
-                    "mooring_time": 6,  # berthing + deberthing time
+                    "all_turn_time": 31,  # todo source [hr]
+                    "mooring_time": 6,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
                     "starting_fee": 50,  # USD per TEU
                     "variable_fee": 0.020,  # USD per TEU per km
@@ -534,8 +531,8 @@ VLCS_data = {"name": 'VLCS_1',
              "draught": 15.5,  # m
              "beam": 56.0,  # m
              "max_cranes": 4,  # STS cranes
-             "all_turn_time": 31,  # todo source
-             "mooring_time": 6,  # berthing + deberthing time
+             "all_turn_time": 31,  # todo source [hr]
+             "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "starting_fee": 54,  # USD per TEU
              "variable_fee": 0.015,  # USD per TEU per km
@@ -548,8 +545,8 @@ ULCS_data = {"name": 'ULCS_1',
              "draught": 16.0,  # m
              "beam": 59.0,  # m
              "max_cranes": 4,  # STS cranes
-             "all_turn_time": 31,  # todo source
-             "mooring_time": 6,  # berthing + deberthing time
+             "all_turn_time": 31,  # todo source [hr]
+             "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "starting_fee": 60,  # USD per TEU
              "variable_fee": 0.010,  # USD per TEU per km

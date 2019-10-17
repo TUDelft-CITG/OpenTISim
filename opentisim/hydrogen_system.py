@@ -107,7 +107,6 @@ class System:
 
             self.pipeline_hinter_invest(year)
 
-
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_energy_cost(year)
@@ -126,7 +125,6 @@ class System:
         self.throughputonline = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.throughput_elements(year)
-
 
         # 6. collect all cash flows (capex, opex, revenues)
         cash_flows, cash_flows_WACC_nom = self.add_cashflow_elements()
@@ -1316,7 +1314,6 @@ class System:
 
         return throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh
         self.throughput.append(throughput_online)
-
 
     def report_element(self, Element, year):
         elements = 0

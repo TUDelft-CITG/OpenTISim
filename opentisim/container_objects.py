@@ -50,10 +50,6 @@ Berth = type('Berth', (container_mixins.identifiable_properties_mixin,  # Give i
              {})  # The dictionary is empty because the site type is generic
 
 # The generic Cyclic_Unloader class
-# - Gantry_crane
-# - Harbour_crane
-# - Mobile_crane
-# - STS_crane
 Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                            container_mixins.history_properties_mixin,  # Give it procurement history
                                            container_mixins.cyclic_properties_mixin,
@@ -64,7 +60,6 @@ Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_propert
                        {})  # The dictionary is empty because the site type is generic
 
 # The generic Horizontal transport class
-# - Tractor trailer
 Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                                      container_mixins.history_properties_mixin,  # Give it procurement history
                                                      container_mixins.transport_properties_mixin,
@@ -74,10 +69,6 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
                             {})  # The dictionary is empty because the site type is generic
 
 # The generic Commodity class
-# - Maize
-# - Soybean
-# - Wheat
-# - Laden
 Commodity = type('Commodity', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.commodity_properties_mixin,
                                container_mixins.hasscenario_properties_mixin),
@@ -89,10 +80,6 @@ Container = type('Container', (container_mixins.identifiable_properties_mixin,  
                  {})  # The dictionary is empty because the site type is generic
 
 # The generic laden and reefer stack class
-# - RTG stack
-# - RMG stack
-# - SC stack
-# - RS stack
 Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                    container_mixins.history_properties_mixin,
                                    container_mixins.laden_stack_properties_mixin,
@@ -103,10 +90,6 @@ Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixi
                    {})  # The dictionary is empty because the site type is generic
 
 # The generic stack equipment class
-# - RTG
-# - RMG
-# - Straddle carrier
-# - Reach stacker
 Stack_Equipment = type('Stack_Equipment', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                            container_mixins.history_properties_mixin,
                                            container_mixins.stack_equipment_properties_mixin,
@@ -136,12 +119,12 @@ OOG_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,
                  {})  # The dictionary is empty because the site type is generic
 
 # The general Gates class
-Gate = type('Gate', (container_mixins.identifiable_properties_mixin,  # Give it a name
+Gate = type('Gate', (container_mixins.identifiable_properties_mixin,    # Give it a name
                      container_mixins.history_properties_mixin,
                      container_mixins.gate_properties_mixin,
-                     container_mixins.hascapex_properties_mixin,  # Give it capex info
-                     container_mixins.hasopex_properties_mixin,  # Give it opex info
-                     container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                     container_mixins.hascapex_properties_mixin,        # Give it capex info
+                     container_mixins.hasopex_properties_mixin,         # Give it opex info
+                     container_mixins.hastriggers_properties_mixin,     # Give it investment triggers
                      container_mixins.hasland_properties_mixin),
             {})  # The dictionary is empty because the site type is generic
 
@@ -153,7 +136,7 @@ Barge_Berth = type('Barge_Berth', (container_mixins.identifiable_properties_mixi
                                    container_mixins.hasopex_properties_mixin,  # Give it opex info
                                    container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
                                    container_mixins.hasland_properties_mixin),
-                   {})# The dictionary is empty because the site type is generic
+                   {})  # The dictionary is empty because the site type is generic
 
 # The general Empty Container Handler (ECH) class
 Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_mixin,  # Give it a name
@@ -165,14 +148,6 @@ Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_
                      {})  # The dictionary is empty because the site type is generic
 
 # The general Vessel class
-# - Fully Cellular
-# - Panamax
-# - Panamax Max
-# - Post Panamax I
-# - Post Panamax II
-# - New Panamax
-# - VLCS
-# - ULCS
 Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
                          container_mixins.vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
