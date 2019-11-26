@@ -11,7 +11,7 @@ from opentisim import container_defaults
 class System:
     def __init__(self, startyear=2020, lifecycle=20, stack_equipment='rs', laden_stack='rs',
                  operational_hours=7500, debug=False, elements=None,
-                 crane_type_defaults='STS crane', allowable_berth_occupancy=0.6,
+                 system_layout='traditional_onshore', crane_type_defaults='STS crane', allowable_berth_occupancy=0.6,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.60,
                  energy_price=0.17, fuel_price=1, land_price=0):
         # time inputs
@@ -35,6 +35,9 @@ class System:
 
         # default values to use in case various types can be selected
         self.crane_type_defaults = crane_type_defaults
+
+        # system layout
+        self.system_layout = system_layout
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
@@ -1338,6 +1341,30 @@ class System:
 
             self.elements.append(general)
 
+    """ Terminal connection investment functions """
+
+    def access_channel_invest(self, year):
+
+        """ Current strategy is to ...."""  # todo add access channel invest
+
+        if self.debug:
+            print('  *** add Access Channel to elements')
+
+        # add access channel object
+        if self.system_layout == 'Access channel':
+            land_connection = Land_Connection(**self.system_layout)  #t
+
+    def bridge_invest(self, year):
+
+        """ Current strategy is to ....""" # todo add bridge invest
+
+        if self.debug:
+            print('  *** add Bridge to elements')
+
+        # add access channel object
+        if self.system_layout == 'Access channel':
+            land_connection = Land_Connection(**self.system_layout)
+
     """ Financial analyses """
 
     def add_cashflow_elements(self):
@@ -1481,13 +1508,21 @@ class System:
     def find_elements(self, obj):
         """ Return elements of type objects part of self.elements """
 
-        list_of_elements = []
+        onshore_list_of_elements = []
         if self.elements != []:
             for element in self.elements:
                 if isinstance(element, obj):
-                    list_of_elements.append(element)
+                    onshore_list_of_elements.append(element)
 
-        return list_of_elements
+        return onshore_list_of_elements
+
+        offshore_list_of_elements = []
+        if self.elements != []:
+            for element in self.elements:
+                if isinstance(element, obj):
+                    offshore_list_of_elements.append(element)
+
+        return offshore_list_of_elements
 
     def calculate_vessel_calls(self, year):
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
@@ -2254,28 +2289,73 @@ class System:
         tractor = [x / 10 for x in tractor]
         stack = [x / 10 for x in stack]
         stack_equipment = [x / 5 for x in stack_equipment]
+        gates = [x / 2 for x in gates]
 
         "generate plot"
-        fig, ax = plt.subplots(figsize=(16, 8))
+        if self.system_layout == 'traditional_onshore':
+            fig, ax1 = plt.subplots(figsize=(16, 5))
 
-        ax.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
-        ax.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
-        ax.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
-        ax.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
-        ax.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
-        ax.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
-        ax.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
-        ax.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
-        ax.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates")
+            ax1.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
+            ax1.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
+            ax1.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
+            ax1.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
+            ax1.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
+            ax1.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
+            ax1.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
+            ax1.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
+            ax1.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Elements [nr]')
-        ax.set_title('Terminal Elements')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
-        ax.legend()
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Elements [nr]')
+            ax1.set_title('Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.set_axisbelow(True)
+            ax1.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
+            ax1.legend()
+
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
+
+            # fig.suptitle('Terminal Elements')
+
+            ax1.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
+            ax1.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
+            ax1.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
+            ax1.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
+            ax1.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
+            ax1.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
+            ax1.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
+            ax1.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
+            ax1.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
+
+            # ax1.set_xlabel('Years')
+            ax1.set_ylabel('Elements [nr]')
+            ax1.set_title('Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.set_axisbelow(True)
+            ax1.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
+            ax1.legend()
+
+            ax2.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
+            ax2.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
+            ax2.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
+            ax2.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
+            ax2.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
+            ax2.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
+            ax2.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
+            ax2.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
+            ax2.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
+
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Elements [nr]')
+            ax2.set_title('Offshore Terminal')
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.set_axisbelow(True)
+            ax2.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
+            ax2.legend()
 
     def terminal_capacity_plot(self, width=0.25, alpha=0.4):
         """Gather data from Terminal and plot which elements come online when"""
@@ -2318,18 +2398,45 @@ class System:
                 pass
 
         "generate plot"
-        fig, ax = plt.subplots(figsize=(16, 5))
 
-        ax.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity", color='tab:green')
-        ax.step(years, demand['demand'].values, where='mid', color='tab:red')
-        ax.plot(years, demand['demand'].values, 'd', label='Demand', color = 'tab:red')
+        if self.system_layout == 'traditional_onshore':
+            fig, ax1 = plt.subplots(figsize=(16, 5))
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Throughput capacity [TEU/year]')
-        ax.set_title('Terminal Capacity')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+            ax1.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
+            ax1.step(years, demand['demand'].values, where='mid',)
+            ax1.plot(years, demand['demand'].values, 'd', label='Demand')
+
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Throughput capacity [TEU/year]')
+            ax1.set_title('Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 8))
+
+            ax1.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
+            ax1.step(years, demand['demand'].values, where='mid', )
+            ax1.plot(years, demand['demand'].values, 'd', label='Demand')
+
+            # ax1.set_xlabel('Years')
+            ax1.set_ylabel('Throughput capacity [TEU/year]')
+            ax1.set_title('Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+            ax2.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
+            ax2.step(years, demand['demand'].values, where='mid', )
+            ax2.plot(years, demand['demand'].values, 'd', label='Demand')
+
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Throughput capacity [TEU/year]')
+            ax2.set_title('Offshore Terminal')
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.legend()
 
     def land_use_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
@@ -2393,24 +2500,63 @@ class System:
         quay_stack_empty_oog_gate = np.add(quay_stack_empty_oog, gate_land_use).tolist()
 
         "generate plot"
-        fig, ax = plt.subplots(figsize=(16, 8))
 
-        ax.bar(years, quay_land_use, width=width, alpha=alpha, label="Apron", color = 'tab:blue')
-        ax.bar(years, stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=quay_land_use, color = 'tab:orange')
-        ax.bar(years, empty_land_use, width=width, alpha=alpha, label="Empty Stack", bottom=quay_stack, color = 'tab:green')
-        ax.bar(years, oog_land_use, width=width, alpha=alpha, label="OOG Stack", bottom=quay_stack_empty, color = 'tab:purple')
-        ax.bar(years, gate_land_use, width=width, alpha=alpha, label="Gate Area", bottom=quay_stack_empty_oog, color = 'tab:olive')
-        ax.bar(years, general_land_use, width=width, alpha=alpha, label="General Service Area", bottom=quay_stack_empty_oog_gate, color = 'tab:cyan')
+        if self.system_layout == 'traditional_onshore':
+            fig, ax1 = plt.subplots(figsize=(16, 5))
 
-        ax.step(years, total_land_use, where='mid', color = 'tab:red')
-        ax.plot(years, total_land_use, 'd', color = 'tab:red')
+            ax1.bar(years, quay_land_use, width=width, alpha=alpha, label="Apron", color='tab:blue')
+            ax1.bar(years, stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=quay_land_use, color='tab:orange')
+            ax1.bar(years, empty_land_use, width=width, alpha=alpha, label="Empty Stack", bottom=quay_stack, color='tab:green')
+            ax1.bar(years, oog_land_use, width=width, alpha=alpha, label="OOG Stack", bottom=quay_stack_empty, color='tab:purple')
+            ax1.bar(years, gate_land_use, width=width, alpha=alpha, label="Gate Area", bottom=quay_stack_empty_oog, color='tab:olive')
+            ax1.bar(years, general_land_use, width=width, alpha=alpha, label="General Service Area", bottom=quay_stack_empty_oog_gate, color='tab:cyan')
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Land use [ha]')
-        ax.set_title('Terminal Land Use')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+            ax1.step(years, total_land_use, where='mid', color='tab:red')
+            ax1.plot(years, total_land_use, 'd', color='tab:red')
+
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Land use [ha]')
+            ax1.set_title('Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
+
+            ax1.bar(years, quay_land_use, width=width, alpha=alpha, label="Apron", color = 'tab:blue')
+            ax1.bar(years, stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=quay_land_use, color = 'tab:orange')
+            ax1.bar(years, empty_land_use, width=width, alpha=alpha, label="Empty Stack", bottom=quay_stack, color = 'tab:green')
+            ax1.bar(years, oog_land_use, width=width, alpha=alpha, label="OOG Stack", bottom=quay_stack_empty, color = 'tab:purple')
+            ax1.bar(years, gate_land_use, width=width, alpha=alpha, label="Gate Area", bottom=quay_stack_empty_oog, color = 'tab:olive')
+            ax1.bar(years, general_land_use, width=width, alpha=alpha, label="General Service Area", bottom=quay_stack_empty_oog_gate, color = 'tab:cyan')
+
+            ax1.step(years, total_land_use, where='mid', color = 'tab:red')
+            ax1.plot(years, total_land_use, 'd', color = 'tab:red')
+
+            # ax1.set_xlabel('Years')
+            ax1.set_ylabel('Land use [ha]')
+            ax1.set_title('Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+            ax2.bar(years, quay_land_use, width=width, alpha=alpha, label="Apron", color='tab:blue')
+            ax2.bar(years, stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=quay_land_use, color='tab:orange')
+            ax2.bar(years, empty_land_use, width=width, alpha=alpha, label="Empty Stack", bottom=quay_stack, color='tab:green')
+            ax2.bar(years, oog_land_use, width=width, alpha=alpha, label="OOG Stack", bottom=quay_stack_empty, color='tab:purple')
+            ax2.bar(years, gate_land_use, width=width, alpha=alpha, label="Gate Area", bottom=quay_stack_empty_oog, color='tab:olive')
+            ax2.bar(years, general_land_use, width=width, alpha=alpha, label="General Service Area", bottom=quay_stack_empty_oog_gate, color='tab:cyan')
+
+            ax2.step(years, total_land_use, where='mid', color='tab:red')
+            ax2.plot(years, total_land_use, 'd', color='tab:red')
+
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Land use [ha]')
+            ax2.set_title('Offshore Terminal')
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.legend()
 
     def storage_area_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
@@ -2454,20 +2600,54 @@ class System:
         stack_empty_storage = np.add(empty_storage_area, oog_storage_area).tolist()
 
         "generate plot"
-        fig, ax = plt.subplots(figsize=(16, 8))
-        stack_bar = ax.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
-        empty_bar = ax.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
-        oog_bar   = ax.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
 
-        ax.step(years, total_storage_area, where='mid', color = 'tab:red')
-        ax.plot(years, total_storage_area, 'd', color = 'tab:red')
+        if self.system_layout == 'traditional_onshore':
+            fig, ax1 = plt.subplots(figsize=(16, 5))
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Storage Area [TEU]')
-        ax.set_title('Storage Area')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+            stack_bar = ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
+            empty_bar = ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
+            oog_bar   = ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
+
+            ax1.step(years, total_storage_area, where='mid', color = 'tab:red')
+            ax1.plot(years, total_storage_area, 'd', color = 'tab:red')
+
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Storage Area [TEU]')
+            ax1.set_title('Onshore Storage Area')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
+
+            stack_bar = ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
+            empty_bar = ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
+            oog_bar   = ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
+
+            ax1.step(years, total_storage_area, where='mid', color = 'tab:red')
+            ax1.plot(years, total_storage_area, 'd', color = 'tab:red')
+
+            # ax1.set_xlabel('Years')
+            ax1.set_ylabel('Storage Area [TEU]')
+            ax1.set_title('Onshore Storage Area')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+            stack_bar = ax2.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
+            empty_bar = ax2.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
+            oog_bar   = ax2.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
+
+            ax2.step(years, total_storage_area, where='mid', color = 'tab:red')
+            ax2.plot(years, total_storage_area, 'd', color = 'tab:red')
+
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Storage Area [TEU]')
+            ax2.set_title('Onshore Storage Area')
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.legend()
 
     def opex_plot(self, cash_flows):
         """Gather data from Terminal elements and combine into a cash flow plot"""

@@ -54,7 +54,7 @@ quay_wall_data = {"name": 'Quay',
 berth_data = {"name": 'Berth',
               "crane_type": 'Mobile cranes',
               "delivery_time": 1,
-              "max_cranes": 4}  # STS cranes
+              "max_cranes": 3}  # STS cranes
 
 # *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
 
@@ -116,7 +116,7 @@ sts_crane_data = {"name": 'STS_crane',
                   "crane_type": 'STS crane',
                   "lifting_capacity": 2.13,  # weighted average of TEU per lift
                   "hourly_cycles": 25,  # PIANC wg135
-                  "eff_fact": 1}
+                  "eff_fact": 0.75}
 
 # Default inputs: Horizontal_Transport class *** #todo add sources
 
@@ -142,14 +142,14 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 laden_container_data = {"name": 'Laden container',
                         "type": 'laden_container',
                         "teu_factor": 1.55,
-                        "dwell_time": 4,
+                        "dwell_time": 3,
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.8}
 
 reefer_container_data = {"name": 'Empty container',
                          "type": 'empty_container',
                          "teu_factor": 1.75,
-                         "dwell_time": 4,
+                         "dwell_time": 3,
                          "peak_factor": 1.2,
                          "stack_occupancy": 0.8}
 
@@ -163,7 +163,7 @@ empty_container_data = {"name": 'Empty container',
 oog_container_data = {"name": 'OOG container',
                       "type": 'oog_container',
                       "teu_factor": 1.55,
-                      "dwell_time": 5,
+                      "dwell_time": 4,
                       "peak_factor": 1.2,
                       "stack_occupancy": 0.9}
 
@@ -430,11 +430,11 @@ empty_handler_data = {"name": 'Empty Handler',
 container_data = {"name": 'Laden',
                   "handling_fee": 150,
                   "fully_cellular_perc": 0,
-                  "panamax_perc": 100,
+                  "panamax_perc": 0,
                   "panamax_max_perc": 0,
                   "post_panamax_I_perc": 0,
                   "post_panamax_II_perc": 0,
-                  "new_panamax_perc": 0,
+                  "new_panamax_perc": 100,
                   "VLCS_perc": 0,
                   "ULCS_perc": 0}
 
@@ -442,7 +442,7 @@ container_data = {"name": 'Laden',
 
 fully_cellular_data = {"name": 'Fully_Cellular_1',
                        "type": 'Fully_Cellular',
-                       "call_size": 2500,  # TEU
+                       "call_size": 2500/8,  # TEU
                        "LOA": 215,  # m
                        "draught": 10.0,  # m
                        "beam": 20.0,  # m
@@ -456,7 +456,7 @@ fully_cellular_data = {"name": 'Fully_Cellular_1',
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 3400,  # TEU
+                "call_size": 3400/8,  # TEU
                 "LOA": 250,  # m
                 "draught": 12.5,  # m
                 "beam": 32.2,  # m
@@ -465,12 +465,12 @@ panamax_data = {"name": 'Panamax_1',
                 "mooring_time": 6,  # berthing + deberthing time [hr]
                 "demurrage_rate": 730,  # USD todo edit
                 "starting_fee": 34,  # USD per TEU
-                "variable_fee": 0.040,# USD per TEU per km
+                "variable_fee": 0.040,  # USD per TEU per km
                 "avg_overseas_distance": 3000}  # km
 
 panamax_max_data = {"name": 'Panamax_Max_1',
                     "type": 'Panamax_Max',
-                    "call_size": 4500,  # TEU
+                    "call_size": 4500/8,  # TEU
                     "LOA": 290,  # m
                     "draught": 12.5,  # m
                     "beam": 32.0,  # m
@@ -484,7 +484,7 @@ panamax_max_data = {"name": 'Panamax_Max_1',
 
 post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "type": 'Post_Panamax_I',
-                       "call_size": 6000,  # TEU
+                       "call_size": 6000/8,  # TEU
                        "LOA": 300,  # m
                        "draught": 13.0,  # m
                        "beam": 40.0,  # m
@@ -498,7 +498,7 @@ post_panamax_I_data = {"name": 'Post_Panamax_I_1',
 
 post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                         "type": 'Post_Panamax_II',
-                        "call_size": 8500,  # TEU
+                        "call_size": 8500/8,  # TEU
                         "LOA": 340,  # m
                         "draught": 14.5,  # m
                         "beam": 43.0,  # m
@@ -512,7 +512,7 @@ post_panamax_II_data = {"name": 'Post_Panamax_II_1',
 
 new_panamax_data = {"name": 'New_Panamax_1',
                     "type": 'New_Panamax',
-                    "call_size": 12500,  # TEU
+                    "call_size": 12500/8,  # TEU
                     "LOA": 366,  # m
                     "draught": 15.2,  # m
                     "beam": 49.0,  # m
@@ -526,7 +526,7 @@ new_panamax_data = {"name": 'New_Panamax_1',
 
 VLCS_data = {"name": 'VLCS_1',
              "type": 'VLCS',
-             "call_size": 15000,  # TEU
+             "call_size": 15000/8,  # TEU
              "LOA": 397,  # m
              "draught": 15.5,  # m
              "beam": 56.0,  # m
@@ -540,7 +540,7 @@ VLCS_data = {"name": 'VLCS_1',
 
 ULCS_data = {"name": 'ULCS_1',
              "type": 'ULCS',
-             "call_size": 21000,  # TEU
+             "call_size": 21000/8,  # TEU
              "LOA": 400,  # m
              "draught": 16.0,  # m
              "beam": 59.0,  # m
