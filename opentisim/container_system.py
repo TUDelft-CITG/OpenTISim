@@ -1371,19 +1371,36 @@ class System:
 
         cash_flows = pd.DataFrame()
 
-        # initialise cash_flows
-        cash_flows['Year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        cash_flows['Capex'] = 0
-        cash_flows['Maintenance'] = 0
-        cash_flows['Insurance'] = 0
-        cash_flows['Energy'] = 0
-        cash_flows['Labour'] = 0
-        cash_flows['Fuel'] = 0
-        cash_flows['Demurrage'] = 0
-        cash_flows['Ocean Transport'] = 0
-        # cash_flows['revenues'] = self.revenues
+        if self.system_layout == 'traditional_onshore':
 
-        # add labour component for years where revenues are not zero
+            # initialise cash_flows
+            cash_flows['Year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+            cash_flows['Capex'] = 0
+            cash_flows['Maintenance'] = 0
+            cash_flows['Insurance'] = 0
+            cash_flows['Energy'] = 0
+            cash_flows['Labour'] = 0
+            cash_flows['Fuel'] = 0
+            cash_flows['Demurrage'] = 0
+            cash_flows['Ocean Transport'] = 0
+            cash_flows['Maintenance Dredging'] = 0
+            # cash_flows['revenues'] = self.revenues
+
+        else:
+            # initialise cash_flows
+            cash_flows['Year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+            cash_flows['Capex'] = 0
+            cash_flows['Maintenance'] = 0
+            cash_flows['Insurance'] = 0
+            cash_flows['Energy'] = 0
+            cash_flows['Labour'] = 0
+            cash_flows['Fuel'] = 0
+            cash_flows['Demurrage'] = 0
+            cash_flows['Ocean Transport'] = 0
+            cash_flows['Barge Transport'] = 0
+            cash_flows['Maintenance Dredging'] = 0
+            # cash_flows['revenues'] = self.revenues
+
         for element in self.elements:
             if hasattr(element, 'df'):
                 for column in cash_flows.columns:
@@ -1395,14 +1412,12 @@ class System:
         # calculate WACC real cashflows
         cash_flows_WACC_real = pd.DataFrame()
         cash_flows_WACC_real['Year'] = cash_flows['Year']
+
         for year in range(self.startyear, self.startyear + self.lifecycle):
             for column in cash_flows.columns:
                 if column != "Year":
                     cash_flows_WACC_real.loc[cash_flows_WACC_real['Year'] == year, column] = \
-                        cash_flows.loc[
-                            cash_flows[
-                                'Year'] == year, column] / (
-                                (1 + self.WACC_real()) ** (year - self.startyear))
+                        cash_flows.loc[cash_flows['Year'] == year, column] / ((1 + self.WACC_real()) ** (year - self.startyear))
 
         return cash_flows, cash_flows_WACC_real
 
@@ -1413,13 +1428,18 @@ class System:
         # years
         years = list(range(self.startyear, self.startyear + self.lifecycle))
 
-        # capex
+        # terminal capex
         capex = element.capex
 
-        # opex
+        # terminal opex
         maintenance = element.maintenance
         insurance = element.insurance
         labour = element.labour
+
+        # transport opex
+        # ocean_transport = element.ocean_transport
+        # barge_transport = element.barge_transport
+        # maintenance_dredging = element. maintenance_dredging
 
         # year online
         year_online = element.year_online
@@ -1430,20 +1450,28 @@ class System:
         # years
         df["Year"] = years
 
-        # capex
+        # terminal capex
         if year_delivery > 1:
             df.loc[df["Year"] == year_online - 2, "Capex"] = 0.6 * capex
             df.loc[df["Year"] == year_online - 1, "Capex"] = 0.4 * capex
         else:
             df.loc[df["Year"] == year_online - 1, "Capex"] = capex
 
-        # opex
+        # terminal opex
         if maintenance:
             df.loc[df["Year"] >= year_online, "Maintenance"] = maintenance
         if insurance:
             df.loc[df["Year"] >= year_online, "insurance"] = insurance
         if labour:
             df.loc[df["Year"] >= year_online, "Labour"] = labour
+
+        # transport opex
+        # if ocean_transport:
+        #     df.loc[df["Year"] >= year_online, "Ocean Transport"] = ocean_transport
+        # if barge_transport:
+        #     df.loc[df["Year"] >= year_online, "Barge Transport"] = barge_transport
+        # if maintenance_dredging:
+        #     df.loc[df["Year"] >= year_online, "Maintenance Dredging"] = maintenance_dredging
 
         df.fillna(0, inplace=True)
 
@@ -1483,17 +1511,36 @@ class System:
         "add cash flow information for each of the Terminal elements"
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
 
-        "prepare years, revenue, capex and opex real for plotting"
-        years = cash_flows_WACC_real['Year'].values
-        # revenue = cash_flows_WACC_real['revenues'].values
-        capex = cash_flows_WACC_real['Capex'].values
-        opex = cash_flows_WACC_real['Insurance'].values \
-               + cash_flows_WACC_real['Maintenance'].values \
-               + cash_flows_WACC_real['Energy'].values \
-               + cash_flows_WACC_real['Demurrage'].values \
-               + cash_flows_WACC_real['Fuel'].values \
-               + cash_flows_WACC_real['Labour'].values
-             # + cash_flows_WACC_real['Ocean Transport'].values
+        if self.system_layout == 'traditional_onshore':
+
+            "prepare years, revenue, capex and opex real for plotting"
+            years = cash_flows_WACC_real['Year'].values
+
+            capex = cash_flows_WACC_real['Capex'].values
+
+            opex = cash_flows_WACC_real['Insurance'].values \
+                   + cash_flows_WACC_real['Maintenance'].values \
+                   + cash_flows_WACC_real['Energy'].values \
+                   + cash_flows_WACC_real['Demurrage'].values \
+                   + cash_flows_WACC_real['Fuel'].values \
+                   + cash_flows_WACC_real['Labour'].values
+                 # + cash_flows_WACC_real['Ocean Transport'].values
+
+        else:
+
+            "prepare years, revenue, capex and opex real for plotting"
+            years = cash_flows_WACC_real['Year'].values
+
+            capex = cash_flows_WACC_real['Capex'].values
+
+            opex = cash_flows_WACC_real['Insurance'].values \
+                   + cash_flows_WACC_real['Maintenance'].values \
+                   + cash_flows_WACC_real['Energy'].values \
+                   + cash_flows_WACC_real['Demurrage'].values \
+                   + cash_flows_WACC_real['Fuel'].values \
+                   + cash_flows_WACC_real['Labour'].values
+                 # + cash_flows_WACC_real['Ocean Transport'].values
+
         opex = np.nan_to_num(opex)
 
         PV = - capex - opex
@@ -1501,28 +1548,19 @@ class System:
 
         print('NPV: {}'.format(np.sum(PV)))
 
-        # return PV, capex_normal, opex_normal, labour_normal
 
     """ General functions """
 
     def find_elements(self, obj):
         """ Return elements of type objects part of self.elements """
 
-        onshore_list_of_elements = []
+        list_of_elements = []
         if self.elements != []:
             for element in self.elements:
                 if isinstance(element, obj):
-                    onshore_list_of_elements.append(element)
+                    list_of_elements.append(element)
 
-        return onshore_list_of_elements
-
-        offshore_list_of_elements = []
-        if self.elements != []:
-            for element in self.elements:
-                if isinstance(element, obj):
-                    offshore_list_of_elements.append(element)
-
-        return offshore_list_of_elements
+        return list_of_elements
 
     def calculate_vessel_calls(self, year):
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
@@ -2145,56 +2183,56 @@ class System:
 
         return capacity_planned, capacity_online, service_rate_planend, total_design_gate_minutes
 
-    # def waiting_time(self, year):
-    #
-    #     """
-    #    - Import the berth occupancy of every year
-    #    - Find the factor for the waiting time with the E2/E2/n queueing theory using 4th order polynomial regression
-    #    - Waiting time is the factor times the crane occupancy
-    #    """
-    #
-    #     fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
-    #     new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-    #
-    #     berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-    #         self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
-    #                                        post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
-    #
-    #     # find the different factors which are linked to the number of berths
-    #     berths = len(self.find_elements(Berth))
-    #
-    #     if berths == 1:
-    #         factor = max(0, 79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3
-    #                      + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
-    #     elif berths == 2:
-    #         factor = max(0, 29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3
-    #                      + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
-    #     elif berths == 3:
-    #         factor = max(0, 19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3
-    #                      + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
-    #     elif berths == 4:
-    #         factor = max(0, 17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3
-    #                      + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
-    #     elif berths == 5:
-    #         factor = max(0, 11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3
-    #                      + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
-    #     elif berths == 6:
-    #         factor = max(0, 10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3
-    #                      + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
-    #     elif berths == 7:
-    #         factor = max(0, 8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3
-    #                      + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
-    #     else:
-    #         # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
-    #         factor = float("inf")
-    #
-    #     waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
-    #     waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
-    #
-    #     # print('   > The factor is', factor)
-    #     # print('   > The waiting time occupancy is', waiting_time_occupancy)
-    #
-    #     return factor, waiting_time_occupancy
+    def waiting_time(self, year):
+
+        """
+       - Import the berth occupancy of every year
+       - Find the factor for the waiting time with the E2/E2/n queueing theory using 4th order polynomial regression
+       - Waiting time is the factor times the crane occupancy
+       """
+
+        fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
+        new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+            self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                           post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
+
+        # find the different factors which are linked to the number of berths
+        berths = len(self.find_elements(Berth))
+
+        if berths == 1:
+            factor = max(0, 79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3
+                         + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
+        elif berths == 2:
+            factor = max(0, 29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3
+                         + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
+        elif berths == 3:
+            factor = max(0, 19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3
+                         + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
+        elif berths == 4:
+            factor = max(0, 17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3
+                         + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
+        elif berths == 5:
+            factor = max(0, 11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3
+                         + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
+        elif berths == 6:
+            factor = max(0, 10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3
+                         + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
+        elif berths == 7:
+            factor = max(0, 8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3
+                         + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
+        else:
+            # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
+            factor = float("inf")
+
+        waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
+        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+
+        # print('   > The factor is', factor)
+        # print('   > The waiting time occupancy is', waiting_time_occupancy)
+
+        return factor, waiting_time_occupancy
 
     def check_crane_slot_available(self):
         list_of_elements = self.find_elements(Berth)
@@ -2604,9 +2642,9 @@ class System:
         if self.system_layout == 'traditional_onshore':
             fig, ax1 = plt.subplots(figsize=(16, 5))
 
-            stack_bar = ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
-            empty_bar = ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
-            oog_bar   = ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
+            stack_bar = ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
+            empty_bar = ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area)
+            oog_bar   = ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty)
 
             ax1.step(years, total_storage_area, where='mid', color = 'tab:red')
             ax1.plot(years, total_storage_area, 'd', color = 'tab:red')
@@ -2621,12 +2659,12 @@ class System:
         else:
             fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
 
-            stack_bar = ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
-            empty_bar = ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
-            oog_bar   = ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
+            stack_bar = ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
+            empty_bar = ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area)
+            oog_bar   = ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty)
 
-            ax1.step(years, total_storage_area, where='mid', color = 'tab:red')
-            ax1.plot(years, total_storage_area, 'd', color = 'tab:red')
+            ax1.step(years, total_storage_area, where='mid')
+            ax1.plot(years, total_storage_area, 'd')
 
             # ax1.set_xlabel('Years')
             ax1.set_ylabel('Storage Area [TEU]')
@@ -2635,12 +2673,12 @@ class System:
             ax1.set_xticklabels(years)
             ax1.legend()
 
-            stack_bar = ax2.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None, color = 'tab:blue')
-            empty_bar = ax2.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area, color = 'tab:orange')
-            oog_bar   = ax2.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty, color = 'tab:green')
+            stack_bar = ax2.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
+            empty_bar = ax2.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area)
+            oog_bar   = ax2.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty)
 
-            ax2.step(years, total_storage_area, where='mid', color = 'tab:red')
-            ax2.plot(years, total_storage_area, 'd', color = 'tab:red')
+            ax2.step(years, total_storage_area, where='mid')
+            ax2.plot(years, total_storage_area, 'd')
 
             ax2.set_xlabel('Years')
             ax2.set_ylabel('Storage Area [TEU]')
@@ -2649,7 +2687,7 @@ class System:
             ax2.set_xticklabels(years)
             ax2.legend()
 
-    def opex_plot(self, cash_flows):
+    def terminal_opex_plot(self, cash_flows):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
         "prepare years, revenue, capex and opex for plotting"
@@ -2659,52 +2697,141 @@ class System:
         energy = cash_flows['Energy'].values
         labour = cash_flows['Labour'].values
         fuel = cash_flows['Fuel'].values
-        demurrage = cash_flows['Demurrage'].values
-        ocean_transport = cash_flows['Ocean Transport'].values
         print(cash_flows)
 
+        if self.system_layout == 'traditional_onshore':
+
+            "generate plot"
+            fig, ax1 = plt.subplots(figsize=(16, 5))
+            ax1.step(years, insurance, label='Insurance', where='mid')
+            ax1.step(years, labour, label='Labour', where='mid')
+            ax1.step(years, fuel, label='Fuel', where='mid')
+            ax1.step(years, energy, label='Energy', where='mid')
+            ax1.step(years, maintenance, label='Maintenance', where='mid')
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Opex [M US$]')
+            ax1.set_title('Opex Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+        else:
+
+            "generate plot"
+            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
+            ax1.step(years, insurance, label='Insurance', where='mid')
+            ax1.step(years, labour, label='Labour', where='mid')
+            ax1.step(years, fuel, label='Fuel', where='mid')
+            ax1.step(years, energy, label='Energy', where='mid')
+            ax1.step(years, maintenance, label='Maintenance', where='mid')
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Opex [M US$]')
+            ax1.set_title('Opex Onshore Terminal')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
+
+            ax2.step(years, insurance, label='Insurance', where='mid')
+            ax2.step(years, labour, label='Labour', where='mid')
+            ax2.step(years, fuel, label='Fuel', where='mid')
+            ax2.step(years, energy, label='Energy', where='mid')
+            ax2.step(years, maintenance, label='Maintenance', where='mid')
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Opex [M US$]')
+            ax2.set_title('Opex Offshore Terminal')
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.legend()
+
+    def total_opex_plot(self, cash_flows):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        "prepare years, revenue, capex and opex for plotting"
+        years = cash_flows['Year'].values
+        onshore_opex = (cash_flows['Insurance'].values
+                        + cash_flows['Labour'].values
+                        + cash_flows['Fuel'].values
+                        + cash_flows['Energy'].values
+                        + cash_flows['Maintenance'].values)/2.0
+        offshore_opex = (cash_flows['Insurance'].values
+                         + cash_flows['Labour'].values
+                         + cash_flows['Fuel'].values
+                         + cash_flows['Energy'].values
+                         + cash_flows['Maintenance'].values)
+        demurrage = cash_flows['Demurrage'].values
+        barge_transport = cash_flows['Energy'].values
+        ocean_transport = cash_flows['Energy'].values
+        maintenance_dredging = cash_flows['Energy'].values
+
         "generate plot"
-        fig, ax = plt.subplots(figsize=(16, 6))
+        if self.system_layout == 'traditional_onshore':
 
-        ax.step(years, insurance, label='Insurance', where='mid')
-        ax.step(years, labour, label='Labour', where='mid')
-        ax.step(years, fuel, label='Fuel', where='mid')
-        ax.step(years, energy, label='Energy', where='mid')
-        ax.step(years, maintenance, label='Maintenance', where='mid')
-        ax.step(years, demurrage, label='Demurrage', where='mid')
-        ax.step(years, ocean_transport, label='Ocean Transport', where='mid')
+            fig, ax1 = plt.subplots(figsize=(16, 5))
+            ax1.step(years, onshore_opex, label='Onshore Terminal', where='mid')
+            ax1.step(years, demurrage, label='Demurrage', where='mid')
+            ax1.step(years, ocean_transport, label='Ocean Transport', where='mid')
+            ax1.step(years, maintenance_dredging, label='Maintenance Dredging', where='mid')
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Opex [M US$]')
+            ax1.set_title('Overview of Opex')
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend()
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Opex [M US$]')
-        ax.set_title('Overview of Opex')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+        else:
+
+            fig, ax2 = plt.subplots(figsize=(16, 5))
+            ax2.step(years, onshore_opex, label='Onshore Terminal', where='mid')
+            ax2.step(years, offshore_opex, label='Offshore Terminal', where='mid')
+            ax2.step(years, demurrage, label='Demurrage', where='mid')
+            ax2.step(years, ocean_transport, label='Ocean Transport', where='mid')
+            ax2.step(years, barge_transport, label='Barge Transport', where='mid')
+            ax2.step(years, maintenance_dredging, label='Maintenance Dredging', where='mid')
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Opex [M US$]')
+            ax2.set_title('Overview of Opex')
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.legend()
 
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
-        "prepare NPV"
-        # NPV, capex_normal, opex_normal, labour_normal = self.NPV()
-        # print(NPV)
-
         "prepare years, revenue, capex and opex for plotting"
         years = cash_flows['Year'].values
-        # revenue = self.revenues
         capex = cash_flows['Capex'].values
-        opex = cash_flows['Insurance'].values + + cash_flows['Labour'].values + cash_flows['Fuel'].values + cash_flows['Energy'].values + cash_flows['Maintenance'].values \
-               + cash_flows['Demurrage'].values + cash_flows['Ocean Transport'].values
 
-        "sum cash flows to get costs as a function of year"
-        costs = []
-        for year in years:
-            costs.append(- cash_flows.loc[cash_flows['Year'] == year]['Capex'].item()
-                         - cash_flows.loc[cash_flows['Year'] == year]['Insurance'].item()
-                         - cash_flows.loc[cash_flows['Year'] == year]['Maintenance'].item()
-                         - cash_flows.loc[cash_flows['Year'] == year]['Energy'].item()
-                         - cash_flows.loc[cash_flows['Year'] == year]['Labour'].item()
-                         - cash_flows.loc[cash_flows['Year'] == year]['Demurrage'].item()
-                         - cash_flows.loc[cash_flows['Year'] == year]['Ocean Transport'].item())
+        if self.system_layout == 'traditional_onshore':
+
+            opex = cash_flows['Insurance'].values + cash_flows['Labour'].values + cash_flows['Fuel'].values + cash_flows['Energy'].values \
+                   + cash_flows['Maintenance'].values + cash_flows['Demurrage'].values + cash_flows['Ocean Transport'].values
+
+            "sum cash flows to get costs as a function of year"
+            costs = []
+            for year in years:
+                costs.append(- cash_flows.loc[cash_flows['Year'] == year]['Capex'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Insurance'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Maintenance'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Energy'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Labour'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Demurrage'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Ocean Transport'].item())
+
+        else:
+
+            opex = cash_flows['Insurance'].values + cash_flows['Labour'].values + cash_flows['Fuel'].values + cash_flows['Energy'].values \
+                   + cash_flows['Maintenance'].values + cash_flows['Demurrage'].values + cash_flows['Ocean Transport'].values
+
+            "sum cash flows to get costs as a function of year"
+            costs = []
+            for year in years:
+                costs.append(- cash_flows.loc[cash_flows['Year'] == year]['Capex'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Insurance'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Maintenance'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Energy'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Labour'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Demurrage'].item()
+                             - cash_flows.loc[cash_flows['Year'] == year]['Ocean Transport'].item())
 
         "cumulatively sum costs to get costs_cum"
         costs_cum = [None] * len(costs)
