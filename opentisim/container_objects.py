@@ -40,24 +40,24 @@ Quay_Wall = type('Quay_Wall', (container_mixins.identifiable_properties_mixin,  
                  {})  # The dictionary is empty because the site type is generic
 
 # The generic Berth class
-Berth = type('Berth', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                       container_mixins.history_properties_mixin,  # Give it procurement history
-                       container_mixins.berth_properties_mixin,
-                       container_mixins.hascapex_properties_mixin,  # Give it capex info
-                       container_mixins.hasopex_properties_mixin,  # Give it opex info
-                       container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
-             {})  # The dictionary is empty because the site type is generic
+Berth = type('Berth', (container_mixins.identifiable_properties_mixin,      # Give it a name
+                       container_mixins.history_properties_mixin,           # Give it procurement history
+                       container_mixins.berth_properties_mixin,             # Give it berth properties
+                       container_mixins.hascapex_properties_mixin,          # Give it capex info
+                       container_mixins.hasopex_properties_mixin,           # Give it opex info
+                       container_mixins.hasrevenue_properties_mixin,        # Give it revenue info
+                       container_mixins.hastriggers_properties_mixin),      # Give it investment triggers
+             {})                                                            # The dictionary is empty because the site type is generic
 
 # The generic Channel class
 Channel = type('Channel', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                       container_mixins.history_properties_mixin,  # Give it procurement history
-                       container_mixins.berth_properties_mixin,
-                       container_mixins.hascapex_properties_mixin,  # Give it capex info
-                       container_mixins.hasopex_properties_mixin,  # Give it opex info
-                       container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
-             {})  # The dictionary is empty because the site type is generic
+                           container_mixins.history_properties_mixin,       # Give it procurement history
+                           container_mixins.channel_properties_mixin,       # Give it channel properties
+                           container_mixins.hascapex_properties_mixin,      # Give it capex info
+                           container_mixins.hasopex_properties_mixin,       # Give it opex info
+                           container_mixins.hasrevenue_properties_mixin,    # Give it revenue info
+                           container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+               {})                                                          # The dictionary is empty because the site type is generic
 
 # The generic Cyclic_Unloader class
 Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_properties_mixin,  # Give it a name

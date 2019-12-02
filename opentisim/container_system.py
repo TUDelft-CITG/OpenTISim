@@ -120,6 +120,8 @@ class System:
 
             self.berth_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
 
+            self.access_channel_invest(year)
+
             self.horizontal_transport_invest(year)
 
             self.laden_stack_invest(year)
@@ -773,6 +775,37 @@ class System:
 
         self.elements.append(quay_wall)
 
+    def access_channel_invest(self, year):
+
+        """ Current strategy is to ...."""  # todo add access channel invest
+
+        acces_channels = len(self.find_elements(Channel))
+
+        if acces_channels == 0:
+
+            if self.debug:
+                print('  *** add Access Channel to elements')
+
+            # add an Access_Channel object
+            acces_channel = Channel(**container_defaults.channel_data)
+            print("acces channel", type(acces_channel))
+
+            # capex
+            length = 40  # dummy
+            unit_rate = acces_channel.unit_rate
+            acces_channel.capex = 0
+            acces_channel.capital_dredging = int(length * unit_rate)
+
+            # - opex
+            acces_channel.insurance = unit_rate * length * acces_channel.insurance_perc
+            acces_channel.maintenance = unit_rate * length * acces_channel.maintenance_perc
+            acces_channel.year_online = year + acces_channel.delivery_time
+
+            # add cash flow information to quay_wall object in a DataFrame
+            acces_channel = self.add_cashflow_data_to_element(acces_channel)
+
+            self.elements.append(acces_channel)
+
     def crane_invest(self, year):
 
         """ Current strategy is to add cranes as soon as a service trigger is achieved
@@ -1402,17 +1435,6 @@ class System:
 
     """ Terminal connection investment functions """
 
-    def access_channel_invest(self, year):
-
-        """ Current strategy is to ...."""  # todo add access channel invest
-
-        if self.debug:
-            print('  *** add Access Channel to elements')
-
-        # add access channel object
-        if self.system_layout == 'Access channel':
-            land_connection = Land_Connection(**self.system_layout)  #t
-
     def bridge_invest(self, year):
 
         """ Current strategy is to ....""" # todo add bridge invest
@@ -1430,35 +1452,20 @@ class System:
 
         cash_flows = pd.DataFrame()
 
-        if self.system_layout == 'traditional_onshore':
-
-            # initialise cash_flows
-            cash_flows['Year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-            cash_flows['Capex'] = 0
-            cash_flows['Maintenance'] = 0
-            cash_flows['Insurance'] = 0
-            cash_flows['Energy'] = 0
-            cash_flows['Labour'] = 0
-            cash_flows['Fuel'] = 0
-            cash_flows['Demurrage'] = 0
-            # cash_flows['Ocean Transport'] = 0
-            cash_flows['Maintenance Dredging'] = 0
-            # cash_flows['revenues'] = self.revenues
-
-        else:
-            # initialise cash_flows
-            cash_flows['Year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-            cash_flows['Capex'] = 0
-            cash_flows['Maintenance'] = 0
-            cash_flows['Insurance'] = 0
-            cash_flows['Energy'] = 0
-            cash_flows['Labour'] = 0
-            cash_flows['Fuel'] = 0
-            cash_flows['Demurrage'] = 0
-            # cash_flows['Ocean Transport'] = 0
-            cash_flows['Barge Transport'] = 0
-            cash_flows['Maintenance Dredging'] = 0
-            # cash_flows['revenues'] = self.revenues
+        # initialise cash_flows
+        cash_flows['Year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        cash_flows['Capex'] = 0
+        cash_flows['Capital Dredging'] = 0
+        cash_flows['Maintenance'] = 0
+        cash_flows['Insurance'] = 0
+        cash_flows['Energy'] = 0
+        cash_flows['Labour'] = 0
+        cash_flows['Fuel'] = 0
+        cash_flows['Demurrage'] = 0
+        # cash_flows['Ocean Transport'] = 0
+        cash_flows['Barge Transport'] = 0
+        cash_flows['Maintenance Dredging'] = 0
+        # cash_flows['revenues'] = self.revenues
 
         for element in self.elements:
             if hasattr(element, 'df'):
@@ -1466,7 +1473,7 @@ class System:
                     if column in element.df.columns and column != "Year":
                         cash_flows[column] += element.df[column]
 
-        cash_flows.fillna(0)
+        cash_flows = cash_flows.fillna(0)
 
         # calculate WACC real cashflows
         cash_flows_WACC_real = pd.DataFrame()
@@ -1475,8 +1482,8 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             for column in cash_flows.columns:
                 if column != "Year":
-                    cash_flows_WACC_real.loc[cash_flows_WACC_real['Year'] == year, column] = \
-                        cash_flows.loc[cash_flows['Year'] == year, column] / ((1 + self.WACC_real()) ** (year - self.startyear))
+                    cash_flows_WACC_real.loc[cash_flows_WACC_real['Year'] == year, column] = (
+                            cash_flows.loc[cash_flows['Year'] == year, column] / ((1 + self.WACC_real()) ** (year - self.startyear)))
 
         return cash_flows, cash_flows_WACC_real
 
@@ -1487,15 +1494,14 @@ class System:
         # years
         years = list(range(self.startyear, self.startyear + self.lifecycle))
 
-        # terminal capex
+        # terminal
         capex = element.capex
-
-        # terminal opex
         maintenance = element.maintenance
         insurance = element.insurance
         labour = element.labour
 
-        # channel opex
+        # channel
+        capital_dredging = element.capital_dredging
         # maintenance_dredging = element.maintenance_dredging
 
         # year online
@@ -1506,23 +1512,28 @@ class System:
 
         # years
         df["Year"] = years
-        print("index-list", len(df.index))
 
-        # terminal capex
+        # capex
         if year_delivery > 1:
             df.loc[df["Year"] == year_online - 2, "Capex"] = 0.6 * capex
             df.loc[df["Year"] == year_online - 1, "Capex"] = 0.4 * capex
         else:
             df.loc[df["Year"] == year_online - 1, "Capex"] = capex
 
-        # terminal opex
+        if capital_dredging:
+            if year_delivery > 1:
+                df.loc[df["Year"] == year_online - 2, "Capital Dredging"] = capital_dredging * 0.5
+                df.loc[df["Year"] == year_online - 1, "Capital Dredging"] = capital_dredging * 0.5
+            else:
+                df.loc[df["Year"] == year_online - 1, "Capital Dredging"] = capital_dredging
+
+        # opex
         if maintenance:
             df.loc[df["Year"] >= year_online, "Maintenance"] = maintenance
         if insurance:
-            df.loc[df["Year"] >= year_online, "insurance"] = insurance
+            df.loc[df["Year"] >= year_online, "Insurance"] = insurance
         if labour:
             df.loc[df["Year"] >= year_online, "Labour"] = labour
-
         # if barge_transport:
         #     df.loc[df["Year"] >= year_online, "Barge Transport"] = barge_transport
         # if maintenance_dredging:
@@ -1532,7 +1543,11 @@ class System:
 
         element.df = df
 
+        print("df", df.head())
+
         return element
+
+        print('element', element)
 
     def WACC_nom(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
@@ -1581,12 +1596,17 @@ class System:
                    + cash_flows_WACC_real['Labour'].values
                  # + cash_flows_WACC_real['Ocean Transport'].values
 
+            opex = np.nan_to_num(opex)
+
+            PV = - capex - opex
+
         else:
 
             "prepare years, revenue, capex and opex real for plotting"
             years = cash_flows_WACC_real['Year'].values
 
             capex = cash_flows_WACC_real['Capex'].values
+            capital_dredging = cash_flows_WACC_real['Capital Dredging'].values
 
             opex = cash_flows_WACC_real['Insurance'].values \
                    + cash_flows_WACC_real['Maintenance'].values \
@@ -1596,14 +1616,15 @@ class System:
                    + cash_flows_WACC_real['Labour'].values
                  # + cash_flows_WACC_real['Ocean Transport'].values
 
-        opex = np.nan_to_num(opex)
+            opex = np.nan_to_num(opex)
 
-        PV = - capex - opex
+            PV = - capex - capital_dredging - opex
+
+        print(cash_flows_WACC_real)
 
         print('PV: {}'.format(PV))
 
         print('NPV: {}'.format(np.sum(PV)))
-
 
     """ General functions """
 
@@ -2533,7 +2554,7 @@ class System:
             ax2.set_xticklabels(years)
             ax2.legend()
 
-    def land_use_plot(self, width=0.25, alpha=0.6):
+    def terminal_land_use_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         "get land use"
@@ -2754,7 +2775,6 @@ class System:
         energy = cash_flows['Energy'].values
         labour = cash_flows['Labour'].values
         fuel = cash_flows['Fuel'].values
-        print(cash_flows)
 
         if self.system_layout == 'traditional_onshore':
 
@@ -2887,11 +2907,30 @@ class System:
 
             "sum cash flows to get costs as a function of year"
             opex = np.nan_to_num(opex)
-            costs = np.add(-capex, -opex)
+            costs = - capex - opex
             costs_cum = np.cumsum(costs)
+
+            "generate plot"
+            fig, ax1 = plt.subplots(figsize=(16, 5))
+
+            ax1.bar([x - 0.5 * width for x in years], - opex, width=width, alpha=alpha, label="Opex - Terminal", color='lightblue')
+            ax1.bar([x + 0.5 * width for x in years], - capex, width=width, alpha=alpha, label="Capex - Terminal", color='green')
+            ax1.step(years, costs, label='Annual Costs', where='mid', alpha=1.0, zorder=2)
+            ax1.step(years, costs_cum, label='Cumulative Costs', where='mid', alpha=1.0, zorder=1)
+            ax1.axhline(y = costs_cum[len(costs_cum) - 1], label='NPV', color='grey', linestyle='--', alpha=0.6, zorder=0)
+
+            ax1.set_xlabel('Years')
+            ax1.set_ylabel('Cashflow [M US$]')
+            ax1.set_title('Cash flow plot')
+            ax1.xaxis.tick_top()
+            ax1.set_xticks([x for x in years])
+            ax1.set_xticklabels(years)
+            ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha=1.0, ncol=5, fontsize='large')
 
         else:
             capex = cash_flows['Capex'].values
+            capital_dredging = cash_flows['Capital Dredging'].values
+
             opex = (cash_flows['Insurance'].values
                     + cash_flows['Labour'].values
                     + cash_flows['Fuel'].values
@@ -2900,24 +2939,30 @@ class System:
                     + cash_flows['Demurrage'].values)
                     # + cash_flows['Ocean Transport'].values)
 
+            print("length capex", len(capex))
+            print("length opex", len(opex))
+
             "sum cash flows to get costs as a function of year"
             opex = np.nan_to_num(opex)
-            costs = - capex - opex
+            costs = - capex - capital_dredging - opex
             costs_cum = np.cumsum(costs)
 
-        "generate plot"
-        fig, ax = plt.subplots(figsize=(16, 5))
+            "generate plot"
+            fig, ax2 = plt.subplots(figsize=(16, 5))
 
-        ax.bar([x - 0.5 * width for x in years], - opex, width=width, alpha=alpha, label="Opex", color='lightblue')
-        ax.bar([x + 0.5 * width for x in years], - capex, width=width, alpha=alpha, label="Capex", color='green')
-        ax.step(years, costs, label='Annual Costs', where='mid', alpha=1.0, zorder=2)
-        ax.step(years, costs_cum, label='Cumulative Costs', where='mid', alpha=1.0, zorder=1)
-        ax.axhline(y = costs_cum[len(costs_cum)-1], label='NPV', color='grey', linestyle='--', alpha=0.6, zorder=0)
+            capex_capital = np.add(capex, capital_dredging).tolist()
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Cashflow [M US$]')
-        ax.set_title('Cash flow plot')
-        ax.xaxis.tick_top()
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha = 1.0, ncol=5, fontsize='large')
+            ax2.bar([x - 0.5 * width for x in years], - opex, width=width, alpha=alpha, label="Opex - Terminal", color='lightblue')
+            ax2.bar([x + 0.5 * width for x in years], - capital_dredging, width=width, alpha=alpha, bottom = -capex, label="Capital Dredging", color='coral')
+            ax2.bar([x + 0.5 * width for x in years], - capex, width=width, alpha=alpha, label="Capex - Terminal", color='green')
+            ax2.step(years, costs, label='Annual Costs', where='mid', alpha=1.0, zorder=2)
+            ax2.step(years, costs_cum, label='Cumulative Costs', where='mid', alpha=1.0, zorder=1)
+            ax2.axhline(y = costs_cum[len(costs_cum)-1], label='NPV', color='grey', linestyle='--', alpha=0.6, zorder=0)
+
+            ax2.set_xlabel('Years')
+            ax2.set_ylabel('Cashflow [M US$]')
+            ax2.set_title('Cash flow plot')
+            ax2.xaxis.tick_top()
+            ax2.set_xticks([x for x in years])
+            ax2.set_xticklabels(years)
+            ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha = 1.0, ncol=5, fontsize='large')

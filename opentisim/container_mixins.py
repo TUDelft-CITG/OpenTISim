@@ -68,10 +68,11 @@ class hascapex_properties_mixin(object):
 
     capex: list with cost to be applied from investment year"""
 
-    def __init__(self, capex=[], *args, **kwargs):
+    def __init__(self, capex=[], capital_dredging = [], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.capex = capex
+        self.capital_dredging = capital_dredging
 
 
 class hasopex_properties_mixin(object):
@@ -159,11 +160,18 @@ class berth_properties_mixin(object):
 
 
 class channel_properties_mixin(object):
-    def __init__(self, length, *args, **kwargs):
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_min,
+                 mobilisation_perc, maintenance_perc, insurance_perc,*args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
-        self.length = length
-
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
 
 
 class cyclic_properties_mixin(object):

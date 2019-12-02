@@ -60,7 +60,7 @@ channel_data = {"name": 'Channel',
                 "ownership": 'Port authority',
                 "delivery_time": 2,
                 "lifespan": 50,
-                "unit_rate": 10_000,  # USD per m3
+                "unit_rate": 2_500_000,  # USD per km
                 "mobilisation_min": 2_500_000,
                 "mobilisation_perc": 0.02,
                 "maintenance_perc": 0.10,
@@ -614,8 +614,4 @@ indirect_costs_data = {"name": 'Indirect_Costs',
                        "miscellaneous": 0.15,
                        "electrical_works_fuel_terminal": 0.12,
                        "electrical_works_power_terminal": 0.15}
-
-energy_data = {"name": 'Energy',
-               "price": 0.10}
-
 
