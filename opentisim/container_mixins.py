@@ -80,7 +80,7 @@ class hasopex_properties_mixin(object):
     opex: list with cost to be applied from investment year"""
 
     def __init__(self, labour=[], maintenance=[], energy=[], insurance=[],
-                 lease=[], demurrage=[], residual=[], fuel=[], *args, **kwargs):
+                 lease=[], demurrage=[], transport_costs=[], residual=[], fuel=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.labour = labour
@@ -158,6 +158,14 @@ class berth_properties_mixin(object):
         self.delivery_time = delivery_time
 
 
+class channel_properties_mixin(object):
+    def __init__(self, length, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.length = length
+
+
+
 class cyclic_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
                  consumption, insurance_perc, crew, crane_type, lifting_capacity, hourly_cycles, eff_fact,
@@ -183,9 +191,8 @@ class cyclic_properties_mixin(object):
 
 
 class transport_properties_mixin(object):
-    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation,
-                 maintenance_perc, insurance_perc,
-                 crew, salary, utilisation, fuel_consumption, productivity, required, non_essential_moves, *args, **kwargs):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew, salary,
+                 utilisation, fuel_consumption, productivity, required, non_essential_moves, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -370,12 +377,12 @@ class commodity_properties_mixin(object):
 
 
 class vessel_properties_mixin(object):
-    def __init__(self,
-                 type, call_size, LOA, draught, beam, max_cranes, all_turn_time,
-                 mooring_time, demurrage_rate, starting_fee, variable_fee, avg_overseas_distance, *args, **kwargs):
+    def __init__(self, type, starting_time, call_size, LOA, draught, beam, max_cranes, all_turn_time,
+                 mooring_time, demurrage_rate, transport_costs, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
+        self.starting_time = starting_time
         self.call_size = call_size
         self.LOA = LOA
         self.draught = draught
@@ -384,9 +391,7 @@ class vessel_properties_mixin(object):
         self.all_turn_time = all_turn_time
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
-        self.starting_fee = starting_fee
-        self.variable_fee = variable_fee
-        self.avg_overseas_distance = avg_overseas_distance
+        self.transport_costs = transport_costs
 
 
 class labour_properties_mixin(object):

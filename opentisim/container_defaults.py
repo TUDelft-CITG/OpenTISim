@@ -56,6 +56,16 @@ berth_data = {"name": 'Berth',
               "delivery_time": 1,
               "max_cranes": 3}  # STS cranes
 
+channel_data = {"name": 'Channel',
+                "ownership": 'Port authority',
+                "delivery_time": 2,
+                "lifespan": 50,
+                "unit_rate": 10_000,  # USD per m3
+                "mobilisation_min": 2_500_000,
+                "mobilisation_perc": 0.02,
+                "maintenance_perc": 0.10,
+                "insurance_perc": 0.01}
+
 # *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
 
 # gantry_crane_data = {"name": 'Gantry_crane',
@@ -442,6 +452,7 @@ container_data = {"name": 'Laden',
 
 fully_cellular_data = {"name": 'Fully_Cellular_1',
                        "type": 'Fully_Cellular',
+                       "starting_time": 0,  # years
                        "call_size": 2500/8,  # TEU
                        "LOA": 215,  # m
                        "draught": 10.0,  # m
@@ -450,12 +461,11 @@ fully_cellular_data = {"name": 'Fully_Cellular_1',
                        "all_turn_time": 31,  # todo source
                        "mooring_time": 6,  # berthing + deberthing time
                        "demurrage_rate": 730,  # USD todo edit
-                       "starting_fee": 30,  # USD per TEU
-                       "variable_fee": 0.045,  # USD per TEU per km
-                       "avg_overseas_distance": 3000}  # km
+                       "transport_costs": 200}  # USD per TEU
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
+                "starting_time": 0,  # years
                 "call_size": 3400/8,  # TEU
                 "LOA": 250,  # m
                 "draught": 12.5,  # m
@@ -464,12 +474,11 @@ panamax_data = {"name": 'Panamax_1',
                 "all_turn_time": 31,  # todo source [hr]
                 "mooring_time": 6,  # berthing + deberthing time [hr]
                 "demurrage_rate": 730,  # USD todo edit
-                "starting_fee": 34,  # USD per TEU
-                "variable_fee": 0.040,  # USD per TEU per km
-                "avg_overseas_distance": 3000}  # km
+                "transport_costs": 180}  # USD per TEU
 
 panamax_max_data = {"name": 'Panamax_Max_1',
                     "type": 'Panamax_Max',
+                    "starting_time": 0,  # years
                     "call_size": 4500/8,  # TEU
                     "LOA": 290,  # m
                     "draught": 12.5,  # m
@@ -478,12 +487,11 @@ panamax_max_data = {"name": 'Panamax_Max_1',
                     "all_turn_time": 31,  # todo source [hr]
                     "mooring_time": 2,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
-                    "starting_fee": 38,  # USD per TEU
-                    "variable_fee": 0.035,  # USD per TEU per km
-                    "avg_overseas_distance": 3000}  # km
+                    "transport_costs": 160}  # USD per TEU
 
 post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "type": 'Post_Panamax_I',
+                       "starting_time": 0,  # years
                        "call_size": 6000/8,  # TEU
                        "LOA": 300,  # m
                        "draught": 13.0,  # m
@@ -492,12 +500,11 @@ post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "all_turn_time": 31,  # todo source [hr]
                        "mooring_time": 2,  # berthing + deberthing time [hr]
                        "demurrage_rate": 730,  # USD todo edit
-                       "starting_fee": 42,  # USD per TEU
-                       "variable_fee": 0.030,  # USD per TEU per km
-                       "avg_overseas_distance": 3000}  # km
+                       "transport_costs": 150}  # USD per TEU
 
 post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                         "type": 'Post_Panamax_II',
+                        "starting_time": 0,  # years
                         "call_size": 8500/8,  # TEU
                         "LOA": 340,  # m
                         "draught": 14.5,  # m
@@ -506,12 +513,11 @@ post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                         "all_turn_time": 31,  # todo source [hr]
                         "mooring_time": 2,  # berthing + deberthing time [hr]
                         "demurrage_rate": 730,  # USD todo edit
-                        "starting_fee": 46,  # USD per TEU
-                        "variable_fee": 0.025,  # USD per TEU per km
-                        "avg_overseas_distance": 3000}  # km
+                        "transport_costs": 140}  # USD per TEU
 
 new_panamax_data = {"name": 'New_Panamax_1',
                     "type": 'New_Panamax',
+                    "starting_time": 0,  # years
                     "call_size": 12500/8,  # TEU
                     "LOA": 366,  # m
                     "draught": 15.2,  # m
@@ -520,12 +526,11 @@ new_panamax_data = {"name": 'New_Panamax_1',
                     "all_turn_time": 31,  # todo source [hr]
                     "mooring_time": 6,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
-                    "starting_fee": 50,  # USD per TEU
-                    "variable_fee": 0.020,  # USD per TEU per km
-                    "avg_overseas_distance": 3000}  # km
+                    "transport_costs": 120}  # USD per TEU
 
 VLCS_data = {"name": 'VLCS_1',
              "type": 'VLCS',
+             "starting_time": 0,  # years
              "call_size": 15000/8,  # TEU
              "LOA": 397,  # m
              "draught": 15.5,  # m
@@ -534,12 +539,11 @@ VLCS_data = {"name": 'VLCS_1',
              "all_turn_time": 31,  # todo source [hr]
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
-             "starting_fee": 54,  # USD per TEU
-             "variable_fee": 0.015,  # USD per TEU per km
-             "avg_overseas_distance": 3000}  # km
+             "transport_costs": 80}  # USD per TEU
 
 ULCS_data = {"name": 'ULCS_1',
              "type": 'ULCS',
+             "starting_time": 0,  # years
              "call_size": 21000/8,  # TEU
              "LOA": 400,  # m
              "draught": 16.0,  # m
@@ -548,9 +552,7 @@ ULCS_data = {"name": 'ULCS_1',
              "all_turn_time": 31,  # todo source [hr]
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
-             "starting_fee": 60,  # USD per TEU
-             "variable_fee": 0.010,  # USD per TEU per km
-             "avg_overseas_distance": 3000}  # km
+             "transport_costs": 60}  # USD per TEU
 
 # *** Default inputs: Labour class ***
 
@@ -612,3 +614,8 @@ indirect_costs_data = {"name": 'Indirect_Costs',
                        "miscellaneous": 0.15,
                        "electrical_works_fuel_terminal": 0.12,
                        "electrical_works_power_terminal": 0.15}
+
+energy_data = {"name": 'Energy',
+               "price": 0.10}
+
+

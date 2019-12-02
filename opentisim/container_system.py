@@ -2,6 +2,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import babel.numbers
+import decimal
 
 # opentisim package
 from opentisim.container_objects import *
@@ -11,8 +13,9 @@ from opentisim import container_defaults
 class System:
     def __init__(self, startyear=2020, lifecycle=20, stack_equipment='rs', laden_stack='rs',
                  operational_hours=7500, debug=False, elements=None,
-                 system_layout='traditional_onshore', crane_type_defaults='STS crane', allowable_berth_occupancy=0.6,
-                 laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.60,
+                 system_layout='traditional_onshore',
+                 crane_type_defaults='STS crane', allowable_berth_occupancy=0.6,
+                 laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.30,
                  energy_price=0.17, fuel_price=1, land_price=0):
         # time inputs
         if elements is None:
@@ -148,8 +151,6 @@ class System:
         #
         # for year in range(self.startyear, self.startyear + self.lifecycle):
         #     self.calculate_demurrage_cost(year)
-
-        self.ocean_transport = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_ocean_transport_costs(year)
@@ -447,8 +448,7 @@ class System:
             if year >= element.year_online:
                 moves = tractor_moves / transport
                 if element.fuel_consumption * moves * fuel_price != np.inf:
-                    element.df.loc[element.df['Year'] == year, 'Fuel'] = \
-                        element.fuel_consumption * moves * fuel_price
+                    element.df.loc[element.df['Year'] == year, 'Fuel'] = element.fuel_consumption * moves * fuel_price
 
             else:
                 element.df.loc[element.df['Year'] == year, 'Fuel'] = 0
@@ -553,25 +553,84 @@ class System:
         self.demurrage.append(total_demurrage_cost)
 
     def calculate_ocean_transport_costs(self, year):
-        """"
-        The ocean transport depends on the ship type and the average overseas distance per ship type.
-        1. At first find the calls per ship type.
-        2. Find the total energy price to multiply the consumption with the energy price
-        """
+
+        """determine the throughput"""
 
         fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
         new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
 
-        # print('new panamax calls', new_panamax_calls)
+        commodities = self.find_elements(Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
 
-        # list_of_elements_Vessel = self.find_elements(Vessel)
-        # print('list_of_elements_vessel',list_of_elements_vessel)
+        throughput = volume
 
-        overseas_distance = 1000
+        """determine the vessel opex"""
 
-        # if service_rate != 0:
-        #     fully_cellular = Vessel(**container_defaults.fully_cellular_data)
-        #     transport_costs_fully_cellular = (overseas_distance * fully_cellular.variable_fee + fully_cellular.starting_fee) * fully_cellular_calls
+        # gather vessels and calculate the transport costs of each vessel type
+        vessels = self.find_elements(Vessel)
+
+        for vessel in vessels:
+            if vessel.type == 'Fully_Cellular':
+                fully_cellular_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'Panamax':
+                panamax_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'Panamax_Max':
+                panamax_max_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'Post_Panamax_I':
+                post_panamax_I_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'Post_Panamax_II':
+                post_panamax_II_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'New_Panamax':
+                new_panamax_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'VLCS':
+                VLCS_costs = vessel.transport_costs * throughput / 2
+            elif vessel.type == 'ULCS':
+                ULCS_costs = vessel.transport_costs * throughput / 2
+
+        # for vessel in vessels:
+        #     if vessel.type == 'Fully_Cellular':
+        #         vessel = Vessel(**container_defaults.fully_cellular_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'Panamax':
+        #         vessel = Vessel(**container_defaults.panamax_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'Panamax_Max':
+        #         vessel = Vessel(**container_defaults.panamax_max_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'Post_Panamax_I':
+        #         vessel = Vessel(**container_defaults.post_panamax_I_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'Post_Panamax_II':
+        #         vessel = Vessel(**container_defaults.post_panamax_II_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'New_Panamax':
+        #         vessel = Vessel(**container_defaults.new_panamax_data)
+        #         print(vessel)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'VLCS':
+        #         vessel = Vessel(**container_defaults.VLCS_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+        #     elif vessel.type == 'ULCS':
+        #         vessel = Vessel(**container_defaults.ULCS_data)
+        #         vessel.year_online = year + vessel.starting_time
+        #         vessel.transport_costs = vessel.transport_costs * throughput / 2
+
+        total_container_ship_costs = np.sum([fully_cellular_costs, panamax_costs, panamax_max_costs, post_panamax_I_costs, post_panamax_II_costs,
+                                             new_panamax_costs, VLCS_costs, ULCS_costs])
+
+        return fully_cellular_costs, panamax_costs, panamax_max_costs, post_panamax_I_costs, post_panamax_II_costs, \
+               new_panamax_costs, VLCS_costs, ULCS_costs, total_container_ship_costs
 
     """ Terminal investment functions """
 
@@ -1382,7 +1441,7 @@ class System:
             cash_flows['Labour'] = 0
             cash_flows['Fuel'] = 0
             cash_flows['Demurrage'] = 0
-            cash_flows['Ocean Transport'] = 0
+            # cash_flows['Ocean Transport'] = 0
             cash_flows['Maintenance Dredging'] = 0
             # cash_flows['revenues'] = self.revenues
 
@@ -1396,7 +1455,7 @@ class System:
             cash_flows['Labour'] = 0
             cash_flows['Fuel'] = 0
             cash_flows['Demurrage'] = 0
-            cash_flows['Ocean Transport'] = 0
+            # cash_flows['Ocean Transport'] = 0
             cash_flows['Barge Transport'] = 0
             cash_flows['Maintenance Dredging'] = 0
             # cash_flows['revenues'] = self.revenues
@@ -1436,10 +1495,8 @@ class System:
         insurance = element.insurance
         labour = element.labour
 
-        # transport opex
-        # ocean_transport = element.ocean_transport
-        # barge_transport = element.barge_transport
-        # maintenance_dredging = element. maintenance_dredging
+        # channel opex
+        # maintenance_dredging = element.maintenance_dredging
 
         # year online
         year_online = element.year_online
@@ -1449,6 +1506,7 @@ class System:
 
         # years
         df["Year"] = years
+        print("index-list", len(df.index))
 
         # terminal capex
         if year_delivery > 1:
@@ -1465,9 +1523,6 @@ class System:
         if labour:
             df.loc[df["Year"] >= year_online, "Labour"] = labour
 
-        # transport opex
-        # if ocean_transport:
-        #     df.loc[df["Year"] >= year_online, "Ocean Transport"] = ocean_transport
         # if barge_transport:
         #     df.loc[df["Year"] >= year_online, "Barge Transport"] = barge_transport
         # if maintenance_dredging:
@@ -1544,6 +1599,7 @@ class System:
         opex = np.nan_to_num(opex)
 
         PV = - capex - opex
+
         print('PV: {}'.format(PV))
 
         print('NPV: {}'.format(np.sum(PV)))
@@ -1612,6 +1668,7 @@ class System:
                 VLCS_calls = int(np.ceil(VLCS_vol / vessel.call_size))
             elif vessel.type == 'ULCS':
                 ULCS_calls = int(np.ceil(ULCS_vol / vessel.call_size))
+
         total_calls = np.sum([fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls])
 
         return fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
@@ -2746,22 +2803,39 @@ class System:
     def total_opex_plot(self, cash_flows):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
+        # transport opex
+        annual_container_ship_costs = 200000000
+        annual_barge_costs = 100000000
+        annual_dredging_costs = 120000000
+
+        container_ship_costs = []
+        for i in range(len(cash_flows.index)):
+            container_ship_costs.append(annual_container_ship_costs)
+
+        barge_costs = []
+        for i in range(len(cash_flows.index)):
+            barge_costs.append(annual_barge_costs)
+
+        maintenance_dredging_costs = []
+        for i in range(len(cash_flows.index)):
+            maintenance_dredging_costs.append(annual_dredging_costs)
+
         "prepare years, revenue, capex and opex for plotting"
         years = cash_flows['Year'].values
         onshore_opex = (cash_flows['Insurance'].values
                         + cash_flows['Labour'].values
                         + cash_flows['Fuel'].values
                         + cash_flows['Energy'].values
-                        + cash_flows['Maintenance'].values)/2.0
+                        + cash_flows['Maintenance'].values)/1.5
         offshore_opex = (cash_flows['Insurance'].values
                          + cash_flows['Labour'].values
                          + cash_flows['Fuel'].values
                          + cash_flows['Energy'].values
                          + cash_flows['Maintenance'].values)
         demurrage = cash_flows['Demurrage'].values
-        barge_transport = cash_flows['Energy'].values
-        ocean_transport = cash_flows['Energy'].values
-        maintenance_dredging = cash_flows['Energy'].values
+        barge_transport = barge_costs
+        ocean_transport = container_ship_costs
+        maintenance_dredging = maintenance_dredging_costs
 
         "generate plot"
         if self.system_layout == 'traditional_onshore':
@@ -2776,7 +2850,7 @@ class System:
             ax1.set_title('Overview of Opex')
             ax1.set_xticks([x for x in years])
             ax1.set_xticklabels(years)
-            ax1.legend()
+            ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha=1.0, ncol=5, fontsize='large')
 
         else:
 
@@ -2792,62 +2866,53 @@ class System:
             ax2.set_title('Overview of Opex')
             ax2.set_xticks([x for x in years])
             ax2.set_xticklabels(years)
-            ax2.legend()
+            ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha=1.0, ncol=5, fontsize='large')
 
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
         "prepare years, revenue, capex and opex for plotting"
         years = cash_flows['Year'].values
-        capex = cash_flows['Capex'].values
 
         if self.system_layout == 'traditional_onshore':
+            capex = cash_flows['Capex'].values
 
-            opex = cash_flows['Insurance'].values + cash_flows['Labour'].values + cash_flows['Fuel'].values + cash_flows['Energy'].values \
-                   + cash_flows['Maintenance'].values + cash_flows['Demurrage'].values + cash_flows['Ocean Transport'].values
+            opex = (cash_flows['Insurance'].values
+                    + cash_flows['Labour'].values
+                    + cash_flows['Fuel'].values
+                    + cash_flows['Energy'].values
+                    + cash_flows['Maintenance'].values
+                    + cash_flows['Demurrage'].values)
+                    # + cash_flows['Ocean Transport'].values)
 
             "sum cash flows to get costs as a function of year"
-            costs = []
-            for year in years:
-                costs.append(- cash_flows.loc[cash_flows['Year'] == year]['Capex'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Insurance'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Maintenance'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Energy'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Labour'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Demurrage'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Ocean Transport'].item())
+            opex = np.nan_to_num(opex)
+            costs = np.add(-capex, -opex)
+            costs_cum = np.cumsum(costs)
 
         else:
-
-            opex = cash_flows['Insurance'].values + cash_flows['Labour'].values + cash_flows['Fuel'].values + cash_flows['Energy'].values \
-                   + cash_flows['Maintenance'].values + cash_flows['Demurrage'].values + cash_flows['Ocean Transport'].values
+            capex = cash_flows['Capex'].values
+            opex = (cash_flows['Insurance'].values
+                    + cash_flows['Labour'].values
+                    + cash_flows['Fuel'].values
+                    + cash_flows['Energy'].values
+                    + cash_flows['Maintenance'].values
+                    + cash_flows['Demurrage'].values)
+                    # + cash_flows['Ocean Transport'].values)
 
             "sum cash flows to get costs as a function of year"
-            costs = []
-            for year in years:
-                costs.append(- cash_flows.loc[cash_flows['Year'] == year]['Capex'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Insurance'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Maintenance'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Energy'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Labour'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Demurrage'].item()
-                             - cash_flows.loc[cash_flows['Year'] == year]['Ocean Transport'].item())
-
-        "cumulatively sum costs to get costs_cum"
-        costs_cum = [None] * len(costs)
-        for index, value in enumerate(costs):
-            if index == 0:
-                costs_cum[index] = 0
-            else:
-                costs_cum[index] = costs_cum[index - 1] + costs[index]
+            opex = np.nan_to_num(opex)
+            costs = - capex - opex
+            costs_cum = np.cumsum(costs)
 
         "generate plot"
         fig, ax = plt.subplots(figsize=(16, 5))
 
         ax.bar([x - 0.5 * width for x in years], - opex, width=width, alpha=alpha, label="Opex", color='lightblue')
         ax.bar([x + 0.5 * width for x in years], - capex, width=width, alpha=alpha, label="Capex", color='green')
-        ax.step(years, costs, label='Costs Annual', where='mid')
-        ax.step(years, costs_cum, label='Costs Cumulative', where='mid')
+        ax.step(years, costs, label='Annual Costs', where='mid', alpha=1.0, zorder=2)
+        ax.step(years, costs_cum, label='Cumulative Costs', where='mid', alpha=1.0, zorder=1)
+        ax.axhline(y = costs_cum[len(costs_cum)-1], label='NPV', color='grey', linestyle='--', alpha=0.6, zorder=0)
 
         ax.set_xlabel('Years')
         ax.set_ylabel('Cashflow [M US$]')
@@ -2855,4 +2920,4 @@ class System:
         ax.xaxis.tick_top()
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
-        ax.legend()
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha = 1.0, ncol=5, fontsize='large')

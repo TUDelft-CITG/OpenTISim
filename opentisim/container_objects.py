@@ -35,7 +35,7 @@ Quay_Wall = type('Quay_Wall', (container_mixins.identifiable_properties_mixin,  
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
                                container_mixins.hasopex_properties_mixin,  # Give it opex info
                                container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers (lambda?)
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
                                container_mixins.hasland_properties_mixin),
                  {})  # The dictionary is empty because the site type is generic
 
@@ -46,7 +46,17 @@ Berth = type('Berth', (container_mixins.identifiable_properties_mixin,  # Give i
                        container_mixins.hascapex_properties_mixin,  # Give it capex info
                        container_mixins.hasopex_properties_mixin,  # Give it opex info
                        container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+             {})  # The dictionary is empty because the site type is generic
+
+# The generic Channel class
+Channel = type('Channel', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                       container_mixins.history_properties_mixin,  # Give it procurement history
+                       container_mixins.berth_properties_mixin,
+                       container_mixins.hascapex_properties_mixin,  # Give it capex info
+                       container_mixins.hasopex_properties_mixin,  # Give it opex info
+                       container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
              {})  # The dictionary is empty because the site type is generic
 
 # The generic Cyclic_Unloader class
@@ -56,7 +66,7 @@ Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_propert
                                            container_mixins.hascapex_properties_mixin,  # Give it capex info
                                            container_mixins.hasopex_properties_mixin,  # Give it opex info
                                            container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                                           container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+                                           container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                        {})  # The dictionary is empty because the site type is generic
 
 # The generic Horizontal transport class
@@ -65,7 +75,7 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
                                                      container_mixins.transport_properties_mixin,
                                                      container_mixins.hascapex_properties_mixin,  # Give it capex info
                                                      container_mixins.hasopex_properties_mixin,  # Give it opex info
-                                                     container_mixins.hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+                                                     container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                             {})  # The dictionary is empty because the site type is generic
 
 # The generic Commodity class
