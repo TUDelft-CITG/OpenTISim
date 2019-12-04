@@ -55,9 +55,35 @@ Channel = type('Channel', (container_mixins.identifiable_properties_mixin,  # Gi
                            container_mixins.channel_properties_mixin,       # Give it channel properties
                            container_mixins.hascapex_properties_mixin,      # Give it capex info
                            container_mixins.hasopex_properties_mixin,       # Give it opex info
-                           container_mixins.hasrevenue_properties_mixin,    # Give it revenue info
                            container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                {})                                                          # The dictionary is empty because the site type is generic
+
+# The generic Bridge class
+Bridge = type('Bridge', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                         container_mixins.history_properties_mixin,       # Give it procurement history
+                         container_mixins.bridge_properties_mixin,        # Give it channel properties
+                         container_mixins.hascapex_properties_mixin,      # Give it capex info
+                         container_mixins.hasopex_properties_mixin,       # Give it opex info
+                         container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+              {})                                                         # The dictionary is empty because the site type is generic
+
+# The generic Channel class
+Barge = type('Barge', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                       container_mixins.history_properties_mixin,       # Give it procurement history
+                       container_mixins.barge_properties_mixin,         # Give it barge properties
+                       container_mixins.hascapex_properties_mixin,      # Give it capex info
+                       container_mixins.hasopex_properties_mixin,       # Give it opex info
+                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+             {})                                                        # The dictionary is empty because the site type is generic
+
+# The generic Channel class
+Truck = type('Truck', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                       container_mixins.history_properties_mixin,       # Give it procurement history
+                       container_mixins.truck_properties_mixin,         # Give it truck properties
+                       container_mixins.hascapex_properties_mixin,      # Give it capex info
+                       container_mixins.hasopex_properties_mixin,       # Give it opex info
+                       container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+             {})                                                        # The dictionary is empty because the site type is generic
 
 # The generic Cyclic_Unloader class
 Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_properties_mixin,  # Give it a name

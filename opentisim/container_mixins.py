@@ -68,11 +68,14 @@ class hascapex_properties_mixin(object):
 
     capex: list with cost to be applied from investment year"""
 
-    def __init__(self, capex=[], capital_dredging = [], *args, **kwargs):
+    def __init__(self, terminal_capex=[], capital_dredging = [], bridge_construction = [], barge_capex =[], truck_capex = [], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
-        self.capex = capex
+        self.terminal_capex = terminal_capex
         self.capital_dredging = capital_dredging
+        self.bridge_construction = bridge_construction
+        self.barge_capex = barge_capex
+        self.truck_capex = truck_capex
 
 
 class hasopex_properties_mixin(object):
@@ -80,8 +83,8 @@ class hasopex_properties_mixin(object):
 
     opex: list with cost to be applied from investment year"""
 
-    def __init__(self, labour=[], maintenance=[], energy=[], insurance=[],
-                 lease=[], demurrage=[], transport_costs=[], residual=[], fuel=[], *args, **kwargs):
+    def __init__(self, labour=[], maintenance=[], energy=[], insurance=[], lease=[], demurrage=[], maintenance_dredging=[], bridge_maintenance = [],
+                 barge_opex=[], barge_maintenance=[], truck_opex=[], truck_maintenance=[], residual=[], fuel=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.labour = labour
@@ -90,6 +93,12 @@ class hasopex_properties_mixin(object):
         self.insurance = insurance
         self.lease = lease
         self.demurrage = demurrage
+        self.maintenance_dredging = maintenance_dredging
+        self.bridge_maintenance = bridge_maintenance
+        self.barge_opex = barge_opex
+        self.barge_maintenace = barge_maintenance
+        self.truck_opex = truck_opex
+        self.truck_maintenace = truck_maintenance
         self.residual = residual
         self.fuel = fuel
 
@@ -170,6 +179,47 @@ class channel_properties_mixin(object):
         self.unit_rate = unit_rate
         self.mobilisation_min = mobilisation_min
         self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
+
+
+class bridge_properties_mixin(object):
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_min,
+                 mobilisation_perc, maintenance_perc, insurance_perc,*args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
+
+
+class barge_properties_mixin(object):
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, operations_perc, maintenance_perc, insurance_perc, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.operations_perc = operations_perc
+        self.maintenance_perc = maintenance_perc
+        self.insurance_perc = insurance_perc
+
+
+class truck_properties_mixin(object):
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, operations_perc, maintenance_perc, insurance_perc, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.operations_perc = operations_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
 

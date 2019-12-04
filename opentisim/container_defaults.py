@@ -66,6 +66,35 @@ channel_data = {"name": 'Channel',
                 "maintenance_perc": 0.10,
                 "insurance_perc": 0.01}
 
+bridge_data = {"name": 'Bridge',
+               "ownership": 'Port authority',
+               "delivery_time": 3,
+               "lifespan": 50,
+               "unit_rate": 2_500_000,  # USD per km
+               "mobilisation_min": 2_500_000,
+               "mobilisation_perc": 0.02,
+               "maintenance_perc": 0.10,
+               "insurance_perc": 0.01}
+
+
+barge_data = {"name": 'Barge',
+              "ownership": 'Port authority',
+              "delivery_time": 1,
+              "lifespan": 10,
+              "unit_rate": 1_000_000,  # USD per barge
+              "operations_perc": 0.10,
+              "maintenance_perc": 0.10,
+              "insurance_perc": 0.01}
+
+truck_data = {"name": 'Truck',
+              "ownership": 'Port authority',
+              "delivery_time": 1,
+              "lifespan": 10,
+              "unit_rate": 10_000,  # USD per truck
+              "operations_perc": 0.10,
+              "maintenance_perc": 0.10,
+              "insurance_perc": 0.01}
+
 # *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
 
 # gantry_crane_data = {"name": 'Gantry_crane',
