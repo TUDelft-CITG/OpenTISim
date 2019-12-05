@@ -76,7 +76,6 @@ bridge_data = {"name": 'Bridge',
                "maintenance_perc": 0.10,
                "insurance_perc": 0.01}
 
-
 barge_data = {"name": 'Barge',
               "ownership": 'Port authority',
               "delivery_time": 1,
