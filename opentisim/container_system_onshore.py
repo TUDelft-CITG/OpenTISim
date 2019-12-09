@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import babel.numbers
 import decimal
 
@@ -9,18 +10,18 @@ import decimal
 from opentisim.container_objects import *
 from opentisim import container_defaults
 
-
 class System:
     def __init__(self, startyear=2020, lifecycle=20, stack_equipment='rs', laden_stack='rs',
                  operational_hours=7500, debug=False, elements=None,
-                 offshore_distance = 40, crane_type_defaults='STS crane', allowable_berth_occupancy=0.6,
+                 foreshore_slope=3.0, bathymetry_factor = 0.5, wave_height=3.0,
+                 crane_type_defaults='STS crane', allowable_berth_occupancy=0.5,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.30,
                  energy_price=0.17, fuel_price=1, land_price=0):
+
+        if elements is None:
+            elements = []
+
         # time inputs
-        if elements is None:
-            elements = []
-        if elements is None:
-            elements = []
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
@@ -39,7 +40,9 @@ class System:
         self.crane_type_defaults = crane_type_defaults
 
         # site specific conditions
-        self.offshore_distance = offshore_distance
+        self.foreshore_slope = foreshore_slope
+        self.bathymetry_factor = bathymetry_factor
+        self.wave_height = wave_height
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
@@ -121,7 +124,7 @@ class System:
 
             self.berth_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
 
-            self.access_channel_invest(year)
+            self.access_channel_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
 
             self.horizontal_transport_invest(year)
 
@@ -177,7 +180,7 @@ class System:
 
         " 8. calculate cashflows and aggregate to NPV "
 
-        terminal_capex, terminal_opex, cash_flows, cash_flows_df, cash_flows_WACC_real_df, NPV = self.net_present_value()
+        terminal_capex, terminal_opex, capital_dredging, maintenance_dredging, cash_flows, cash_flows_df, cash_flows_WACC_real_df, NPV = self.net_present_value()
 
     """ Revenue functions """
     # def calculate_revenue(self, year):
@@ -698,17 +701,17 @@ class System:
                 # PIANC 2014 (see Ijzermans, 2019 - infrastructure.py line 107 - 111)
                 if quay_walls == 0:
                     # length when next quay is n = 1
-                    length = length_v + 2 * 15
+                    quay_length = length_v + 2 * 15
                 elif quay_walls == 1:
                     # length when next quay is n > 1
-                    length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)
+                    quay_length = 1.1 * berths * (length_v + 15) - (length_v + 2 * 15)
                 else:
-                    length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
+                    quay_length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
                 # quay wall depth
                 quay_wall = Quay_Wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
-                self.quay_invest(year, length, depth)  # todo check
+                self.quay_invest(year, quay_length, depth)
 
                 # berth occupancy after adding a quay
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
@@ -730,11 +733,11 @@ class System:
                     print('     Berth occupancy online  (after adding Crane): {}'.format(round(berth_occupancy_online, 3)))
                     print('')
 
-    def quay_invest(self, year, length, depth):
+    def quay_invest(self, year, quay_length, depth):
 
         """ Current strategy is to add quay as quay_per_berth < 1
             - adding quay will increase quay_per_berth
-            - quay_wall.length must be long enough to accommodate largest expected vessel
+            - quay_wall.quay_length must be long enough to accommodate largest expected vessel
             - quay_wall.depth must be deep enough to accommodate largest expected vessel
             - quay_wall.freeboard must be high enough to accommodate largest expected vessel"""
 
@@ -746,23 +749,25 @@ class System:
 
         # capex
         unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)  # todo check haakjes, staat anders in rapport Wijnand
-        mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
-        apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
-        cost_of_land = length * quay_wall.apron_width * self.land_price
-        quay_wall.terminal_capex = int(length * unit_rate + mobilisation + apron_pavement + cost_of_land)
+        mobilisation = int(max((quay_length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
+        apron_pavement = quay_length * quay_wall.apron_width * quay_wall.apron_pavement
+        cost_of_land = quay_length * quay_wall.apron_width * self.land_price
+        quay_wall.terminal_capex = int(quay_length * unit_rate + mobilisation + apron_pavement + cost_of_land)
 
         # opex
-        quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
-        quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
+        quay_wall.insurance = unit_rate * quay_length * quay_wall.insurance_perc
+        quay_wall.maintenance = unit_rate * quay_length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
 
         # land use
-        quay_wall.land_use = length * quay_wall.apron_width
+        quay_wall.land_use = quay_length * quay_wall.apron_width
 
         # add cash flow information to quay_wall object in a DataFrame
         quay_wall = self.add_cashflow_data_to_element(quay_wall)
 
         self.elements.append(quay_wall)
+
+        return quay_length
 
     def crane_invest(self, year):
 
@@ -1393,33 +1398,134 @@ class System:
 
     """ Terminal connection investment functions """
 
-    def access_channel_invest(self, year):
+    def access_channel_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS):
 
         """ Current strategy is to ...."""  # todo add access channel invest
 
-        acces_channels = len(self.find_elements(Channel))
+        vessels = self.find_elements(Vessel)
+        for vessel in vessels:
+            if fully_cellular > 0:
+                vessel = Vessel(**container_defaults.fully_cellular_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif panamax > 0:
+                vessel = Vessel(**container_defaults.panamax_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif panamax_max > 0:
+                vessel = Vessel(**container_defaults.panamax_max_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif post_panamax_I > 0:
+                vessel = Vessel(**container_defaults.post_panamax_I_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif post_panamax_II > 0:
+                vessel = Vessel(**container_defaults.post_panamax_II_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif new_panamax > 0:
+                vessel = Vessel(**container_defaults.new_panamax_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif VLCS > 0:
+                vessel = Vessel(**container_defaults.VLCS_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
+            elif ULCS > 0:
+                vessel = Vessel(**container_defaults.ULCS_data)
+                length = vessel.LOA
+                draught = vessel.draught
+                beam = vessel.beam
 
-        if acces_channels == 0:
+        # calibration
+        print("length", length)
+        print("draught", draught)
+        print("beam", beam)
+
+        access_channels = len(self.find_elements(Channel))
+
+        if access_channels == 0:
 
             if self.debug:
                 print('  *** add Access Channel to elements')
 
             # add an Access_Channel object
-            acces_channel = Channel(**container_defaults.channel_data)
+            access_channel = Channel(**container_defaults.channel_data)
+
+            # dimensions access channel (According to PIANC 2014 for moderate conditions)
+            width_standard = beam * 1.5
+            width_cross_wind = beam * 0.4
+            width_cross_current = beam * 0.7
+            width_long_current = beam * 0.1
+            width_wave_height = beam * 0.5
+            width_aids_navigation = beam * 0.2
+            width_bottom_surface = beam * 0.1
+            width_depth_waterway = beam * 0.1
+            width_bank_clearance = beam * 0.5
+            width_passing = beam * 1.6
+            channel_width = 2 * (width_standard + width_cross_wind + width_cross_current + width_long_current + width_wave_height +
+                                   width_aids_navigation + width_bottom_surface + width_depth_waterway + width_bank_clearance) + width_passing
+
+            wave_height = self.wave_height
+            tidal_window = 0.0
+            max_sinkage = 1.0
+            wave_response = wave_height / 2
+            net_underkeel_clearance = 0.5
+            channel_depth = draught - tidal_window + max_sinkage + wave_response + net_underkeel_clearance
+
+            channel_length = self.foreshore_slope * 10**3 * channel_depth
+
+            channel_volume = self.bathymetry_factor * channel_width * channel_depth * channel_length
+
+            # dimensions turning circle
+            turning_circle_diameter = length * 1.8  # Source: RHDHV
+            turning_circle_depth = channel_depth
+            turning_circle_volume = 1/4 * np.pi * turning_circle_diameter**2 * turning_circle_depth
+
+            # dimensions berth pocket
+            quay_length = 1000
+            berth_pocket_width = beam * 2.0  # Source: RHDHV
+            berth_pocket_depth = channel_depth
+            berth_pocket_volume = berth_pocket_width * berth_pocket_depth * quay_length
+
+            # total
+            dredging_volume = channel_volume + turning_circle_volume + berth_pocket_volume
 
             # capex
-            length = self.offshore_distance
-            unit_rate = acces_channel.unit_rate
-            acces_channel.capital_dredging = int(length * unit_rate)
+            capital_dredging_rate = access_channel.capital_dredging_rate
+            infill_dredging_rate = access_channel.infill_dredging_rate
+            access_channel.capital_dredging = int((capital_dredging_rate + infill_dredging_rate) * dredging_volume)
 
             # opex
-            acces_channel.maintenance_dredging = unit_rate * length * acces_channel.maintenance_perc
-            acces_channel.year_online = year + acces_channel.delivery_time
+            maintenance_dredging_rate = access_channel.maintenance_dredging_rate
+            access_channel.maintenance_dredging = maintenance_dredging_rate * dredging_volume * access_channel.maintenance_perc
+            access_channel.year_online = year + access_channel.delivery_time
+
+            # calibration
+            print("channel_width", f'{int(channel_width):,}',"m")
+            print("channel_depth", f'{int(channel_depth):,}', "m")
+            print("channel_length", f'{int(channel_length):,}', "m")
+            print("channel_volume", f'{int(round(channel_volume,-6)):,}', "m3")
+            print("turning_circle_diameter", f'{int(turning_circle_diameter):,}', "m3")
+            print("turning_circle_volume", f'{int(round(turning_circle_volume,-6)):,}', "m3")
+            print("berth_pocket_width", f'{int(berth_pocket_width):,}', "m")
+            print("berth_pocket_volume", f'{int(round(berth_pocket_volume,-6)):,}', "m3")
+            print("dredging_volume", f'{int(round(dredging_volume,-6)):,}', "m3")
 
             # add cash flow information to quay_wall object in a DataFrame
-            acces_channel = self.add_cashflow_data_to_element(acces_channel)
+            access_channel = self.add_cashflow_data_to_element(access_channel)
 
-            self.elements.append(acces_channel)
+            self.elements.append(access_channel)
+
+            return channel_width, channel_depth, channel_length, channel_volume, turning_circle_volume, berth_pocket_volume, dredging_volume
 
     """ Financial analyses """
 
@@ -1533,11 +1639,9 @@ class System:
 
         element.df = df
 
-        print("df", df.head())
+        print(element.df.head())
 
         return element
-
-        print('element', element)
 
     def WACC_nom(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
@@ -1585,12 +1689,15 @@ class System:
         terminal_opex = np.nan_to_num(terminal_opex)
         cash_flows_WACC_real_df['Terminal Opex'] = terminal_opex
 
-        cash_flows = - terminal_capex - terminal_opex
+        capital_dredging = cash_flows_WACC_real_df['Capital Dredging'].values
+        maintenance_dredging = cash_flows_WACC_real_df['Maintenance Dredging'].values
+
+        cash_flows = - terminal_capex - terminal_opex - capital_dredging - maintenance_dredging
         cash_flows_WACC_real_df['Total Cash Flow'] = cash_flows
 
         NPV = np.sum(cash_flows)
 
-        return terminal_capex, terminal_opex, cash_flows, cash_flows_df, cash_flows_WACC_real_df, NPV
+        return terminal_capex, terminal_opex, capital_dredging, maintenance_dredging, cash_flows, cash_flows_df, cash_flows_WACC_real_df, NPV
 
     """ General functions """
 
@@ -2376,70 +2483,26 @@ class System:
         gates = [x / 2 for x in gates]
 
         "generate plot"
-        if self.system_layout == 'traditional_onshore':
-            fig, ax1 = plt.subplots(figsize=(16, 5))
+        fig, ax1 = plt.subplots(figsize=(16, 5))
 
-            ax1.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
-            ax1.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
-            ax1.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
-            ax1.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
-            ax1.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
-            ax1.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
-            ax1.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
-            ax1.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
-            ax1.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
+        ax1.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
+        ax1.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
+        ax1.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
+        ax1.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
+        ax1.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
+        ax1.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
+        ax1.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
+        ax1.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
+        ax1.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
 
-            ax1.set_xlabel('Years')
-            ax1.set_ylabel('Elements [nr]')
-            ax1.set_title('Onshore Terminal')
-            ax1.set_xticks([x for x in years])
-            ax1.set_xticklabels(years)
-            ax1.set_axisbelow(True)
-            ax1.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
-            ax1.legend()
-
-        else:
-            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
-
-            # fig.suptitle('Terminal Elements')
-
-            ax1.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
-            ax1.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
-            ax1.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
-            ax1.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
-            ax1.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
-            ax1.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
-            ax1.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
-            ax1.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
-            ax1.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
-
-            # ax1.set_xlabel('Years')
-            ax1.set_ylabel('Elements [nr]')
-            ax1.set_title('Onshore Terminal')
-            ax1.set_xticks([x for x in years])
-            ax1.set_xticklabels(years)
-            ax1.set_axisbelow(True)
-            ax1.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
-            ax1.legend()
-
-            ax2.bar([x - 4 * width for x in years], berths, width=width, alpha=alpha, label="Berths")
-            ax2.bar([x - 3 * width for x in years], quays, width=width, alpha=alpha, label="Quays")
-            ax2.bar([x - 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS Cranes")
-            ax2.bar([x - 1 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 10)")
-            ax2.bar([x + 0 * width for x in years], stack, width=width, alpha=alpha, label="Laden Stacks (x 10)")
-            ax2.bar([x + 1 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty Stacks")
-            ax2.bar([x + 2 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG Stacks")
-            ax2.bar([x + 3 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack Equipment (x 5)")
-            ax2.bar([x + 4 * width for x in years], gates, width=width, alpha=alpha, label="Gates (x 2)")
-
-            ax2.set_xlabel('Years')
-            ax2.set_ylabel('Elements [nr]')
-            ax2.set_title('Offshore Terminal')
-            ax2.set_xticks([x for x in years])
-            ax2.set_xticklabels(years)
-            ax2.set_axisbelow(True)
-            ax2.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
-            ax2.legend()
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Elements [nr]')
+        ax1.set_title('Onshore Terminal')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        ax1.set_axisbelow(True)
+        ax1.yaxis.grid(color='grey', linestyle='--', linewidth=0.5)
+        ax1.legend()
 
     def terminal_capacity_plot(self, width=0.25, alpha=0.4):
         """Gather data from Terminal and plot which elements come online when"""
@@ -2482,45 +2545,18 @@ class System:
                 pass
 
         "generate plot"
+        fig, ax1 = plt.subplots(figsize=(16, 5))
 
-        if self.system_layout == 'traditional_onshore':
-            fig, ax1 = plt.subplots(figsize=(16, 5))
+        ax1.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
+        ax1.step(years, demand['demand'].values, where='mid',)
+        ax1.plot(years, demand['demand'].values, 'd', label='Demand')
 
-            ax1.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
-            ax1.step(years, demand['demand'].values, where='mid',)
-            ax1.plot(years, demand['demand'].values, 'd', label='Demand')
-
-            ax1.set_xlabel('Years')
-            ax1.set_ylabel('Throughput capacity [TEU/year]')
-            ax1.set_title('Onshore Terminal')
-            ax1.set_xticks([x for x in years])
-            ax1.set_xticklabels(years)
-            ax1.legend()
-
-        else:
-            fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 8))
-
-            ax1.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
-            ax1.step(years, demand['demand'].values, where='mid', )
-            ax1.plot(years, demand['demand'].values, 'd', label='Demand')
-
-            # ax1.set_xlabel('Years')
-            ax1.set_ylabel('Throughput capacity [TEU/year]')
-            ax1.set_title('Onshore Terminal')
-            ax1.set_xticks([x for x in years])
-            ax1.set_xticklabels(years)
-            ax1.legend()
-
-            ax2.bar(years, cranes_capacity, width=width, alpha=alpha, label="Berth Capacity")
-            ax2.step(years, demand['demand'].values, where='mid', )
-            ax2.plot(years, demand['demand'].values, 'd', label='Demand')
-
-            ax2.set_xlabel('Years')
-            ax2.set_ylabel('Throughput capacity [TEU/year]')
-            ax2.set_title('Offshore Terminal')
-            ax2.set_xticks([x for x in years])
-            ax2.set_xticklabels(years)
-            ax2.legend()
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Throughput capacity [TEU/year]')
+        ax1.set_title('Onshore Terminal')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        ax1.legend()
 
     def terminal_land_use_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
@@ -2713,15 +2749,12 @@ class System:
                          + cash_flows_df['Energy'].values
                          + cash_flows_df['Maintenance'].values)
 
-        # offshore connection
+        # access channel
         maintenance_dredging = cash_flows_df['Maintenance Dredging'].values
-        bridge_maintenance = cash_flows_df['Bridge Maintenance'].values
 
         # transport
         ocean_transport = container_ship_costs
         demurrage = cash_flows_df['Demurrage'].values
-        barge_opex = cash_flows_df['Barge Opex'].values
-        truck_opex = cash_flows_df['Truck Opex'].values
 
         "generate plot"
         fig, ax1 = plt.subplots(figsize=(16, 5))
@@ -2752,15 +2785,23 @@ class System:
                 + cash_flows_df['Demurrage'].values)
         terminal_opex = np.nan_to_num(terminal_opex)
 
+        # channel
+        capital_dredging = cash_flows_df['Capital Dredging'].values
+        maintenance_dredging = cash_flows_df['Maintenance Dredging'].values
+
         "sum cash flows to get costs as a function of year"
-        costs = - terminal_capex - terminal_opex
+        costs = - terminal_capex - terminal_opex - capital_dredging - maintenance_dredging
         costs_cum = np.cumsum(costs)
 
         "generate plot"
         fig, ax1 = plt.subplots(figsize=(16, 8))
+        ax1.bar([x + 0.5 * width for x in years], - terminal_capex, width=width, alpha=alpha, bottom = None, label="Capex - Terminal", color='lightgreen')
+        ax1.bar([x + 0.5 * width for x in years], - capital_dredging, width=width, alpha=alpha, bottom = -terminal_capex, label="Capital Dredging", color='green')
+        ax1.bar([x - 0.5 * width for x in years], - terminal_opex, width=width, alpha=alpha, bottom = None, label="Opex - Terminal", color='lightblue')
+        ax1.bar([x - 0.5 * width for x in years], - maintenance_dredging, width=width, alpha=alpha, bottom = -terminal_opex, label="Maintenance Dredging", color='blue')
 
-        ax1.bar([x - 0.5 * width for x in years], - terminal_opex, width=width, alpha=alpha, label="Opex - Terminal", color='lightblue')
-        ax1.bar([x + 0.5 * width for x in years], - terminal_capex, width=width, alpha=alpha, label="Capex - Terminal", color='green')
+        # ax1.bar([x - 0.5 * width for x in years], - terminal_opex, width=width, alpha=alpha, label="Opex - Terminal", color='lightblue')
+        # ax1.bar([x + 0.5 * width for x in years], - terminal_capex, width=width, alpha=alpha, label="Capex - Terminal", color='green')
         ax1.step(years, costs, label='Annual Costs', where='mid', alpha=1.0, zorder=2)
         ax1.step(years, costs_cum, label='Cumulative Costs', where='mid', alpha=1.0, zorder=1)
         ax1.axhline(y = costs_cum[len(costs_cum) - 1], label='NPV', color='grey', linestyle='--', alpha=0.6, zorder=0)

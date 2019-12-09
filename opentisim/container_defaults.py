@@ -58,9 +58,11 @@ berth_data = {"name": 'Berth',
 
 channel_data = {"name": 'Channel',
                 "ownership": 'Port authority',
-                "delivery_time": 2,
-                "lifespan": 50,
-                "unit_rate": 2_500_000,  # USD per km
+                "delivery_time": 2,                 # years
+                "lifespan": 50,                     # years
+                "capital_dredging_rate": 7.0,       # USD per m3
+                "infill_dredging_rate": 5.5,        # USD per m3
+                "maintenance_dredging_rate": 4.5,   # USD per m3
                 "mobilisation_min": 2_500_000,
                 "mobilisation_perc": 0.02,
                 "maintenance_perc": 0.10,
@@ -76,23 +78,31 @@ bridge_data = {"name": 'Bridge',
                "maintenance_perc": 0.10,
                "insurance_perc": 0.01}
 
-barge_data = {"name": 'Barge',
-              "ownership": 'Port authority',
-              "delivery_time": 1,
-              "lifespan": 10,
-              "unit_rate": 1_000_000,  # USD per barge
-              "operations_perc": 0.10,
-              "maintenance_perc": 0.10,
-              "insurance_perc": 0.01}
+reclamation_data = {"name": 'Reclamation',
+                    "ownership": 'Port authority',
+                    "delivery_time": 2,                 # years
+                    "lifespan": 50,                     # years
+                    "reclamation_rate": 12.50,          # USD per m3
+                    "maintenance_perc": 0.02,
+                    "insurance_perc": 0.00}
 
-truck_data = {"name": 'Truck',
-              "ownership": 'Port authority',
-              "delivery_time": 1,
-              "lifespan": 10,
-              "unit_rate": 10_000,  # USD per truck
-              "operations_perc": 0.10,
-              "maintenance_perc": 0.10,
-              "insurance_perc": 0.01}
+revetment_data = {"name": 'Revetment',
+                  "ownership": 'Port authority',
+                  "delivery_time": 2,               # years
+                  "lifespan": 50,                   # years
+                  "revetment_rate": 180_000,        # USD per m
+                  "quay_length_rate": 1.5,
+                  "maintenance_perc": 0.01,
+                  "insurance_perc": 0.00}
+
+breakwater_data = {"name": 'Breakwater',
+                   "ownership": 'Port authority',
+                   "delivery_time": 2,              # years
+                   "lifespan": 50,                  # years
+                   "breakwater_rate":  275_000,     # USD per m
+                   "quay_length_rate": 1.5,
+                   "maintenance_perc": 0.01,
+                   "insurance_perc": 0.00}
 
 # *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
 
@@ -581,6 +591,68 @@ ULCS_data = {"name": 'ULCS_1',
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "transport_costs": 60}  # USD per TEU
+
+# *** Default inputs: Barge class *** # todo add sources
+
+small_barge_data = {"name": 'Small_Barge_1',
+                    "type": 'small',
+                    "ownership": 'Port authority',
+                    "delivery_time": 1,  # years
+                    "lifespan": 10,  # years
+                    "call_size": 200,  # TEU
+                    "LOA": 90,  # m
+                    "draught": 4.5,  # m
+                    "beam": 12.0,  # m
+                    "unit_rate": 1_000_000,  # USD per barge
+                    "operations_perc": 0.10,
+                    "maintenance_perc": 0.10,
+                    "insurance_perc": 0.01,
+                    "max_cranes": 1,  # small STS cranes
+                    "mooring_time": 6,  # berthing + deberthing time
+                    "transport_costs": 200}  # USD per TEU
+
+medium_barge_data = {"name": 'Medium_Barge_1',
+                     "type": 'medium',
+                     "ownership": 'Port authority',
+                     "delivery_time": 1,  # years
+                     "lifespan": 10,  # years
+                     "call_size": 250,  # TEU
+                     "LOA": 100,  # m
+                     "draught": 5.0,  # m
+                     "beam": 13.0,  # m
+                     "unit_rate": 1_000_000,  # USD per barge
+                     "operations_perc": 0.10,
+                     "maintenance_perc": 0.10,
+                     "insurance_perc": 0.01,
+                     "max_cranes": 1,  # small STS cranes
+                     "mooring_time": 6,  # berthing + deberthing time
+                     "transport_costs": 200}  # USD per TEU
+
+large_barge_data = {"name": 'Large_Barge_1',
+                    "type": 'large',
+                    "ownership": 'Port authority',
+                    "delivery_time": 1,  # years
+                    "lifespan": 10, # years
+                    "call_size": 300,  # TEU
+                    "LOA": 120,  # m
+                    "draught": 5.5,  # m
+                    "beam": 14.0,  # m
+                    "unit_rate": 1_000_000,  # USD per barge
+                    "operations_perc": 0.10,
+                    "maintenance_perc": 0.10,
+                    "insurance_perc": 0.01,
+                    "max_cranes": 1,  # small STS cranes
+                    "mooring_time": 6,  # berthing + deberthing time
+                    "transport_costs": 200}  # USD per TEU
+
+truck_data = {"name": 'Truck',
+              "ownership": 'Port authority',
+              "delivery_time": 1,
+              "lifespan": 10,
+              "unit_rate": 10_000,  # USD per truck
+              "operations_perc": 0.10,
+              "maintenance_perc": 0.10,
+              "insurance_perc": 0.01}
 
 # *** Default inputs: Labour class ***
 
