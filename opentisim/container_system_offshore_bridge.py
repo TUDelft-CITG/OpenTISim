@@ -2552,12 +2552,12 @@ class System:
 
             total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
 
-            service_rate_planend = total_design_gate_minutes / capacity_planned
+            service_rate_planned = total_design_gate_minutes / capacity_planned
 
         else:
-            service_rate_planend = float("inf")
+            service_rate_planned = float("inf")
 
-        return capacity_planned, capacity_online, service_rate_planend, total_design_gate_minutes
+        return capacity_planned, capacity_online, service_rate_planned, total_design_gate_minutes
 
     def waiting_time(self, year):
 

@@ -71,18 +71,16 @@ channel_data = {"name": 'Channel',
 bridge_data = {"name": 'Bridge',
                "ownership": 'Port authority',
                "delivery_time": 3,
-               "lifespan": 50,
-               "unit_rate": 2_500_000,  # USD per km
-               "mobilisation_min": 2_500_000,
-               "mobilisation_perc": 0.02,
-               "maintenance_perc": 0.10,
+               "lifespan": 50,                      # years
+               "unit_rate": 100_000_000,            # USD per km
+               "maintenance_perc": 0.025,
                "insurance_perc": 0.01}
 
 reclamation_data = {"name": 'Reclamation',
                     "ownership": 'Port authority',
-                    "delivery_time": 2,                 # years
-                    "lifespan": 50,                     # years
-                    "reclamation_rate": 12.50,          # USD per m3
+                    "delivery_time": 2,             # years
+                    "lifespan": 50,                 # years
+                    "reclamation_rate": 12.50,      # USD per m3
                     "maintenance_perc": 0.02,
                     "insurance_perc": 0.00}
 
@@ -166,6 +164,7 @@ sts_crane_data = {"name": 'STS_crane',
                   "hourly_cycles": 25,  # PIANC wg135
                   "eff_fact": 0.75}
 
+
 # Default inputs: Horizontal_Transport class *** #todo add sources
 
 tractor_trailer_data = {"name": 'Tractor-trailer',
@@ -189,7 +188,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 
 laden_container_data = {"name": 'Laden container',
                         "type": 'laden_container',
-                        "teu_factor": 1.55,
+                        "teu_factor": 1.60,
                         "dwell_time": 3,
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.8}
@@ -430,33 +429,24 @@ gate_data = {"name": 'Gate',
              "peak_factor": 1.2,  #
              "truck_moves": 0.75,  #
              "operating_days": 6,  #
-             "capacity": 60}  # todo ask Piebe, TEU/hr?
+             "capacity": 60}
 
 # *** Default inputs: Barge_Berth class ***
 
 barge_berth_data = {"name": 'Barge_Berth',
                     "type": 'barge_berth',
                     "ownership": "Terminal operator",
-                    "delivery_time": 1,  #
-                    "lifespan": 50,  # equal to quay wall OGV
-                    "unit_rate": 30_000,  # USD/barge_berth
-                    "mobilisation": 5000,  # USD/barge_berth
-                    "maintenance_perc": 0.02,  # percentage
-                    "crew": 2,  # crew/barge_berth
-                    "salary": 30_000,  # todo check
-                    "canopy_costs": 250,  # USD/m2
-                    "area": 288.75,  # PIANC WG135
-                    "staff_gates": 1,  # ?
-                    "service_gates": 1,  # ?
-                    "design_capacity": 0.98,  # ?
-                    "exit_inspection_time": 2,  # ?
-                    "entry_inspection_time": 2,  # ?
-                    "peak_hour": 0.25,  # ?
-                    "peak_day": 0.1,  # ?
-                    "peak_factor": 1.2,  # ?
-                    "truck_moves": 0.75,  # ?
-                    "operating_days": 6,  # ?
-                    "capacity": 60}  # ?
+                    "delivery_time": 2,                 # years
+                    "lifespan": 50,                     # equal to quay wall OGV
+                    "unit_rate": 30_000,                # USD/barge_berth
+                    "mobilisation": 5000,               # USD/barge_berth
+                    "maintenance_perc": 0.02,           # percentage
+                    "nom_crane_productivity": 15.0,     # moves per hour
+                    "utilisation": 0.90,                # rate
+                    "efficiency": 0.75,                 # rate
+                    "crane_per_berth": 1.30,            # rate
+                    "handling_time_ratio": 0.90,        # handling time to berthing time ratio
+                    "peak_factor": 1.10}
 
 # *** Default inputs: ECH class***
 
