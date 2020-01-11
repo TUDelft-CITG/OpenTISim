@@ -495,21 +495,39 @@ class System:
         - find out how much service capacity is needed
         - add service capacity until service_trigger is no longer exceeded
         """
+        """
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the hinter conveyor investments.
+
+        Operational objective: maintain a hinter conveyor capacity that at least matches the quay crane capacity (so
+        basically the quay conveyors follow what happens on the berth)
+
+        Decision recipe quay conveyor:
+           QSC: quay_conveyor_capacity planned
+           Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
+           quay_crane_service_rate_planned
+              For the quay conveyor investments the strategy is to at least match the quay crane processing capacity
+           Intervention procedure: the intervention strategy is to add quay conveyors until the trigger is achieved
+              - find out how much quay_conveyor_capacity is planned
+              - find out how much quay_crane_service_rate is planned
+              - add quay_conveyor_capacity until it matches quay_crane_service_rate
+        """
+
 
         # find the total service rate
-        service_capacity = 0
-        service_capacity_online_hinter = 0
+        hinter_conveyor_capacity_planned = 0
+        hinter_conveyor_capacity_online = 0
         list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
         if list_of_elements_conveyor != []:
             for element in list_of_elements_conveyor:
-                service_capacity += element.capacity_steps
+                hinter_conveyor_capacity_planned += element.capacity_steps
                 if year >= element.year_online:
-                    service_capacity_online_hinter += element.capacity_steps
+                    hinter_conveyor_capacity_online += element.capacity_steps
 
         if self.debug:
             print(
                 '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                    service_capacity_online_hinter, service_capacity))
+                    hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned))
 
         # find the total service rate,
         service_rate = 0
@@ -519,7 +537,7 @@ class System:
             years_online.append(element.year_online)
 
         # check if total planned length is smaller than target length, if so add a quay
-        while service_rate > service_capacity:
+        while service_rate > hinter_conveyor_capacity_planned:
             if self.debug:
                 print('  *** add Hinter Conveyor to elements')
             conveyor_hinter = Conveyor_Hinter(**agribulk_defaults_hinterland_conveyor_data)
@@ -548,12 +566,12 @@ class System:
 
             self.elements.append(conveyor_hinter)
 
-            service_capacity += conveyor_hinter.capacity_steps
+            hinter_conveyor_capacity_planned += conveyor_hinter.capacity_steps
 
         if self.debug:
             print(
                 '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                    service_capacity_online_hinter, service_capacity))
+                    hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned))
 
     def unloading_station_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -1003,13 +1021,14 @@ class System:
 
             # estimate berth occupancy
             time_at_berth_handysize_planned = handysize_calls * (
-                    (agribulk_defaults.handysize_data["call_size"] / service_rate_planned) +agribulk_defaults.handysize_data[
-                "mooring_time"])
+                    (agribulk_defaults.handysize_data["call_size"] / service_rate_planned) +
+                     agribulk_defaults.handysize_data["mooring_time"])
             time_at_berth_handymax_planned = handymax_calls * (
-                    (agribulk_defaults.handymax_data["call_size"] / service_rate_planned) +agribulk_defaults.handymax_data[
-                "mooring_time"])
+                    (agribulk_defaults.handymax_data["call_size"] / service_rate_planned) +
+                     agribulk_defaults.handymax_data["mooring_time"])
             time_at_berth_panamax_planned = panamax_calls * (
-                    (agribulk_defaults.panamax_data["call_size"] / service_rate_planned) +agribulk_defaults.panamax_data["mooring_time"])
+                    (agribulk_defaults.panamax_data["call_size"] / service_rate_planned) +
+                    agribulk_defaults.panamax_data["mooring_time"])
 
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
@@ -1120,6 +1139,9 @@ class System:
 
     def calculate_station_occupancy(self, year):
         """
+        The operational objective for the investment strategy for unloading stations is to have sufficient planned
+        unloading stations to keep the station occupancy below a given threshold for the quay crane capacity planned
+
         - Find all stations and sum their service_rate to get service_capacity in TUE per hours
         - Divide the throughput by the service rate to get the total hours in a year
         - Occupancy is total_time_at_station divided by operational hours
@@ -1137,8 +1159,8 @@ class System:
                     service_rate_online += element.service_rate
 
             handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, handysize, handymax, panamax)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
             # find the total throughput,
             service_rate_throughput = 0
