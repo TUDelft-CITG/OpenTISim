@@ -7,8 +7,11 @@ import matplotlib.pyplot as plt
 from opentisim.agribulk_objects import *
 from opentisim import agribulk_defaults
 
-
 class System:
+    """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for agribulk terminals.
+    The module allows variation of the type of quay crane used and the type of storage used. Terminal development is
+    governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable station
+    occupancy."""
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=agribulk_defaults.mobile_crane_data, storage_type_defaults=agribulk_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
@@ -35,51 +38,49 @@ class System:
         # storage variables for revenue
         self.revenues = []
 
-    # *** Simulation engine
-
+    # *** Overall terminal investment strategy for terminal class.
     def simulate(self):
-        """ Terminal investment strategy simulation
+        """ the 'simulate' method implements the terminal investment strategy for this terminal class.
 
         This method automatically generates investment decisions, parametrically derived from overall demand trends and
         a number of investment triggers.
 
-        Based on:
-        - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
-          in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
-          URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
+        Generic approaches based on:
+        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2020). Ports and Waterways.
+          Navigating the changing world. TU Delft, Delft, The Netherlands.
         - Van Koningsveld, M. and J. P. M. Mulder. 2004. Sustainable Coastal Policy Developments in the
           Netherlands. A Systematic Approach Revealed. Journal of Coastal Research 20(2), pp. 375-385
 
-        Apply frame of reference style decisions while stepping through each year of the terminal
+        Specific application based on:
+        - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
+          in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
+          URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
+
+        The simulat method applies frame of reference style decisions while stepping through each year of the terminal
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
         QSC, decision recipe, intervention method):
 
-           1. for each year evaluate the demand of each commodity
-           2. for each year evaluate the various investment decisions
+           1. for each year estimate the anticipated vessel arrivals based on the expected demand
+           2. for each year evaluate which investment are needed given the strategic and operational objectives
            3. for each year calculate the energy costs (requires insight in realized demands)
            4. for each year calculate the demurrage costs (requires insight in realized demands)
-           5. for each year calculate terminal revenues
+           5. for each year calculate terminal revenues (requires insight in realized demands)
            6. collect all cash flows (capex, opex, revenues)
            7. calculate PV's and aggregate to NPV
 
         """
 
-        # # 1. for each year evaluate the demand of each commodity
-        # for year in range(self.startyear, self.startyear + self.lifecycle):
-        #     self.calculate_demand_commodity(year)
-
-        # 2. for each year evaluate the various investment decisions
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
-            strategic objective: create a profitable enterprise (NPV > 0)
-            operational objective: provide infrastructure of just sufficient quality
+            strategic objective: To maintain a profitable enterprise (NPV > 0) over the terminal lifecycle
+            operational objective: Annually invest in infrastructure upgrades when performance criteria are triggered
             """
 
             if self.debug:
                 print('')
                 print('Simulate year: {}'.format(year))
 
-            # estimate traffic from commodity scenarios
+            # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
             handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
             if self.debug:
                 print('  Total vessel calls: {}'.format(total_calls))
@@ -88,13 +89,14 @@ class System:
                 print('     Panamax calls: {}'.format(panamax))
                 print('  Total cargo volume: {}'.format(total_vol))
 
+            # 2. for each year evaluate which investment are needed given the strategic and operational objectives
             self.berth_invest(year, handysize, handymax, panamax)
 
-            self.conveyor_quay_invest(year,agribulk_defaults.quay_conveyor_data)
+            self.conveyor_quay_invest(year, agribulk_defaults.quay_conveyor_data)
 
             self.storage_invest(year, self.storage_type_defaults)
 
-            self.conveyor_hinter_invest(year,agribulk_defaults.hinterland_conveyor_data)
+            self.conveyor_hinter_invest(year, agribulk_defaults.hinterland_conveyor_data)
 
             self.unloading_station_invest(year)
 
@@ -107,7 +109,7 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_demurrage_cost(year)
 
-        # 5.  for each year calculate terminal revenues
+        # 5. for each year calculate terminal revenues (requires insight in realized demands)
         self.revenues = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year)
@@ -118,208 +120,7 @@ class System:
         # 7. calculate PV's and aggregate to NPV
         self.NPV()
 
-    def calculate_revenue(self, year):
-        """
-        1. calculate the value of the total demand in year (demand * handling fee)
-        2. calculate the maximum amount that can be handled (service capacity * operational hours)
-        Terminal.revenues is the minimum of 1. and 2.
-        """
-        # implement a safetymarge
-        quay_walls = len(self.find_elements(Quay_wall))
-        crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        crane_continuous = len(self.find_elements(Continuous_Unloader))
-        conveyor_quay = len(self.find_elements(Conveyor_Quay))
-        storage = len(self.find_elements(Storage))
-        conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
-        station = len(self.find_elements(Unloading_station))
-
-        if quay_walls < 1 and conveyor_quay < 1 and (
-                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
-            safety_factor = 0
-        else:
-            safety_factor = 1
-
-        # maize = Commodity(**agribulk_defaults.maize_data)
-        # wheat = Commodity(**agribulk_defaults.wheat_data)
-        # soybeans = Commodity(**dagribulk_efaults.soybean_data)
-        #
-        # maize_demand, wheat_demand, soybeans_demand = self.calculate_demand_commodity(year)
-
-        # gather volumes from each commodity, calculate how much revenue it would yield, and add
-        revenues = 0
-        for commodity in self.find_elements(Commodity):
-            fee = commodity.handling_fee
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                revenues += (volume * fee * safety_factor)
-            except:
-                pass
-        if self.debug:
-            print('     Revenues (demand): {}'.format(revenues))
-
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
-
-        # find the total service rate,
-        service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-            if year >= element.year_online:
-                service_rate += element.effective_capacity * crane_occupancy_online
-
-        # find the rate between volume and throughput
-        rate_throughput_volume = service_rate * self.operational_hours / total_vol
-
-        if self.debug:
-            print('     Revenues (throughput): {}'.format(
-                int(service_rate * self.operational_hours * fee * safety_factor)))
-
-        try:
-            self.revenues.append(
-                min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
-        except:
-            pass
-
-    def calculate_energy_cost(self, year):
-        """
-        1. calculate the value of the total demand in year (demand * handling fee)
-        2. calculate the maximum amount that can be handled (service capacity * operational hours)
-        Terminal.revenues is the minimum of 1. and 2.
-        """
-
-        energy = Energy(**agribulk_defaults.energy_data)
-        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
-        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-
-        # calculate crane energy
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
-        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
-
-        for element in list_of_elements_Crane:
-            if year >= element.year_online:
-                consumption = element.consumption
-                hours = self.operational_hours * crane_occupancy_online
-
-                if consumption * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate Quay conveyor energy
-        list_of_elements_quay = self.find_elements(Conveyor_Quay)
-
-        for element in list_of_elements_quay:
-            if year >= element.year_online:
-                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
-                hours = self.operational_hours * crane_occupancy_online
-
-                if consumption * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate storage energy
-        list_of_elements_Storage = self.find_elements(Storage)
-
-        for element in list_of_elements_Storage:
-            if year >= element.year_online:
-                consumption = element.consumption
-                capacity = element.capacity
-                hours = self.operational_hours
-
-                if consumption * capacity * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate hinterland conveyor energy
-        list_of_elements_hinter = self.find_elements(Conveyor_Hinter)
-
-        for element in list_of_elements_hinter:
-            if year >= element.year_online:
-                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
-                hours = self.operational_hours * station_occupancy_online
-
-                if consumption * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate hinterland station energy
-        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-
-        list_of_elements_Station = self.find_elements(Unloading_station)
-
-        for element in list_of_elements_Station:
-            if year >= element.year_online:
-
-                if element.consumption * self.operational_hours * station_occupancy_online * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'
-                    ] = element.consumption * self.operational_hours * station_occupancy_online * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-    def calculate_demurrage_cost(self, year):
-
-        """Find the demurrage cost per type of vessel and sum all demurrage cost"""
-
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-
-        factor, waiting_time_occupancy = self.waiting_time(year)
-
-        # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
-        quay_walls = len(self.find_elements(Quay_wall))
-
-        service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-            if year >= element.year_online:
-                service_rate += element.effective_capacity / quay_walls
-
-        # Find the demurrage cost per type of vessel
-        if service_rate != 0:
-            handymax = Vessel(**agribulk_defaults.handymax_data)
-            service_time_handymax = handymax.call_size / service_rate
-            waiting_time_hours_handymax = factor * service_time_handymax
-            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
-            demurrage_time_handymax = penalty_time_handymax * handymax_calls
-            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
-
-            handysize = Vessel(**agribulk_defaults.handysize_data)
-            service_time_handysize = handysize.call_size / service_rate
-            waiting_time_hours_handysize = factor * service_time_handysize
-            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
-            demurrage_time_handysize = penalty_time_handysize * handysize_calls
-            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
-
-            panamax = Vessel(**agribulk_defaults.panamax_data)
-            service_time_panamax = panamax.call_size / service_rate
-            waiting_time_hours_panamax = factor * service_time_panamax
-            port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
-            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
-            demurrage_time_panamax = penalty_time_panamax * panamax_calls
-            demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
-
-        else:
-            demurrage_cost_handymax = 0
-            demurrage_cost_handysize = 0
-            demurrage_cost_panamax = 0
-
-        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
-
-        self.demurrage.append(total_demurrage_cost)
-
-    # *** Investment functions
-
+    # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
         """
         Given the overall objectives of the terminal
@@ -772,8 +573,202 @@ class System:
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
-    # *** Financial analyses
+    # *** Energy costs, demurrage costs and revenue calculation methods
+    def calculate_energy_cost(self, year):
+        """
+        1. calculate the value of the total demand in year (demand * handling fee)
+        2. calculate the maximum amount that can be handled (service capacity * operational hours)
+        Terminal.revenues is the minimum of 1. and 2.
+        """
 
+        energy = Energy(**agribulk_defaults.energy_data)
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize, handymax, panamax)
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+
+        # calculate crane energy
+        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
+        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
+
+        for element in list_of_elements_Crane:
+            if year >= element.year_online:
+                consumption = element.consumption
+                hours = self.operational_hours * crane_occupancy_online
+
+                if consumption * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate Quay conveyor energy
+        list_of_elements_quay = self.find_elements(Conveyor_Quay)
+
+        for element in list_of_elements_quay:
+            if year >= element.year_online:
+                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
+                hours = self.operational_hours * crane_occupancy_online
+
+                if consumption * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate storage energy
+        list_of_elements_Storage = self.find_elements(Storage)
+
+        for element in list_of_elements_Storage:
+            if year >= element.year_online:
+                consumption = element.consumption
+                capacity = element.capacity
+                hours = self.operational_hours
+
+                if consumption * capacity * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate hinterland conveyor energy
+        list_of_elements_hinter = self.find_elements(Conveyor_Hinter)
+
+        for element in list_of_elements_hinter:
+            if year >= element.year_online:
+                consumption = element.capacity_steps * element.consumption_coefficient + element.consumption_constant
+                hours = self.operational_hours * station_occupancy_online
+
+                if consumption * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * hours * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate hinterland station energy
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+
+        list_of_elements_Station = self.find_elements(Unloading_station)
+
+        for element in list_of_elements_Station:
+            if year >= element.year_online:
+
+                if element.consumption * self.operational_hours * station_occupancy_online * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'
+                    ] = element.consumption * self.operational_hours * station_occupancy_online * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+    def calculate_demurrage_cost(self, year):
+
+        """Find the demurrage cost per type of vessel and sum all demurrage cost"""
+
+        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+
+        factor, waiting_time_occupancy = self.waiting_time(year)
+
+        # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
+        quay_walls = len(self.find_elements(Quay_wall))
+
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate += element.effective_capacity / quay_walls
+
+        # Find the demurrage cost per type of vessel
+        if service_rate != 0:
+            handymax = Vessel(**agribulk_defaults.handymax_data)
+            service_time_handymax = handymax.call_size / service_rate
+            waiting_time_hours_handymax = factor * service_time_handymax
+            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
+            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
+            demurrage_time_handymax = penalty_time_handymax * handymax_calls
+            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
+
+            handysize = Vessel(**agribulk_defaults.handysize_data)
+            service_time_handysize = handysize.call_size / service_rate
+            waiting_time_hours_handysize = factor * service_time_handysize
+            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
+            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
+            demurrage_time_handysize = penalty_time_handysize * handysize_calls
+            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+
+            panamax = Vessel(**agribulk_defaults.panamax_data)
+            service_time_panamax = panamax.call_size / service_rate
+            waiting_time_hours_panamax = factor * service_time_panamax
+            port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
+            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
+            demurrage_time_panamax = penalty_time_panamax * panamax_calls
+            demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+
+        else:
+            demurrage_cost_handymax = 0
+            demurrage_cost_handysize = 0
+            demurrage_cost_panamax = 0
+
+        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+
+        self.demurrage.append(total_demurrage_cost)
+
+    def calculate_revenue(self, year):
+        """
+        1. calculate the value of the total demand in year (demand * handling fee)
+        2. calculate the maximum amount that can be handled (service capacity * operational hours)
+        Terminal.revenues is the minimum of 1. and 2.
+        """
+        # implement a safety factor
+        quay_walls = len(self.find_elements(Quay_wall))
+        crane_cyclic = len(self.find_elements(Cyclic_Unloader))
+        crane_continuous = len(self.find_elements(Continuous_Unloader))
+        conveyor_quay = len(self.find_elements(Conveyor_Quay))
+        storage = len(self.find_elements(Storage))
+        conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
+        station = len(self.find_elements(Unloading_station))
+
+        if quay_walls < 1 and conveyor_quay < 1 and (
+                crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
+            safety_factor = 0
+        else:
+            safety_factor = 1
+
+        # gather volumes from each commodity, calculate how much revenue it would yield, and add
+        revenues = 0
+        for commodity in self.find_elements(Commodity):
+            fee = commodity.handling_fee
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                revenues += (volume * fee * safety_factor)
+            except:
+                pass
+        if self.debug:
+            print('     Revenues (demand): {}'.format(revenues))
+
+        handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+            year, handysize, handymax, panamax)
+
+        # find the total service rate,
+        service_rate = 0
+        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            if year >= element.year_online:
+                service_rate += element.effective_capacity * crane_occupancy_online
+
+        # find the rate between volume and throughput
+        rate_throughput_volume = service_rate * self.operational_hours / total_vol
+
+        if self.debug:
+            print('     Revenues (throughput): {}'.format(
+                int(service_rate * self.operational_hours * fee * safety_factor)))
+
+        try:
+            self.revenues.append(
+                min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
+        except:
+            pass
+
+    # *** Financial analyses
     def add_cashflow_elements(self):
 
         cash_flows = pd.DataFrame()
@@ -909,7 +904,6 @@ class System:
         print('NPV: {}'.format(np.sum(PV)))
 
     # *** General functions
-
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
 
@@ -1196,8 +1190,7 @@ class System:
 
         return train_calls
 
-    # *** plotting functions
-
+    # *** Plotting functions
     def terminal_elements_plot(self, width=0.1, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
