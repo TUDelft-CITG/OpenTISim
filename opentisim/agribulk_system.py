@@ -414,21 +414,11 @@ class System:
         Operational objective: maintain a storage capacity that is large enough to at least contain one time the largest
         vessel call size or large enough to accommodate a maximum allowable dwelltime.
 
-        Decision recipe quay conveyor:
-           QSC: quay_conveyor_capacity planned
-           Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
-           quay_crane_service_rate_planned
-              For the quay conveyor investments the strategy is to at least match the quay crane processing capacity
-           Intervention procedure: the intervention strategy is to add quay conveyors until the trigger is achieved
-              - find out how much quay_conveyor_capacity is planned
-              - find out how much quay_crane_service_rate is planned
-              - add quay_conveyor_capacity until it matches quay_crane_service_rate
-        """
-        """current strategy is to add storage as long as target storage is not yet achieved
-        - find out how much storage is online
-        - find out how much storage is planned
-        - find out how much storage is needed
-        - add storage until target is reached
+        Decision recipe storage:
+           QSC: storage_capacity
+           Benchmarking procedure: there is a problem when the storage_capacity is too small to store one time the
+           largest call size or when it is too small to allow for a predetermined max allowable dwell time
+           Intervention procedure: the intervention strategy is to add storage until the benchmarking trigger is achieved
         """
 
         # from all storage objects sum online capacity
