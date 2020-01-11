@@ -56,7 +56,7 @@ class System:
           in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
           URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
 
-        The simulat method applies frame of reference style decisions while stepping through each year of the terminal
+        The simulate method applies frame of reference style decisions while stepping through each year of the terminal
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
         QSC, decision recipe, intervention method):
 
@@ -72,8 +72,9 @@ class System:
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
-            strategic objective: To maintain a profitable enterprise (NPV > 0) over the terminal lifecycle
-            operational objective: Annually invest in infrastructure upgrades when performance criteria are triggered
+            The simulate method is designed according to the following overall objectives for the terminal:
+            - strategic objective: To maintain a profitable enterprise (NPV > 0) over the terminal lifecycle
+            - operational objective: Annually invest in infrastructure upgrades when performance criteria are triggered
             """
 
             if self.debug:
@@ -123,20 +124,21 @@ class System:
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
         """
-        Given the overall objectives of the terminal
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the berth investments.
 
         Decision recipe Berth:
-        QSC: berth_occupancy
-        Problem evaluation: there is a problem if the berth_occupancy > allowable_berth_occupancy
-            - allowable_berth_occupancy = .40 # 40%
-            - a berth needs:
-               - a quay
-               - cranes (min:1 and max: max_cranes)
-            - berth occupancy depends on:
-                - total_calls and total_vol
-                - total_service_capacity as delivered by the cranes
-        Investment decisions: invest enough to make the berth_occupancy < allowable_berth_occupancy
-            - adding quay and cranes decreases berth_occupancy_rate
+           QSC: berth_occupancy
+           Benchmarking procedure: there is a problem if the estimated berth_occupancy > allowable_berth_occupancy
+              - allowable_berth_occupancy = .40 # 40%
+              - a berth needs:
+                 - a quay
+                 - cranes (min:1 and max: max_cranes)
+              - berth occupancy depends on:
+                 - total_calls, total_vol and time needed for mooring, unmooring
+                 - total_service_capacity as delivered by the cranes
+           Intervention procedure: invest enough to make the berth_occupancy < allowable_berth_occupancy
+              - adding quay and cranes decreases berth_occupancy_rate
         """
 
         # report on the status of all berth elements
@@ -153,8 +155,8 @@ class System:
             print('  Start analysis:')
 
         # calculate berth occupancy
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+            self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         factor, waiting_time_occupancy = self.waiting_time(year)
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
