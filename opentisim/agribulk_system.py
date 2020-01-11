@@ -138,7 +138,7 @@ class System:
                  - total_calls, total_vol and time needed for mooring, unmooring
                  - total_service_capacity as delivered by the cranes
            Intervention procedure: invest enough to make the berth_occupancy < allowable_berth_occupancy
-              - adding quay and cranes decreases berth_occupancy_rate
+              - adding berths, quays and cranes decreases berth_occupancy_rate
         """
 
         # report on the status of all berth elements
@@ -168,7 +168,7 @@ class System:
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
-            # add a berth when no crane slots are available
+            # while planned berth occupancy is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
                 if self.debug:
                     print('  *** add Berth to elements')
@@ -182,7 +182,7 @@ class System:
                     print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
-            # check if a quay is needed
+            # while planned berth occupancy is too large add a quay if a quay is needed
             berths = len(self.find_elements(Berth))
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
@@ -190,6 +190,7 @@ class System:
                               agribulk_defaults.panamax_data["LOA"])  # average size
                 draft = max(agribulk_defaults.handysize_data["draft"],agribulk_defaults.handymax_data["draft"],
                            agribulk_defaults.panamax_data["draft"])
+
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if quay_walls == 0:
@@ -206,13 +207,13 @@ class System:
                 depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize, handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                    self.calculate_berth_occupancy(year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
 
-            # check if a crane is needed
+            # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
                 self.crane_invest(year)
 
@@ -224,20 +225,24 @@ class System:
 
     def quay_invest(self, year, length, depth):
         """
-        *** Decision recipe Quay: ***
-        QSC: quay_per_berth
-        problem evaluation: there is a problem if the quay_per_berth < 1
-        investment decisions: invest enough to make the quay_per_berth = 1
-            - adding quay will increase quay_per_berth
-            - quay_wall.length must be long enough to accommodate largest expected vessel
-            - quay_wall.depth must be deep enough to accommodate largest expected vessel
-            - quay_wall.freeboard must be high enough to accommodate largest expected vessel
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the quay investments.
+
+        Decision recipe Quay:
+           QSC: quay_per_berth
+           Benchmarking procedure (triggered in self.berth_invest): there is a problem when
+              the number of berths > the number of quays, but also while the planned berth occupancy is too large
+           Intervention procedure: invest enough to make sure that each quay has a berth and the planned berth
+              occupancy is below the max allowable berth occupancy
+              - adding quay will increase quay_per_berth
+              - quay_wall.length must be long enough to accommodate largest expected vessel
+              - quay_wall.depth must be deep enough to accommodate largest expected vessel
+              - quay_wall.freeboard must be high enough to accommodate largest expected vessel
         """
 
         if self.debug:
             print('  *** add Quay to elements')
         # add a Quay_wall element
-
         quay_wall = Quay_wall(**agribulk_defaults.quay_wall_data)
 
         # - capex
@@ -256,12 +261,18 @@ class System:
         self.elements.append(quay_wall)
 
     def crane_invest(self, year):
-        """current strategy is to add cranes as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
         """
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the crane investments.
+
+        Decision recipe Crane:
+           QSC: berth_occupancy_planned
+           Benchmarking procedure (triggered in self.berth_invest): there is a problem when the planned berth occupancy
+              is larger than the max allowable berth occupancy
+           Intervention procedure: invest until planned berth occupancy is below the max allowable berth occupancy
+        """
+
+
         if self.debug:
             print('  *** add Harbour crane to elements')
         # add unloader object
@@ -281,7 +292,7 @@ class System:
         crane.insurance = unit_rate * crane.insurance_perc
         crane.maintenance = unit_rate * crane.maintenance_perc
 
-        #   labour
+        # labour
         labour = Labour(**agribulk_defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.shift = ((crane.crew * self.operational_hours) / (
@@ -301,36 +312,48 @@ class System:
         self.elements.append(crane)
 
     def conveyor_quay_invest(self, year, agribulk_defaults_quay_conveyor_data):
-        """current strategy is to add conveyors as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
+        """
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the quay conveyor investments.
+
+        Operational objective: maintain a quay conveyor capacity that at least matches the quay crane capacity (so
+        basically the quay conveyors follow what happens on the berth)
+
+        Decision recipe quay conveyor:
+           QSC: quay_conveyor_capacity planned
+           Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
+           quay_crane_service_rate_planned
+              For the quay conveyor investments the strategy is to at least match the quay crane processing capacity
+           Intervention procedure: the intervention strategy is to add quay conveyors until the trigger is achieved
+              - find out how much quay_conveyor_capacity is planned
+              - find out how much quay_crane_service_rate is planned
+              - add quay_conveyor_capacity until it matches quay_crane_service_rate
         """
 
-        # find the total service rate
-        service_capacity = 0
-        service_capacity_online = 0
+        # find the total quay_conveyor capacity
+        quay_conveyor_capacity_planned = 0
+        quay_conveyor_capacity_online = 0
         list_of_elements = self.find_elements(Conveyor_Quay)
         if list_of_elements != []:
             for element in list_of_elements:
-                service_capacity += element.capacity_steps
+                quay_conveyor_capacity_planned += element.capacity_steps
                 if year >= element.year_online:
-                    service_capacity_online += element.capacity_steps
+                    quay_conveyor_capacity_online += element.capacity_steps
 
         if self.debug:
             print('     a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
-                service_capacity_online, service_capacity))
+                quay_conveyor_capacity_online, quay_conveyor_capacity_planned))
 
-        # find the total service rate,
-        service_rate = 0
+        # find the total quay crane service rate,
+        quay_crane_service_rate_planned = 0
         years_online = []
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
-            service_rate += element.peak_capacity
+            quay_crane_service_rate_planned += element.peak_capacity
             years_online.append(element.year_online)
 
-        # check if total planned capacity is smaller than target capacity, if so add a conveyor
-        while service_capacity < service_rate:
+        # check if total planned capacity of the quay conveyor is smaller than planned capacity of the quay cranes,
+        # if so add a conveyor
+        while quay_conveyor_capacity_planned < quay_crane_service_rate_planned:
             if self.debug:
                 print('  *** add Quay Conveyor to elements')
             conveyor_quay = Conveyor_Quay(**agribulk_defaults_quay_conveyor_data)
