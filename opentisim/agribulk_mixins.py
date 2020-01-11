@@ -330,22 +330,22 @@ class hasscenario_properties_mixin(object):
         self.scenario_data = pd.DataFrame(data=scenario_data)
 
     def plot_demand(self, width=0.1, alpha=0.6):
-
+        """generate a histogram of the demand data"""
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
 
         years = np.array([])
+
         try:
-            print('try historic')
             ax.bar([x + 0 * width for x in self.historic_data['year'].values], self.historic_data['volume'].values,
                    width=width, alpha=alpha, label="historic data", color='blue', edgecolor='blue')
             years = self.historic_data['year'].values
-
         except:
             pass
-        print('try scenario')
+
         ax.bar([x + 0 * width for x in self.scenario_data['year'].values], self.scenario_data['volume'].values,
                width=width, alpha=alpha, label="scenario data", color='red', edgecolor='red')
+
         years = np.concatenate((years, self.scenario_data['year'].values))
 
         ax.set_xlabel('Years')
