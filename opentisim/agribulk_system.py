@@ -400,13 +400,30 @@ class System:
 
             self.elements.append(conveyor_quay)
 
-            service_capacity += conveyor_quay.capacity_steps
+            quay_conveyor_capacity_planned += conveyor_quay.capacity_steps
 
         if self.debug:
             print('     a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
-                service_capacity_online, service_capacity))
+                quay_conveyor_capacity_online, quay_conveyor_capacity_planned))
 
     def storage_invest(self, year, agribulk_defaults_storage_data):
+        """
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the storage investments.
+
+        Operational objective: maintain a storage capacity that is large enough to at least contain one time the largest
+        vessel call size or large enough to accommodate a maximum allowable dwelltime.
+
+        Decision recipe quay conveyor:
+           QSC: quay_conveyor_capacity planned
+           Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
+           quay_crane_service_rate_planned
+              For the quay conveyor investments the strategy is to at least match the quay crane processing capacity
+           Intervention procedure: the intervention strategy is to add quay conveyors until the trigger is achieved
+              - find out how much quay_conveyor_capacity is planned
+              - find out how much quay_crane_service_rate is planned
+              - add quay_conveyor_capacity until it matches quay_crane_service_rate
+        """
         """current strategy is to add storage as long as target storage is not yet achieved
         - find out how much storage is online
         - find out how much storage is planned
@@ -441,8 +458,7 @@ class System:
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
-        storage_capacity_dwelltime = (
-                                             service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
