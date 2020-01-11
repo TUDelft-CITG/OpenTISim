@@ -440,7 +440,18 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
             year, handysize, handymax, panamax)
 
-        max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
+        # here an important bug was fixed: it took the max call size of all vessesls,
+        # but it needs to take the max call size of a vessel that actually arrives
+        max_vessel_call_size = 0
+        for vessel in self.find_elements(Vessel):
+            if vessel.type=='Handysize' and handysize != 0:
+                max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
+
+            if vessel.type=='Handymax' and handymax != 0:
+                max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
+
+            if vessel.type=='Panamax' and panamax != 0:
+                max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
         # find the total service rate,
         service_rate = 0
@@ -448,10 +459,16 @@ class System:
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
-        storage_capacity_dwelltime = (service_rate * self.operational_hours * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        commodities = self.find_elements(Commodity)
+        if commodities != []:
+            for commodity in commodities:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                storage_capacity_dwelltime = round((volume * 0.05) * 1.1)  # IJzerman (2019) p.26
 
+        print('max_vessel_call_size: {}'.format(max_vessel_call_size))
+        print('storage_capacity_dwelltime: {}'.format(storage_capacity_dwelltime))
         # check if sufficient storage capacity is available
-        while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime:
+        while storage_capacity < max(max_vessel_call_size, storage_capacity_dwelltime):
             if self.debug:
                 print('  *** add storage to elements')
 
