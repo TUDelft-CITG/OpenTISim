@@ -329,14 +329,28 @@ class hasscenario_properties_mixin(object):
 
         self.scenario_data = pd.DataFrame(data=scenario_data)
 
-    def plot_demand(self):
-        plt.figure(figsize=(10, 7.5))
+    def plot_demand(self, width=0.1, alpha=0.6):
 
+        # generate plot
+        fig, ax = plt.subplots(figsize=(20, 10))
+
+        years = np.array([])
         try:
-            plt.plot(self.historic_data['year'], self.historic_data['volume'], 'o:r')
+            print('try historic')
+            ax.bar([x + 0 * width for x in self.historic_data['year'].values], self.historic_data['volume'].values,
+                   width=width, alpha=alpha, label="historic data", color='blue', edgecolor='blue')
+            years = self.historic_data['year'].values
+
         except:
             pass
-        plt.plot(self.scenario_data['year'], self.scenario_data['volume'], 'o:b')
-        plt.xlabel('Time [years]')
-        plt.ylabel('Demand ' + self.name + ' [tons]')
-        plt.title('Demand ' + self.name)
+        print('try scenario')
+        ax.bar([x + 0 * width for x in self.scenario_data['year'].values], self.scenario_data['volume'].values,
+               width=width, alpha=alpha, label="scenario data", color='red', edgecolor='red')
+        years = np.concatenate((years, self.scenario_data['year'].values))
+
+        ax.set_xlabel('Years')
+        ax.set_ylabel('Demand [tons]')
+        ax.set_title('Demand: {}'.format(self.name))
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels(years)
+        ax.legend()
