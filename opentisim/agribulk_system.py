@@ -13,7 +13,8 @@ class System:
     governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable station
     occupancy."""
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 crane_type_defaults=agribulk_defaults.mobile_crane_data, storage_type_defaults=agribulk_defaults.silo_data,
+                 crane_type_defaults=agribulk_defaults.mobile_crane_data,
+                 storage_type_defaults=agribulk_defaults.silo_data,
                  allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
         # time inputs
         self.startyear = startyear
@@ -40,7 +41,7 @@ class System:
 
     # *** Overall terminal investment strategy for terminal class.
     def simulate(self):
-        """ the 'simulate' method implements the terminal investment strategy for this terminal class.
+        """The 'simulate' method implements the terminal investment strategy for this terminal class.
 
         This method automatically generates investment decisions, parametrically derived from overall demand trends and
         a number of investment triggers.

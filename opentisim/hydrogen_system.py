@@ -9,12 +9,15 @@ from opentisim.hydrogen_objects import *
 from opentisim import hydrogen_defaults
 
 class System:
+    """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for hydrogen terminals.
+    The module allows variation of the commodity type, the storage type and the h2retrieval type. Terminal development
+    is governed by three triggers: the allowable berth occupancy, the allowable dwell time and an h2retrieval
+    trigger."""
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
-                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data, storage_type_defaults=
-                 hydrogen_defaults.storage_nh3_data, h2retrieval_type_defaults=
-                 hydrogen_defaults.h2retrieval_nh3_data, allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365,
-                 h2retrieval_trigger=1):
-
+                 commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data,
+                 storage_type_defaults=hydrogen_defaults.storage_nh3_data,
+                 h2retrieval_type_defaults=hydrogen_defaults.h2retrieval_nh3_data,
+                 allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2retrieval_trigger=1):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -39,54 +42,56 @@ class System:
         # storage variables for revenue
         self.revenues = []
 
-    # *** Simulation engine
-
+    # *** Overall terminal investment strategy for terminal class.
     def simulate(self):
-        """ Terminal investment strategy simulation
+        """The 'simulate' method implements the terminal investment strategy for this terminal class.
 
         This method automatically generates investment decisions, parametrically derived from overall demand trends and
         a number of investment triggers.
 
-        Based on:
-        - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
-          in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
-          URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
+        Generic approaches based on:
+        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2020). Ports and Waterways.
+          Navigating the changing world. TU Delft, Delft, The Netherlands.
         - Van Koningsveld, M. and J. P. M. Mulder. 2004. Sustainable Coastal Policy Developments in the
           Netherlands. A Systematic Approach Revealed. Journal of Coastal Research 20(2), pp. 375-385
 
-        Apply frame of reference style decisions while stepping through each year of the terminal
+        Specific application based on:
+        - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
+          in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
+          URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
+
+        The simulate method applies frame of reference style decisions while stepping through each year of the terminal
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
         QSC, decision recipe, intervention method):
 
-           1. for each year evaluate the demand of each commodity
-           2. for each year evaluate the various investment decisions
+           1. for each year estimate the anticipated vessel arrivals based on the expected demand
+           2. for each year evaluate which investment are needed given the strategic and operational objectives
            3. for each year calculate the energy costs (requires insight in realized demands)
            4. for each year calculate the demurrage costs (requires insight in realized demands)
-           5. for each year calculate terminal revenues
-           6. collect all cash flows (capex, opex, revenues)
-           7. calculate PV's and aggregate to NPV
+           5. for each year calculate terminal revenues (requires insight in realized demands)
+           6. for each year calculate the throughput (requires insight in realized demands)           6. for each year calculate terminal throughputequires insight in realized demands)
+           7. collect all cash flows (capex, opex, revenues)
+           8. calculate PV's and aggregate to NPV
 
         """
 
-        # # 1. for each year evaluate the demand of each commodity
-        # for year in range(self.startyear, self.startyear + self.lifecycle):
-        #     self.calculate_demand_commodity(year)
-
-        # 2. for each year evaluate the various investment decisions
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
-            strategic objective: create a profitable enterprise (NPV > 0)
-            operational objective: provide infrastructure of just sufficient quality
+            The simulate method is designed according to the following overall objectives for the terminal:
+            - strategic objective: To maintain a profitable enterprise (NPV > 0) over the terminal lifecycle
+            - operational objective: Annually invest in infrastructure upgrades when performance criteria are triggered
             """
 
             if self.debug:
                 print('')
-                print('Simulate year: {}'.format(year))
+                print('### Simulate year: {} ############################'.format(year))
 
-            # estimate traffic from commodity scenarios
+            # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
             smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned = self.calculate_vessel_calls(year)
 
             if self.debug:
+                print('--- Cargo volume and vessel calls for {} ---------'.format(year))
+                print('  Total cargo volume: {}'.format(total_vol))
                 print('  Total vessel calls: {}'.format(total_calls))
                 print('     Small Hydrogen  calls: {}'.format(smallhydrogen_calls))
                 print('     Large Hydrogen calls: {}'.format(largehydrogen_calls))
@@ -95,18 +100,30 @@ class System:
                 print('     Handysize calls: {}'.format(handysize_calls))
                 print('     Panamax calls: {}'.format(panamax_calls))
                 print('     VLCC calls: {}'.format(vlcc_calls))
-                print('  Total cargo volume: {}'.format(total_vol))
+                print('----------------------------------------------------')
 
+            # 2. for each year evaluate which investment are needed given the strategic and operational objectives
             self.berth_invest(year)
 
+            if self.debug:
+                print('')
+                print('$$$ Check pipeline jetty ---------------------------')
             self.pipeline_jetty_invest(year)
 
+            if self.debug:
+                print('')
+                print('$$$ Check storage ----------------------------------')
             self.storage_invest(year, self.storage_type_defaults)
 
+            if self.debug:
+                print('')
+                print('$$$ Check H2 retrieval plants ----------------------')
             self.h2retrieval_invest(year, self.h2retrieval_type_defaults)
 
+            if self.debug:
+                print('')
+                print('$$$ Check pipeline hinterland ----------------------')
             self.pipeline_hinter_invest(year)
-
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
@@ -122,182 +139,18 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year,  self.commodity_type_defaults)
 
-        # 4. for each year calculate the throughput (requires insight in realized demands)
+        # 6. for each year calculate the throughput (requires insight in realized demands)
         self.throughputonline = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.throughput_elements(year)
 
+        # 7. collect all cash flows (capex, opex, revenues)
+        cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
 
-        # 6. collect all cash flows (capex, opex, revenues)
-        cash_flows, cash_flows_WACC_nom = self.add_cashflow_elements()
-
-        # 7. calculate PV's and aggregate to NPV
+        # 8. calculate PV's and aggregate to NPV
         self.NPV()
 
-    def calculate_revenue(self, year, hydrogen_defaults_commodity_data):
-        """
-        1. calculate the value of the total throughput in year (throughput * handling fee)
-        """
-
-        # gather the fee from the selected commodity
-        commodity = Commodity(**hydrogen_defaults_commodity_data)
-        fee = commodity.handling_fee
-
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-        if self.debug:
-                print('     Revenues: {}'.format(int(throughput_online * fee)))
-
-        try:
-            self.revenues.append(throughput_online * fee)
-        except:
-            pass
-
-    def calculate_energy_cost(self, year):
-        """
-        The energy cost of all different element are calculated.
-        1. At first find the consumption, capacity and working hours per element
-        2. Find the total energy price to multiply the consumption with the energy price
-        """
-
-        energy = Energy(**hydrogen_defaults.energy_data)
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
-            year)
-
-        # calculate pipeline jetty energy
-        list_of_elements_Pipelinejetty = self.find_elements(Pipeline_Jetty)
-
-        pipelinesj=0
-        for element in list_of_elements_Pipelinejetty:
-            if year >= element.year_online:
-                pipelinesj += 1
-                consumption = throughput_online/pipelinesj * element.consumption_coefficient
-
-                if consumption * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate storage energy
-        list_of_elements_Storage = self.find_elements(Storage)
-        max_vessel_call_size = hydrogen_defaults.largeammonia_data["call_size"]
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
-            year)
-        storage_capacity_dwelltime_throughput = (throughput_online * self.allowable_dwelltime) * 1.1
-
-
-        for element in list_of_elements_Storage:
-            if year >= element.year_online:
-                consumption = element.consumption
-                hours = self.operational_hours
-                capacity = max(max_vessel_call_size, storage_capacity_dwelltime_throughput)
-
-                if consumption * capacity * hours * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * energy.price
-
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate H2 retrieval energy
-        list_of_elements_H2retrieval = self.find_elements(H2retrieval)
-
-        # find the total throughput,
-        # throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
-
-        for element in list_of_elements_H2retrieval:
-            if year >= element.year_online:
-                consumption = element.consumption
-                capacity = element.capacity * self.operational_hours
-
-                if consumption * throughput_online * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * plant_occupancy_online * capacity * energy.price
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-        # calculate hinterland pipeline energy
-        list_of_elements_hinter = self.find_elements(Pipeline_Hinter)
-
-
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
-
-        pipelines = 0
-        for element in list_of_elements_hinter:
-            if year >= element.year_online:
-                pipelines += 1
-                consumption = element.consumption_coefficient
-
-                if consumption  * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * throughput_online/pipelines * energy.price
-            else:
-                element.df.loc[element.df['year'] == year, 'energy'] = 0
-
-    def calculate_demurrage_cost(self, year):
-
-        """Find the demurrage cost per type of vessel and sum all demurrage cost"""
-
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
-
-        factor, waiting_time_occupancy = self.waiting_time(year)
-
-        # Find the demurrage cost per type of vessel
-        # if service_rate != 0:
-        smallhydrogen = Vessel(**hydrogen_defaults.smallhydrogen_data)
-        service_time_smallhydrogen = smallhydrogen.call_size / smallhydrogen.pump_capacity
-        waiting_time_hours_smallhydrogen = factor * service_time_smallhydrogen
-        penalty_time_smallhydrogen = max(0, waiting_time_hours_smallhydrogen - smallhydrogen.all_turn_time)
-        demurrage_time_smallhydrogen = penalty_time_smallhydrogen * smallhydrogen_calls
-        demurrage_cost_smallhydrogen = demurrage_time_smallhydrogen * smallhydrogen.demurrage_rate
-
-        largehydrogen = Vessel(**hydrogen_defaults.largehydrogen_data)
-        service_time_largehydrogen = largehydrogen.call_size / largehydrogen.pump_capacity
-        waiting_time_hours_largehydrogen = factor * service_time_largehydrogen
-        penalty_time_largehydrogen = max(0, waiting_time_hours_largehydrogen - largehydrogen.all_turn_time)
-        demurrage_time_largehydrogen = penalty_time_largehydrogen * largehydrogen_calls
-        demurrage_cost_largehydrogen = demurrage_time_largehydrogen * largehydrogen.demurrage_rate
-
-        smallammonia = Vessel(**hydrogen_defaults.smallammonia_data)
-        service_time_smallammonia = smallammonia.call_size / smallammonia.pump_capacity
-        waiting_time_hours_smallammonia = factor * service_time_smallammonia
-        penalty_time_smallammonia = max(0, waiting_time_hours_smallammonia - smallammonia.all_turn_time)
-        demurrage_time_smallammonia = penalty_time_smallammonia * smallammonia_calls
-        demurrage_cost_smallammonia = demurrage_time_smallammonia * smallammonia.demurrage_rate
-
-        largeammonia = Vessel(**hydrogen_defaults.largeammonia_data)
-        service_time_largeammonia = largeammonia.call_size / largeammonia.pump_capacity
-        waiting_time_hours_largeammonia = factor * service_time_largeammonia
-        penalty_time_largeammonia = max(0, waiting_time_hours_largeammonia - largeammonia.all_turn_time)
-        demurrage_time_largeammonia = penalty_time_largeammonia * largeammonia_calls
-        demurrage_cost_largeammonia = demurrage_time_largeammonia * largeammonia.demurrage_rate
-
-        handysize = Vessel(**hydrogen_defaults.handysize_data)
-        service_time_handysize = handysize.call_size / handysize.pump_capacity
-        waiting_time_hours_handysize = factor * service_time_handysize
-        penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
-        demurrage_time_handysize = penalty_time_handysize * handysize_calls
-        demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
-
-        panamax = Vessel(**hydrogen_defaults.panamax_data)
-        service_time_panamax = panamax.call_size / panamax.pump_capacity
-        waiting_time_hours_panamax = factor * service_time_panamax
-        penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
-        demurrage_time_panamax = penalty_time_panamax * panamax_calls
-        demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
-
-        vlcc = Vessel(**hydrogen_defaults.vlcc_data)
-        service_time_vlcc = vlcc.call_size / vlcc.pump_capacity
-        waiting_time_hours_vlcc = factor * service_time_vlcc
-        penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
-        demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
-        demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
-
-        total_demurrage_cost = demurrage_cost_smallhydrogen + demurrage_cost_largehydrogen + demurrage_cost_smallammonia + demurrage_cost_largeammonia + demurrage_cost_handysize + demurrage_cost_panamax + demurrage_cost_vlcc
-
-        self.demurrage.append(total_demurrage_cost)
-
-    # *** Investment functions
-
+    # *** Individual investment methods for terminal elements
     def berth_invest(self, year):
         """
         Given the overall objectives of the terminal
@@ -393,7 +246,7 @@ class System:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
                     print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
-    def jetty_invest(self, year,nrofdolphins):
+    def jetty_invest(self, year, nrofdolphins):
         """
         *** Decision recipe jetty: ***
         QSC: jetty_per_berth
@@ -725,9 +578,170 @@ class System:
                 '     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
                     service_capacity_online_hinter, service_capacity))
 
+    # *** Energy costs, demurrage costs and revenue calculation methods
+    def calculate_energy_cost(self, year):
+        """
+        The energy cost of all different element are calculated.
+        1. At first find the consumption, capacity and working hours per element
+        2. Find the total energy price to multiply the consumption with the energy price
+        """
+
+        energy = Energy(**hydrogen_defaults.energy_data)
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+            year)
+
+        # calculate pipeline jetty energy
+        list_of_elements_Pipelinejetty = self.find_elements(Pipeline_Jetty)
+
+        pipelinesj=0
+        for element in list_of_elements_Pipelinejetty:
+            if year >= element.year_online:
+                pipelinesj += 1
+                consumption = throughput_online/pipelinesj * element.consumption_coefficient
+
+                if consumption * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate storage energy
+        list_of_elements_Storage = self.find_elements(Storage)
+        max_vessel_call_size = hydrogen_defaults.largeammonia_data["call_size"]
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+            year)
+        storage_capacity_dwelltime_throughput = (throughput_online * self.allowable_dwelltime) * 1.1
+
+
+        for element in list_of_elements_Storage:
+            if year >= element.year_online:
+                consumption = element.consumption
+                hours = self.operational_hours
+                capacity = max(max_vessel_call_size, storage_capacity_dwelltime_throughput)
+
+                if consumption * capacity * hours * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * capacity * energy.price
+
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate H2 retrieval energy
+        list_of_elements_H2retrieval = self.find_elements(H2retrieval)
+
+        # find the total throughput,
+        # throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
+        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+
+        for element in list_of_elements_H2retrieval:
+            if year >= element.year_online:
+                consumption = element.consumption
+                capacity = element.capacity * self.operational_hours
+
+                if consumption * throughput_online * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * plant_occupancy_online * capacity * energy.price
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+        # calculate hinterland pipeline energy
+        list_of_elements_hinter = self.find_elements(Pipeline_Hinter)
+
+
+        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+
+        pipelines = 0
+        for element in list_of_elements_hinter:
+            if year >= element.year_online:
+                pipelines += 1
+                consumption = element.consumption_coefficient
+
+                if consumption  * energy.price != np.inf:
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * throughput_online/pipelines * energy.price
+            else:
+                element.df.loc[element.df['year'] == year, 'energy'] = 0
+
+    def calculate_demurrage_cost(self, year):
+
+        """Find the demurrage cost per type of vessel and sum all demurrage cost"""
+
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
+
+        factor, waiting_time_occupancy = self.waiting_time(year)
+
+        # Find the demurrage cost per type of vessel
+        # if service_rate != 0:
+        smallhydrogen = Vessel(**hydrogen_defaults.smallhydrogen_data)
+        service_time_smallhydrogen = smallhydrogen.call_size / smallhydrogen.pump_capacity
+        waiting_time_hours_smallhydrogen = factor * service_time_smallhydrogen
+        penalty_time_smallhydrogen = max(0, waiting_time_hours_smallhydrogen - smallhydrogen.all_turn_time)
+        demurrage_time_smallhydrogen = penalty_time_smallhydrogen * smallhydrogen_calls
+        demurrage_cost_smallhydrogen = demurrage_time_smallhydrogen * smallhydrogen.demurrage_rate
+
+        largehydrogen = Vessel(**hydrogen_defaults.largehydrogen_data)
+        service_time_largehydrogen = largehydrogen.call_size / largehydrogen.pump_capacity
+        waiting_time_hours_largehydrogen = factor * service_time_largehydrogen
+        penalty_time_largehydrogen = max(0, waiting_time_hours_largehydrogen - largehydrogen.all_turn_time)
+        demurrage_time_largehydrogen = penalty_time_largehydrogen * largehydrogen_calls
+        demurrage_cost_largehydrogen = demurrage_time_largehydrogen * largehydrogen.demurrage_rate
+
+        smallammonia = Vessel(**hydrogen_defaults.smallammonia_data)
+        service_time_smallammonia = smallammonia.call_size / smallammonia.pump_capacity
+        waiting_time_hours_smallammonia = factor * service_time_smallammonia
+        penalty_time_smallammonia = max(0, waiting_time_hours_smallammonia - smallammonia.all_turn_time)
+        demurrage_time_smallammonia = penalty_time_smallammonia * smallammonia_calls
+        demurrage_cost_smallammonia = demurrage_time_smallammonia * smallammonia.demurrage_rate
+
+        largeammonia = Vessel(**hydrogen_defaults.largeammonia_data)
+        service_time_largeammonia = largeammonia.call_size / largeammonia.pump_capacity
+        waiting_time_hours_largeammonia = factor * service_time_largeammonia
+        penalty_time_largeammonia = max(0, waiting_time_hours_largeammonia - largeammonia.all_turn_time)
+        demurrage_time_largeammonia = penalty_time_largeammonia * largeammonia_calls
+        demurrage_cost_largeammonia = demurrage_time_largeammonia * largeammonia.demurrage_rate
+
+        handysize = Vessel(**hydrogen_defaults.handysize_data)
+        service_time_handysize = handysize.call_size / handysize.pump_capacity
+        waiting_time_hours_handysize = factor * service_time_handysize
+        penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
+        demurrage_time_handysize = penalty_time_handysize * handysize_calls
+        demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+
+        panamax = Vessel(**hydrogen_defaults.panamax_data)
+        service_time_panamax = panamax.call_size / panamax.pump_capacity
+        waiting_time_hours_panamax = factor * service_time_panamax
+        penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
+        demurrage_time_panamax = penalty_time_panamax * panamax_calls
+        demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
+
+        vlcc = Vessel(**hydrogen_defaults.vlcc_data)
+        service_time_vlcc = vlcc.call_size / vlcc.pump_capacity
+        waiting_time_hours_vlcc = factor * service_time_vlcc
+        penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
+        demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
+        demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
+
+        total_demurrage_cost = demurrage_cost_smallhydrogen + demurrage_cost_largehydrogen + demurrage_cost_smallammonia + demurrage_cost_largeammonia + demurrage_cost_handysize + demurrage_cost_panamax + demurrage_cost_vlcc
+
+        self.demurrage.append(total_demurrage_cost)
+
+    def calculate_revenue(self, year, hydrogen_defaults_commodity_data):
+        """
+        1. calculate the value of the total throughput in year (throughput * handling fee)
+        """
+
+        # gather the fee from the selected commodity
+        commodity = Commodity(**hydrogen_defaults_commodity_data)
+        fee = commodity.handling_fee
+
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
+        if self.debug:
+                print('     Revenues: {}'.format(int(throughput_online * fee)))
+
+        try:
+            self.revenues.append(throughput_online * fee)
+        except:
+            pass
 
     # *** Financial analyses
-
     def add_cashflow_elements(self):
 
         cash_flows = pd.DataFrame()
@@ -767,7 +781,7 @@ class System:
                         cash_flows.loc[
                             cash_flows[
                                 'year'] == year, column] / (
-                                (1 + self.WACC_nom()) ** (
+                                (1 + self.WACC_nominal()) ** (
                                 year - self.startyear))
 
         return cash_flows, cash_flows_WACC_nom
@@ -855,7 +869,7 @@ class System:
 
         return element
 
-    def WACC_nom(self, Gearing=60, Re=.10, Rd=.15, Tc=.20):
+    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.15, Tc=.20):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
         to receive and expenses it expects to pay out, including inflation.
         When all cashflows within the model are denoted in real terms and including inflation."""
@@ -867,9 +881,9 @@ class System:
         E = 100 - Gearing
         D = Gearing
 
-        WACC_nom = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
+        WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
 
-        return WACC_nom
+        return WACC_nominal
 
     def WACC_real(self, inflation=0.0321):  # old: interest=0.0604
         """Real cash flow expresses a company's cash flow with adjustments for inflation.
@@ -877,7 +891,7 @@ class System:
         adjusted for inflation (no inlfation has been taken into account),
         WACC_real should be used. WACC_real is computed by as follows:"""
 
-        WACC_real = (self.WACC_nom() + 1) / (inflation + 1) - 1
+        WACC_real = (self.WACC_nominal() + 1) / (inflation + 1) - 1
 
         return WACC_real
 
@@ -905,7 +919,6 @@ class System:
         # print('cost price: {}'.format(np.sum(PV)/throughput))
 
     # *** General functions
-
     def find_elements(self, obj):
         """return elements of type obj part of self.elements"""
 
@@ -1133,6 +1146,64 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online
 
+    def occupancy_to_waitingfactor(self, occupancy=.3, nr_of_servers_chk=4, poly_order=6):
+        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
+
+        # Create dataframe with data from Groenveld (2007) - Table V
+        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        data = np.array([
+            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+            ])
+        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
+
+        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+        target = df.loc[:, nr_of_servers_chk]
+        p_p = np.polyfit(target.index, target.values, poly_order)
+
+        waiting_factor = np.polyval(p_p, occupancy)
+        #todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
+
+        # Return waiting factor
+        return waiting_factor
+
+    def waitingfactor_to_occupancy(self, factor=.3, nr_of_servers_chk=4, poly_order=6):
+        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
+
+        # Create dataframe with data from Groenveld (2007) - Table V
+        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        data = np.array([
+            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+        ])
+        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
+
+        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+        target = df.loc[:, nr_of_servers_chk]
+        p_p = np.polyfit(target.values, target.index, poly_order)
+        print(p_p)
+
+        occupancy = np.polyval(p_p, factor)
+
+        # Return occupancy
+        return occupancy
+
     def waiting_time(self, year):
         """
        - Import the berth occupancy of every year
@@ -1317,7 +1388,6 @@ class System:
         return throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh
         self.throughput.append(throughput_online)
 
-
     def report_element(self, Element, year):
         elements = 0
         elements_online = 0
@@ -1350,8 +1420,7 @@ class System:
         else:
             return False
 
-    # *** plotting functions
-
+    # *** Plotting functions
     def terminal_elements_plot(self, width=0.1, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
