@@ -157,13 +157,28 @@ class System:
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-        factor, waiting_time_occupancy = self.waiting_time(year)
+        berths = len(self.find_elements(Berth))
+
+        if berths != 0:
+            waiting_factor = \
+                self.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            total_calls = handysize + handymax + panamax
+
+            waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
+            waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+
+            # waiting_factor, waiting_time_occupancy = self.waiting_time(year)
+        else:
+            waiting_factor = np.inf
+            waiting_time_hours = np.inf
+            waiting_time_occupancy = np.inf
+
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
             print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
             print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
-            print('     waiting time factor (@ start of year): {}'.format(factor))
+            print('     waiting time factor (@ start of year): {}'.format(waiting_factor))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
@@ -412,13 +427,15 @@ class System:
         Mulder, 2004) for the storage investments.
 
         Operational objective: maintain a storage capacity that is large enough to at least contain one time the largest
-        vessel call size or large enough to accommodate a maximum allowable dwelltime.
+        vessel call size or that is large enough to accommodate a maximum allowable dwelltime.
 
         Decision recipe storage:
            QSC: storage_capacity
            Benchmarking procedure: there is a problem when the storage_capacity is too small to store one time the
            largest call size or when it is too small to allow for a predetermined max allowable dwell time
-           Intervention procedure: the intervention strategy is to add storage until the benchmarking trigger is achieved
+              The max allowable dwelltime is here determined as 5% of the annual demand, increased by 10% (PIANC, 2014)
+           Intervention procedure: the intervention strategy is to add storage until the benchmarking trigger is
+           achieved. The trigger is the max of one call size, or the volume derived from the dwelltime requirement.
         """
 
         # from all storage objects sum online capacity
@@ -437,11 +454,11 @@ class System:
                 storage_capacity_online, agribulk_defaults_storage_data['type'], storage_capacity))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+            self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
-        # here an important bug was fixed: it took the max call size of all vessesls,
-        # but it needs to take the max call size of a vessel that actually arrives
+        # here an important bug was fixed! Previous code took the max call size of all vessesls,
+        # but it needs to take the max call size of the vessels that actually arrive
         max_vessel_call_size = 0
         for vessel in self.find_elements(Vessel):
             if vessel.type=='Handysize' and handysize != 0:
@@ -463,10 +480,8 @@ class System:
         if commodities != []:
             for commodity in commodities:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                storage_capacity_dwelltime = round((volume * 0.05) * 1.1)  # IJzerman (2019) p.26
+                storage_capacity_dwelltime = round((volume * 0.05) * 1.1)  # see IJzermans (2019) p.26
 
-        print('max_vessel_call_size: {}'.format(max_vessel_call_size))
-        print('storage_capacity_dwelltime: {}'.format(storage_capacity_dwelltime))
         # check if sufficient storage capacity is available
         while storage_capacity < max(max_vessel_call_size, storage_capacity_dwelltime):
             if self.debug:
@@ -530,7 +545,6 @@ class System:
               - add quay_conveyor_capacity until it matches quay_crane_service_rate
         """
 
-
         # find the total service rate
         hinter_conveyor_capacity_planned = 0
         hinter_conveyor_capacity_online = 0
@@ -543,7 +557,7 @@ class System:
 
         if self.debug:
             print(
-                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
+                '     a total of {} ton of hinterland conveyor service capacity is online; {} ton total planned'.format(
                     hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned))
 
         # find the total service rate,
@@ -732,8 +746,16 @@ class System:
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+            self.calculate_berth_occupancy(year, handysize_calls, handymax_calls, panamax_calls)
 
-        factor, waiting_time_occupancy = self.waiting_time(year)
+        berths = len(self.find_elements(Berth))
+
+        waiting_factor = \
+            self.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+
+        waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
+        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
         quay_walls = len(self.find_elements(Quay_wall))
@@ -747,7 +769,7 @@ class System:
         if service_rate != 0:
             handymax = Vessel(**agribulk_defaults.handymax_data)
             service_time_handymax = handymax.call_size / service_rate
-            waiting_time_hours_handymax = factor * service_time_handymax
+            waiting_time_hours_handymax = waiting_factor * service_time_handymax
             port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
             penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
             demurrage_time_handymax = penalty_time_handymax * handymax_calls
@@ -755,7 +777,7 @@ class System:
 
             handysize = Vessel(**agribulk_defaults.handysize_data)
             service_time_handysize = handysize.call_size / service_rate
-            waiting_time_hours_handysize = factor * service_time_handysize
+            waiting_time_hours_handysize = waiting_factor * service_time_handysize
             port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
             penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
             demurrage_time_handysize = penalty_time_handysize * handysize_calls
@@ -763,7 +785,7 @@ class System:
 
             panamax = Vessel(**agribulk_defaults.panamax_data)
             service_time_panamax = panamax.call_size / service_rate
-            waiting_time_hours_panamax = factor * service_time_panamax
+            waiting_time_hours_panamax = waiting_factor * service_time_panamax
             port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
             penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
             demurrage_time_panamax = penalty_time_panamax * panamax_calls
@@ -1110,49 +1132,107 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
 
-    def waiting_time(self, year):
-        """
-       - Import the berth occupancy of every year
-       - Find the factor for the waiting time with the E2/E/n quing theory using 4th order polynomial regression
-       - Waiting time is the factor times the crane occupancy
-       """
+    def occupancy_to_waitingfactor(self, occupancy=.3, nr_of_servers_chk=4, poly_order=6):
+        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
 
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize_calls, handymax_calls, panamax_calls)
+        # Create dataframe with data from Groenveld (2007) - Table V
+        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        data = np.array([
+            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+            ])
+        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
 
-        # find the different factors which are linked to the number of berths
-        berths = len(self.find_elements(Berth))
+        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+        target = df.loc[:, nr_of_servers_chk]
+        p_p = np.polyfit(target.index, target.values, poly_order)
 
-        if berths == 1:
-            factor = max(0,
-                         79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
-        elif berths == 2:
-            factor = max(0,
-                         29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
-        elif berths == 3:
-            factor = max(0,
-                         19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
-        elif berths == 4:
-            factor = max(0,
-                         17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
-        elif berths == 5:
-            factor = max(0,
-                         11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
-        elif berths == 6:
-            factor = max(0,
-                         10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
-        elif berths == 7:
-            factor = max(0,
-                         8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
-        else:
-            # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
-            factor = float("inf")
+        waiting_factor = np.polyval(p_p, occupancy)
+        #todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
 
-        waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
-        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+        # Return waiting factor
+        return waiting_factor
 
-        return factor, waiting_time_occupancy
+    def waitingfactor_to_occupancy(self, factor=.3, nr_of_servers_chk=4, poly_order=6):
+        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
+
+        # Create dataframe with data from Groenveld (2007) - Table V
+        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        data = np.array([
+            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+        ])
+        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
+
+        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+        target = df.loc[:, nr_of_servers_chk]
+        p_p = np.polyfit(target.values, target.index, poly_order)
+        print(p_p)
+
+        occupancy = np.polyval(p_p, factor)
+
+        # Return occupancy
+        return occupancy
+
+    # def waiting_time(self, year):
+    #     """
+    #    - Import the berth occupancy of every year
+    #    - Find the factor for the waiting time with the E2/E/n queueing theory using 4th order polynomial regression
+    #    - Waiting time is the factor times the crane occupancy
+    #    """
+    #
+    #     handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+    #     berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
+    #         year, handysize_calls, handymax_calls, panamax_calls)
+    #
+    #     # find the different factors which are linked to the number of berths
+    #     berths = len(self.find_elements(Berth))
+    #
+    #     if berths == 1:
+    #         factor = max(0,
+    #                      79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
+    #     elif berths == 2:
+    #         factor = max(0,
+    #                      29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
+    #     elif berths == 3:
+    #         factor = max(0,
+    #                      19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
+    #     elif berths == 4:
+    #         factor = max(0,
+    #                      17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
+    #     elif berths == 5:
+    #         factor = max(0,
+    #                      11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
+    #     elif berths == 6:
+    #         factor = max(0,
+    #                      10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
+    #     elif berths == 7:
+    #         factor = max(0,
+    #                      8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
+    #     else:
+    #         # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
+    #         factor = float("inf")
+    #
+    #     waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
+    #     waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+    #
+    #     return factor, waiting_time_occupancy
 
     def calculate_station_occupancy(self, year):
         """

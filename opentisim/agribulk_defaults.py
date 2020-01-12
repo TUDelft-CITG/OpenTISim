@@ -59,7 +59,7 @@ berth_data = {"name": 'Berth_01',
               "delivery_time": 1,
               "max_cranes": 3}  # all values from Ijzermans, 2019, P 92
 
-# *** Default inputs: CyclicUnloader class ***
+# *** Default inputs: Cyclic Unloader class ***
 
 gantry_crane_data = {"name": 'Gantry_crane_01',
                      "ownership": 'Terminal operator',
@@ -203,7 +203,7 @@ hinterland_station_data = {"name": 'Hinterland_station_01',
                            "insurance_perc": 0.01,
                            "crew": 2,
                            "production": 800,
-                           "wagon_payload" : 60,
+                           "wagon_payload": 60,
                            "number_of_wagons": 60,
                            "prep_time": 2}
 
