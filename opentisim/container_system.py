@@ -207,29 +207,31 @@ class System:
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
         """
-        Given the overall objectives of the terminal
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the berth investments.
 
         Decision recipe Berth:
-        QSC: berth_occupancy
-        Problem evaluation: there is a problem if the berth_occupancy > allowable_berth_occupancy
-            - allowable_berth_occupancy = .40 # 40%
-            - a berth needs:
-               - a quay
-               - cranes (min:1 and max: max_cranes)
-            - berth occupancy depends on:
-                - total_calls and total_vol
-                - total_service_capacity as delivered by the cranes
-        Investment decisions: invest enough to make the berth_occupancy < allowable_berth_occupancy
-            - adding quay and cranes decreases berth_occupancy_rate
+           QSC: berth_occupancy
+           Benchmarking procedure: there is a problem if the estimated berth_occupancy > allowable_berth_occupancy
+              - allowable_berth_occupancy = .40 # 40%
+              - a berth needs:
+                 - a quay
+                 - cranes (min:1 and max: max_cranes)
+              - berth occupancy depends on:
+                 - total_calls, total_vol and time needed for mooring, unmooring
+                 - total_service_capacity as delivered by the cranes
+           Intervention procedure: invest enough to make the berth_occupancy < allowable_berth_occupancy
+              - adding berths, quays and cranes decreases berth_occupancy_rate
         """
 
         # report on the status of all berth elements
+        if self.debug:
+            print('')
+            print('--- Status terminal @ start of year ----------------')
+
         self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
-        if self.debug:
-            print('')
-            print('  Start analysis:')
 
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
@@ -242,6 +244,11 @@ class System:
             print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
             print('     waiting time factor (@ start of year): {}'.format(factor))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
+
+            print('')
+            print('--- Start investment analysis ----------------------')
+            print('')
+            print('$$$ Check berth elements ---------------------------')
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -257,7 +264,7 @@ class System:
                     year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
+                    # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # check if a quay is needed
             berths = len(self.find_elements(Berth))
@@ -287,7 +294,7 @@ class System:
                     year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
+                    # print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
 
             # check if a crane is needed
             if self.check_crane_slot_available():
@@ -297,7 +304,7 @@ class System:
                     year, handysize, handymax, panamax)
                 if self.debug:
                     print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
+                    # print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
 
     def quay_invest(self, year, length, depth):
         """
