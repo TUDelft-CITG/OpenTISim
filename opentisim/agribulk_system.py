@@ -79,26 +79,40 @@ class System:
 
             if self.debug:
                 print('')
-                print('Simulate year: {}'.format(year))
+                print('### Simulate year: {} ############################'.format(year))
 
             # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
             handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
             if self.debug:
+                print('--- Cargo volume and vessel calls for {} ---------'.format(year))
+                print('  Total cargo volume: {}'.format(total_vol))
                 print('  Total vessel calls: {}'.format(total_calls))
                 print('     Handysize calls: {}'.format(handysize))
                 print('     Handymax calls: {}'.format(handymax))
                 print('     Panamax calls: {}'.format(panamax))
-                print('  Total cargo volume: {}'.format(total_vol))
+                print('----------------------------------------------------')
 
             # 2. for each year evaluate which investment are needed given the strategic and operational objectives
             self.berth_invest(year, handysize, handymax, panamax)
 
+            if self.debug:
+                print('')
+                print('$$$ Check quay conveyors -------------------------')
             self.conveyor_quay_invest(year, agribulk_defaults.quay_conveyor_data)
 
+            if self.debug:
+                print('')
+                print('$$$ Check storage ----------------------------------')
             self.storage_invest(year, self.storage_type_defaults)
 
+            if self.debug:
+                print('')
+                print('$$$ Check hinterland conveyors ---------------------')
             self.conveyor_hinter_invest(year, agribulk_defaults.hinterland_conveyor_data)
 
+            if self.debug:
+                print('')
+                print('$$$ Check unloading station ------------------------')
             self.unloading_station_invest(year)
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
@@ -142,6 +156,10 @@ class System:
         """
 
         # report on the status of all berth elements
+        if self.debug:
+            print('')
+            print('--- Status terminal @ start of year ----------------')
+
         self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
         self.report_element(Cyclic_Unloader, year)
@@ -150,9 +168,6 @@ class System:
         self.report_element(Storage, year)
         self.report_element(Conveyor_Hinter, year)
         self.report_element(Unloading_station, year)
-        if self.debug:
-            print('')
-            print('  Start analysis:')
 
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
@@ -174,12 +189,21 @@ class System:
             waiting_time_occupancy = np.inf
 
         if self.debug:
-            print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
-            print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
-            print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
+            print('     Berth occupancy online (@ start of year): {} (trigger level: {})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
+            print('     Berth occupancy planned (@ start of year): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
             print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
-            print('     waiting time factor (@ start of year): {}'.format(waiting_factor))
+            print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
+            print('     waiting time factor (@ start of year): {}'.format(waiting_factor))
+
+            print('')
+            print('--- Start investment analysis ----------------------')
+            print('')
+            print('$$$ Check berth elements ---------------------------')
+
+        self.report_element(Berth, year)
+        self.report_element(Quay_wall, year)
+        self.report_element(Cyclic_Unloader, year)
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -194,8 +218,8 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding berth): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a quay if a quay is needed
             berths = len(self.find_elements(Berth))
@@ -225,8 +249,8 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding quay): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    # print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
@@ -235,8 +259,8 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding crane): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    # print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
 
     def quay_invest(self, year, length, depth):
         """
@@ -356,8 +380,8 @@ class System:
                     quay_conveyor_capacity_online += element.capacity_steps
 
         if self.debug:
-            print('     a total of {} ton of quay conveyor service capacity is online; {} ton total planned'.format(
-                quay_conveyor_capacity_online, quay_conveyor_capacity_planned))
+            print('     a total of {} ton of quay conveyor service capacity is online; {} ton still pending'.format(
+                quay_conveyor_capacity_online, quay_conveyor_capacity_planned-quay_conveyor_capacity_online))
 
         # find the total quay crane service rate,
         quay_crane_service_rate_planned = 0
@@ -417,9 +441,9 @@ class System:
 
             quay_conveyor_capacity_planned += conveyor_quay.capacity_steps
 
-        if self.debug:
-            print('     a total of {} ton of conveyor quay service capacity is online; {} ton total planned'.format(
-                quay_conveyor_capacity_online, quay_conveyor_capacity_planned))
+            if self.debug:
+                print('     a total of {} ton of conveyor quay service capacity is online; {} ton still pending'.format(
+                    quay_conveyor_capacity_online, quay_conveyor_capacity_planned-quay_conveyor_capacity_online))
 
     def storage_invest(self, year, agribulk_defaults_storage_data):
         """
@@ -450,8 +474,8 @@ class System:
                         storage_capacity_online += element.capacity
 
         if self.debug:
-            print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
-                storage_capacity_online, agribulk_defaults_storage_data['type'], storage_capacity))
+            print('     a total of {} ton of {} storage capacity is online; {} ton still pending'.format(
+                storage_capacity_online, agribulk_defaults_storage_data['type'], storage_capacity-storage_capacity_online))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
@@ -515,10 +539,9 @@ class System:
             storage_capacity += storage.capacity
 
             if self.debug:
-                print(
-                    '     a total of {} ton of storage capacity is online; {} ton total planned'.format(
-                        storage_capacity_online,
-                        storage_capacity))
+                print('     a total of {} ton of {} storage capacity is online; {} ton still pending'.format(
+                    storage_capacity_online, agribulk_defaults_storage_data['type'],
+                    storage_capacity - storage_capacity_online))
 
     def conveyor_hinter_invest(self, year, agribulk_defaults_hinterland_conveyor_data):
         """current strategy is to add conveyors as soon as a service trigger is achieved
@@ -557,8 +580,8 @@ class System:
 
         if self.debug:
             print(
-                '     a total of {} ton of hinterland conveyor service capacity is online; {} ton total planned'.format(
-                    hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned))
+                '     a total of {} ton of hinterland conveyor service capacity is online; {} ton still pending'.format(
+                    hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned-hinter_conveyor_capacity_online))
 
         # find the total service rate,
         service_rate = 0
@@ -599,10 +622,11 @@ class System:
 
             hinter_conveyor_capacity_planned += conveyor_hinter.capacity_steps
 
-        if self.debug:
-            print(
-                '     a total of {} ton of conveyor hinterland service capacity is online; {} ton total planned'.format(
-                    hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned))
+            if self.debug:
+                print(
+                    '     a total of {} ton of hinterland conveyor service capacity is online; {} ton still pending'.format(
+                        hinter_conveyor_capacity_online,
+                        hinter_conveyor_capacity_planned - hinter_conveyor_capacity_online))
 
     def unloading_station_invest(self, year):
         """current strategy is to add unloading stations as soon as a service trigger is achieved
@@ -1314,7 +1338,7 @@ class System:
                     elements_online += 1
 
         if self.debug:
-            print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
+            print('     a total of {} {} is online; a total of {} is still pending'.format(elements_online, element_name, elements-elements_online))
 
         return elements_online, elements
 
