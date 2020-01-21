@@ -169,15 +169,16 @@ class System:
         """
 
         # report on the status of all berth elements
+        if self.debug:
+            print('')
+            print('--- Status terminal @ start of year ----------------')
+
         self.report_element(Berth, year)
         self.report_element(Jetty, year)
         self.report_element(Pipeline_Jetty, year)
         self.report_element(Storage, year)
         self.report_element(H2retrieval, year)
         self.report_element(Pipeline_Hinter, year)
-        if self.debug:
-            print('')
-            print('  Start analysis:')
 
         # calculate berth occupancy
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
@@ -192,30 +193,40 @@ class System:
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
 
         if self.debug:
-            print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
-            print('     Unloading occupancy planned (@ start of year): {}'.format(unloading_occupancy_planned))
+            print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
             print('     Unloading occupancy online (@ start of year): {}'.format(unloading_occupancy_online))
-            print('     waiting time factor (@ start of year): {}'.format(factor))
+            print('     Unloading occupancy planned (@ start of year): {}'.format(unloading_occupancy_planned))
             print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
+            print('     waiting time factor (@ start of year): {}'.format(factor))
             print('     throughput online {}'.format(throughput_online))
             print('     throughput planned {}'.format(throughput_planned))
 
+            print('')
+            print('--- Start investment analysis ----------------------')
+            print('')
+            print('$$$ Check berth elements ---------------------------')
+
+        self.report_element(Berth, year)
+        self.report_element(Jetty, year)
+        self.report_element(Pipeline_Jetty, year)
+
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
+            # while planned berth occupancy is too large add a berth when no crane slots are available
             if self.debug:
                     print('  *** add Berth to elements')
             berth = Berth(**hydrogen_defaults.berth_data)
             berth.year_online = year + berth.delivery_time
             self.elements.append(berth)
 
-            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy( year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,  handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,  largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,   handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
-
+            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = \
+                self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,  handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,  largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,   handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
             if self.debug:
                 print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
-                print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
+                # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
-            # check if a jetty is needed
+            # while planned berth occupancy is too large add a berth if a jetty is needed
             berths = len(self.find_elements(Berth))
             jettys = len(self.find_elements(Jetty))
             if berths > jettys:
@@ -244,7 +255,7 @@ class System:
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
-                    print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
+                    # print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
     def jetty_invest(self, year, nrofdolphins):
         """

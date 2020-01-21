@@ -1349,15 +1349,15 @@ class System:
 
         # - Trains calculated with the throughput
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-            year, handysize, handymax, panamax)
+        berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+            self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
-        service_rate_throughput = 0
+        service_rate_throughput_online = 0
         for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
             if year >= element.year_online:
-                service_rate_throughput += element.effective_capacity * crane_occupancy_online
+                service_rate_throughput_online += element.effective_capacity * crane_occupancy_online
 
-        train_calls = service_rate_throughput * self.operational_hours / station.call_size
+        train_calls = service_rate_throughput_online * self.operational_hours / station.call_size
 
         return train_calls
 
