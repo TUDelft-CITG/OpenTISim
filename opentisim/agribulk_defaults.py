@@ -191,7 +191,6 @@ warehouse_data = {"name": 'Warehouse_01',
 
 # *** Default inputs: Unloading_station class ***
 
-
 hinterland_station_data = {"name": 'Hinterland_station_01',
                            "ownership": 'Terminal operator',
                            "delivery_time": 1,

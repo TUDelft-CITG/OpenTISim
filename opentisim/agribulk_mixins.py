@@ -329,7 +329,7 @@ class hasscenario_properties_mixin(object):
 
         self.scenario_data = pd.DataFrame(data=scenario_data)
 
-    def plot_demand(self, width=0.1, alpha=0.6):
+    def plot_demand(self, width=0.1, alpha=0.6, fontsize=15):
         """generate a histogram of the demand data"""
         # generate plot
         fig, ax = plt.subplots(figsize=(20, 10))
@@ -348,9 +348,10 @@ class hasscenario_properties_mixin(object):
 
         years = np.concatenate((years, self.scenario_data['year'].values))
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Demand [tons]')
-        ax.set_title('Demand: {}'.format(self.name))
+        ax.set_xlabel('Years', fontsize=fontsize)
+        ax.set_ylabel('Demand [tons]', fontsize=fontsize)
+        ax.set_title('Demand: {}'.format(self.name), fontsize=fontsize)
         ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+        ax.set_xticklabels([int(x) for x in years], fontsize=fontsize)
+        ax.yaxis.set_tick_params(labelsize=fontsize)
+        ax.legend(fontsize=fontsize)

@@ -98,22 +98,22 @@ class System:
 
             if self.debug:
                 print('')
-                print('$$$ Check quay conveyors -------------------------')
+                print('$$$ Check quay conveyors (coupled with quay crane capacity) -----------')
             self.conveyor_quay_invest(year, agribulk_defaults.quay_conveyor_data)
 
             if self.debug:
                 print('')
-                print('$$$ Check storage ----------------------------------')
+                print('$$$ Check storage (coupled with max call size and dwell time) ---------')
             self.storage_invest(year, self.storage_type_defaults)
 
             if self.debug:
                 print('')
-                print('$$$ Check hinterland conveyors ---------------------')
+                print('$$$ Check hinterland conveyors (coupled with unloading stations) ------')
             self.conveyor_hinter_invest(year, agribulk_defaults.hinterland_conveyor_data)
 
             if self.debug:
                 print('')
-                print('$$$ Check unloading station ------------------------')
+                print('$$$ Check unloading station (coupled with quay cranes) ----------------')
             self.unloading_station_invest(year)
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
@@ -139,8 +139,8 @@ class System:
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
         """
-        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
-        Mulder, 2004) for the berth investments.
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and Mulder,
+        2004) for the berth investments.
 
         Decision recipe Berth:
            QSC: berth_occupancy
@@ -190,17 +190,17 @@ class System:
             waiting_time_occupancy = np.inf
 
         if self.debug:
-            print('     Berth occupancy online (@ start of year): {} (trigger level: {})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
-            print('     Berth occupancy planned (@ start of year): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-            print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
-            print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
-            print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
-            print('     waiting time factor (@ start of year): {}'.format(waiting_factor))
+            print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
+            print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+            print('     Crane occupancy online (@ start of year): {:.2f}'.format(crane_occupancy_online))
+            print('     Crane occupancy planned (@ start of year): {:.2f}'.format(crane_occupancy_planned))
+            print('     waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
+            print('     waiting time factor (@ start of year): {:.2f}'.format(waiting_factor))
 
             print('')
             print('--- Start investment analysis ----------------------')
             print('')
-            print('$$$ Check berth elements ---------------------------')
+            print('$$$ Check berth elements (coupled with berth occupancy) ---------------')
 
         self.report_element(Berth, year)
         self.report_element(Quay_wall, year)
@@ -216,13 +216,13 @@ class System:
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize, handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                    self.calculate_berth_occupancy(year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
                     # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
-            # while planned berth occupancy is too large add a quay if a quay is needed
+            # while planned berth occupancy is too large add a berth if a quay is needed
             berths = len(self.find_elements(Berth))
             quay_walls = len(self.find_elements(Quay_wall))
             if berths > quay_walls:
@@ -250,7 +250,7 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding quay): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Berth occupancy planned (after adding quay): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
                     # print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a crane if a crane is needed
@@ -260,7 +260,7 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding crane): {} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Berth occupancy planned (after adding crane): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
                     # print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
 
     def quay_invest(self, year, length, depth):
@@ -544,29 +544,75 @@ class System:
                     storage_capacity_online, agribulk_defaults_storage_data['type'],
                     storage_capacity - storage_capacity_online))
 
-    def conveyor_hinter_invest(self, year, agribulk_defaults_hinterland_conveyor_data):
-        """current strategy is to add conveyors as soon as a service trigger is achieved
+    def unloading_station_invest(self, year):
+        """The operational objective for the investment strategy for unloading stations is to have sufficient planned
+        unloading stations to keep the station occupancy below a given threshold for the quay crane capacity planned.
+
+        current strategy is to add unloading stations as soon as a service trigger is achieved
         - find out how much service capacity is online
         - find out how much service capacity is planned
         - find out how much service capacity is needed
         - add service capacity until service_trigger is no longer exceeded
         """
-        """
-        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
-        Mulder, 2004) for the hinter conveyor investments.
 
-        Operational objective: maintain a hinter conveyor capacity that at least matches the quay crane capacity (so
-        basically the quay conveyors follow what happens on the berth)
+        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+        train_calls = self.train_call(year)
+
+        if self.debug:
+            print('     Station occupancy planned (@ start of year): {:.2f}'.format(station_occupancy_planned))
+            # print('     Station occupancy online (@ start of year): {:.2f}'.format(station_occupancy_online))
+            print('     Number of trains (@start of year): {:.2f}'.format(train_calls))
+
+        while station_occupancy_planned > self.allowable_station_occupancy:
+            # add a station when station occupancy is too high
+            if self.debug:
+                print('  *** add unloading station to elements')
+
+            station = Unloading_station(**agribulk_defaults.hinterland_station_data)
+
+            # - capex
+            unit_rate = station.unit_rate
+            mobilisation = station.mobilisation
+            station.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            station.insurance = unit_rate * station.insurance_perc
+            station.maintenance = unit_rate * station.maintenance_perc
+
+            #   labour
+            labour = Labour(**agribulk_defaults.labour_data)
+            station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            station.labour = station.shift * labour.operational_salary
+
+            if year == self.startyear:
+                station.year_online = year + station.delivery_time + 1
+            else:
+                station.year_online = year + station.delivery_time
+
+            # add cash flow information to quay_wall object in a dataframe
+            station = self.add_cashflow_data_to_element(station)
+
+            self.elements.append(station)
+
+            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+
+    def conveyor_hinter_invest(self, year, agribulk_defaults_hinterland_conveyor_data):
+        """
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and Mulder,
+        2004) for the hinter conveyor investments.
+
+        Operational objective: maintain a hinter conveyor capacity that at least matches the station unloading capacity
+        (so basically the hinter conveyors follow what happens on the station)
 
         Decision recipe quay conveyor:
-           QSC: quay_conveyor_capacity planned
-           Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
-           quay_crane_service_rate_planned
-              For the quay conveyor investments the strategy is to at least match the quay crane processing capacity
-           Intervention procedure: the intervention strategy is to add quay conveyors until the trigger is achieved
-              - find out how much quay_conveyor_capacity is planned
-              - find out how much quay_crane_service_rate is planned
-              - add quay_conveyor_capacity until it matches quay_crane_service_rate
+           QSC: hinter_conveyor_capacity planned
+           Benchmarking procedure: there is a problem when the hinter_conveyor_capacity_planned is smaller than the
+           station_service_rate_planned
+              For the hinter conveyor investments the strategy is to at least match the unloading station capacity
+           Intervention procedure: the intervention strategy is to add hinter conveyors until the trigger is achieved
+              - find out how much hinter_conveyor_capacity is planned
+              - find out how much station_service_rate_planned is planned
+              - add hinter_conveyor_capacity until it matches station_service_rate_planned
         """
 
         # find the total service rate
@@ -582,17 +628,18 @@ class System:
         if self.debug:
             print(
                 '     a total of {} ton of hinterland conveyor service capacity is online; {} ton still pending'.format(
-                    hinter_conveyor_capacity_online, hinter_conveyor_capacity_planned-hinter_conveyor_capacity_online))
+                    hinter_conveyor_capacity_online,
+                    hinter_conveyor_capacity_planned - hinter_conveyor_capacity_online))
 
-        # find the total service rate,
-        service_rate = 0
+        # find the total station service rate planned,
+        station_service_rate_planned = 0
         years_online = []
         for element in (self.find_elements(Unloading_station)):
-            service_rate += element.production
+            station_service_rate_planned += element.production
             years_online.append(element.year_online)
 
-        # check if total planned length is smaller than target length, if so add a quay
-        while service_rate > hinter_conveyor_capacity_planned:
+        # check if the hinter conveyor capacity (planned) at least matches the station unloading rate (planned)
+        while hinter_conveyor_capacity_planned < station_service_rate_planned:
             if self.debug:
                 print('  *** add Hinter Conveyor to elements')
             conveyor_hinter = Conveyor_Hinter(**agribulk_defaults_hinterland_conveyor_data)
@@ -628,55 +675,6 @@ class System:
                     '     a total of {} ton of hinterland conveyor service capacity is online; {} ton still pending'.format(
                         hinter_conveyor_capacity_online,
                         hinter_conveyor_capacity_planned - hinter_conveyor_capacity_online))
-
-    def unloading_station_invest(self, year):
-        """current strategy is to add unloading stations as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
-        """
-
-        station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
-        train_calls = self.train_call(year)
-
-        if self.debug:
-            print('     Station occupancy planned (@ start of year): {}'.format(station_occupancy_planned))
-            print('     Station occupancy online (@ start of year): {}'.format(station_occupancy_online))
-            print('     Number of trains (@start of year): {}'.format(train_calls))
-
-        while station_occupancy_planned > self.allowable_station_occupancy:
-            # add a station when station occupancy is too high
-            if self.debug:
-                print('  *** add station to elements')
-
-            station = Unloading_station(**agribulk_defaults.hinterland_station_data)
-
-            # - capex
-            unit_rate = station.unit_rate
-            mobilisation = station.mobilisation
-            station.capex = int(unit_rate + mobilisation)
-
-            # - opex
-            station.insurance = unit_rate * station.insurance_perc
-            station.maintenance = unit_rate * station.maintenance_perc
-
-            #   labour
-            labour = Labour(**agribulk_defaults.labour_data)
-            station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            station.labour = station.shift * labour.operational_salary
-
-            if year == self.startyear:
-                station.year_online = year + station.delivery_time + 1
-            else:
-                station.year_online = year + station.delivery_time
-
-            # add cash flow information to quay_wall object in a dataframe
-            station = self.add_cashflow_data_to_element(station)
-
-            self.elements.append(station)
-
-            station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
     # *** Energy costs, demurrage costs and revenue calculation methods
     def calculate_energy_cost(self, year):
@@ -1260,21 +1258,17 @@ class System:
     #     return factor, waiting_time_occupancy
 
     def calculate_station_occupancy(self, year):
-        """
-        The operational objective for the investment strategy for unloading stations is to have sufficient planned
-        unloading stations to keep the station occupancy below a given threshold for the quay crane capacity planned
-
-        - Find all stations and sum their service_rate to get service_capacity in TUE per hours
-        - Divide the throughput by the service rate to get the total hours in a year
-        - Occupancy is total_time_at_station divided by operational hours
-        """
+        """The station occupancy is calculated based on the service rate for the throughput of the online quay unloaders
+        (effective capacity * occupancy). The unloading station should at least be able to handle the throughput by the
+        online quay unloaders at a level that the station occupancy planned remains below the target occupancy level."""
 
         list_of_elements = self.find_elements(Unloading_station)
-        # find the total service rate and determine the time at station
 
+        # find the total service rate and determine the time at station
         service_rate_planned = 0
         service_rate_online = 0
         if list_of_elements != []:
+            # find planned service rate and online service rate
             for element in list_of_elements:
                 service_rate_planned += element.service_rate
                 if year >= element.year_online:
@@ -1284,22 +1278,23 @@ class System:
             berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                 self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
-            # find the total throughput,
+            # find the service rate for the throughput of the online quay unloaders (effective capacity * occupancy)
             service_rate_throughput = 0
             for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
                 if year >= element.year_online:
                     service_rate_throughput += element.effective_capacity * crane_occupancy_online
 
-            time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.service_rate
+            # determine time at stations planned (given the current throughput)
+            if service_rate_planned != 0:
+                time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.service_rate
+                station_occupancy_planned = time_at_station_planned / self.operational_hours
+            else:
+                station_occupancy_planned = float("inf")
 
-            # station_occupancy is the total time at station divided by the operational hours
-            station_occupancy_planned = time_at_station_planned / self.operational_hours
-
+            # determine time at stations online (given the current throughput)
             if service_rate_online != 0:
                 time_at_station_online = service_rate_throughput * self.operational_hours / service_rate_online  # element.capacity
-
-                # station occupancy is the total time at station divided by the operational hours
-                station_occupancy_online = min([time_at_station_online / self.operational_hours, 1])
+                station_occupancy_online = time_at_station_online / self.operational_hours
             else:
                 station_occupancy_online = float("inf")
 
@@ -1339,7 +1334,8 @@ class System:
                     elements_online += 1
 
         if self.debug:
-            print('     a total of {} {} is online; a total of {} is still pending'.format(elements_online, element_name, elements-elements_online))
+            if elements_online or elements:
+                print('     a total of {} {} is online; a total of {} is still pending'.format(elements_online, element_name, elements - elements_online))
 
         return elements_online, elements
 
