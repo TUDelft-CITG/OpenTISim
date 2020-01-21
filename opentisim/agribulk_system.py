@@ -1415,26 +1415,18 @@ class System:
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 12))
         ax1.grid(b=True, which='major', axis='both', zorder=0.5)
-        ax1.set_axisbelow(True)
 
         colors = ['firebrick', 'darksalmon', 'sandybrown', 'darkkhaki', 'palegreen', 'lightseagreen', 'mediumpurple',
                   'mediumvioletred', 'lightgreen']
-
         offset = 3 * width  # - 0.5 * width
-        ax1.bar([x - offset + 0 * width for x in years], berths, width=width, alpha=alpha, label="Berths",
-                color=colors[0], edgecolor='darkgrey')
-        ax1.bar([x - offset + 1 * width for x in years], quays, width=width, alpha=alpha, label="Quays",
-                color=colors[1], edgecolor='darkgrey')
-        ax1.bar([x - offset + 2 * width for x in years], cranes, width=width, alpha=alpha, label="Cranes",
-                color=colors[2], edgecolor='darkgrey')
-        ax1.bar([x - offset + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha,
-                label="Quay converyors", color=colors[3], edgecolor='darkgrey')
-        ax1.bar([x - offset + 4 * width for x in years], storages, width=width, alpha=alpha, label="Storages",
-                color=colors[4], edgecolor='darkgrey')
-        ax1.bar([x - offset + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha,
-                label="Hinterland conveyors", color=colors[5], edgecolor='darkgrey')
-        ax1.bar([x - offset + 6 * width for x in years], unloading_station, width=width, alpha=alpha,
-                label="Unloading stations", color=colors[6], edgecolor='darkgrey')
+
+        ax1.bar([x - offset + 0 * width for x in years], berths, width=width, alpha=alpha, label="Berths", color=colors[0], edgecolor='darkgrey')
+        ax1.bar([x - offset + 1 * width for x in years], quays, width=width, alpha=alpha, label="Quays", color=colors[1], edgecolor='darkgrey')
+        ax1.bar([x - offset + 2 * width for x in years], cranes, width=width, alpha=alpha, label="Cranes", color=colors[2], edgecolor='darkgrey')
+        ax1.bar([x - offset + 3 * width for x in years], conveyors_quay, width=width, alpha=alpha, label="Quay converyors", color=colors[3], edgecolor='darkgrey')
+        ax1.bar([x - offset + 4 * width for x in years], storages, width=width, alpha=alpha, label="Storages", color=colors[4], edgecolor='darkgrey')
+        ax1.bar([x - offset + 5 * width for x in years], conveyors_hinterland, width=width, alpha=alpha, label="Hinterland conveyors", color=colors[5], edgecolor='darkgrey')
+        ax1.bar([x - offset + 6 * width for x in years], unloading_station, width=width, alpha=alpha, label="Unloading stations", color=colors[6], edgecolor='darkgrey')
         # added vertical lines for mentioning the different phases
         # plt.axvline(x=2025.6, color='k', linestyle='--')
         # plt.axvline(x=2023.4, color='k', linestyle='--')
@@ -1592,19 +1584,45 @@ class System:
                 profits_cum[index] = profits_cum[index - 1] + profits[index]
 
         # generate plot
-        fig, ax = plt.subplots(figsize=(16, 7))
+        fig, ax1 = plt.subplots(figsize=(20, 12))
+        ax1.grid(b=True, which='major', axis='both', zorder=0.5)
 
-        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
-        ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
-        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
-        ax.step(years, profits, label='profits', where='mid')
-        ax.step(years, profits_cum, label='profits_cum', where='mid')
+        colors = ['mediumseagreen', 'firebrick', 'steelblue']
+        offset = 3 * width  # - 0.5 * width
 
-        ax.set_xlabel('Years', fontsize=fontsize)
-        ax.set_ylabel('Cashflow [000 M $]', fontsize=fontsize)
-        ax.set_title('Cash flow plot', fontsize=fontsize)
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels([int(x) for x in years], fontsize=fontsize)
-        ax.yaxis.set_tick_params(labelsize=fontsize)
-        ax.legend(fontsize=fontsize)
+        ax1.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color=colors[0], edgecolor='darkgrey')
+        ax1.bar(years, -capex, width=width, alpha=alpha, label="capex", color=colors[1], edgecolor='darkgrey')
+        ax1.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color=colors[2], edgecolor='darkgrey')
 
+        ax1.step(years, profits, label='profits', where='mid')
+        ax1.step(years, profits_cum, label='profits_cum', where='mid')
+
+        ax1.set_xlabel('Years', fontsize=fontsize)
+        ax1.set_ylabel('Cashflow [000 M $]', fontsize=fontsize)
+        ax1.set_title('Cash flow plot', fontsize=fontsize)
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels([int(x) for x in years], fontsize=fontsize)
+        ax1.yaxis.set_tick_params(labelsize=fontsize)
+        ax1.legend(fontsize=fontsize)
+
+        matplotlib.rc('xtick', labelsize=fontsize)
+        matplotlib.rc('ytick', labelsize=fontsize)
+
+        ax1.set_title('Terminal elements online', fontsize=fontsize)
+        #
+        # ax1.set_xlabel('Years', fontsize=fontsize)
+        # ax1.set_xticks([x for x in years])
+        # ax1.set_xticklabels([int(x) for x in years], fontsize=fontsize)
+        #
+        # max_elements = max([max(berths), max(quays), max(cranes),
+        #                     max(conveyors_quay), max(storages),
+        #                     max(conveyors_hinterland), max(conveyors_hinterland)])
+        # ax1.set_ylabel('Terminal elements on line [nr]', fontsize=fontsize)
+        # ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
+        # ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
+        #
+        # ax2.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
+
+        fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=5)
+        fig.subplots_adjust(bottom=0.15)
