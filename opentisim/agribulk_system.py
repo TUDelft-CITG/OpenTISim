@@ -194,8 +194,8 @@ class System:
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
             print('     Crane occupancy online (@ start of year): {:.2f}'.format(crane_occupancy_online))
             print('     Crane occupancy planned (@ start of year): {:.2f}'.format(crane_occupancy_planned))
-            print('     waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
-            print('     waiting time factor (@ start of year): {:.2f}'.format(waiting_factor))
+            print('     Waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
+            print('     Waiting time factor (@ start of year): {:.2f}'.format(waiting_factor))
 
             print('')
             print('--- Start investment analysis ----------------------')
@@ -794,7 +794,7 @@ class System:
             service_time_handymax = handymax.call_size / service_rate
             waiting_time_hours_handymax = waiting_factor * service_time_handymax
             port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, waiting_time_hours_handymax - handymax.all_turn_time)
+            penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
             demurrage_time_handymax = penalty_time_handymax * handymax_calls
             demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
 
@@ -802,7 +802,7 @@ class System:
             service_time_handysize = handysize.call_size / service_rate
             waiting_time_hours_handysize = waiting_factor * service_time_handysize
             port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
+            penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
             demurrage_time_handysize = penalty_time_handysize * handysize_calls
             demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
 
@@ -810,7 +810,7 @@ class System:
             service_time_panamax = panamax.call_size / service_rate
             waiting_time_hours_panamax = waiting_factor * service_time_panamax
             port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
-            penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
+            penalty_time_panamax = max(0, port_time_panamax - panamax.all_turn_time)
             demurrage_time_panamax = penalty_time_panamax * panamax_calls
             demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
