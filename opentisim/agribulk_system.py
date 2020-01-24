@@ -881,51 +881,9 @@ class System:
             pass
 
     # *** Financial analyses
-    def add_cashflow_elements(self):
-
-        cash_flows = pd.DataFrame()
-        labour = Labour(**agribulk_defaults.labour_data)
-
-        # initialise cash_flows
-        cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        cash_flows['capex'] = 0
-        cash_flows['maintenance'] = 0
-        cash_flows['insurance'] = 0
-        cash_flows['energy'] = 0
-        cash_flows['labour'] = 0
-        cash_flows['demurrage'] = self.demurrage
-        cash_flows['revenues'] = self.revenues
-
-        # add labour component for years were revenues are not zero
-        cash_flows.loc[cash_flows[
-                           'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
-
-        for element in self.elements:
-            if hasattr(element, 'df'):
-                for column in cash_flows.columns:
-                    if column in element.df.columns and column != "year":
-                        cash_flows[column] += element.df[column]
-
-        cash_flows.fillna(0)
-
-        # calculate WACC real cashflows
-        cash_flows_WACC_real = pd.DataFrame()
-        cash_flows_WACC_real['year'] = cash_flows['year']
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            for column in cash_flows.columns:
-                if column != "year":
-                    cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
-                        cash_flows.loc[
-                            cash_flows[
-                                'year'] == year, column] / (
-                                (1 + self.WACC_real()) ** (
-                                year - self.startyear))
-
-        return cash_flows, cash_flows_WACC_real
-
     def add_cashflow_data_to_element(self, element):
-
-        """Place cashflow data in element dataframe"""
+        """Place cashflow data in element dataframe
+        Elements that take two years to build are assign 60% to year one and 40% to year two."""
 
         # years
         years = list(range(self.startyear, self.startyear + self.lifecycle))
@@ -967,6 +925,49 @@ class System:
         element.df = df
 
         return element
+
+    def add_cashflow_elements(self):
+        """Cycle through each element and collect all cash flows into a pandas dataframe."""
+
+        cash_flows = pd.DataFrame()
+        labour = Labour(**agribulk_defaults.labour_data)
+
+        # initialise cash_flows
+        cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        cash_flows['capex'] = 0
+        cash_flows['maintenance'] = 0
+        cash_flows['insurance'] = 0
+        cash_flows['energy'] = 0
+        cash_flows['labour'] = 0
+        cash_flows['demurrage'] = self.demurrage
+        cash_flows['revenues'] = self.revenues
+
+        # add labour component for years were revenues are not zero
+        cash_flows.loc[cash_flows[
+                           'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+
+        for element in self.elements:
+            if hasattr(element, 'df'):
+                for column in cash_flows.columns:
+                    if column in element.df.columns and column != "year":
+                        cash_flows[column] += element.df[column]
+
+        cash_flows.fillna(0)
+
+        # calculate WACC real cashflows
+        cash_flows_WACC_real = pd.DataFrame()
+        cash_flows_WACC_real['year'] = cash_flows['year']
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            for column in cash_flows.columns:
+                if column != "year":
+                    cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
+                        cash_flows.loc[
+                            cash_flows[
+                                'year'] == year, column] / (
+                                (1 + self.WACC_real()) ** (
+                                year - self.startyear))
+
+        return cash_flows, cash_flows_WACC_real
 
     def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
         """Nominal cash flow is the true dollar amount of future revenues the company expects
