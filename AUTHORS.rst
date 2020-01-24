@@ -19,7 +19,7 @@ Various MSc projects
 
 .. _Wijnand Ijzermans: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24
 .. _Stephanie Lanphen: http://resolver.tudelft.nl/uuid:d2429b05-1881-4e42-9bb3-ed604bc15255
-.. _Piebe Koster: https://repository.tudelft.nl
+.. _Piebe Koster: http://resolver.tudelft.nl/uuid:131133bf-9021-4d67-afcb-233bd8302ce0
 
 Ongoing MSc work
 
