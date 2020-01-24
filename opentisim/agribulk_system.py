@@ -7,6 +7,7 @@ import matplotlib
 # opentisim package
 from opentisim.agribulk_objects import *
 from opentisim import agribulk_defaults
+from opentisim import core
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for agribulk terminals.
@@ -162,23 +163,23 @@ class System:
             print('')
             print('--- Status terminal @ start of year ----------------')
 
-        self.report_element(Berth, year)
-        self.report_element(Quay_wall, year)
-        self.report_element(Cyclic_Unloader, year)
-        self.report_element(Continuous_Unloader, year)
-        self.report_element(Conveyor_Quay, year)
-        self.report_element(Storage, year)
-        self.report_element(Conveyor_Hinter, year)
-        self.report_element(Unloading_station, year)
+        core.report_element(self, Berth, year)
+        core.report_element(self, Quay_wall, year)
+        core.report_element(self, Cyclic_Unloader, year)
+        core.report_element(self, Continuous_Unloader, year)
+        core.report_element(self, Conveyor_Quay, year)
+        core.report_element(self, Storage, year)
+        core.report_element(self, Conveyor_Hinter, year)
+        core.report_element(self, Unloading_station, year)
 
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-        berths = len(self.find_elements(Berth))
+        berths = len(core.find_elements(self, Berth))
 
         if berths != 0:
             waiting_factor = \
-                self.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+                core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
             total_calls = handysize + handymax + panamax
 
             waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
@@ -203,9 +204,9 @@ class System:
             print('')
             print('$$$ Check berth elements (coupled with berth occupancy) ---------------')
 
-        self.report_element(Berth, year)
-        self.report_element(Quay_wall, year)
-        self.report_element(Cyclic_Unloader, year)
+        core.report_element(self, Berth, year)
+        core.report_element(self, Quay_wall, year)
+        core.report_element(self, Cyclic_Unloader, year)
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -224,8 +225,8 @@ class System:
                     # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a berth if a quay is needed
-            berths = len(self.find_elements(Berth))
-            quay_walls = len(self.find_elements(Quay_wall))
+            berths = len(core.find_elements(self, Berth))
+            quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
                 length_v = max(agribulk_defaults.handysize_data["LOA"],agribulk_defaults.handymax_data["LOA"],
                               agribulk_defaults.panamax_data["LOA"])  # average size
@@ -342,7 +343,7 @@ class System:
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
-        for element in self.find_elements(Quay_wall):
+        for element in core.find_elements(self, Quay_wall):
             years_online.append(element.year_online)
         crane.year_online = max([year + crane.delivery_time, max(years_online)])
 
@@ -374,7 +375,7 @@ class System:
         # find the total quay_conveyor capacity
         quay_conveyor_capacity_planned = 0
         quay_conveyor_capacity_online = 0
-        list_of_elements = self.find_elements(Conveyor_Quay)
+        list_of_elements = core.find_elements(self, Conveyor_Quay)
         if list_of_elements != []:
             for element in list_of_elements:
                 quay_conveyor_capacity_planned += element.capacity_steps
@@ -388,7 +389,7 @@ class System:
         # find the total quay crane service rate,
         quay_crane_service_rate_planned = 0
         years_online = []
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (core.find_elements(self, Cyclic_Unloader) + core.find_elements(self, Continuous_Unloader)):
             quay_crane_service_rate_planned += element.peak_capacity
             years_online.append(element.year_online)
 
@@ -421,8 +422,8 @@ class System:
             new_crane_years = [x for x in years_online if x >= year]
 
             # find the maximum online year of Conveyor_Quay or make it []
-            if self.find_elements(Conveyor_Quay) != []:
-                max_conveyor_years = max([x.year_online for x in self.find_elements(Conveyor_Quay)])
+            if core.find_elements(self, Conveyor_Quay) != []:
+                max_conveyor_years = max([x.year_online for x in core.find_elements(self, Conveyor_Quay)])
             else:
                 max_conveyor_years = []
 
@@ -467,7 +468,7 @@ class System:
         # from all storage objects sum online capacity
         storage_capacity = 0
         storage_capacity_online = 0
-        list_of_elements = self.find_elements(Storage)
+        list_of_elements = core.find_elements(self, Storage)
         if list_of_elements != []:
             for element in list_of_elements:
                 if element.type == agribulk_defaults_storage_data['type']:
@@ -486,7 +487,7 @@ class System:
         # here an important bug was fixed! Previous code took the max call size of all vessesls,
         # but it needs to take the max call size of the vessels that actually arrive
         max_vessel_call_size = 0
-        for vessel in self.find_elements(Vessel):
+        for vessel in core.find_elements(self, Vessel):
             if vessel.type=='Handysize' and handysize != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
@@ -498,11 +499,11 @@ class System:
 
         # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (core.find_elements(self, Cyclic_Unloader) + core.find_elements(self, Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
-        commodities = self.find_elements(Commodity)
+        commodities = core.find_elements(self, Commodity)
         if commodities != []:
             for commodity in commodities:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -619,7 +620,7 @@ class System:
         # find the total service rate
         hinter_conveyor_capacity_planned = 0
         hinter_conveyor_capacity_online = 0
-        list_of_elements_conveyor = self.find_elements(Conveyor_Hinter)
+        list_of_elements_conveyor = core.find_elements(self, Conveyor_Hinter)
         if list_of_elements_conveyor != []:
             for element in list_of_elements_conveyor:
                 hinter_conveyor_capacity_planned += element.capacity_steps
@@ -635,7 +636,7 @@ class System:
         # find the total station service rate planned,
         station_service_rate_planned = 0
         years_online = []
-        for element in (self.find_elements(Unloading_station)):
+        for element in (core.find_elements(self, Unloading_station)):
             station_service_rate_planned += element.production
             years_online.append(element.year_online)
 
@@ -692,8 +693,8 @@ class System:
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
         # calculate crane energy
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements_1 = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements_2 = core.find_elements(self, Continuous_Unloader)
         list_of_elements_Crane = list_of_elements_1 + list_of_elements_2
 
         for element in list_of_elements_Crane:
@@ -708,7 +709,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate Quay conveyor energy
-        list_of_elements_quay = self.find_elements(Conveyor_Quay)
+        list_of_elements_quay = core.find_elements(self, Conveyor_Quay)
 
         for element in list_of_elements_quay:
             if year >= element.year_online:
@@ -722,7 +723,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate storage energy
-        list_of_elements_Storage = self.find_elements(Storage)
+        list_of_elements_Storage = core.find_elements(self, Storage)
 
         for element in list_of_elements_Storage:
             if year >= element.year_online:
@@ -737,7 +738,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate hinterland conveyor energy
-        list_of_elements_hinter = self.find_elements(Conveyor_Hinter)
+        list_of_elements_hinter = core.find_elements(self, Conveyor_Hinter)
 
         for element in list_of_elements_hinter:
             if year >= element.year_online:
@@ -753,7 +754,7 @@ class System:
         # calculate hinterland station energy
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
 
-        list_of_elements_Station = self.find_elements(Unloading_station)
+        list_of_elements_Station = core.find_elements(self, Unloading_station)
 
         for element in list_of_elements_Station:
             if year >= element.year_online:
@@ -773,19 +774,19 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize_calls, handymax_calls, panamax_calls)
 
-        berths = len(self.find_elements(Berth))
+        berths = len(core.find_elements(self, Berth))
 
         waiting_factor = \
-            self.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
 
         waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
-        quay_walls = len(self.find_elements(Quay_wall))
+        quay_walls = len(core.find_elements(self, Quay_wall))
 
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (core.find_elements(self, Cyclic_Unloader) + core.find_elements(self, Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity / quay_walls
 
@@ -831,13 +832,13 @@ class System:
         Terminal.revenues is the minimum of 1. and 2.
         """
         # implement a safety factor
-        quay_walls = len(self.find_elements(Quay_wall))
-        crane_cyclic = len(self.find_elements(Cyclic_Unloader))
-        crane_continuous = len(self.find_elements(Continuous_Unloader))
-        conveyor_quay = len(self.find_elements(Conveyor_Quay))
-        storage = len(self.find_elements(Storage))
-        conveyor_hinter = len(self.find_elements(Conveyor_Hinter))
-        station = len(self.find_elements(Unloading_station))
+        quay_walls = len(core.find_elements(self, Quay_wall))
+        crane_cyclic = len(core.find_elements(self, Cyclic_Unloader))
+        crane_continuous = len(core.find_elements(self, Continuous_Unloader))
+        conveyor_quay = len(core.find_elements(self, Conveyor_Quay))
+        storage = len(core.find_elements(self, Storage))
+        conveyor_hinter = len(core.find_elements(self, Conveyor_Hinter))
+        station = len(core.find_elements(self, Unloading_station))
 
         if quay_walls < 1 and conveyor_quay < 1 and (
                 crane_cyclic > 1 or crane_continuous > 1) and storage < 1 and conveyor_hinter < 1 and station < 1:
@@ -847,7 +848,7 @@ class System:
 
         # gather volumes from each commodity, calculate how much revenue it would yield, and add
         revenues = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             fee = commodity.handling_fee
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -863,7 +864,7 @@ class System:
 
         # find the total service rate,
         service_rate = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (core.find_elements(self, Cyclic_Unloader) + core.find_elements(self, Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity * crane_occupancy_online
 
@@ -1021,17 +1022,6 @@ class System:
         return df
 
     # *** General functions
-    def find_elements(self, obj):
-        """return elements of type obj part of self.elements"""
-
-        list_of_elements = []
-        if self.elements != []:
-            for element in self.elements:
-                if isinstance(element, obj):
-                    list_of_elements.append(element)
-
-        return list_of_elements
-
     def calculate_vessel_calls(self, year=2019):
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
 
@@ -1042,7 +1032,7 @@ class System:
         total_vol = 0
 
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
-        commodities = self.find_elements(Commodity)
+        commodities = core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -1054,7 +1044,7 @@ class System:
                 pass
 
         # gather vessels and calculate the number of calls each vessel type needs to make
-        vessels = self.find_elements(Vessel)
+        vessels = core.find_elements(self, Vessel)
         for vessel in vessels:
             if vessel.type == 'Handysize':
                 handysize_calls = int(np.ceil(handysize_vol / vessel.call_size))
@@ -1074,8 +1064,8 @@ class System:
         """
 
         # list all crane objects in system
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements_1 = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements_2 = core.find_elements(self, Continuous_Unloader)
         list_of_elements = list_of_elements_1 + list_of_elements_2
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
@@ -1161,114 +1151,12 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
 
-    def occupancy_to_waitingfactor(self, occupancy=.3, nr_of_servers_chk=4, poly_order=6):
-        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-        # Create dataframe with data from Groenveld (2007) - Table V
-        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        data = np.array([
-            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-            ])
-        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-        target = df.loc[:, nr_of_servers_chk]
-        p_p = np.polyfit(target.index, target.values, poly_order)
-
-        waiting_factor = np.polyval(p_p, occupancy)
-        #todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
-
-        # Return waiting factor
-        return waiting_factor
-
-    def waitingfactor_to_occupancy(self, factor=.3, nr_of_servers_chk=4, poly_order=6):
-        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-        # Create dataframe with data from Groenveld (2007) - Table V
-        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        data = np.array([
-            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-        ])
-        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-        target = df.loc[:, nr_of_servers_chk]
-        p_p = np.polyfit(target.values, target.index, poly_order)
-        print(p_p)
-
-        occupancy = np.polyval(p_p, factor)
-
-        # Return occupancy
-        return occupancy
-
-    # def waiting_time(self, year):
-    #     """
-    #    - Import the berth occupancy of every year
-    #    - Find the factor for the waiting time with the E2/E/n queueing theory using 4th order polynomial regression
-    #    - Waiting time is the factor times the crane occupancy
-    #    """
-    #
-    #     handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-    #     berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-    #         year, handysize_calls, handymax_calls, panamax_calls)
-    #
-    #     # find the different factors which are linked to the number of berths
-    #     berths = len(self.find_elements(Berth))
-    #
-    #     if berths == 1:
-    #         factor = max(0,
-    #                      79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
-    #     elif berths == 2:
-    #         factor = max(0,
-    #                      29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
-    #     elif berths == 3:
-    #         factor = max(0,
-    #                      19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
-    #     elif berths == 4:
-    #         factor = max(0,
-    #                      17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
-    #     elif berths == 5:
-    #         factor = max(0,
-    #                      11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
-    #     elif berths == 6:
-    #         factor = max(0,
-    #                      10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
-    #     elif berths == 7:
-    #         factor = max(0,
-    #                      8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
-    #     else:
-    #         # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
-    #         factor = float("inf")
-    #
-    #     waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
-    #     waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
-    #
-    #     return factor, waiting_time_occupancy
-
     def calculate_station_occupancy(self, year):
         """The station occupancy is calculated based on the service rate for the throughput of the online quay unloaders
         (effective capacity * occupancy). The unloading station should at least be able to handle the throughput by the
         online quay unloaders at a level that the station occupancy planned remains below the target occupancy level."""
 
-        list_of_elements = self.find_elements(Unloading_station)
+        list_of_elements = core.find_elements(self, Unloading_station)
 
         # find the total service rate and determine the time at station
         service_rate_planned = 0
@@ -1286,7 +1174,7 @@ class System:
 
             # find the service rate for the throughput of the online quay unloaders (effective capacity * occupancy)
             service_rate_throughput = 0
-            for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+            for element in (core.find_elements(self, Cyclic_Unloader) + core.find_elements(self, Continuous_Unloader)):
                 if year >= element.year_online:
                     service_rate_throughput += element.effective_capacity * crane_occupancy_online
 
@@ -1312,13 +1200,13 @@ class System:
         return station_occupancy_planned, station_occupancy_online
 
     def check_crane_slot_available(self):
-        list_of_elements = self.find_elements(Berth)
+        list_of_elements = core.find_elements(self, Berth)
         slots = 0
         for element in list_of_elements:
             slots += element.max_cranes
 
-        list_of_elements_1 = self.find_elements(Cyclic_Unloader)
-        list_of_elements_2 = self.find_elements(Continuous_Unloader)
+        list_of_elements_1 = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements_2 = core.find_elements(self, Continuous_Unloader)
         list_of_elements = list_of_elements_1 + list_of_elements_2
 
         # when there are more slots than installed cranes ...
@@ -1326,24 +1214,6 @@ class System:
             return True
         else:
             return False
-
-    def report_element(self, Element, year):
-        elements = 0
-        elements_online = 0
-        element_name = []
-        list_of_elements = self.find_elements(Element)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                element_name = element.name
-                elements += 1
-                if year >= element.year_online:
-                    elements_online += 1
-
-        if self.debug:
-            if elements_online or elements:
-                print('     a total of {} {} is online; a total of {} is still pending'.format(elements_online, element_name, elements - elements_online))
-
-        return elements_online, elements
 
     def train_call(self, year):
         """Calculation of the train calls per year, this is calculated from:
@@ -1360,7 +1230,7 @@ class System:
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
         service_rate_throughput_online = 0
-        for element in (self.find_elements(Cyclic_Unloader) + self.find_elements(Continuous_Unloader)):
+        for element in (core.find_elements(self, Cyclic_Unloader) + core.find_elements(self, Continuous_Unloader)):
             if year >= element.year_online:
                 service_rate_throughput_online += element.effective_capacity * crane_occupancy_online
 
@@ -1441,7 +1311,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1498,67 +1368,6 @@ class System:
                    fancybox=True, shadow=True, ncol=4)
         fig.subplots_adjust(bottom=0.18)
 
-    def cashflow_plot(self, cash_flows, title='Cash flow plot', width=0.3, alpha=0.6, fontsize=20):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
-        revenue = self.revenues
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values + cash_flows['demurrage'].values
-
-        # sum cash flows to get profits as a function of year
-        profits = []
-        for year in years:
-            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
-                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-
-        # cumulatively sum profits to get profits_cum
-        profits_cum = [None] * len(profits)
-        for index, value in enumerate(profits):
-            if index == 0:
-                profits_cum[index] = profits[index]
-            else:
-                profits_cum[index] = profits_cum[index - 1] + profits[index]
-
-        # generate plot canvas
-        fig, ax1 = plt.subplots(figsize=(20, 12))
-
-        colors = ['mediumseagreen', 'firebrick', 'steelblue']
-
-        # print capex, opex and revenue
-        ax1.bar([x for x in years],          -capex, zorder=1, width=width, alpha=alpha, label="capex", color=colors[1], edgecolor='darkgrey')
-        ax1.bar([x - width for x in years],   -opex, zorder=1, width=width, alpha=alpha, label="opex", color=colors[0], edgecolor='darkgrey')
-        ax1.bar([x + width for x in years], revenue, zorder=1, width=width, alpha=alpha, label="revenue", color=colors[2], edgecolor='darkgrey')
-
-        # print profits (annual and cumulative)
-        ax1.step(years, profits, zorder=2, label='profits', where='mid')
-        ax1.step(years, profits_cum, zorder=2, label='profits_cum', where='mid')
-
-        # title and labels
-        ax1.set_title(title, fontsize=fontsize)
-        ax1.set_xlabel('Years', fontsize=fontsize)
-        ax1.set_ylabel('Cashflow [000 M $]', fontsize=fontsize)
-
-        # ticks and tick labels
-        ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
-        ax1.yaxis.set_tick_params(labelsize=fontsize)
-
-        # add grid
-        ax1.grid(zorder=0, which='major', axis='both')
-
-        # print legend
-        fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
-                   fancybox=True, shadow=True, ncol=5)
-        fig.subplots_adjust(bottom=0.15)
-
     def terminal_capacity_plot(self, width=0.25, alpha=0.6, fontsize=20):
         """Gather data from Terminal and plot which elements come online when"""
 
@@ -1597,7 +1406,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
