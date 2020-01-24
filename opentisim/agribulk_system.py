@@ -995,7 +995,7 @@ class System:
         return WACC_real
 
     def NPV(self):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
+        """Gather data from Terminal elements and combine into a cash flow overview"""
 
         # add cash flow information for each of the Terminal elements
         cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
@@ -1010,10 +1010,14 @@ class System:
                cash_flows_WACC_real['demurrage'].values + \
                cash_flows_WACC_real['labour'].values
 
-        PV = - capex - opex + revenue
-        print('PV: {}'.format(PV))
+        # collect all results in a pandas dataframe
+        df = pd.DataFrame(index=years, data=-capex, columns=['CAPEX'])
+        df['OPEX'] = -opex
+        df['REVENUE'] = revenue
+        df['PV'] = - capex - opex + revenue
+        df['cum-PV'] = np.cumsum(- capex - opex + revenue)
 
-        print('NPV: {}'.format(np.sum(PV)))
+        return df
 
     # *** General functions
     def find_elements(self, obj):
@@ -1479,9 +1483,9 @@ class System:
         ax1.set_ylabel('Terminal elements on line [nr]', fontsize=fontsize)
         ax2.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
 
-        # ticks and tick lables
+        # ticks and tick labels
         ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels([int(x) for x in years], fontsize=fontsize)
+        ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
         max_elements = max([max(berths), max(quays), max(cranes),
                             max(conveyors_quay), max(storages),
                             max(conveyors_hinterland), max(conveyors_hinterland)])
@@ -1491,9 +1495,70 @@ class System:
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
                    fancybox=True, shadow=True, ncol=4)
+        fig.subplots_adjust(bottom=0.18)
+
+    def cashflow_plot(self, cash_flows, title='Cash flow plot', width=0.3, alpha=0.6, fontsize=20):
+        """Gather data from Terminal elements and combine into a cash flow plot"""
+
+        # prepare years, revenue, capex and opex for plotting
+        years = cash_flows['year'].values
+        revenue = self.revenues
+        capex = cash_flows['capex'].values
+        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
+               cash_flows['labour'].values + cash_flows['demurrage'].values
+
+        # sum cash flows to get profits as a function of year
+        profits = []
+        for year in years:
+            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
+                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
+                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+
+        # cumulatively sum profits to get profits_cum
+        profits_cum = [None] * len(profits)
+        for index, value in enumerate(profits):
+            if index == 0:
+                profits_cum[index] = profits[index]
+            else:
+                profits_cum[index] = profits_cum[index - 1] + profits[index]
+
+        # generate plot canvas
+        fig, ax1 = plt.subplots(figsize=(20, 12))
+
+        colors = ['mediumseagreen', 'firebrick', 'steelblue']
+
+        # print capex, opex and revenue
+        ax1.bar([x for x in years],          -capex, zorder=1, width=width, alpha=alpha, label="capex", color=colors[1], edgecolor='darkgrey')
+        ax1.bar([x - width for x in years],   -opex, zorder=1, width=width, alpha=alpha, label="opex", color=colors[0], edgecolor='darkgrey')
+        ax1.bar([x + width for x in years], revenue, zorder=1, width=width, alpha=alpha, label="revenue", color=colors[2], edgecolor='darkgrey')
+
+        # print profits (annual and cumulative)
+        ax1.step(years, profits, zorder=2, label='profits', where='mid')
+        ax1.step(years, profits_cum, zorder=2, label='profits_cum', where='mid')
+
+        # title and labels
+        ax1.set_title(title, fontsize=fontsize)
+        ax1.set_xlabel('Years', fontsize=fontsize)
+        ax1.set_ylabel('Cashflow [000 M $]', fontsize=fontsize)
+
+        # ticks and tick labels
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
+        ax1.yaxis.set_tick_params(labelsize=fontsize)
+
+        # add grid
+        ax1.grid(zorder=0, which='major', axis='both')
+
+        # print legend
+        fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=5)
         fig.subplots_adjust(bottom=0.15)
 
-    def terminal_capacity_plot(self, width=0.25, alpha=0.6, fontsize=15):
+    def terminal_capacity_plot(self, width=0.25, alpha=0.6, fontsize=20):
         """Gather data from Terminal and plot which elements come online when"""
 
         # get crane service capacity and storage capacity
@@ -1546,71 +1611,17 @@ class System:
                color='red')
         ax.step(years, demand['demand'].values, label="demand", where='mid')
 
+        # title and labels
+        ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']), fontsize=fontsize)
         ax.set_xlabel('Years', fontsize=fontsize)
         ax.set_ylabel('Throughput capacity [tons/year]', fontsize=fontsize)
-        ax.set_title('Terminal capacity online ({})'.format(self.crane_type_defaults['crane_type']), fontsize=fontsize)
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels([int(x) for x in years], fontsize=fontsize)
-        ax.yaxis.set_tick_params(labelsize=fontsize)
-        ax.legend(fontsize=fontsize)
-
-    def cashflow_plot(self, cash_flows, title='Cash flow plot', width=0.3, alpha=0.6, fontsize=20):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
-        revenue = self.revenues
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values + cash_flows['demurrage'].values
-
-        # sum cash flows to get profits as a function of year
-        profits = []
-        for year in years:
-            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
-                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-
-        # cumulatively sum profits to get profits_cum
-        profits_cum = [None] * len(profits)
-        for index, value in enumerate(profits):
-            if index == 0:
-                profits_cum[index] = profits[index]
-            else:
-                profits_cum[index] = profits_cum[index - 1] + profits[index]
-
-        # generate plot canvas
-        fig, ax1 = plt.subplots(figsize=(20, 12))
-
-        colors = ['mediumseagreen', 'firebrick', 'steelblue']
-
-        # print capex, opex and revenue
-        ax1.bar([x for x in years],          -capex, zorder=1, width=width, alpha=alpha, label="capex", color=colors[1], edgecolor='darkgrey')
-        ax1.bar([x - width for x in years],   -opex, zorder=1, width=width, alpha=alpha, label="opex", color=colors[0], edgecolor='darkgrey')
-        ax1.bar([x + width for x in years], revenue, zorder=1, width=width, alpha=alpha, label="revenue", color=colors[2], edgecolor='darkgrey')
-
-        # print profits (annual and cumulative)
-        ax1.step(years, profits, zorder=2, label='profits', where='mid')
-        ax1.step(years, profits_cum, zorder=2, label='profits_cum', where='mid')
-
-        # title and labels
-        ax1.set_title(title, fontsize=fontsize)
-        ax1.set_xlabel('Years', fontsize=fontsize)
-        ax1.set_ylabel('Cashflow [000 M $]', fontsize=fontsize)
 
         # ticks and tick labels
-        ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels([int(x) for x in years], fontsize=fontsize)
-        ax1.yaxis.set_tick_params(labelsize=fontsize)
-
-        # add grid
-        ax1.grid(zorder=0, which='major', axis='both')
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
+        ax.yaxis.set_tick_params(labelsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
-                   fancybox=True, shadow=True, ncol=5)
-        fig.subplots_adjust(bottom=0.15)
+                   fancybox=True, shadow=True, ncol=4)
+        fig.subplots_adjust(bottom=0.18)
