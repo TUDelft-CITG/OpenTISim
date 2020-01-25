@@ -673,60 +673,66 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
     def calculate_demurrage_cost(self, year):
-
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls,     largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
-        factor, waiting_time_occupancy = self.waiting_time(year)
+        berths = len(core.find_elements(self, Berth))
+
+        waiting_factor = \
+            core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+
+        waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
+        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         # Find the demurrage cost per type of vessel
         # if service_rate != 0:
         smallhydrogen = Vessel(**hydrogen_defaults.smallhydrogen_data)
         service_time_smallhydrogen = smallhydrogen.call_size / smallhydrogen.pump_capacity
-        waiting_time_hours_smallhydrogen = factor * service_time_smallhydrogen
+        waiting_time_hours_smallhydrogen = waiting_factor * service_time_smallhydrogen
         penalty_time_smallhydrogen = max(0, waiting_time_hours_smallhydrogen - smallhydrogen.all_turn_time)
         demurrage_time_smallhydrogen = penalty_time_smallhydrogen * smallhydrogen_calls
         demurrage_cost_smallhydrogen = demurrage_time_smallhydrogen * smallhydrogen.demurrage_rate
 
         largehydrogen = Vessel(**hydrogen_defaults.largehydrogen_data)
         service_time_largehydrogen = largehydrogen.call_size / largehydrogen.pump_capacity
-        waiting_time_hours_largehydrogen = factor * service_time_largehydrogen
+        waiting_time_hours_largehydrogen = waiting_factor * service_time_largehydrogen
         penalty_time_largehydrogen = max(0, waiting_time_hours_largehydrogen - largehydrogen.all_turn_time)
         demurrage_time_largehydrogen = penalty_time_largehydrogen * largehydrogen_calls
         demurrage_cost_largehydrogen = demurrage_time_largehydrogen * largehydrogen.demurrage_rate
 
         smallammonia = Vessel(**hydrogen_defaults.smallammonia_data)
         service_time_smallammonia = smallammonia.call_size / smallammonia.pump_capacity
-        waiting_time_hours_smallammonia = factor * service_time_smallammonia
+        waiting_time_hours_smallammonia = waiting_factor * service_time_smallammonia
         penalty_time_smallammonia = max(0, waiting_time_hours_smallammonia - smallammonia.all_turn_time)
         demurrage_time_smallammonia = penalty_time_smallammonia * smallammonia_calls
         demurrage_cost_smallammonia = demurrage_time_smallammonia * smallammonia.demurrage_rate
 
         largeammonia = Vessel(**hydrogen_defaults.largeammonia_data)
         service_time_largeammonia = largeammonia.call_size / largeammonia.pump_capacity
-        waiting_time_hours_largeammonia = factor * service_time_largeammonia
+        waiting_time_hours_largeammonia = waiting_factor * service_time_largeammonia
         penalty_time_largeammonia = max(0, waiting_time_hours_largeammonia - largeammonia.all_turn_time)
         demurrage_time_largeammonia = penalty_time_largeammonia * largeammonia_calls
         demurrage_cost_largeammonia = demurrage_time_largeammonia * largeammonia.demurrage_rate
 
         handysize = Vessel(**hydrogen_defaults.handysize_data)
         service_time_handysize = handysize.call_size / handysize.pump_capacity
-        waiting_time_hours_handysize = factor * service_time_handysize
+        waiting_time_hours_handysize = waiting_factor * service_time_handysize
         penalty_time_handysize = max(0, waiting_time_hours_handysize - handysize.all_turn_time)
         demurrage_time_handysize = penalty_time_handysize * handysize_calls
         demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
 
         panamax = Vessel(**hydrogen_defaults.panamax_data)
         service_time_panamax = panamax.call_size / panamax.pump_capacity
-        waiting_time_hours_panamax = factor * service_time_panamax
+        waiting_time_hours_panamax = waiting_factor * service_time_panamax
         penalty_time_panamax = max(0, waiting_time_hours_panamax - panamax.all_turn_time)
         demurrage_time_panamax = penalty_time_panamax * panamax_calls
         demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
         vlcc = Vessel(**hydrogen_defaults.vlcc_data)
         service_time_vlcc = vlcc.call_size / vlcc.pump_capacity
-        waiting_time_hours_vlcc = factor * service_time_vlcc
+        waiting_time_hours_vlcc = waiting_factor * service_time_vlcc
         penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
         demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
         demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
@@ -1152,64 +1158,6 @@ class System:
             unloading_occupancy_online = float("inf")
 
         return berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online
-
-    def occupancy_to_waitingfactor(self, occupancy=.3, nr_of_servers_chk=4, poly_order=6):
-        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-        # Create dataframe with data from Groenveld (2007) - Table V
-        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        data = np.array([
-            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-            ])
-        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-        target = df.loc[:, nr_of_servers_chk]
-        p_p = np.polyfit(target.index, target.values, poly_order)
-
-        waiting_factor = np.polyval(p_p, occupancy)
-        #todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
-
-        # Return waiting factor
-        return waiting_factor
-
-    def waitingfactor_to_occupancy(self, factor=.3, nr_of_servers_chk=4, poly_order=6):
-        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-        # Create dataframe with data from Groenveld (2007) - Table V
-        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        data = np.array([
-            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-        ])
-        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-        target = df.loc[:, nr_of_servers_chk]
-        p_p = np.polyfit(target.values, target.index, poly_order)
-        print(p_p)
-
-        occupancy = np.polyval(p_p, factor)
-
-        # Return occupancy
-        return occupancy
 
     def waiting_time(self, year):
         """
