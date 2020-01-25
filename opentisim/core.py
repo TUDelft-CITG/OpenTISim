@@ -35,66 +35,6 @@ def find_elements(Terminal, obj):
     return list_of_elements
 
 
-def occupancy_to_waitingfactor(occupancy=.3, nr_of_servers_chk=4, poly_order=6):
-    """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-    # Create dataframe with data from Groenveld (2007) - Table V
-    utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-    nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    data = np.array([
-        [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-        [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-        [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-        [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-        [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-        [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-        [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-        [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-        [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-    ])
-    df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-    # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-    target = df.loc[:, nr_of_servers_chk]
-    p_p = np.polyfit(target.index, target.values, poly_order)
-
-    waiting_factor = np.polyval(p_p, occupancy)
-    # todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
-
-    # Return waiting factor
-    return waiting_factor
-
-
-def waitingfactor_to_occupancy(factor=.3, nr_of_servers_chk=4, poly_order=6):
-    """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-    # Create dataframe with data from Groenveld (2007) - Table V
-    utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-    nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    data = np.array([
-        [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-        [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-        [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-        [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-        [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-        [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-        [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-        [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-        [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-    ])
-    df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-    # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-    target = df.loc[:, nr_of_servers_chk]
-    p_p = np.polyfit(target.values, target.index, poly_order)
-    print(p_p)
-
-    occupancy = np.polyval(p_p, factor)
-
-    # Return occupancy
-    return occupancy
-
-
 def add_cashflow_data_to_element(Terminal, element):
     """Place cashflow data in element dataframe
     Elements that take two years to build are assign 60% to year one and 40% to year two."""
@@ -184,6 +124,32 @@ def add_cashflow_elements(Terminal, labour):
     return cash_flows, cash_flows_WACC_real
 
 
+def NPV(Terminal, labour):
+    """Gather data from Terminal elements and combine into a cash flow overview"""
+
+    # add cash flow information for each of the Terminal elements
+    cash_flows, cash_flows_WACC_real = add_cashflow_elements(Terminal, labour)
+
+    # prepare years, revenue, capex and opex for plotting
+    years = cash_flows_WACC_real['year'].values
+    revenue = Terminal.revenues
+    capex = cash_flows_WACC_real['capex'].values
+    opex = cash_flows_WACC_real['insurance'].values + \
+           cash_flows_WACC_real['maintenance'].values + \
+           cash_flows_WACC_real['energy'].values + \
+           cash_flows_WACC_real['demurrage'].values + \
+           cash_flows_WACC_real['labour'].values
+
+    # collect all results in a pandas dataframe
+    df = pd.DataFrame(index=years, data=-capex, columns=['CAPEX'])
+    df['OPEX'] = -opex
+    df['REVENUE'] = revenue
+    df['PV'] = - capex - opex + revenue
+    df['cum-PV'] = np.cumsum(- capex - opex + revenue)
+
+    return df
+
+
 def WACC_nominal(Gearing=60, Re=.10, Rd=.30, Tc=.28):
     """Nominal cash flow is the true dollar amount of future revenues the company expects
     to receive and expenses it expects to pay out, including inflation.
@@ -212,27 +178,104 @@ def WACC_real(inflation=0.02):  # old: interest=0.0604
     return WACC_real
 
 
-def NPV(Terminal, labour):
-    """Gather data from Terminal elements and combine into a cash flow overview"""
+def occupancy_to_waitingfactor(occupancy=.3, nr_of_servers_chk=4, poly_order=6):
+    """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
 
-    # add cash flow information for each of the Terminal elements
-    cash_flows, cash_flows_WACC_real = add_cashflow_elements(Terminal, labour)
+    # Create dataframe with data from Groenveld (2007) - Table V
+    utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+    nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    data = np.array([
+        [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+        [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+        [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+        [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+        [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+        [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+        [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+        [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+        [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+    ])
+    df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
 
-    # prepare years, revenue, capex and opex for plotting
-    years = cash_flows_WACC_real['year'].values
-    revenue = Terminal.revenues
-    capex = cash_flows_WACC_real['capex'].values
-    opex = cash_flows_WACC_real['insurance'].values + \
-           cash_flows_WACC_real['maintenance'].values + \
-           cash_flows_WACC_real['energy'].values + \
-           cash_flows_WACC_real['demurrage'].values + \
-           cash_flows_WACC_real['labour'].values
+    # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+    target = df.loc[:, nr_of_servers_chk]
+    p_p = np.polyfit(target.index, target.values, poly_order)
 
-    # collect all results in a pandas dataframe
-    df = pd.DataFrame(index=years, data=-capex, columns=['CAPEX'])
-    df['OPEX'] = -opex
-    df['REVENUE'] = revenue
-    df['PV'] = - capex - opex + revenue
-    df['cum-PV'] = np.cumsum(- capex - opex + revenue)
+    waiting_factor = np.polyval(p_p, occupancy)
+    # todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
 
-    return df
+    # Return waiting factor
+    return waiting_factor
+
+
+def waitingfactor_to_occupancy(factor=.3, nr_of_servers_chk=4, poly_order=6):
+    """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
+
+    # Create dataframe with data from Groenveld (2007) - Table V
+    utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+    nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    data = np.array([
+        [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+        [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+        [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+        [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+        [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+        [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+        [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+        [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+        [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+    ])
+    df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
+
+    # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+    target = df.loc[:, nr_of_servers_chk]
+    p_p = np.polyfit(target.values, target.index, poly_order)
+    print(p_p)
+
+    occupancy = np.polyval(p_p, factor)
+
+    # Return occupancy
+    return occupancy
+
+# def waiting_time(self, year):
+#     """
+#    - Import the berth occupancy of every year
+#    - Find the factor for the waiting time with the E2/E/n quing theory using 4th order polynomial regression
+#    - Waiting time is the factor times the crane occupancy
+#    """
+#
+#     smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
+#     berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls,     largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+#
+#     #find the different factors which are linked to the number of berths
+#     berths = len(core.find_elements(self, Berth))
+#
+#     if berths == 1:
+#         factor = max(0,
+#                      79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
+#     elif berths == 2:
+#         factor = max(0,
+#                      29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
+#     elif berths == 3:
+#         factor = max(0,
+#                      19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
+#     elif berths == 4:
+#         factor = max(0,
+#                      17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
+#     elif berths == 5:
+#         factor = max(0,
+#                      11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
+#     elif berths == 6:
+#         factor = max(0,
+#                      10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
+#     elif berths == 7:
+#         factor = max(0,
+#                      8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
+#     else:
+#         # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
+#         factor = float("inf")
+#
+#     waiting_time_hours = factor * unloading_occupancy_online * self.operational_hours / total_calls
+#     waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+#
+#     return factor, waiting_time_occupancy

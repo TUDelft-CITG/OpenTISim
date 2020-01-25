@@ -861,11 +861,7 @@ class System:
                largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, \
                total_calls_planned, total_vol_planned
 
-    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls,
-                                  smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls,
-                                  vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
-                                  smallammonia_calls_planned, largeammonia_calls_planned,
-                                  handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
+    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
         """- Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
         - Occupancy is total_time_at_berth divided by operational hours
@@ -982,49 +978,6 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online
 
-    def waiting_time(self, year):
-        """
-       - Import the berth occupancy of every year
-       - Find the factor for the waiting time with the E2/E/n quing theory using 4th order polynomial regression
-       - Waiting time is the factor times the crane occupancy
-       """
-
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls,     largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
-
-        #find the different factors which are linked to the number of berths
-        berths = len(core.find_elements(self, Berth))
-
-        if berths == 1:
-            factor = max(0,
-                         79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
-        elif berths == 2:
-            factor = max(0,
-                         29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
-        elif berths == 3:
-            factor = max(0,
-                         19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
-        elif berths == 4:
-            factor = max(0,
-                         17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
-        elif berths == 5:
-            factor = max(0,
-                         11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
-        elif berths == 6:
-            factor = max(0,
-                         10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
-        elif berths == 7:
-            factor = max(0,
-                         8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
-        else:
-            # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
-            factor = float("inf")
-
-        waiting_time_hours = factor * unloading_occupancy_online * self.operational_hours / total_calls
-        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
-
-        return factor, waiting_time_occupancy
-
     def calculate_h2retrieval_occupancy(self, year, hydrogen_defaults_h2retrieval_data):
         """
         - Divide the throughput by the service rate to get the total hours in a year
@@ -1074,7 +1027,7 @@ class System:
 
         return plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online
 
-    def throughput_elements(self,year):
+    def throughput_elements(self, year):
         """
         - Find which elements are important and needs to be included
         - Find from each element the online capacity
