@@ -358,4 +358,4 @@ class hasscenario_properties_mixin(object):
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
                    fancybox=True, shadow=True, ncol=5, fontsize=fontsize)
-        fig.subplots_adjust(bottom=0.15)
+        fig.subplots_adjust(bottom=0.18)

@@ -190,7 +190,18 @@ class System:
             smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
             vlcc_calls_planned)
 
-        factor, waiting_time_occupancy = self.waiting_time(year)
+        berths = len(core.find_elements(self, Berth))
+        if berths != 0:
+            waiting_factor = \
+                core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
+            waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+        else:
+            waiting_factor = np.inf
+            waiting_time_hours = np.inf
+            waiting_time_occupancy = np.inf
+
+        # factor, waiting_time_occupancy = self.waiting_time(year)
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
 
         if self.debug:
@@ -199,7 +210,7 @@ class System:
             print('     Unloading occupancy online (@ start of year): {:.2f}'.format(unloading_occupancy_online))
             print('     Unloading occupancy planned (@ start of year): {:.2f}'.format(unloading_occupancy_planned))
             print('     waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
-            print('     waiting time factor (@ start of year): {:.2f}'.format(factor))
+            print('     waiting time factor (@ start of year): {:.2f}'.format(waiting_factor))
             print('     throughput online {:.2f}'.format(throughput_online))
             print('     throughput planned {:.2f}'.format(throughput_planned))
 
@@ -224,7 +235,7 @@ class System:
             berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = \
                 self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,  handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,  largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,   handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
             if self.debug:
-                print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
+                print('     Berth occupancy planned (after adding berth): {:.2f}'.format(berth_occupancy_planned))
                 # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a berth if a jetty is needed
@@ -471,8 +482,8 @@ class System:
         plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
 
         if self.debug:
-            print('     Plant occupancy planned (@ start of year): {}'.format(plant_occupancy_planned))
-            print('     Plant occupancy online (@ start of year): {}'.format(plant_occupancy_online))
+            print('     Plant occupancy planned (@ start of year): {:.2f}'.format(plant_occupancy_planned))
+            print('     Plant occupancy online (@ start of year): {:.2f}'.format(plant_occupancy_online))
 
         # check if sufficient h2retrieval capacity is available
         while plant_occupancy_planned > self.h2retrieval_trigger:
@@ -1135,7 +1146,7 @@ class System:
             return False
 
     # *** Plotting functions
-    def terminal_elements_plot(self, width=0.1, alpha=0.6):
+    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -1235,15 +1246,27 @@ class System:
         # ax1.text(0.55, 0.60, 'phase 2', transform=ax1.transAxes, fontsize=18, bbox=props)
         # ax1.text(0.82, 0.60, 'phase 3', transform=ax1.transAxes, fontsize=18, bbox=props)
 
-        matplotlib.rc('xtick', labelsize=18)
-        matplotlib.rc('ytick', labelsize=18)
-        ax1.set_xlabel('Years', fontsize=18)
-        ax1.set_ylabel('Elements on line [nr]', fontsize=18)
-        ax2.set_ylabel('Demand/throughput[t/y]', fontsize=18)
-        ax1.set_title('Terminal elements online')
+        # title and labels
+        ax1.set_title('Terminal elements online', fontsize=fontsize)
+        ax1.set_xlabel('Years', fontsize=fontsize)
+        ax1.set_ylabel('Elements on line [nr]', fontsize=fontsize)
+        ax2.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
+
+        # ticks and tick labels
         ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels(years)
-        fig.legend(loc = 'upper right')
+        ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
+        max_elements = max([max(berths), max(jettys), max(pipelines_jetty),
+                            max(storages), max(h2retrievals),
+                            max(pipelines_hinterland)])
+
+        ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
+        ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
+
+        # print legend
+        fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=4, fontsize=fontsize)
+        fig.subplots_adjust(bottom=0.2)
+
 
     def demand_terminal_plot(self, width=0.1, alpha=0.6):
         # Adding the throughput
@@ -1352,7 +1375,8 @@ class System:
                 smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
                 vlcc_calls_planned)
 
-            factor, waiting_time_occupancy = self.waiting_time(year)
+            factor = \
+                core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
 
             for element in self.elements:
                 if isinstance(element, Berth):

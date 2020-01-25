@@ -1226,7 +1226,7 @@ class System:
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
-                   fancybox=True, shadow=True, ncol=4)
+                   fancybox=True, shadow=True, ncol=5, fontsize=fontsize)
         fig.subplots_adjust(bottom=0.18)
 
     def terminal_capacity_plot(self, width=0.25, alpha=0.6, fontsize=20):

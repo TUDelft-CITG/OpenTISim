@@ -7,7 +7,7 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha
 
     # prepare years, revenue, capex and opex for plotting
     years = cash_flows['year'].values
-    revenue = Terminal.revenues
+    revenues = cash_flows['revenues'].values
     capex = cash_flows['capex'].values
     opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
            cash_flows['labour'].values + cash_flows['demurrage'].values
@@ -21,7 +21,7 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha
                        cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
                        cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
                        cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
-                       revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
+                       cash_flows.loc[cash_flows['year'] == year]['revenues'].item())
 
     # cumulatively sum profits to get profits_cum
     profits_cum = [None] * len(profits)
@@ -41,7 +41,7 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha
             edgecolor='darkgrey')
     ax1.bar([x - width for x in years], -opex, zorder=1, width=width, alpha=alpha, label="opex", color=colors[0],
             edgecolor='darkgrey')
-    ax1.bar([x + width for x in years], revenue, zorder=1, width=width, alpha=alpha, label="revenue", color=colors[2],
+    ax1.bar([x + width for x in years], revenues, zorder=1, width=width, alpha=alpha, label="revenue", color=colors[2],
             edgecolor='darkgrey')
 
     # print profits (annual and cumulative)
@@ -51,7 +51,8 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha
     # title and labels
     ax1.set_title(title, fontsize=fontsize)
     ax1.set_xlabel('Years', fontsize=fontsize)
-    ax1.set_ylabel('Cashflow [000 M $]', fontsize=fontsize)
+    ax1.set_ylabel('Cashflow [M $]', fontsize=fontsize)
+    # todo: check the units
 
     # ticks and tick labels
     ax1.set_xticks([x for x in years])

@@ -94,19 +94,21 @@ def add_cashflow_elements(Terminal, labour):
     cash_flows['energy'] = 0
     cash_flows['labour'] = 0
     cash_flows['demurrage'] = Terminal.demurrage
-    cash_flows['revenues'] = Terminal.revenues
+    try:
+       cash_flows['revenues'] = Terminal.revenues
+    except:
+       cash_flows['revenues'] = 0
 
     # add labour component for years were revenues are not zero
     cash_flows.loc[cash_flows[
                        'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+    # todo: check the labour costs of the container terminals (they are not included now)
 
     for element in Terminal.elements:
         if hasattr(element, 'df'):
             for column in cash_flows.columns:
                 if column in element.df.columns and column != "year":
                     cash_flows[column] += element.df[column]
-
-    cash_flows.fillna(0)
 
     # calculate WACC real cashflows
     cash_flows_WACC_real = pd.DataFrame()
@@ -121,6 +123,9 @@ def add_cashflow_elements(Terminal, labour):
                             (1 + WACC_real()) ** (
                             year - Terminal.startyear))
 
+    cash_flows = cash_flows.fillna(0)
+    cash_flows_WACC_real = cash_flows_WACC_real.fillna(0)
+
     return cash_flows, cash_flows_WACC_real
 
 
@@ -132,7 +137,7 @@ def NPV(Terminal, labour):
 
     # prepare years, revenue, capex and opex for plotting
     years = cash_flows_WACC_real['year'].values
-    revenue = Terminal.revenues
+    revenues = cash_flows_WACC_real['revenues'].values
     capex = cash_flows_WACC_real['capex'].values
     opex = cash_flows_WACC_real['insurance'].values + \
            cash_flows_WACC_real['maintenance'].values + \
@@ -143,9 +148,9 @@ def NPV(Terminal, labour):
     # collect all results in a pandas dataframe
     df = pd.DataFrame(index=years, data=-capex, columns=['CAPEX'])
     df['OPEX'] = -opex
-    df['REVENUE'] = revenue
-    df['PV'] = - capex - opex + revenue
-    df['cum-PV'] = np.cumsum(- capex - opex + revenue)
+    df['REVENUES'] = revenues
+    df['PV'] = - capex - opex + revenues
+    df['cum-PV'] = np.cumsum(- capex - opex + revenues)
 
     return df
 

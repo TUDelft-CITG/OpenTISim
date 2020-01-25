@@ -2,10 +2,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 
 # opentisim package
 from opentisim.container_objects import *
 from opentisim import container_defaults
+from opentisim import core
+
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for agribulk terminals.
@@ -16,8 +19,8 @@ class System:
                  operational_hours=7500, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data,
                  allowable_berth_occupancy=0.6,
-                 laden_perc=0.80 , reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.69,
-                 energy_price = 0.17, fuel_price = 1, land_price = 0):
+                 laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.69,
+                 energy_price=0.17, fuel_price=1, land_price=0):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -88,11 +91,6 @@ class System:
 
         """
 
-        # # 1. for each year evaluate the demand of each commodity
-        # for year in range(self.startyear, self.startyear + self.lifecycle):
-        #     self.calculate_demand_commodity(year)
-
-        # 2. for each year evaluate the various investment decisions
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
             The simulate method is designed according to the following overall objectives for the terminal:
@@ -173,7 +171,7 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_demurrage_cost(year)
 
-        # # 5.  for each year calculate terminal revenues
+        # 5.  for each year calculate terminal revenues
         # self.revenues = []
         # for year in range(self.startyear, self.startyear + self.lifecycle):
         #     self.calculate_revenue(year)
@@ -229,21 +227,21 @@ class System:
             print('')
             print('--- Status terminal @ start of year ----------------')
 
-        self.report_element(Berth, year)
-        self.report_element(Quay_wall, year)
-        self.report_element(Cyclic_Unloader, year)
+        core.report_element(self, Berth, year)
+        core.report_element(self, Quay_wall, year)
+        core.report_element(self, Cyclic_Unloader, year)
 
         # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
             year, handysize, handymax, panamax)
         factor, waiting_time_occupancy = self.waiting_time(year)
         if self.debug:
-            print('     Berth occupancy planned (@ start of year): {}'.format(berth_occupancy_planned))
-            print('     Berth occupancy online (@ start of year): {}'.format(berth_occupancy_online))
-            print('     Crane occupancy planned (@ start of year): {}'.format(crane_occupancy_planned))
-            print('     Crane occupancy online (@ start of year): {}'.format(crane_occupancy_online))
-            print('     waiting time factor (@ start of year): {}'.format(factor))
-            print('     waiting time occupancy (@ start of year): {}'.format(waiting_time_occupancy))
+            print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+            print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
+            print('     Crane occupancy planned (@ start of year): {:.2f}'.format(crane_occupancy_planned))
+            print('     Crane occupancy online (@ start of year): {:.2f}'.format(crane_occupancy_online))
+            print('     waiting time factor (@ start of year): {:.2f}'.format(factor))
+            print('     waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
 
             print('')
             print('--- Start investment analysis ----------------------')
@@ -263,7 +261,7 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy planned (after adding berth): {:.2f}'.format(berth_occupancy_planned))
                     # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # check if a quay is needed
@@ -293,7 +291,7 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding quay): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy planned (after adding quay): {:.2f}'.format(berth_occupancy_planned))
                     # print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
 
             # check if a crane is needed
@@ -303,7 +301,7 @@ class System:
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
                     year, handysize, handymax, panamax)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding crane): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy planned (after adding crane): {:.2f}'.format(berth_occupancy_planned))
                     # print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
 
     def quay_invest(self, year, length, depth):
@@ -466,10 +464,10 @@ class System:
         reefer_slots = self.laden_reefer_stack_capacity(year)
 
         if self.debug:
-            print('     Stack capacity planned (@ start of year): {}'.format(stack_capacity_planned))
-            print('     Stack capacity online (@ start of year): {}'.format(stack_capacity_online))
-            print('     Stack capacity required (@ start of year): {}'.format(required_capacity))
-            print('     Total laden and reefer ground slots required (@ start of year): {}'.format(total_ground_slots))
+            print('     Stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
+            print('     Stack capacity online (@ start of year): {:.2f}'.format(stack_capacity_online))
+            print('     Stack capacity required (@ start of year): {:.2f}'.format(required_capacity))
+            print('     Total laden and reefer ground slots required (@ start of year): {:.2f}'.format(total_ground_slots))
 
         while required_capacity > (stack_capacity_planned):
             if self.debug:
@@ -532,10 +530,10 @@ class System:
         empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, empty_stack_area = self.empty_stack_capacity(year)
 
         if self.debug:
-            print('     Empty stack capacity planned (@ start of year): {}'.format(empty_capacity_planned))
-            print('     Empty stack capacity online (@ start of year): {}'.format(empty_capacity_online))
-            print('     Empty stack capacity required (@ start of year): {}'.format(empty_required_capacity))
-            print('     Empty ground slots required (@ start of year): {}'.format(empty_ground_slots))
+            print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(empty_capacity_planned))
+            print('     Empty stack capacity online (@ start of year): {:.2f}'.format(empty_capacity_online))
+            print('     Empty stack capacity required (@ start of year): {:.2f}'.format(empty_required_capacity))
+            print('     Empty ground slots required (@ start of year): {:.2f}'.format(empty_ground_slots))
 
         while empty_required_capacity > (empty_capacity_planned):
             if self.debug:
@@ -588,9 +586,9 @@ class System:
         oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
 
         if self.debug:
-            print('     OOG slots planned (@ start of year): {}'.format(oog_capacity_planned))
-            print('     OOG slots online (@ start of year): {}'.format(oog_capacity_online))
-            print('     OOG slots required (@ start of year): {}'.format(oog_required_capacity))
+            print('     OOG slots planned (@ start of year): {:.2f}'.format(oog_capacity_planned))
+            print('     OOG slots online (@ start of year): {:.2f}'.format(oog_capacity_online))
+            print('     OOG slots required (@ start of year): {:.2f}'.format(oog_required_capacity))
 
         while oog_required_capacity > (oog_capacity_planned):
             if self.debug:
@@ -750,10 +748,10 @@ class System:
         gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(year)
 
         if self.debug:
-            print('     Gate capacity planned (@ start of year): {}'.format(gate_capacity_planned))
-            print('     Gate capacity online (@ start of year): {}'.format(gate_capacity_online))
-            print('     Service rate planned (@ start of year): {}'.format(service_rate_planned))
-            print('     Gate lane minutes  (@ start of year): {}'.format(total_design_gate_minutes))
+            print('     Gate capacity planned (@ start of year): {:.2f}'.format(gate_capacity_planned))
+            print('     Gate capacity online (@ start of year): {:.2f}'.format(gate_capacity_online))
+            print('     Service rate planned (@ start of year): {:.2f}'.format(service_rate_planned))
+            print('     Gate lane minutes  (@ start of year): {:.2f}'.format(total_design_gate_minutes))
 
         while service_rate_planned > 1:
             if self.debug:
@@ -1956,7 +1954,7 @@ class System:
        - Find the factor for the waiting time with the E2/E/n quing theory using 4th order polynomial regression
        - Waiting time is the factor times the crane occupancy
        """
-
+        # todo: fix the waiting time method to use
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online= self.calculate_berth_occupancy(
             year, handysize_calls, handymax_calls, panamax_calls)
@@ -2026,7 +2024,7 @@ class System:
         return elements_online, elements
 
     # *** Plotting functions
-    def terminal_elements_plot(self, width=0.1, alpha=0.6):
+    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -2083,25 +2081,136 @@ class System:
                         tractor[-1] += 1
 
         tractor = [x / 10 for x in tractor]
+
         # generate plot
-        fig, ax = plt.subplots(figsize=(20, 10))
+        fig, ax = plt.subplots(figsize=(20, 12))
+        ax.grid(zorder=0, which='major', axis='both')
 
-        ax.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="berths")
-        ax.bar([x + 1 * width for x in years], quays, width=width, alpha=alpha, label="quays")
-        ax.bar([x + 2 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes")
-        ax.bar([x + 3 * width for x in years], tractor, width=width, alpha=alpha, label="tractor x10")
-        ax.bar([x + 4 * width for x in years], stack, width=width, alpha=alpha, label="stack")
-        ax.bar([x + 5 * width for x in years], empty_stack, width=width, alpha=alpha, label="empty stack")
-        ax.bar([x + 6 * width for x in years], oog_stack, width=width, alpha=alpha, label="oog stack")
-        ax.bar([x + 7 * width for x in years], stack_equipment, width=width, alpha=alpha, label="stack equipment")
-        ax.bar([x + 8 * width for x in years], gates, width=width, alpha=alpha, label="gates")
+        colors = ['firebrick', 'darksalmon', 'sandybrown', 'darkkhaki', 'palegreen', 'lightseagreen', 'mediumpurple',
+                  'mediumvioletred', 'lightgreen']
+        offset = 4 * width
 
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Elements on line [nr]')
-        ax.set_title('Terminal elements online')
+        ax.bar([x - offset + 0 * width for x in years], berths, zorder=1, width=width, alpha=alpha, label="berths", color=colors[0], edgecolor='darkgrey')
+        ax.bar([x - offset + 1 * width for x in years], quays, zorder=1, width=width, alpha=alpha, label="quays", color=colors[1], edgecolor='darkgrey')
+        ax.bar([x - offset + 2 * width for x in years], cranes, zorder=1, width=width, alpha=alpha, label="STS cranes", color=colors[2], edgecolor='darkgrey')
+        ax.bar([x - offset + 3 * width for x in years], tractor, zorder=1, width=width, alpha=alpha, label="tractor x10", color=colors[3], edgecolor='darkgrey')
+        ax.bar([x - offset + 4 * width for x in years], stack, zorder=1, width=width, alpha=alpha, label="stack", color=colors[4], edgecolor='darkgrey')
+        ax.bar([x - offset + 5 * width for x in years], empty_stack, zorder=1, width=width, alpha=alpha, label="empty stack", color=colors[5], edgecolor='darkgrey')
+        ax.bar([x - offset + 6 * width for x in years], oog_stack, zorder=1, width=width, alpha=alpha, label="oog stack", color=colors[6], edgecolor='darkgrey')
+        ax.bar([x - offset + 7 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha, label="stack equipment", color=colors[7], edgecolor='darkgrey')
+        ax.bar([x - offset + 8 * width for x in years], gates, zorder=1, width=width, alpha=alpha, label="gates", color=colors[8], edgecolor='darkgrey')
+
+        # title and labels
+        ax.set_title('Terminal elements online', fontsize=fontsize)
+        ax.set_xlabel('Years', fontsize=fontsize)
+        ax.set_ylabel('Terminal elements on line [nr]', fontsize=fontsize)
+        ax.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
+
+        # ticks and tick labels
         ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
+        ax.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
+        max_elements = max([max(berths), max(quays), max(cranes),
+                            max(tractor), max(stack),
+                            max(empty_stack), max(oog_stack),
+                            max(stack_equipment), max(gates)])
+        ax.set_yticks([x for x in range(0, max_elements + 1 + 2, 10)])
+        ax.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 10)], fontsize=fontsize)
+
+        # print legend
+        fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=5, fontsize=fontsize)
+        fig.subplots_adjust(bottom=0.18)
+
+    def land_use_plot(self, width=0.25, alpha=0.6, fontsize=20):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # get land use
+        years = []
+        quay_land_use = []
+        stack_land_use = []
+        empty_land_use = []
+        oog_land_use = []
+        gate_land_use = []
+        general_land_use = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+
+            years.append(year)
+            quay_land_use.append(0)
+            stack_land_use.append(0)
+            empty_land_use.append(0)
+            oog_land_use.append(0)
+            gate_land_use.append(0)
+            general_land_use.append(0)
+
+            for element in self.elements:
+                if isinstance(element, Quay_wall):
+                    if year >= element.year_online:
+                        quay_land_use[-1] += element.land_use
+                if isinstance(element, Laden_Stack):
+                    if year >= element.year_online:
+                        stack_land_use[-1] += element.land_use
+                if isinstance(element, Empty_Stack):
+                    if year >= element.year_online:
+                        empty_land_use[-1] += element.land_use
+                if isinstance(element, OOG_Stack):
+                    if year >= element.year_online:
+                        oog_land_use[-1] += element.land_use
+                if isinstance(element, Gate):
+                    if year >= element.year_online:
+                        gate_land_use[-1] += element.land_use
+                if isinstance(element, General_Services):
+                    if year >= element.year_online:
+                        general_land_use[-1] += element.land_use
+
+        quay_land_use = [x * 0.0001 for x in quay_land_use]
+        stack_land_use = [x * 0.0001 for x in stack_land_use]
+        empty_land_use = [x * 0.0001 for x in empty_land_use]
+        oog_land_use = [x * 0.0001 for x in oog_land_use]
+        gate_land_use = [x * 0.0001 for x in gate_land_use]
+        general_land_use = [x * 0.0001 for x in general_land_use]
+
+        quay_stack = np.add(quay_land_use, stack_land_use).tolist()
+        quay_stack_empty = np.add(quay_stack, empty_land_use).tolist()
+        quay_stack_empty_oog = np.add(quay_stack_empty, oog_land_use).tolist()
+        quay_stack_empty_oog_gate = np.add(quay_stack_empty_oog, gate_land_use).tolist()
+
+        # generate plot
+        # generate plot
+        fig, ax = plt.subplots(figsize=(20, 12))
+        ax.grid(zorder=0, which='major', axis='both')
+
+        ax.bar([x - 0.5 * width for x in years], quay_land_use, width=width, alpha=alpha, label="apron")
+        ax.bar([x - 0.5 * width for x in years], stack_land_use, width=width, alpha=alpha,
+               label="laden and reefer stack",
+               bottom=quay_land_use)
+        ax.bar([x - 0.5 * width for x in years], empty_land_use, width=width, alpha=alpha, label="empty stack",
+               bottom=quay_stack)
+        ax.bar([x - 0.5 * width for x in years], oog_land_use, width=width, alpha=alpha, label="oog stack",
+               bottom=quay_stack_empty)
+        ax.bar([x - 0.5 * width for x in years], gate_land_use, width=width, alpha=alpha, label="gate area",
+               bottom=quay_stack_empty_oog)
+        ax.bar([x - 0.5 * width for x in years], general_land_use, width=width, alpha=alpha,
+               label="general service area",
+               bottom=quay_stack_empty_oog_gate)
+
+        # title and labels
+        ax.set_title('Terminal land use ' + self.stack_equipment, fontsize=fontsize)
+        ax.set_xlabel('Years', fontsize=fontsize)
+        ax.set_ylabel('Land use [ha]', fontsize=fontsize)
+
+        # ticks and tick labels
+        ax.set_xticks([x for x in years])
+        ax.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
+
+        ticks = ax.get_yticks()
+        ax.set_yticks([x for x in ticks])
+        ax.set_yticklabels([int(x) for x in ticks], fontsize=fontsize)
+
+        # print legend
+        fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=3, fontsize=fontsize)
+        fig.subplots_adjust(bottom=0.18)
 
     def terminal_capacity_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
@@ -2163,88 +2272,6 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
-
-    def land_use_plot(self, width=0.25, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # get land use
-        years = []
-        quay_land_use = []
-        stack_land_use = []
-        empty_land_use = []
-        oog_land_use = []
-        gate_land_use = []
-        general_land_use = []
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-
-            years.append(year)
-            quay_land_use.append(0)
-            stack_land_use.append(0)
-            empty_land_use.append(0)
-            oog_land_use.append(0)
-            gate_land_use.append(0)
-            general_land_use.append(0)
-
-
-            for element in self.elements:
-                if isinstance(element, Quay_wall):
-                    if year >= element.year_online:
-                        quay_land_use[-1] += element.land_use
-                if isinstance(element, Laden_Stack):
-                    if year >= element.year_online:
-                        stack_land_use[-1] += element.land_use
-                if isinstance(element, Empty_Stack):
-                    if year >= element.year_online:
-                        empty_land_use[-1] += element.land_use
-                if isinstance(element, OOG_Stack):
-                    if year >= element.year_online:
-                        oog_land_use[-1] += element.land_use
-                if isinstance(element, Gate):
-                    if year >= element.year_online:
-                        gate_land_use[-1] += element.land_use
-                if isinstance(element, General_Services):
-                    if year >= element.year_online:
-                        general_land_use[-1] += element.land_use
-
-        quay_land_use = [x * 0.0001 for x in quay_land_use]
-        stack_land_use = [x * 0.0001 for x in stack_land_use]
-        empty_land_use = [x * 0.0001 for x in empty_land_use]
-        oog_land_use = [x * 0.0001 for x in oog_land_use]
-        gate_land_use = [x * 0.0001 for x in gate_land_use]
-        general_land_use = [x * 0.0001 for x in general_land_use]
-
-        quay_stack = np.add(quay_land_use, stack_land_use).tolist()
-        quay_stack_empty = np.add(quay_stack, empty_land_use).tolist()
-        quay_stack_empty_oog = np.add(quay_stack_empty, oog_land_use).tolist()
-        quay_stack_empty_oog_gate = np.add(quay_stack_empty_oog, gate_land_use).tolist()
-
-
-
-        # generate plot
-        fig, ax = plt.subplots(figsize=(20, 10))
-
-        ax.bar([x - 0.5 * width for x in years], quay_land_use, width=width, alpha=alpha, label="apron")
-        ax.bar([x - 0.5 * width for x in years], stack_land_use, width=width, alpha=alpha, label="laden and reefer stack",
-               bottom=quay_land_use)
-        ax.bar([x - 0.5 * width for x in years], empty_land_use, width=width, alpha=alpha, label="empty stack",
-               bottom=quay_stack)
-        ax.bar([x - 0.5 * width for x in years], oog_land_use, width=width, alpha=alpha, label="oog stack",
-               bottom=quay_stack_empty)
-        ax.bar([x - 0.5 * width for x in years], gate_land_use, width=width, alpha=alpha, label="gate area",
-               bottom=quay_stack_empty_oog)
-        ax.bar([x - 0.5 * width for x in years], general_land_use, width=width, alpha=alpha, label="general service area",
-               bottom=quay_stack_empty_oog_gate)
-
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Land use [ha]')
-        ax.set_title('Terminal land use '+self.stack_equipment )
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
-        # ax.figure.savefig('C:/Users/908538/Google Drive/Afstuderen/02. Model/Masterfile/Plots/rs.png', dpi=400)
-
-        # plt.show()
 
     def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
