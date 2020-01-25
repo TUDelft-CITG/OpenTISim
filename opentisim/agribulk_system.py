@@ -133,10 +133,10 @@ class System:
             self.calculate_revenue(year)
 
         # 6. collect all cash flows (capex, opex, revenues)
-        cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
+        # cash_flows, cash_flows_WACC_real = core.add_cashflow_elements(self)
 
         # 7. calculate PV's and aggregate to NPV
-        self.NPV()
+        core.NPV(self,  Labour(**agribulk_defaults.labour_data))
 
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
@@ -298,7 +298,7 @@ class System:
         quay_wall.year_online = year + quay_wall.delivery_time
 
         # add cash flow information to quay_wall object in a dataframe
-        quay_wall = self.add_cashflow_data_to_element(quay_wall)
+        quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
 
         self.elements.append(quay_wall)
 
@@ -348,7 +348,7 @@ class System:
         crane.year_online = max([year + crane.delivery_time, max(years_online)])
 
         # add cash flow information to quay_wall object in a dataframe
-        crane = self.add_cashflow_data_to_element(crane)
+        crane = core.add_cashflow_data_to_element(self, crane)
 
         # add object to elements
         self.elements.append(crane)
@@ -438,7 +438,7 @@ class System:
                 conveyor_quay.year_online = max(new_crane_years)
 
             # add cash flow information to quay_wall object in a dataframe
-            conveyor_quay = self.add_cashflow_data_to_element(conveyor_quay)
+            conveyor_quay = core.add_cashflow_data_to_element(self, conveyor_quay)
 
             self.elements.append(conveyor_quay)
 
@@ -535,7 +535,7 @@ class System:
                 storage.year_online = year + storage.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            storage = self.add_cashflow_data_to_element(storage)
+            storage = core.add_cashflow_data_to_element(self, storage)
 
             self.elements.append(storage)
 
@@ -592,7 +592,7 @@ class System:
                 station.year_online = year + station.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
-            station = self.add_cashflow_data_to_element(station)
+            station = core.add_cashflow_data_to_element(self, station)
 
             self.elements.append(station)
 
@@ -666,7 +666,7 @@ class System:
             conveyor_hinter.year_online = max(years_online)
 
             # add cash flow information to quay_wall object in a dataframe
-            conveyor_hinter = self.add_cashflow_data_to_element(conveyor_hinter)
+            conveyor_hinter = core.add_cashflow_data_to_element(self, conveyor_hinter)
 
             self.elements.append(conveyor_hinter)
 
@@ -880,146 +880,6 @@ class System:
                 min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
         except:
             pass
-
-    # *** Financial analyses
-    def add_cashflow_data_to_element(self, element):
-        """Place cashflow data in element dataframe
-        Elements that take two years to build are assign 60% to year one and 40% to year two."""
-
-        # years
-        years = list(range(self.startyear, self.startyear + self.lifecycle))
-
-        # capex
-        capex = element.capex
-
-        # opex
-        maintenance = element.maintenance
-        insurance = element.insurance
-        labour = element.labour
-
-        # year online
-        year_online = element.year_online
-        year_delivery = element.delivery_time
-
-        df = pd.DataFrame()
-
-        # years
-        df["year"] = years
-
-        # capex
-        if year_delivery > 1:
-            df.loc[df["year"] == year_online - 2, "capex"] = 0.6 * capex
-            df.loc[df["year"] == year_online - 1, "capex"] = 0.4 * capex
-        else:
-            df.loc[df["year"] == year_online - 1, "capex"] = capex
-
-        # opex
-        if maintenance:
-            df.loc[df["year"] >= year_online, "maintenance"] = maintenance
-        if insurance:
-            df.loc[df["year"] >= year_online, "insurance"] = insurance
-        if labour:
-            df.loc[df["year"] >= year_online, "labour"] = labour
-
-        df.fillna(0, inplace=True)
-
-        element.df = df
-
-        return element
-
-    def add_cashflow_elements(self):
-        """Cycle through each element and collect all cash flows into a pandas dataframe."""
-
-        cash_flows = pd.DataFrame()
-        labour = Labour(**agribulk_defaults.labour_data)
-
-        # initialise cash_flows
-        cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        cash_flows['capex'] = 0
-        cash_flows['maintenance'] = 0
-        cash_flows['insurance'] = 0
-        cash_flows['energy'] = 0
-        cash_flows['labour'] = 0
-        cash_flows['demurrage'] = self.demurrage
-        cash_flows['revenues'] = self.revenues
-
-        # add labour component for years were revenues are not zero
-        cash_flows.loc[cash_flows[
-                           'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
-
-        for element in self.elements:
-            if hasattr(element, 'df'):
-                for column in cash_flows.columns:
-                    if column in element.df.columns and column != "year":
-                        cash_flows[column] += element.df[column]
-
-        cash_flows.fillna(0)
-
-        # calculate WACC real cashflows
-        cash_flows_WACC_real = pd.DataFrame()
-        cash_flows_WACC_real['year'] = cash_flows['year']
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            for column in cash_flows.columns:
-                if column != "year":
-                    cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
-                        cash_flows.loc[
-                            cash_flows[
-                                'year'] == year, column] / (
-                                (1 + self.WACC_real()) ** (
-                                year - self.startyear))
-
-        return cash_flows, cash_flows_WACC_real
-
-    def WACC_nominal(self, Gearing=60, Re=.10, Rd=.30, Tc=.28):
-        """Nominal cash flow is the true dollar amount of future revenues the company expects
-        to receive and expenses it expects to pay out, including inflation.
-        When all cashflows within the model are denoted in real terms and including inflation."""
-
-        Gearing = Gearing
-        Re = Re  # return on equity
-        Rd = Rd  # return on debt
-        Tc = Tc  # income tax
-        E = 100 - Gearing
-        D = Gearing
-
-        WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
-
-        return WACC_nominal
-
-    def WACC_real(self, inflation=0.02):  # old: interest=0.0604
-        """Real cash flow expresses a company's cash flow with adjustments for inflation.
-        When all cashflows within the model are denoted in real terms and have been
-        adjusted for inflation (no inlfation has been taken into account),
-        WACC_real should be used. WACC_real is computed by as follows:"""
-
-        WACC_real = (self.WACC_nominal() + 1) / (inflation + 1) - 1
-
-        return WACC_real
-
-    def NPV(self):
-        """Gather data from Terminal elements and combine into a cash flow overview"""
-
-        # add cash flow information for each of the Terminal elements
-        cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows_WACC_real['year'].values
-        revenue = self.revenues
-        capex = cash_flows_WACC_real['capex'].values
-        opex = cash_flows_WACC_real['insurance'].values + \
-               cash_flows_WACC_real['maintenance'].values + \
-               cash_flows_WACC_real['energy'].values + \
-               cash_flows_WACC_real['demurrage'].values + \
-               cash_flows_WACC_real['labour'].values
-
-        # collect all results in a pandas dataframe
-        df = pd.DataFrame(index=years, data=-capex, columns=['CAPEX'])
-        df['OPEX'] = -opex
-        df['REVENUE'] = revenue
-        df['PV'] = - capex - opex + revenue
-        df['cum-PV'] = np.cumsum(- capex - opex + revenue)
-
-        return df
 
     # *** General functions
     def calculate_vessel_calls(self, year=2019):

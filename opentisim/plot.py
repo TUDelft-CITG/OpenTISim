@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 
 # *** General functions
-def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.3, alpha=0.6, fontsize=20):
+def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha=0.6, fontsize=20):
     """Gather data from Terminal elements and combine into a cash flow plot"""
 
     # prepare years, revenue, capex and opex for plotting
@@ -63,6 +63,6 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.3, alpha
 
     # print legend
     fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
-               fancybox=True, shadow=True, ncol=5)
+               fancybox=True, shadow=True, ncol=5, fontsize=fontsize)
     fig.subplots_adjust(bottom=0.15)
 
