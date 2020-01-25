@@ -7,6 +7,7 @@ import matplotlib
 # opentisim package
 from opentisim.hydrogen_objects import *
 from opentisim import hydrogen_defaults
+from opentisim import core
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for hydrogen terminals.
@@ -173,12 +174,12 @@ class System:
             print('')
             print('--- Status terminal @ start of year ----------------')
 
-        self.report_element(Berth, year)
-        self.report_element(Jetty, year)
-        self.report_element(Pipeline_Jetty, year)
-        self.report_element(Storage, year)
-        self.report_element(H2retrieval, year)
-        self.report_element(Pipeline_Hinter, year)
+        core.report_element(self, Berth, year)
+        core.report_element(self, Jetty, year)
+        core.report_element(self, Pipeline_Jetty, year)
+        core.report_element(self, Storage, year)
+        core.report_element(self, H2retrieval, year)
+        core.report_element(self, Pipeline_Hinter, year)
 
         # calculate berth occupancy
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
@@ -207,9 +208,9 @@ class System:
             print('')
             print('$$$ Check berth elements ---------------------------')
 
-        self.report_element(Berth, year)
-        self.report_element(Jetty, year)
-        self.report_element(Pipeline_Jetty, year)
+        core.report_element(self, Berth, year)
+        core.report_element(self, Jetty, year)
+        core.report_element(self, Pipeline_Jetty, year)
 
         while berth_occupancy_planned > self.allowable_berth_occupancy:
 
@@ -227,8 +228,8 @@ class System:
                 # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a berth if a jetty is needed
-            berths = len(self.find_elements(Berth))
-            jettys = len(self.find_elements(Jetty))
+            berths = len(core.find_elements(self, Berth))
+            jettys = len(core.find_elements(self, Jetty))
             if berths > jettys:
                 length_max = max(hydrogen_defaults.vlcc_data["LOA"], hydrogen_defaults.handysize_data["LOA"],
                                hydrogen_defaults.panamax_data["LOA"], hydrogen_defaults.smallhydrogen_data["LOA"],
@@ -306,7 +307,7 @@ class System:
         # find the total service rate
         service_capacity = 0
         service_capacity_online = 0
-        list_of_elements = self.find_elements(Pipeline_Jetty)
+        list_of_elements = core.find_elements(self, Pipeline_Jetty)
         if list_of_elements != []:
             for element in list_of_elements:
                 service_capacity += element.capacity
@@ -315,12 +316,12 @@ class System:
 
         # find the year online,
         years_online = []
-        for element in self.find_elements(Jetty):
+        for element in core.find_elements(self, Jetty):
             years_online.append(element.year_online)
 
         # # check if total planned capacity is smaller than target capacity, if so add a pipeline
-        pipelines = len(self.find_elements(Pipeline_Jetty))
-        jettys = len(self.find_elements(Jetty))
+        pipelines = len(core.find_elements(self, Pipeline_Jetty))
+        jettys = len(core.find_elements(self, Jetty))
         if jettys > pipelines:
             if self.debug:
                 print('  *** add jetty pipeline to elements')
@@ -343,7 +344,7 @@ class System:
             # # find the total service rate,
             service_rate = 0
             years_online = []
-            for element in self.find_elements(Jetty):
+            for element in core.find_elements(self, Jetty):
                 service_rate += hydrogen_defaults.largehydrogen_data["pump_capacity"]
                 years_online.append(element.year_online)
 
@@ -351,8 +352,8 @@ class System:
             new_jetty_years = [x for x in years_online if x >= year]
 
             # find the maximum online year of pipeline_jetty or make it []
-            if self.find_elements(Pipeline_Jetty) != []:
-                max_pipeline_years = max([x.year_online for x in self.find_elements(Pipeline_Jetty)])
+            if core.find_elements(self, Pipeline_Jetty) != []:
+                max_pipeline_years = max([x.year_online for x in core.find_elements(self, Pipeline_Jetty)])
             else:
                 max_pipeline_years = []
 
@@ -387,7 +388,7 @@ class System:
         # from all storage objects sum online capacity
         storage_capacity = 0
         storage_capacity_online = 0
-        list_of_elements = self.find_elements(Storage)
+        list_of_elements = core.find_elements(self, Storage)
         if list_of_elements != []:
             for element in list_of_elements:
                 if element.type == hydrogen_defaults_storage_data['type']:
@@ -399,11 +400,11 @@ class System:
             print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                 storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
-        # max_vessel_call_size = max([x.call_size for x in self.find_elements(Vessel)])
+        # max_vessel_call_size = max([x.call_size for x in core.find_elements(self, Vessel)])
         max_vessel_call_size = hydrogen_defaults.largeammonia_data["call_size"]
 
         Demand = []
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
             except:
@@ -529,7 +530,7 @@ class System:
         # find the total service rate
         service_capacity = 0
         service_capacity_online_hinter = 0
-        list_of_elements_pipeline = self.find_elements(Pipeline_Hinter)
+        list_of_elements_pipeline = core.find_elements(self, Pipeline_Hinter)
         if list_of_elements_pipeline != []:
             for element in list_of_elements_pipeline:
                 service_capacity += element.capacity
@@ -539,7 +540,7 @@ class System:
         # find the total service rate,
         service_rate = 0
         years_online = []
-        for element in (self.find_elements(H2retrieval)):
+        for element in (core.find_elements(self, H2retrieval)):
             service_rate += element.capacity
             years_online.append(element.year_online)
 
@@ -602,7 +603,7 @@ class System:
             year)
 
         # calculate pipeline jetty energy
-        list_of_elements_Pipelinejetty = self.find_elements(Pipeline_Jetty)
+        list_of_elements_Pipelinejetty = core.find_elements(self, Pipeline_Jetty)
 
         pipelinesj=0
         for element in list_of_elements_Pipelinejetty:
@@ -617,7 +618,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate storage energy
-        list_of_elements_Storage = self.find_elements(Storage)
+        list_of_elements_Storage = core.find_elements(self, Storage)
         max_vessel_call_size = hydrogen_defaults.largeammonia_data["call_size"]
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
             year)
@@ -637,7 +638,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate H2 retrieval energy
-        list_of_elements_H2retrieval = self.find_elements(H2retrieval)
+        list_of_elements_H2retrieval = core.find_elements(self, H2retrieval)
 
         # find the total throughput,
         # throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
@@ -655,7 +656,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate hinterland pipeline energy
-        list_of_elements_hinter = self.find_elements(Pipeline_Hinter)
+        list_of_elements_hinter = core.find_elements(self, Pipeline_Hinter)
 
 
         plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
@@ -930,17 +931,6 @@ class System:
         # print('cost price: {}'.format(np.sum(PV)/throughput))
 
     # *** General functions
-    def find_elements(self, obj):
-        """return elements of type obj part of self.elements"""
-
-        list_of_elements = []
-        if self.elements != []:
-            for element in self.elements:
-                if isinstance(element, obj):
-                    list_of_elements.append(element)
-
-        return list_of_elements
-
     def calculate_vessel_calls(self, year=2019):
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
 
@@ -966,7 +956,7 @@ class System:
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
             year)
 
-        commodities = self.find_elements(Commodity)
+        commodities = core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -982,7 +972,7 @@ class System:
                 pass
 
         # gather vessels and calculate the number of calls each vessel type needs to make
-        vessels = self.find_elements(Vessel)
+        vessels = core.find_elements(self, Vessel)
         for vessel in vessels:
             if vessel.type == 'Smallhydrogen':
                 smallhydrogen_calls = int(np.ceil(smallhydrogen_vol / vessel.call_size))
@@ -1032,22 +1022,28 @@ class System:
             elif vessel.type == 'VLCC':
                 vlcc_calls_planned = int(np.ceil(vlcc_vol_planned / vessel.call_size))
         total_calls_planned = np.sum(
-            [smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned,
-             panamax_calls_planned, vlcc_calls_planned])
+            [smallhydrogen_calls_planned, largehydrogen_calls_planned,
+             smallammonia_calls_planned, largeammonia_calls_planned,
+             handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned])
 
-        return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned
+        return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, \
+               largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, \
+               smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, \
+               largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, \
+               total_calls_planned, total_vol_planned
 
-    def calculate_berth_occupancy(self, year,  smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls,\
-        vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, \
-        largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
-        """
-        - Find all cranes and sum their effective_capacity to get service_capacity
+    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls,
+                                  smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls,
+                                  vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
+                                  smallammonia_calls_planned, largeammonia_calls_planned,
+                                  handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
+        """- Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
         - Occupancy is total_time_at_berth divided by operational hours
         """
 
         # list all vessel objects in system
-        list_of_elements = self.find_elements(Jetty)
+        list_of_elements = core.find_elements(self, Jetty)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         nr_of_jetty_planned = 0
@@ -1226,7 +1222,7 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls,     largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
         #find the different factors which are linked to the number of berths
-        berths = len(self.find_elements(Berth))
+        berths = len(core.find_elements(self, Berth))
 
         if berths == 1:
             factor = max(0,
@@ -1267,7 +1263,7 @@ class System:
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh= self.throughput_elements(year)
 
         Demand = []
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
             except:
@@ -1282,7 +1278,7 @@ class System:
 
         yearly_capacity = capacity * self.operational_hours
 
-        list_of_elements = self.find_elements(H2retrieval)
+        list_of_elements = core.find_elements(self, H2retrieval)
         if list_of_elements != []:
             for element in list_of_elements:
                 h2retrieval_capacity_planned += yearly_capacity
@@ -1317,7 +1313,7 @@ class System:
         #Find jetty capacity
         Jetty_cap_planned = 0
         Jetty_cap = 0
-        for element in self.find_elements(Jetty):
+        for element in core.find_elements(self, Jetty):
             Jetty_cap_planned += ((hydrogen_defaults.smallhydrogen_data["pump_capacity"] +
                                  hydrogen_defaults.largehydrogen_data["pump_capacity"] +
                                  hydrogen_defaults.smallammonia_data["pump_capacity"] +
@@ -1337,7 +1333,7 @@ class System:
         # Find pipeline jetty capacity
         pipelineJ_capacity_planned = 0
         pipelineJ_capacity_online = 0
-        list_of_elements = self.find_elements(Pipeline_Jetty)
+        list_of_elements = core.find_elements(self, Pipeline_Jetty)
         if list_of_elements != []:
             for element in list_of_elements:
                 pipelineJ_capacity_planned += element.capacity * self.operational_hours
@@ -1347,7 +1343,7 @@ class System:
         # Find storage capacity
         storage_capacity_planned = 0
         storage_capacity_online = 0
-        list_of_elements = self.find_elements(Storage)
+        list_of_elements = core.find_elements(self, Storage)
         if list_of_elements != []:
             for element in list_of_elements:
                 storage_capacity_planned += element.capacity
@@ -1360,7 +1356,7 @@ class System:
         #Find H2retrieval capacity
         h2retrieval_capacity_planned = 0
         h2retrieval_capacity_online = 0
-        list_of_elements = self.find_elements(H2retrieval)
+        list_of_elements = core.find_elements(self, H2retrieval)
         if list_of_elements != []:
             for element in list_of_elements:
                 h2retrieval_capacity_planned += element.capacity * self.operational_hours
@@ -1370,7 +1366,7 @@ class System:
         # Find pipeline hinter capacity
         pipelineh_capacity_planned = 0
         pipelineh_capacity_online = 0
-        list_of_elements = self.find_elements(Pipeline_Hinter)
+        list_of_elements = core.find_elements(self, Pipeline_Hinter)
         if list_of_elements != []:
             for element in list_of_elements:
                 pipelineh_capacity_planned += element.capacity * self.operational_hours
@@ -1379,7 +1375,7 @@ class System:
 
         #Find demand
         Demand = []
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
             except:
@@ -1399,25 +1395,8 @@ class System:
         return throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh
         self.throughput.append(throughput_online)
 
-    def report_element(self, Element, year):
-        elements = 0
-        elements_online = 0
-        element_name = []
-        list_of_elements = self.find_elements(Element)
-        if list_of_elements != []:
-            for element in list_of_elements:
-                element_name = element.name
-                elements += 1
-                if year >= element.year_online:
-                    elements_online += 1
-
-        if self.debug:
-            print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
-
-        return elements_online, elements
-
     def check_throughput_available(self, year):
-        list_of_elements = self.find_elements(Storage)
+        list_of_elements = core.find_elements(self, Storage)
         capacity = 0
         for element in list_of_elements:
             capacity += element.capacity
@@ -1496,7 +1475,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1576,7 +1555,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1628,51 +1607,6 @@ class System:
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
-    def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
-        """Gather data from Terminal elements and combine into a cash flow plot"""
-
-        # prepare years, revenue, capex and opex for plotting
-        years = cash_flows['year'].values
-        revenue = self.revenues + cash_flows['residual'].values
-        capex = cash_flows['capex'].values
-        opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-               cash_flows['labour'].values + cash_flows['demurrage'].values
-
-        # sum cash flows to get profits as a function of year
-        profits = []
-        for year in years:
-            profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-                           cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
-                           revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-
-        # cumulatively sum profits to get profits_cum
-        profits_cum = [None] * len(profits)
-        for index, value in enumerate(profits):
-            if index == 0:
-                profits_cum[index] = 0
-            else:
-                profits_cum[index] = profits_cum[index - 1] + profits[index]
-
-        # generate plot
-        fig, ax = plt.subplots(figsize=(16, 7))
-
-        ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="Opex", color='lightblue')
-        ax.bar(years, -capex, width=width, alpha=alpha, label="Capex", color='red')
-        ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="Revenue", color='lightgreen')
-        ax.step(years, profits, label='Profits', where='mid')
-        # ax.step(years, profits_cum, label='Profits_cum', where='mid')
-
-        ax.set_xlabel('Years')
-        ax.set_ylabel('Cashflow [000 M $]')
-        ax.set_title('Cash flow plot')
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels(years)
-        ax.legend()
-
     def terminal_occupancy_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
@@ -1710,7 +1644,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1800,7 +1734,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1878,7 +1812,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1963,7 +1897,7 @@ class System:
                 if isinstance(element, Pipeline_Jetty):
                     if year >= element.year_online:
                         pipeline_jetty_cap[-1] += element.capacity
-            for element in self.find_elements(Jetty):
+            for element in core.find_elements(self, Jetty):
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
                         jettys_cap[-1] += hydrogen_defaults.largeammonia_data["pump_capacity"]
@@ -1972,7 +1906,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -2051,7 +1985,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -2131,7 +2065,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -2226,7 +2160,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in self.find_elements(Commodity):
+        for commodity in core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
