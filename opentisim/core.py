@@ -202,6 +202,7 @@ def occupancy_to_waitingfactor(occupancy=.3, nr_of_servers_chk=4, poly_order=6, 
             [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
             [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
         ])
+
     elif kendall == 'M/E2/n':
         # Create dataframe with data from Groenveld (2007) - Table IV
         # See also PIANC 2014 Table 6.1

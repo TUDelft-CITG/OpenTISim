@@ -18,7 +18,7 @@ class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=agribulk_defaults.mobile_crane_data,
                  storage_type_defaults=agribulk_defaults.silo_data,
-                 allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
+                 allowable_waiting_service_time_ratio=0.3, allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -35,6 +35,7 @@ class System:
         self.storage_type_defaults = storage_type_defaults
 
         # triggers for the various elements (berth, storage and station)
+        self.allowable_waiting_service_time_ratio = allowable_waiting_service_time_ratio
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
         self.allowable_station_occupancy = allowable_station_occupancy
@@ -179,26 +180,28 @@ class System:
         berths = len(core.find_elements(self, Berth))
 
         if berths != 0:
-            waiting_factor = \
-                core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
-            total_calls = handysize + handymax + panamax
-
-            waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
-            waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+            # get the waiting time as a factor of service time
+            planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
+                                                                                 nr_of_servers_chk=berths, poly_order=6)
+            # waiting_factor = \
+            #     core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            # total_calls = handysize + handymax + panamax
+            #
+            # waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
+            # waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
             # waiting_factor, waiting_time_occupancy = self.waiting_time(year)
         else:
-            waiting_factor = np.inf
-            waiting_time_hours = np.inf
-            waiting_time_occupancy = np.inf
+            planned_waiting_service_time_ratio = np.inf
+            # waiting_time_hours = np.inf
+            # waiting_time_occupancy = np.inf
 
         if self.debug:
             print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
             print('     Crane occupancy online (@ start of year): {:.2f}'.format(crane_occupancy_online))
             print('     Crane occupancy planned (@ start of year): {:.2f}'.format(crane_occupancy_planned))
-            print('     Waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
-            print('     Waiting time factor (@ start of year): {:.2f}'.format(waiting_factor))
+            print('     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
 
             print('')
             print('--- Start investment analysis ----------------------')
@@ -209,7 +212,8 @@ class System:
         core.report_element(self, Quay_wall, year)
         core.report_element(self, Cyclic_Unloader, year)
 
-        while berth_occupancy_planned > self.allowable_berth_occupancy:
+        # while berth_occupancy_planned > self.allowable_berth_occupancy:
+        while planned_waiting_service_time_ratio > self.allowable_waiting_service_time_ratio:
 
             # while planned berth occupancy is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
@@ -221,9 +225,13 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                berths = len(core.find_elements(self, Berth))
+                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
+                                                                                 nr_of_servers_chk=berths, poly_order=6)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-                    # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
+                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
 
             # while planned berth occupancy is too large add a berth if a quay is needed
             berths = len(core.find_elements(self, Berth))
@@ -252,19 +260,27 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                berths = len(core.find_elements(self, Berth))
+                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
+                                                                                 nr_of_servers_chk=berths, poly_order=6)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding quay): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-                    # print('     Berth occupancy online (after adding quay): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
+                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
                 self.crane_invest(year)
 
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                    year, handysize, handymax, panamax)
+                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                    self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                berths = len(core.find_elements(self, Berth))
+                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
+                                                                                 nr_of_servers_chk=berths, poly_order=6)
                 if self.debug:
-                    print('     Berth occupancy planned (after adding crane): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-                    # print('     Berth occupancy online (after adding crane): {}'.format(berth_occupancy_online))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
+                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
 
     def quay_invest(self, year, length, depth):
         """
@@ -924,6 +940,18 @@ class System:
         - Occupancy is total_time_at_berth divided by operational hours
         """
 
+        # intialize values to be returned
+        total_vol = 0
+
+        # gather volumes from each commodity scenario
+        commodities = core.find_elements(self, Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                total_vol += volume
+            except:
+                pass
+
         # list all crane objects in system
         list_of_elements_1 = core.find_elements(self, Cyclic_Unloader)
         list_of_elements_2 = core.find_elements(self, Continuous_Unloader)
@@ -938,66 +966,36 @@ class System:
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
-            # estimate berth occupancy
-            time_at_berth_handysize_planned = handysize_calls * (
-                    (agribulk_defaults.handysize_data["call_size"] / service_rate_planned) +
-                     agribulk_defaults.handysize_data["mooring_time"])
-            time_at_berth_handymax_planned = handymax_calls * (
-                    (agribulk_defaults.handymax_data["call_size"] / service_rate_planned) +
-                     agribulk_defaults.handymax_data["mooring_time"])
-            time_at_berth_panamax_planned = panamax_calls * (
-                    (agribulk_defaults.panamax_data["call_size"] / service_rate_planned) +
-                    agribulk_defaults.panamax_data["mooring_time"])
+            time_at_berth_planned_handysize = handysize_calls * agribulk_defaults.handysize_data["mooring_time"]
+            time_at_berth_planned_handymax = handymax_calls * agribulk_defaults.handymax_data["mooring_time"]
+            time_at_berth_planned_panamax = panamax_calls * agribulk_defaults.panamax_data["mooring_time"]
+            time_at_cranes_planned = total_vol / service_rate_planned
 
-            total_time_at_berth_planned = np.sum(
-                [time_at_berth_handysize_planned, time_at_berth_handymax_planned, time_at_berth_panamax_planned])
+            total_time_at_berth_planned = np.sum([
+                time_at_cranes_planned,
+                time_at_berth_planned_handysize,
+                time_at_berth_planned_handymax,
+                time_at_berth_planned_panamax])
 
             # berth_occupancy is the total time at berth divided by the operational hours
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
-
-            # estimate crane occupancy
-            time_at_crane_handysize_planned = handysize_calls * (
-                (agribulk_defaults.handysize_data["call_size"] / service_rate_planned))
-            time_at_crane_handymax_planned = handymax_calls * (
-                (agribulk_defaults.handymax_data["call_size"] / service_rate_planned))
-            time_at_crane_panamax_planned = panamax_calls * (
-                (agribulk_defaults.panamax_data["call_size"] / service_rate_planned))
-
-            total_time_at_crane_planned = np.sum(
-                [time_at_crane_handysize_planned, time_at_crane_handymax_planned, time_at_crane_panamax_planned])
-
-            # berth_occupancy is the total time at berth divided by the operational hours
-            crane_occupancy_planned = total_time_at_crane_planned / self.operational_hours
+            crane_occupancy_planned = time_at_cranes_planned / self.operational_hours
 
             if service_rate_online != 0:
-                time_at_berth_handysize_online = handysize_calls * (
-                        (agribulk_defaults.handysize_data["call_size"] / service_rate_online) +agribulk_defaults.handysize_data[
-                    "mooring_time"])
-                time_at_berth_handymax_online = handymax_calls * (
-                        (agribulk_defaults.handymax_data["call_size"] / service_rate_online) +agribulk_defaults.handymax_data[
-                    "mooring_time"])
-                time_at_berth_panamax_online = panamax_calls * (
-                        (agribulk_defaults.panamax_data["call_size"] / service_rate_online) +agribulk_defaults.panamax_data[
-                    "mooring_time"])
+                time_at_berth_online_handysize = handysize_calls * agribulk_defaults.handysize_data["mooring_time"]
+                time_at_berth_online_handymax = handymax_calls * agribulk_defaults.handymax_data["mooring_time"]
+                time_at_berth_online_panamax = panamax_calls * agribulk_defaults.panamax_data["mooring_time"]
+                time_at_cranes_online = total_vol / service_rate_online
 
-                total_time_at_berth_online = np.sum(
-                    [time_at_berth_handysize_online, time_at_berth_handymax_online, time_at_berth_panamax_online])
+                total_time_at_berth_online = np.sum([
+                    time_at_cranes_online,
+                    time_at_berth_online_handysize,
+                    time_at_berth_online_handymax,
+                    time_at_berth_online_panamax])
 
-                # berth_occupancy is the total time at berth devided by the operational hours
+                # berth_occupancy is the total time at berth divided by the operational hours
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
-
-                time_at_crane_handysize_online = handysize_calls * (
-                    (agribulk_defaults.handysize_data["call_size"] / service_rate_online))
-                time_at_crane_handymax_online = handymax_calls * (
-                    (agribulk_defaults.handymax_data["call_size"] / service_rate_online))
-                time_at_crane_panamax_online = panamax_calls * (
-                    (agribulk_defaults.panamax_data["call_size"] / service_rate_online))
-
-                total_time_at_crane_online = np.sum(
-                    [time_at_crane_handysize_online, time_at_crane_handymax_online, time_at_crane_panamax_online])
-
-                # berth_occupancy is the total time at berth devided by the operational hours
-                crane_occupancy_online = min([total_time_at_crane_online / self.operational_hours, 1])
+                crane_occupancy_online = min([time_at_cranes_online / self.operational_hours, 1])
 
             else:
                 berth_occupancy_online = float("inf")
