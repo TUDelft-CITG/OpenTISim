@@ -181,8 +181,8 @@ class System:
 
         # get the waiting time as a factor of service time
         if berths != 0:
-            planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+            planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+                                                                                 nr_of_servers_to_chk=berths)
         else:
             planned_waiting_service_time_ratio = np.inf
 
@@ -215,8 +215,8 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+                                                                                 nr_of_servers_to_chk=berths)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
@@ -250,8 +250,8 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+                                                                                 nr_of_servers_to_chk=berths)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
@@ -264,8 +264,8 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+                                                                                 nr_of_servers_to_chk=berths)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
@@ -785,7 +785,7 @@ class System:
         berths = len(core.find_elements(self, Berth))
 
         waiting_factor = \
-            core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths)
 
         waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
