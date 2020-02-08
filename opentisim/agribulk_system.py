@@ -141,7 +141,7 @@ class System:
         # cash_flows, cash_flows_WACC_real = core.add_cashflow_elements(self)
 
         # 7. calculate PV's and aggregate to NPV
-        core.NPV(self,  Labour(**agribulk_defaults.labour_data))
+        core.NPV(self, Labour(**agribulk_defaults.labour_data))
 
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
@@ -352,7 +352,7 @@ class System:
         crane.insurance = unit_rate * crane.insurance_perc
         crane.maintenance = unit_rate * crane.maintenance_perc
 
-        # labour
+        # - labour
         labour = Labour(**agribulk_defaults.labour_data)
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length'''
         crane.shift = ((crane.crew * self.operational_hours) / (
@@ -379,7 +379,6 @@ class System:
         Operational objective: maintain a quay conveyor capacity that at least matches the quay crane capacity (so
         basically the quay conveyors follow what happens on the berth)
 
-        Decision recipe quay conveyor:
         Decision recipe quay conveyor:
            QSC: quay_conveyor_capacity planned
            Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
@@ -429,15 +428,13 @@ class System:
             conveyor_quay.insurance = capacity * unit_rate * conveyor_quay.insurance_perc
             conveyor_quay.maintenance = capacity * unit_rate * conveyor_quay.maintenance_perc
 
-            #   labour
+            # - labour
             labour = Labour(**agribulk_defaults.labour_data)
             conveyor_quay.shift = (
                     (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
-            # # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-
-            # there should always be a new crane in the planning
+            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             new_crane_years = [x for x in years_online if x >= year]
 
             # find the maximum online year of Conveyor_Quay or make it []
@@ -473,15 +470,15 @@ class System:
         Mulder, 2004) for the storage investments.
 
         Operational objective: maintain a storage capacity that is large enough to at least contain one time the largest
-        vessel call size or that is large enough to accommodate a maximum allowable dwelltime.
+        vessel call size or that is large enough to accommodate a maximum allowable dwell time plus 10 percent.
 
         Decision recipe storage:
            QSC: storage_capacity
            Benchmarking procedure: there is a problem when the storage_capacity is too small to store one time the
            largest call size or when it is too small to allow for a predetermined max allowable dwell time
-              The max allowable dwelltime is here determined as 5% of the annual demand, increased by 10% (PIANC, 2014)
+              The max allowable dwell time is here determined as 5% of the annual demand, increased by 10% (PIANC, 2014)
            Intervention procedure: the intervention strategy is to add storage until the benchmarking trigger is
-           achieved. The trigger is the max of one call size, or the volume derived from the dwelltime requirement.
+           achieved. The trigger is the max of one call size, or the volume derived from the dwell time requirement.
         """
 
         # from all storage objects sum online capacity
@@ -503,17 +500,17 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
-        # here an important bug was fixed! Previous code took the max call size of all vessesls,
+        # here an important bug was fixed! Previous code took the max call size of all vessels,
         # but it needs to take the max call size of the vessels that actually arrive
         max_vessel_call_size = 0
         for vessel in core.find_elements(self, Vessel):
-            if vessel.type=='Handysize' and handysize != 0:
+            if vessel.type == 'Handysize' and handysize != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
-            if vessel.type=='Handymax' and handymax != 0:
+            if vessel.type == 'Handymax' and handymax != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
-            if vessel.type=='Panamax' and panamax != 0:
+            if vessel.type == 'Panamax' and panamax != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
         # find the total service rate,
@@ -543,7 +540,7 @@ class System:
             storage.insurance = storage.unit_rate * storage.capacity * storage.insurance_perc
             storage.maintenance = storage.unit_rate * storage.capacity * storage.maintenance_perc
 
-            #   labour**agribulk_defaults
+            # - labour
             labour = Labour(**agribulk_defaults.labour_data)
             storage.shift = ((storage.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             storage.labour = storage.shift * labour.operational_salary
@@ -600,7 +597,7 @@ class System:
             station.insurance = unit_rate * station.insurance_perc
             station.maintenance = unit_rate * station.maintenance_perc
 
-            #   labour
+            # - labour
             labour = Labour(**agribulk_defaults.labour_data)
             station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             station.labour = station.shift * labour.operational_salary
