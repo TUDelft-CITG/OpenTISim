@@ -912,6 +912,7 @@ class System:
             time_at_berth_vlcc_planned = vlcc_calls_planned * (
                     (hydrogen_defaults.vlcc_data["call_size"] / hydrogen_defaults.vlcc_data["pump_capacity"] ) +
                     hydrogen_defaults.vlcc_data["mooring_time"])
+
             total_time_at_berth_planned = np.sum(
                 [time_at_berth_smallhydrogen_planned, time_at_berth_largehydrogen_planned, time_at_berth_smallammonia_planned, time_at_berth_largeammonia_planned, time_at_berth_handysize_planned, time_at_berth_panamax_planned, time_at_berth_vlcc_planned])
 

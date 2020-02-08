@@ -174,33 +174,21 @@ class System:
         core.report_element(self, Conveyor_Hinter, year)
         core.report_element(self, Unloading_station, year)
 
-        # calculate berth occupancy
+        # calculate berth occupancy and nr of berths
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         berths = len(core.find_elements(self, Berth))
 
+        # get the waiting time as a factor of service time
         if berths != 0:
-            # get the waiting time as a factor of service time
             planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
                                                                                  nr_of_servers_chk=berths, poly_order=6)
-            # waiting_factor = \
-            #     core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
-            # total_calls = handysize + handymax + panamax
-            #
-            # waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
-            # waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
-
-            # waiting_factor, waiting_time_occupancy = self.waiting_time(year)
         else:
             planned_waiting_service_time_ratio = np.inf
-            # waiting_time_hours = np.inf
-            # waiting_time_occupancy = np.inf
 
         if self.debug:
             print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-            print('     Crane occupancy online (@ start of year): {:.2f}'.format(crane_occupancy_online))
-            print('     Crane occupancy planned (@ start of year): {:.2f}'.format(crane_occupancy_planned))
             print('     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
 
             print('')
@@ -212,22 +200,24 @@ class System:
         core.report_element(self, Quay_wall, year)
         core.report_element(self, Cyclic_Unloader, year)
 
-        # while berth_occupancy_planned > self.allowable_berth_occupancy:
+        # while planned_waiting_service_time_ratio is larger than self.allowable_waiting_service_time_ratio
         while planned_waiting_service_time_ratio > self.allowable_waiting_service_time_ratio:
 
-            # while planned berth occupancy is too large add a berth when no crane slots are available
+            # while planned waiting service time ratio is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
                 if self.debug:
                     print('  *** add Berth to elements')
+
                 berth = Berth(**agribulk_defaults.berth_data)
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
+                berths = len(core.find_elements(self, Berth))
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                berths = len(core.find_elements(self, Berth))
                 planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
                                                                                  nr_of_servers_chk=berths, poly_order=6)
+
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
@@ -260,9 +250,9 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                berths = len(core.find_elements(self, Berth))
                 planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
                                                                                  nr_of_servers_chk=berths, poly_order=6)
+
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
@@ -274,9 +264,9 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                berths = len(core.find_elements(self, Berth))
                 planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
                                                                                  nr_of_servers_chk=berths, poly_order=6)
+
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
@@ -378,6 +368,7 @@ class System:
         Operational objective: maintain a quay conveyor capacity that at least matches the quay crane capacity (so
         basically the quay conveyors follow what happens on the berth)
 
+        Decision recipe quay conveyor:
         Decision recipe quay conveyor:
            QSC: quay_conveyor_capacity planned
            Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
@@ -524,7 +515,7 @@ class System:
         if commodities != []:
             for commodity in commodities:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                storage_capacity_dwelltime = round((volume * 0.05) * 1.1)  # see IJzermans (2019) p.26
+                storage_capacity_dwelltime = round((volume * 0.05) * 1.1)  # see IJzermans (2019) p.26 & PIANC (2014) p.148
 
         # check if sufficient storage capacity is available
         while storage_capacity < max(max_vessel_call_size, storage_capacity_dwelltime):

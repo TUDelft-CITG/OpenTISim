@@ -2,7 +2,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 
 # opentisim package
 from opentisim.container_objects import *
@@ -11,13 +10,13 @@ from opentisim import core
 
 
 class System:
-    """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for agribulk terminals.
-    The module allows variation of the type of quay crane used and the type of storage used. Terminal development is
-    governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable station
-    occupancy."""
-    def __init__(self, startyear=2019, lifecycle=20, stack_equipment='rs', laden_stack='rs',
-                 operational_hours=7500, debug=False, elements=[],
+    """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for container terminals.
+    The module allows variation of the type of quay crane used and the type of stack equipment used. Terminal
+    development is governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable
+    station occupancy."""
+    def __init__(self, startyear=2019, lifecycle=20, operational_hours=7500, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data,
+                 stack_equipment='rs', laden_stack='rs',
                  allowable_berth_occupancy=0.6,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.69,
                  energy_price=0.17, fuel_price=1, land_price=0):
@@ -34,22 +33,20 @@ class System:
 
         # default values to use in case various types can be selected
         self.crane_type_defaults = crane_type_defaults
+        self.stack_equipment = stack_equipment
+        self.laden_stack = laden_stack
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy
 
-        # stack equipment parameters
-        self.stack_equipment = stack_equipment
-        self.laden_stack = laden_stack
-
         # container split
-        self.laden_perc=laden_perc
-        self.reefer_perc=reefer_perc
-        self.empty_perc=empty_perc
-        self.oog_perc=oog_perc
+        self.laden_perc = laden_perc
+        self.reefer_perc = reefer_perc
+        self.empty_perc = empty_perc
+        self.oog_perc = oog_perc
 
         #modal split
-        self.transhipment_ratio=transhipment_ratio
+        self.transhipment_ratio = transhipment_ratio
 
         # fuel and electrical power price
         self.energy_price = energy_price
@@ -73,9 +70,9 @@ class System:
           Netherlands. A Systematic Approach Revealed. Journal of Coastal Research 20(2), pp. 375-385
 
         Specific application based on:
-        - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
-          in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
-          URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
+        - Koster, P.H.F., 2019. Concept level container terminal design. Investigating the consequences of accelerating
+          the concept design phase by modelling the automatable tasks. Master's thesis. Delft University of Technology,
+          Netherlands. URL: http://resolver.tudelft.nl/uuid:131133bf-9021-4d67-afcb-233bd8302ce0.
 
         The simulate method applies frame of reference style decisions while stepping through each year of the terminal
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
@@ -86,7 +83,7 @@ class System:
            3. for each year calculate the energy costs (requires insight in realized demands)
            4. for each year calculate the demurrage costs (requires insight in realized demands)
            5. for each year calculate terminal revenues (requires insight in realized demands)
-           6. collect all cash flows (capex, opex, revenues)
+           6. collect all cash flows (capex, opex, [revenues])
            7. calculate PV's and aggregate to NPV
 
         """
@@ -1659,9 +1656,7 @@ class System:
         # list all crane objects in system
         list_of_elements = self.find_elements(Cyclic_Unloader)
         list_of_elements_berth = self.find_elements(Berth)
-        nr_berths=len(list_of_elements_berth)
-
-        # list the number of berths online
+        nr_berths = len(list_of_elements_berth)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
@@ -1890,64 +1885,64 @@ class System:
 
         return capacity_planned, capacity_online, service_rate_planend, total_design_gate_minutes
 
-    def occupancy_to_waitingfactor(self, occupancy=.3, nr_of_servers_chk=4, poly_order=6):
-        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-        # Create dataframe with data from Groenveld (2007) - Table V
-        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        data = np.array([
-            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-            ])
-        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-        target = df.loc[:, nr_of_servers_chk]
-        p_p = np.polyfit(target.index, target.values, poly_order)
-
-        waiting_factor = np.polyval(p_p, occupancy)
-        #todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
-
-        # Return waiting factor
-        return waiting_factor
-
-    def waitingfactor_to_occupancy(self, factor=.3, nr_of_servers_chk=4, poly_order=6):
-        """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
-
-        # Create dataframe with data from Groenveld (2007) - Table V
-        utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
-        nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        data = np.array([
-            [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
-            [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
-            [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
-            [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
-            [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
-            [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
-            [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
-            [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
-        ])
-        df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
-
-        # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
-        target = df.loc[:, nr_of_servers_chk]
-        p_p = np.polyfit(target.values, target.index, poly_order)
-        print(p_p)
-
-        occupancy = np.polyval(p_p, factor)
-
-        # Return occupancy
-        return occupancy
-
+    # def occupancy_to_waitingfactor(self, occupancy=.3, nr_of_servers_chk=4, poly_order=6):
+    #     """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
+    #
+    #     # Create dataframe with data from Groenveld (2007) - Table V
+    #     utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+    #     nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    #     data = np.array([
+    #         [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+    #         [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+    #         [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+    #         [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+    #         [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+    #         [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+    #         [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+    #         [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+    #         [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+    #         ])
+    #     df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
+    #
+    #     # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+    #     target = df.loc[:, nr_of_servers_chk]
+    #     p_p = np.polyfit(target.index, target.values, poly_order)
+    #
+    #     waiting_factor = np.polyval(p_p, occupancy)
+    #     #todo: when the nr of servers > 10 the waiting factor should be set to inf (definitively more equipment needed)
+    #
+    #     # Return waiting factor
+    #     return waiting_factor
+    #
+    # def waitingfactor_to_occupancy(self, factor=.3, nr_of_servers_chk=4, poly_order=6):
+    #     """Waiting time factor (E2/E2/n Erlang queueing theory using 6th order polynomial regression)"""
+    #
+    #     # Create dataframe with data from Groenveld (2007) - Table V
+    #     utilisation = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+    #     nr_of_servers = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    #     data = np.array([
+    #         [0.0166, 0.0006, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+    #         [0.0604, 0.0065, 0.0011, 0.0002, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+    #         [0.1310, 0.0235, 0.0062, 0.0019, 0.0007, 0.0002, 0.0001, 0.0000, 0.0000, 0.0000],
+    #         [0.2355, 0.0576, 0.0205, 0.0085, 0.0039, 0.0019, 0.0009, 0.0005, 0.0003, 0.0001],
+    #         [0.3904, 0.1181, 0.0512, 0.0532, 0.0142, 0.0082, 0.0050, 0.0031, 0.0020, 0.0013],
+    #         [0.6306, 0.2222, 0.1103, 0.0639, 0.0400, 0.0265, 0.0182, 0.0128, 0.0093, 0.0069],
+    #         [1.0391, 0.4125, 0.2275, 0.1441, 0.0988, 0.0712, 0.0532, 0.0407, 0.0319, 0.0258],
+    #         [1.8653, 0.8300, 0.4600, 0.3300, 0.2300, 0.1900, 0.1400, 0.1200, 0.0900, 0.0900],
+    #         [4.3590, 2.0000, 1.2000, 0.9200, 0.6500, 0.5700, 0.4400, 0.4000, 0.3200, 0.3000]
+    #     ])
+    #     df = pd.DataFrame(data, index=utilisation, columns=nr_of_servers)
+    #
+    #     # Create a 6th order polynomial fit through the data (for nr_of_stations_chk)
+    #     target = df.loc[:, nr_of_servers_chk]
+    #     p_p = np.polyfit(target.values, target.index, poly_order)
+    #     print(p_p)
+    #
+    #     occupancy = np.polyval(p_p, factor)
+    #
+    #     # Return occupancy
+    #     return occupancy
+    #
     def waiting_time(self, year):
         """
        - Import the berth occupancy of every year
