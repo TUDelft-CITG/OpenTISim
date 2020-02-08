@@ -18,8 +18,9 @@ class System:
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=agribulk_defaults.mobile_crane_data,
                  storage_type_defaults=agribulk_defaults.silo_data,
-                 allowable_waiting_service_time_ratio=0.3, allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365,
-                 allowable_station_occupancy=0.4):
+                 allowable_waiting_service_time_ratio_berth=0.3, allowable_berth_occupancy=0.4,
+                 allowable_dwelltime=18 / 365,
+                 allowable_waiting_service_time_ratio_station=0.5, allowable_station_occupancy=0.4):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -36,9 +37,10 @@ class System:
         self.storage_type_defaults = storage_type_defaults
 
         # triggers for the various elements (berth, storage and station)
-        self.allowable_waiting_service_time_ratio = allowable_waiting_service_time_ratio
+        self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
+        self.allowable_waiting_service_time_ratio_station = allowable_waiting_service_time_ratio_station
         self.allowable_station_occupancy = allowable_station_occupancy
 
         # storage variables for revenue
@@ -188,15 +190,15 @@ class System:
 
         # get the waiting time as a factor of service time
         if berths != 0:
-            planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
-                                                                                 nr_of_servers_to_chk=berths)
+            planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
+                utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
         else:
-            planned_waiting_service_time_ratio = np.inf
+            planned_waiting_service_time_ratio_berth = np.inf
 
         if self.debug:
             print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-            print('     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+            print('     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             print('')
             print('--- Start investment analysis ----------------------')
@@ -207,8 +209,8 @@ class System:
         core.report_element(self, Quay_wall, year)
         core.report_element(self, Cyclic_Unloader, year)
 
-        # while planned_waiting_service_time_ratio is larger than self.allowable_waiting_service_time_ratio
-        while planned_waiting_service_time_ratio > self.allowable_waiting_service_time_ratio:
+        # while planned_waiting_service_time_ratio is larger than self.allowable_waiting_service_time_ratio_berth
+        while planned_waiting_service_time_ratio_berth > self.allowable_waiting_service_time_ratio_berth:
 
             # while planned waiting service time ratio is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
@@ -222,14 +224,14 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(
+                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
                         berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             # while planned waiting service time ratio is too large add a berth if a quay is needed
             berths = len(core.find_elements(self, Berth))
@@ -258,14 +260,14 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(
+                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
                         berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
@@ -273,14 +275,14 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(
+                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
                     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
                         berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
     def quay_invest(self, year, length, depth):
         """
@@ -575,13 +577,24 @@ class System:
 
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
         train_calls = self.train_call(year)
+        unloading_stations = len(core.find_elements(self, Unloading_station))
+        # get the waiting time as a factor of service time
+        if unloading_stations != 0:
+            planned_waiting_service_time_ratio_station = core.occupancy_to_waitingfactor(
+                utilisation=station_occupancy_planned, nr_of_servers_to_chk=unloading_stations)
+        else:
+            planned_waiting_service_time_ratio_station = np.inf
 
         if self.debug:
             print('     Station occupancy planned (@ start of year): {:.2f}'.format(station_occupancy_planned))
-            # print('     Station occupancy online (@ start of year): {:.2f}'.format(station_occupancy_online))
+            print('     Waiting factor (@ start of year): {:.2f}'.format(planned_waiting_service_time_ratio_station))
+            print('     Number of stations planned (@start of year): {:.2f}'.format(unloading_stations))
             print('     Number of trains (@start of year): {:.2f}'.format(train_calls))
 
-        while station_occupancy_planned > self.allowable_station_occupancy:
+        # todo: check this trigger
+        # Ijzemans (2019): "In the end, based on reference projects in eastern Europe, the loading bay was modelled
+        # using queuing theory and an assumed allowable train waiting time equal to 50 % of service time."
+        while planned_waiting_service_time_ratio_station > self.allowable_waiting_service_time_ratio_station:
             # add a station when station occupancy is too high
             if self.debug:
                 print('  *** add unloading station to elements')
@@ -613,6 +626,9 @@ class System:
             self.elements.append(station)
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+            unloading_stations = len(core.find_elements(self, Unloading_station))
+            planned_waiting_service_time_ratio_station = core.occupancy_to_waitingfactor(
+                utilisation=station_occupancy_planned, nr_of_servers_to_chk=unloading_stations)
 
     def conveyor_hinter_invest(self, year, agribulk_defaults_hinterland_conveyor_data):
         """
