@@ -1060,14 +1060,14 @@ class System:
                 if year >= element.year_online:
                     service_rate_throughput += element.effective_capacity * crane_occupancy_online
 
-            # determine time at stations planned (given the current throughput)
+            # determine time at stations planned (given the current throughput and planned service rate)
             if service_rate_planned != 0:
                 time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.service_rate
                 station_occupancy_planned = time_at_station_planned / self.operational_hours
             else:
                 station_occupancy_planned = float("inf")
 
-            # determine time at stations online (given the current throughput)
+            # determine time at stations online (given the current throughput and online service rate)
             if service_rate_online != 0:
                 time_at_station_online = service_rate_throughput * self.operational_hours / service_rate_online  # element.capacity
                 station_occupancy_online = time_at_station_online / self.operational_hours
@@ -1075,7 +1075,7 @@ class System:
                 station_occupancy_online = float("inf")
 
         else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            # if there are no unloading stations the station occupancy is 'infinite' so a station is certainly needed
             station_occupancy_planned = float("inf")
             station_occupancy_online = float("inf")
 
