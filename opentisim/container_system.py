@@ -141,7 +141,7 @@ class System:
 
             if self.debug:
                 print('')
-                print('$$$ Check horizontal transport (coupled with quay crane capacity) -----')
+                # print('$$$ Check horizontal transport (coupled with quay crane capacity) -----')
                 print('$$$ Check laden stack investments ---------------')
             self.laden_stack_invest(year)
 
@@ -467,11 +467,10 @@ class System:
         self.elements.append(crane)
 
     def horizontal_transport_invest(self, year):
-        """current strategy is to add horizontal transport as soon as a service trigger is achieved
-        - find out how much transport is planned
-        - find out how much transport is online
-        - find out how much transport is needed
-        - add transport until service_trigger is no longer exceeded
+        """current strategy is to add horizontal transport (tractors) as soon as a service trigger is achieved
+        - find out how many cranes are online and planned
+        - find out how many tractors are online and planned (each STS needs a pre-set number of tractors)
+        - add tractors until the required amount (given by the cranes) is achieved
         """
 
         # check the number of cranes
@@ -495,10 +494,10 @@ class System:
                     hor_transport_online += 1
 
         if self.debug:
-            print('     Number of STS cranes planned (@start of year): {}'.format(cranes_planned))
             print('     Number of STS cranes online (@start of year): {}'.format(cranes_online))
-            print('     Horizontal transport planned (@ start of year): {}'.format(hor_transport_planned))
+            print('     Number of STS cranes planned (@start of year): {}'.format(cranes_planned))
             print('     Horizontal transport online (@ start of year): {}'.format(hor_transport_online))
+            print('     Horizontal transport planned (@ start of year): {}'.format(hor_transport_planned))
 
         tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
         # when the total number of online horizontal transporters < total number of transporters required by the cranes
@@ -553,16 +552,15 @@ class System:
               - add stack capacity until service_trigger is no longer exceeded
         """
 
-        stack_capacity_planned, stack_capacity_online, required_capacity, \
+        stack_capacity_online, stack_capacity_planned, required_capacity, \
             total_ground_slots, laden_stack_area, reefer_slots = \
             self.laden_reefer_stack_capacity(year)
 
         if self.debug:
-            print('     Stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
             print('     Stack capacity online (@ start of year): {:.2f}'.format(stack_capacity_online))
+            print('     Stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
             print('     Stack capacity required (@ start of year): {:.2f}'.format(required_capacity))
-            print('     Total laden and reefer ground slots required (@ start of year): {:.2f}'.format(
-                total_ground_slots))
+            print('     Total laden and reefer ground slots required (@ start of year): {:.2f}'.format(total_ground_slots))
 
         while required_capacity > stack_capacity_planned:
             if self.debug:
@@ -577,25 +575,30 @@ class System:
             elif self.laden_stack == 'rs':  # Reach Stacker
                 stack = Laden_Stack(**container_defaults.rs_stack_data)
 
+            # Todo: check if this is right (shouldn't it just be reefer_perc * capacity)
             reefer_slots = (self.reefer_perc / self.laden_perc) * stack.capacity
 
             # - land use
             stack_ground_slots = stack.capacity / stack.height
-            stack.land_use = (stack_ground_slots * stack.gross_tgs) * stack.area_factor
+            stack.land_use = stack_ground_slots * stack.gross_tgs * stack.area_factor
+            #                  nr of slots    x    area per teu    x    factor
 
             # - capex
-            area = stack.length * stack.width
-            gross_tgs = stack.gross_tgs
             pavement = stack.pavement
             drainage = stack.drainage
-            area_factor = stack.area_factor
-            reefer_rack = reefer_slots * stack.reefer_rack
-            mobilisation = stack.mobilisation
             cost_of_land = self.land_price
+            gross_tgs = stack.gross_tgs
+            area = stack.length * stack.width
+            area_factor = stack.area_factor
+            mobilisation = stack.mobilisation
+            reefer_rack = reefer_slots * stack.reefer_rack
+            # Todo: check if this is right? Doesn't seem right.
             stack.capex = int(
                 (pavement + drainage + cost_of_land) * gross_tgs * area * area_factor + mobilisation + reefer_rack)
+            #                                          nr of slots x area x area factor + one time cost + rack
 
             # - opex
+            # Todo: check if this is right? Doesn't seem right.
             stack.maintenance = int((pavement + drainage) * gross_tgs * area * area_factor * stack.maintenance_perc)
 
             if year == self.startyear:
@@ -608,8 +611,9 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area, \
-            reefer_slots = self.laden_reefer_stack_capacity(year)
+            stack_capacity_online, stack_capacity_planned, required_capacity, \
+                total_ground_slots, laden_stack_area, reefer_slots = \
+                self.laden_reefer_stack_capacity(year)
 
     def empty_stack_invest(self, year):
 
@@ -620,12 +624,12 @@ class System:
                      - add stack capacity until service_trigger is no longer exceeded
                      """
 
-        empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, empty_stack_area = self.empty_stack_capacity(
-            year)
+        empty_capacity_online, empty_capacity_planned, empty_required_capacity, empty_ground_slots, empty_stack_area = \
+            self.empty_stack_capacity(year)
 
         if self.debug:
-            print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(empty_capacity_planned))
             print('     Empty stack capacity online (@ start of year): {:.2f}'.format(empty_capacity_online))
+            print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(empty_capacity_planned))
             print('     Empty stack capacity required (@ start of year): {:.2f}'.format(empty_required_capacity))
             print('     Empty ground slots required (@ start of year): {:.2f}'.format(empty_ground_slots))
 
@@ -637,7 +641,7 @@ class System:
 
             # - land use
             stack_ground_slots = empty_stack.capacity / empty_stack.height
-            empty_stack.land_use = (stack_ground_slots * empty_stack.gross_tgs) * empty_stack.area_factor
+            empty_stack.land_use = stack_ground_slots * empty_stack.gross_tgs * empty_stack.area_factor
 
             # - capex
             area = empty_stack.length * empty_stack.width
@@ -664,24 +668,22 @@ class System:
 
             self.elements.append(empty_stack)
 
-            empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, \
-            empty_stack_area = self.empty_stack_capacity(
-                year)
+            empty_capacity_online, empty_capacity_planned, empty_required_capacity, empty_ground_slots, \
+                empty_stack_area = self.empty_stack_capacity(year)
 
     def oog_stack_invest(self, year):
+        """Current strategy is to add stacks as soon as trigger is achieved
+        - find out how much stack capacity is online
+        - find out how much stack capacity is planned
+        - find out how much stack capacity is needed
+        - add stack capacity until service_trigger is no longer exceeded
+        """
 
-        """current strategy is to add stacks as soon as trigger is achieved
-                     - find out how much stack capacity is online
-                     - find out how much stack capacity is planned
-                     - find out how much stack capacity is needed
-                     - add stack capacity until service_trigger is no longer exceeded
-                     """
-
-        oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
+        oog_capacity_online, oog_capacity_planned, oog_required_capacity = self.oog_stack_capacity(year)
 
         if self.debug:
-            print('     OOG slots planned (@ start of year): {:.2f}'.format(oog_capacity_planned))
             print('     OOG slots online (@ start of year): {:.2f}'.format(oog_capacity_online))
+            print('     OOG slots planned (@ start of year): {:.2f}'.format(oog_capacity_planned))
             print('     OOG slots required (@ start of year): {:.2f}'.format(oog_required_capacity))
 
         while oog_required_capacity > (oog_capacity_planned):
@@ -718,7 +720,7 @@ class System:
 
             self.elements.append(oog_stack)
 
-            oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
+            oog_capacity_online, oog_capacity_planned, oog_required_capacity = self.oog_stack_capacity(year)
 
     def stack_equipment_invest(self, year):
         """current strategy is to add stack equipment as soon as a service trigger is achieved
@@ -839,8 +841,8 @@ class System:
             year)
 
         if self.debug:
-            print('     Gate capacity planned (@ start of year): {:.2f}'.format(gate_capacity_planned))
             print('     Gate capacity online (@ start of year): {:.2f}'.format(gate_capacity_online))
+            print('     Gate capacity planned (@ start of year): {:.2f}'.format(gate_capacity_planned))
             print('     Service rate planned (@ start of year): {:.2f}'.format(service_rate_planned))
             print('     Gate lane minutes  (@ start of year): {:.2f}'.format(total_design_gate_minutes))
 
@@ -934,7 +936,7 @@ class System:
 
     def general_services_invest(self, year):
 
-        laden_teu, empty_teu, reefer_teu, oog_teu = self.throughput_characteristics(year)
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
         throughput = laden_teu + reefer_teu + oog_teu + empty_teu
         cranes = 0
         general = 0
@@ -1017,7 +1019,7 @@ class System:
 
         """
 
-        sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+        sts_moves, tractor_moves, empty_moves, stack_moves = self.box_moves(year)
         energy_price = self.energy_price
 
         '''STS crane energy costs'''
@@ -1055,7 +1057,7 @@ class System:
                 else:
                     element.df.loc[element.df['year'] == year, 'energy'] = 0
         # reefer energy costs
-        stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area, \
+        stack_capacity_online, stack_capacity_planned,required_capacity, total_ground_slots, laden_stack_area, \
         reefer_slots = self.laden_reefer_stack_capacity(year)
 
         stacks = 0
@@ -1120,7 +1122,7 @@ class System:
     def calculate_general_labour_cost(self, year):
         '''General labour'''
         general = General_Services(**container_defaults.general_services_data)
-        laden_teu, empty_teu, reefer_teu, oog_teu = self.throughput_characteristics(year)
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
         throughput = laden_teu + reefer_teu + oog_teu + empty_teu
         labour = Labour(**container_defaults.labour_data)
 
@@ -1157,7 +1159,7 @@ class System:
                     element.df.loc[element.df['year'] == year, 'labour'] = 0
 
     def calculate_fuel_cost(self, year):
-        sts_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+        sts_moves, tractor_moves, empty_moves, stack_moves = self.box_moves(year)
         fuel_price = self.fuel_price
 
         # calculate empty handler fuel costs
@@ -1308,81 +1310,6 @@ class System:
         cash_flows['capex'].values = indirect_costs
 
     # *** Financial analyses
-    # def add_cashflow_elements(self):
-    #
-    #         cash_flows = pd.DataFrame()
-    #
-    #         # initialise cash_flows
-    #         cash_flows['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-    #         cash_flows['capex'] = 0
-    #         cash_flows['maintenance'] = 0
-    #         cash_flows['insurance'] = 0
-    #         cash_flows['energy'] = 0
-    #         cash_flows['labour'] = 0
-    #         cash_flows['fuel'] = 0
-    #         cash_flows['demurrage'] = self.demurrage
-    #         # cash_flows['revenues'] = self.revenues
-    #
-    #         # add labour component for years where revenues are not zero
-    #         for element in self.elements:
-    #             if hasattr(element, 'df'):
-    #                 for column in cash_flows.columns:
-    #                     if column in element.df.columns and column != "year":
-    #                         cash_flows[column] += element.df[column]
-    #
-    #         cash_flows.fillna(0)
-    #
-    #         # calculate WACC real cashflows
-    #         cash_flows_WACC_real = pd.DataFrame()
-    #         cash_flows_WACC_real['year'] = cash_flows['year']
-    #         for year in range(self.startyear, self.startyear + self.lifecycle):
-    #             for column in cash_flows.columns:
-    #                 if column != "year":
-    #                     cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
-    #                         cash_flows.loc[
-    #                             cash_flows[
-    #                                 'year'] == year, column] / (
-    #                                 (1 + core.WACC_real()) ** (
-    #                                 year - self.startyear))
-    #
-    #
-    #         return cash_flows, cash_flows_WACC_real
-
-    # def NPV(self):
-    #     """Gather data from Terminal elements and combine into a cash flow plot"""
-    #
-    #     # add cash flow information for each of the Terminal elements
-    #     cash_flows, cash_flows_WACC_real = self.add_cashflow_elements()
-    #
-    #     # prepare years, revenue, capex and opex for plotting
-    #     years = cash_flows_WACC_real['year'].values
-    #     # revenue = self.revenues
-    #     capex = cash_flows_WACC_real['capex'].values
-    #     opex = cash_flows_WACC_real['insurance'].values + \
-    #            cash_flows_WACC_real['maintenance'].values + \
-    #            cash_flows_WACC_real['energy'].values + \
-    #            cash_flows_WACC_real['demurrage'].values + \
-    #            cash_flows_WACC_real['fuel'].values + \
-    #            cash_flows_WACC_real['labour'].values
-    #     opex = np.nan_to_num(opex)
-    #
-    #     # prepare years, revenue, capex and opex for plotting
-    #     years = cash_flows_WACC_real['year'].values
-    #     # revenue = self.revenues
-    #     capex_normal = cash_flows['capex'].values
-    #     opex_normal = cash_flows['insurance'].values + \
-    #            cash_flows['maintenance'].values + \
-    #            cash_flows['energy'].values + \
-    #            cash_flows['demurrage'].values + \
-    #            cash_flows['fuel'].values + \
-    #            cash_flows['labour'].values
-    #     labour_normal = cash_flows['labour'].values
-    #
-    #     NPV = - capex - opex
-    #     NPV = np.sum(NPV)
-    #
-    #
-    #     return NPV, capex_normal, opex_normal, labour_normal
 
     def calculate_vessel_calls(self, year):
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
@@ -1439,7 +1366,7 @@ class System:
         reefer_teu = volume * self.reefer_perc
         oog_teu = volume * self.oog_perc
 
-        return laden_teu, empty_teu, reefer_teu, oog_teu
+        return laden_teu, reefer_teu, empty_teu, oog_teu
 
     def throughput_box(self, year):
         """
@@ -1448,21 +1375,22 @@ class System:
         """
 
         # import container throughput
-        laden_teu, empty_teu, reefer_teu, oog_teu = self.throughput_characteristics(year)
+        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
+        # instantiate terminal objexts
         laden = Container(**container_defaults.laden_container_data)
-        empty = Container(**container_defaults.empty_container_data)
         reefer = Container(**container_defaults.reefer_container_data)
+        empty = Container(**container_defaults.empty_container_data)
         oog = Container(**container_defaults.oog_container_data)
 
         laden_box = laden_teu / laden.teu_factor
-        empty_box = empty_teu / empty.teu_factor
         reefer_box = reefer_teu / reefer.teu_factor
+        empty_box = empty_teu / empty.teu_factor
         oog_box = oog_teu / oog.teu_factor
 
-        throughput_box = laden_box + empty_box + reefer_box + oog_box
+        throughput_box = laden_box + reefer_box + empty_box + oog_box
 
-        return laden_box, empty_box, reefer_box, oog_box, throughput_box
+        return laden_box, reefer_box, empty_box, oog_box, throughput_box
 
     def box_moves(self, year):
         """Calculate the box moves as input for the power and fuel consumption"""
@@ -1483,29 +1411,35 @@ class System:
         # Todo: wellicht reefer and laden nog scheiden van elkaar in alles
 
         # calculate laden and reefer stack moves
-        if self.laden_stack == 'rtg':
+        if self.laden_stack == 'rtg':  # Rubber Tired Gantry crane
             stack = Laden_Stack(**container_defaults.rtg_stack_data)
-        elif self.laden_stack == 'rmg':
+        elif self.laden_stack == 'rmg':  # Rail Mounted Gantry crane
             stack = Laden_Stack(**container_defaults.rmg_stack_data)
-        elif self.laden_stack == 'sc':
+        elif self.laden_stack == 'sc':  # Straddle Carrier
             stack = Laden_Stack(**container_defaults.sc_stack_data)
-        elif self.laden_stack == 'rs':
+        elif self.laden_stack == 'rs':  # Reach Stacker
             stack = Laden_Stack(**container_defaults.rs_stack_data)
 
-        digout_moves = (stack.height - 1) / 2  # JvBeemen
-        # The number of moves per laden box moves differs for import and export (i/e) and for transhipment (t/s)
-        moves_i_e = ((2 + stack.household + digout_moves) + ((2 + stack.household) * stack.digout_margin)) / 2
+        # The number of moves per laden box moves for transhipment (t/s)
         moves_t_s = 0.5 * ((2 + stack.household) * stack.digout_margin)
+        # The number of moves per laden box moves for import and export (i/e)
+        digout_moves = (stack.height - 1) / 2  # JvBeemen
+        moves_i_e = ((2 + stack.household + digout_moves) + ((2 + stack.household) * stack.digout_margin)) / 2
 
+        # The number of laden/reefer boxes for transhipment (t/s)
         laden_reefer_box_t_s = (laden_box + reefer_box) * self.transhipment_ratio
+        # The number of laden/reefer boxes for import and export (i/e)
         laden_reefer_box_i_e = (laden_box + reefer_box) - laden_reefer_box_t_s
 
+        # The number of moves for transhipment (t/s)
         laden_reefer_moves_t_s = laden_reefer_box_t_s * moves_t_s
+        # The number of moves for import and export (i/e)
         laden_reefer_moves_i_e = laden_reefer_box_i_e * moves_i_e
 
+        # number of stack moves is import export moves + transhipment moves
         stack_moves = laden_reefer_moves_i_e + laden_reefer_moves_t_s
 
-        return sts_moves, stack_moves, empty_moves, tractor_moves
+        return sts_moves, tractor_moves, empty_moves, stack_moves
 
     def calculate_land_use(self, year):
         """Calculate total land use by summing all land_use values of the physical terminal elements"""
@@ -1560,11 +1494,10 @@ class System:
             if year >= element.year_online:
                 stack_capacity_online += element.capacity
 
-        # determine the on-terminal total TEU/year for every throughput type (types: ladens, empties, reefers, oogs)
+        # determine the on-terminal total TEU/year for every throughput type (types: ladens, reefers, empties, oogs)
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
-        # transhipment ratio
-        # Todo: figure out what the exact reasoning is here
+        # apply the transhipment ratio to on-terminal total TEU/year for laden and reefers
         ts = self.transhipment_ratio
         laden_teu = (laden_teu * ts * 0.5) + (laden_teu * (1 - ts))
         reefer_teu = (reefer_teu * ts * 0.5) + (reefer_teu * (1 - ts))
@@ -1572,17 +1505,18 @@ class System:
         # instantiate laden, reefer and stack objects
         laden = Container(**container_defaults.laden_container_data)
         reefer = Container(**container_defaults.reefer_container_data)
-        if self.laden_stack == 'rtg':
+        if self.laden_stack == 'rtg':  # Rubber Tired Gantry crane
             stack = Laden_Stack(**container_defaults.rtg_stack_data)
-        elif self.laden_stack == 'rmg':
+        elif self.laden_stack == 'rmg':  # Rail Mounted Gantry crane
             stack = Laden_Stack(**container_defaults.rmg_stack_data)
-        elif self.laden_stack == 'sc':
+        elif self.laden_stack == 'sc':  # Straddle Carrier
             stack = Laden_Stack(**container_defaults.sc_stack_data)
-        elif self.laden_stack == 'rs':
+        elif self.laden_stack == 'rs':  # Reach Stacker
             stack = Laden_Stack(**container_defaults.rs_stack_data)
         else:
             stack = Laden_Stack(**container_defaults.rtg_stack_data)
 
+        # Todo: this doesn't seem terribly generic
         operational_days = self.operational_hours / 24
 
         # determine laden and reefer ground slots
@@ -1591,14 +1525,15 @@ class System:
         reefer_ground_slots = (((reefer_teu * reefer.peak_factor * reefer.dwell_time) / reefer.stack_occupancy) /
                                stack.height) / operational_days * stack.reefer_factor
 
+        # determine capacity (nr ground slots x height)
+        reefer_capacity = reefer_ground_slots * stack.height
+
         # determine total ground slots
         total_ground_slots = laden_ground_slots + reefer_ground_slots
-
-        reefer_capacity = reefer_ground_slots * stack.height
         required_capacity = total_ground_slots * stack.height
         laden_stack_area = total_ground_slots * stack.area_factor
 
-        return stack_capacity_planned, stack_capacity_online, required_capacity, \
+        return stack_capacity_online, stack_capacity_planned, required_capacity, \
             total_ground_slots, laden_stack_area, reefer_capacity
 
     def empty_stack_capacity(self, year):
@@ -1622,17 +1557,18 @@ class System:
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
         empty = Container(**container_defaults.empty_container_data)
-
         stack = Empty_Stack(**container_defaults.empty_stack_data)
 
-        operational_days = self.operational_hours // 24
+        operational_days = self.operational_hours / 24
+
         empty_teu = (empty_teu * ts * 0.5) + (empty_teu * (1 - ts))
+
         empty_ground_slots = empty_teu * empty.peak_factor * empty.dwell_time / empty.stack_occupancy / stack.height / operational_days
 
         empty_required_capacity = empty_ground_slots * stack.height
         empty_stack_area = empty_ground_slots * stack.area_factor
 
-        return empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, empty_stack_area
+        return empty_capacity_online, empty_capacity_planned,  empty_required_capacity, empty_ground_slots, empty_stack_area
 
     def oog_stack_capacity(self, year):
 
@@ -1666,7 +1602,7 @@ class System:
 
         oog_required_capacity = oog_spots
 
-        return oog_capacity_planned, oog_capacity_online, oog_required_capacity
+        return oog_capacity_online, oog_capacity_planned, oog_required_capacity
 
     def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
         """
@@ -1750,37 +1686,21 @@ class System:
         return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
 
     def calculate_throughput(self, year):
-        # list_of_elements = core.find_elements(self, Cyclic_Unloader)
-        # list_of_elements_berth = core.find_elements(self, Berth)
-        #
-        # # list the number of berths online
-        #
-        # # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        # service_rate_planned = 0
-        # service_rate_online = 0
-        # if list_of_elements != []:
-        #     for element in list_of_elements:
-        #         service_rate_planned += element.effective_capacity
-        #         if year >= element.year_online:
-        #             service_rate_online += element.effective_capacity
-        #
-        # return service_rate_online, service_rate_planned
+        """Find throughput (minimum of crane capacity and demand)"""
+        # intialize values to be returned
+        total_vol = 0
 
-        # laden_teu, empty_teu, oreefer_teu, og_teu = self.throughput_characteristics(year)
-        # demand = laden_teu + reefer_teu + oog_teu + empty_teu
-
+        # gather volumes from each commodity scenario
         commodities = core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                total_vol += volume
             except:
                 pass
 
-        demand = volume
-
         # find the total service rate and determine the capacity at the quay
         list_of_elements = core.find_elements(self, Cyclic_Unloader)
-        # list_of_elements_berth = core.find_elements(self, Berth)
         quay_capacity_planned = 0
         quay_capacity_online = 0
         if list_of_elements != []:
@@ -1791,48 +1711,10 @@ class System:
                     quay_capacity_online += (
                                 element.effective_capacity * self.operational_hours * self.allowable_berth_occupancy)
 
-        # # find the total laden capacity
-        # list_of_elements = core.find_elements(self, Laden_Stack)
-        # laden_capacity_planned = 0
-        # laden_capacity_online = 0
-        # if list_of_elements != []:
-        #     for element in list_of_elements:
-        #         laden_capacity_planned += element.capacity
-        #         if year >= element.year_online:
-        #             laden_capacity_online += element.capacity
-        #
-        # # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        # service_rate_planned = 0
-        # service_rate_online = 0
-        # # find the total empty capacity
-        # list_of_elements = core.find_elements(self, Empty_Stack)
-        # empty_capacity_planned = 0
-        # empty_capacity_online = 0
-        # if list_of_elements != []:
-        #     for element in list_of_elements:
-        #         service_rate_planned += element.effective_capacity
-        #         empty_capacity_planned += element.capacity
-        #         if year >= element.year_online:
-        #             service_rate_online += element.effective_capacity
-        #             empty_capacity_online += element.capacity
-        #
-        # # find the oog storage capacity
-        # list_of_elements = core.find_elements(self, OOG_Stack)
-        # oog_capacity_planned = 0
-        # oog_capacity_online = 0
-        # if list_of_elements != []:
-        #     for element in list_of_elements:
-        #         oog_capacity_planned += element.capacity
-        #         if year >= element.year_online:
-        #             oog_capacity_online += element.capacity
-        #
-        # storage_capacity_planned = laden_capacity_planned + empty_capacity_planned + oog_capacity_planned
-        # storage_capacity_online = laden_capacity_online + empty_capacity_online + oog_capacity_online
-
         if quay_capacity_online is not 0:
-            throughput_online = min(quay_capacity_online, demand)
+            throughput_online = min(quay_capacity_online, total_vol)
         else:
-            throughput_online = demand
+            throughput_online = total_vol
 
         return throughput_online
 
@@ -1886,50 +1768,6 @@ class System:
 
         return capacity_planned, capacity_online, service_rate_planend, total_design_gate_minutes
 
-    # def waiting_time(self, year):
-    #     """
-    #    - Import the berth occupancy of every year
-    #    - Find the factor for the waiting time with the E2/E/n quing theory using 4th order polynomial regression
-    #    - Waiting time is the factor times the crane occupancy
-    #    """
-    #     # todo: fix the waiting time method to use
-    #     handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-    #     berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online= self.calculate_berth_occupancy(
-    #         year, handysize_calls, handymax_calls, panamax_calls)
-    #
-    #     # find the different factors which are linked to the number of berths
-    #     berths = len(core.find_elements(self, Berth))
-    #
-    #     if berths == 1:
-    #         factor = max(0,
-    #                      79.726 * berth_occupancy_online ** 4 - 126.47 * berth_occupancy_online ** 3 + 70.660 * berth_occupancy_online ** 2 - 14.651 * berth_occupancy_online + 0.9218)
-    #     elif berths == 2:
-    #         factor = max(0,
-    #                      29.825 * berth_occupancy_online ** 4 - 46.489 * berth_occupancy_online ** 3 + 25.656 * berth_occupancy_online ** 2 - 5.3517 * berth_occupancy_online + 0.3376)
-    #     elif berths == 3:
-    #         factor = max(0,
-    #                      19.362 * berth_occupancy_online ** 4 - 30.388 * berth_occupancy_online ** 3 + 16.791 * berth_occupancy_online ** 2 - 3.5457 * berth_occupancy_online + 0.2253)
-    #     elif berths == 4:
-    #         factor = max(0,
-    #                      17.334 * berth_occupancy_online ** 4 - 27.745 * berth_occupancy_online ** 3 + 15.432 * berth_occupancy_online ** 2 - 3.2725 * berth_occupancy_online + 0.2080)
-    #     elif berths == 5:
-    #         factor = max(0,
-    #                      11.149 * berth_occupancy_online ** 4 - 17.339 * berth_occupancy_online ** 3 + 9.4010 * berth_occupancy_online ** 2 - 1.9687 * berth_occupancy_online + 0.1247)
-    #     elif berths == 6:
-    #         factor = max(0,
-    #                      10.512 * berth_occupancy_online ** 4 - 16.390 * berth_occupancy_online ** 3 + 8.8292 * berth_occupancy_online ** 2 - 1.8368 * berth_occupancy_online + 0.1158)
-    #     elif berths == 7:
-    #         factor = max(0,
-    #                      8.4371 * berth_occupancy_online ** 4 - 13.226 * berth_occupancy_online ** 3 + 7.1446 * berth_occupancy_online ** 2 - 1.4902 * berth_occupancy_online + 0.0941)
-    #     else:
-    #         # if there are no berths the occupancy is 'infinite' so a berth is certainly needed
-    #         factor = float("inf")
-    #
-    #     waiting_time_hours = factor * crane_occupancy_online * self.operational_hours / total_calls
-    #     waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
-    #
-    #     return factor, waiting_time_occupancy
-
     def check_crane_slot_available(self):
         # find number of available crane slots
         list_of_elements = core.find_elements(self, Berth)
@@ -1945,23 +1783,6 @@ class System:
             return True
         else:
             return False
-
-    # def report_element(self, Element, year):
-    #     elements = 0
-    #     elements_online = 0
-    #     element_name = []
-    #     list_of_elements = core.find_elements(self, Element)
-    #     if list_of_elements != []:
-    #         for element in list_of_elements:
-    #             element_name = element.name
-    #             elements += 1
-    #             if year >= element.year_online:
-    #                 elements_online += 1
-    #
-    #     if self.debug:
-    #         print('     a total of {} {} is online; {} total planned'.format(elements_online, element_name, elements))
-    #
-    #     return elements_online, elements
 
     # *** Plotting functions
     def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20):
@@ -2282,7 +2103,7 @@ class System:
             years.append(year)
             area.append(0)
 
-            stack_capacity_planned, stack_capacity_online, required_capacity, total_ground_slots, laden_stack_area = self.laden_reefer_stack_capacity(
+            stack_capacity_online, stack_capacity_planned,required_capacity, total_ground_slots, laden_stack_area = self.laden_reefer_stack_capacity(
                 year)
 
             for element in self.elements:

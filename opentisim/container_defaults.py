@@ -189,7 +189,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "height": 5,  # TEU
                   "length": 30,  # TEU
                   "capacity": 900,  # TEU
-                  "gross_tgs": 18,
+                  "gross_tgs": 18,  # TEU Ground Slot
                   "area_factor": 2.04,  # Based on grasshopper layout
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
@@ -210,7 +210,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "height": 5,  # TEU
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
-                  "gross_tgs": 18.67,
+                  "gross_tgs": 18.67,  # TEU Ground Slot
                   "area_factor": 2.79,  # Based on grasshopper layout
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
@@ -231,7 +231,7 @@ sc_stack_data = {"name": 'SC Stack',
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 3840,  # TEU
-                 "gross_tgs": 26.46,
+                 "gross_tgs": 26.46,  # TEU Ground Slot
                  "area_factor": 1.45,  # Based on grasshopper layout
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -252,7 +252,7 @@ rs_stack_data = {"name": 'RS Stack',
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 320,  # TEU
-                 "gross_tgs": 18,
+                 "gross_tgs": 18,  # TEU Ground Slot
                  "area_factor": 3.23,  # Based on grasshopper layout
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -283,7 +283,7 @@ empty_stack_data = {"name": 'Empty Stack',
                     "height": 6,  # TEU
                     "length": 10,  # TEU
                     "capacity": 480,  # TEU
-                    "gross_tgs": 18,
+                    "gross_tgs": 18,  # TEU Ground Slot
                     "area_factor": 2.04,  # Based on grasshopper layout
                     "pavement": 200,  # DUMMY
                     "drainage": 50,
@@ -300,7 +300,7 @@ oog_stack_data = {"name": 'OOG Stack',
                   "height": 1,  # TEU
                   "length": 10,  # TEU
                   "capacity": 100,  # TEU
-                  "gross_tgs": 64,
+                  "gross_tgs": 64,  # TEU Ground Slot
                   "area_factor": 1.05,  # Based on grasshopper layout
                   "pavement": 200,  # DUMMY
                   "drainage": 50}  # DUMMY
