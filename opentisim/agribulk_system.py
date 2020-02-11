@@ -83,6 +83,7 @@ class System:
            7. calculate PV's and aggregate to NPV
 
         """
+        # Todo: check demurrage and revenues module
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
@@ -156,7 +157,7 @@ class System:
         2004) for the berth investments.
 
         Decision recipe Berth:
-           QSC: berth_occupancy
+           QSC: berth_occupancy & allowable_waiting_service_time_ratio
            Benchmarking procedure: there is a problem if the estimated berth_occupancy triggers a waiting time over
            service time ratio that is larger than the allowed waiting time over service time ratio
               - allowable_waiting_service_time_ratio = .30 # 30% (see PIANC (2014))
@@ -187,7 +188,7 @@ class System:
         core.report_element(self, Conveyor_Hinter, year)
         core.report_element(self, Unloading_station, year)
 
-        # calculate berth occupancy and nr of berths
+        # calculate planned berth occupancy and planned nr of berths
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         berths = len(core.find_elements(self, Berth))
