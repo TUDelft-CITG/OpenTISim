@@ -405,6 +405,7 @@ class System:
         quay_conveyor_capacity_online = 0
         list_of_elements = core.find_elements(self, Conveyor_Quay)
         if list_of_elements != []:
+            # Todo: check if 'if isinstance(element, Conveyor_Quay):' is more efficient
             for element in list_of_elements:
                 quay_conveyor_capacity_planned += element.capacity_steps
                 if year >= element.year_online:
