@@ -888,7 +888,7 @@ class System:
             except:
                 pass
         if self.debug:
-            print('     Revenues (demand): {}'.format(revenues))
+            print('     Revenues (potential - given demand): {:.2f}'.format(revenues))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
@@ -904,7 +904,7 @@ class System:
         rate_throughput_volume = service_rate * self.operational_hours / total_vol
 
         if self.debug:
-            print('     Revenues (throughput): {}'.format(
+            print('     Revenues (realised - throughput): {}'.format(
                 int(service_rate * self.operational_hours * fee * safety_factor)))
 
         try:
@@ -912,6 +912,8 @@ class System:
                 min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
         except:
             pass
+
+        # todo: check if rest value is included at the end of the simulation
 
     # *** General functions
     def calculate_vessel_calls(self, year=2019):
@@ -975,17 +977,20 @@ class System:
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
         service_rate_online = 0
-        if list_of_elements != []:
+        if list_of_elements != []:  # when cranes are at least planned
             for element in list_of_elements:
                 service_rate_planned += element.effective_capacity
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
+            # calculate mooring and unmooring times for each vessel type
             time_at_berth_planned_handysize = handysize_calls * agribulk_defaults.handysize_data["mooring_time"]
             time_at_berth_planned_handymax = handymax_calls * agribulk_defaults.handymax_data["mooring_time"]
             time_at_berth_planned_panamax = panamax_calls * agribulk_defaults.panamax_data["mooring_time"]
+            # calculate the time that the cranes require to load/unload the commodity
             time_at_cranes_planned = total_vol / service_rate_planned
 
+            # add mooring/unmooring and loading/unloading times
             total_time_at_berth_planned = np.sum([
                 time_at_cranes_planned,
                 time_at_berth_planned_handysize,
@@ -996,12 +1001,15 @@ class System:
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
             crane_occupancy_planned = time_at_cranes_planned / self.operational_hours
 
-            if service_rate_online != 0:
+            if service_rate_online != 0:  # when some cranes are actually online
+                # calculate mooring and unmooring times for each vessel type
                 time_at_berth_online_handysize = handysize_calls * agribulk_defaults.handysize_data["mooring_time"]
                 time_at_berth_online_handymax = handymax_calls * agribulk_defaults.handymax_data["mooring_time"]
                 time_at_berth_online_panamax = panamax_calls * agribulk_defaults.panamax_data["mooring_time"]
+                # calculate the time that the cranes require to load/unload the commodity
                 time_at_cranes_online = total_vol / service_rate_online
 
+                # add mooring/unmooring and loading/unloading times
                 total_time_at_berth_online = np.sum([
                     time_at_cranes_online,
                     time_at_berth_online_handysize,

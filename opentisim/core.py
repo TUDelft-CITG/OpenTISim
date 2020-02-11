@@ -100,8 +100,8 @@ def add_cashflow_elements(Terminal, labour):
        cash_flows['revenues'] = 0
 
     # add labour component for years were revenues are not zero
-    cash_flows.loc[cash_flows[
-                       'revenues'] != 0, 'labour'] = labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+    cash_flows.loc[cash_flows['revenues'] != 0, 'labour'] = \
+        labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
     # todo: check the labour costs of the container terminals (they are not included now)
 
     for element in Terminal.elements:
@@ -117,11 +117,8 @@ def add_cashflow_elements(Terminal, labour):
         for column in cash_flows.columns:
             if column != "year":
                 cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
-                    cash_flows.loc[
-                        cash_flows[
-                            'year'] == year, column] / (
-                            (1 + WACC_real()) ** (
-                            year - Terminal.startyear))
+                    cash_flows.loc[cash_flows['year'] == year, column] /\
+                            ((1 + WACC_real()) ** (year - Terminal.startyear))
 
     cash_flows = cash_flows.fillna(0)
     cash_flows_WACC_real = cash_flows_WACC_real.fillna(0)
