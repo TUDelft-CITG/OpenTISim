@@ -362,29 +362,35 @@ class System:
 
     def quay_invest(self, year, length, depth):
         """
-        *** Decision recipe Quay: ***
-        QSC: quay_per_berth
-        problem evaluation: there is a problem if the quay_per_berth < 1
-        investment decisions: invest enough to make the quay_per_berth = 1
-            - adding quay will increase quay_per_berth
-            - quay_wall.length must be long enough to accommodate largest expected vessel
-            - quay_wall.depth must be deep enough to accommodate largest expected vessel
-            - quay_wall.freeboard must be high enough to accommodate largest expected vessel
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the quay investments.
+
+        Decision recipe Quay:
+           QSC: quay_per_berth
+           Benchmarking procedure (triggered in self.berth_invest): there is a problem when
+              the number of berths > the number of quays, but also while the planned waiting over service time ratio is
+              too large
+           Intervention procedure: invest enough to make sure that each quay has a berth and the planned waiting over
+           service time ratio is below the max allowable waiting over service time ratio
+              - adding quay will increase quay_per_berth
+              - quay_wall.length must be long enough to accommodate largest expected vessel
+              - quay_wall.depth must be deep enough to accommodate largest expected vessel
+              - quay_wall.freeboard must be high enough to accommodate largest expected vessel
         """
 
         if self.debug:
             print('  *** add Quay to elements')
         # add a Quay_wall element
-
         quay_wall = Quay_wall(**container_defaults.quay_wall_data)
 
         # - capex
-        unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
+        # Todo: check this. Clearly some error was introduced here (now made equal to agribulk example)
+        # unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
+        unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         apron_pavement = length * quay_wall.apron_width*quay_wall.apron_pavement
         cost_of_land = length * quay_wall.apron_width * self.land_price
-        quay_wall.capex = int(length * unit_rate + mobilisation+apron_pavement + cost_of_land)
-        # quay_wall.capex = int(apron_pavement + cost_of_land)
+        quay_wall.capex = int(length * unit_rate + mobilisation + apron_pavement + cost_of_land)
 
         # - opex
         quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
@@ -395,17 +401,23 @@ class System:
         quay_wall.land_use = length * quay_wall.apron_width
 
         # add cash flow information to quay_wall object in a dataframe
-        quay_wall = self.add_cashflow_data_to_element(quay_wall)
+        quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
 
         self.elements.append(quay_wall)
 
     def crane_invest(self, year):
-        """current strategy is to add cranes as soon as a service trigger is achieved
-        - find out how much service capacity is online
-        - find out how much service capacity is planned
-        - find out how much service capacity is needed
-        - add service capacity until service_trigger is no longer exceeded
         """
+        Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
+        Mulder, 2004) for the crane investments.
+
+        Decision recipe Crane:
+           QSC: planned waiting over service time ratio
+           Benchmarking procedure (triggered in self.berth_invest): there is a problem when the planned planned
+           waiting over service time ratio is larger than the max allowable waiting over service time ratio
+           Intervention procedure: invest until planned waiting over service time ratio is below the max allowable
+           waiting over service time ratio
+        """
+
         if self.debug:
             print('  *** add STS crane to elements')
         # add unloader object
@@ -429,16 +441,16 @@ class System:
         '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.shift = crane.crew * labour.daily_shifts
         crane.labour = crane.shift * labour.blue_collar_salary
-
+        # Todo: check if the number of shifts (crane.shift) is modelled correctly
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
-        for element in self.find_elements(Quay_wall):
+        for element in core.find_elements(self, Quay_wall):
             years_online.append(element.year_online)
         crane.year_online = max([year + crane.delivery_time, max(years_online)])
 
         # add cash flow information to quay_wall object in a dataframe
-        crane = self.add_cashflow_data_to_element(crane)
+        crane = core.add_cashflow_data_to_element(self, crane)
 
         # add object to elements
         self.elements.append(crane)

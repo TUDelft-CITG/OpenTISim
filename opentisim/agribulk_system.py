@@ -315,12 +315,15 @@ class System:
         # - capex
         unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
+        # Todo: consider adding cost of apron and cost of land here (compare containers)
         quay_wall.capex = int(length * unit_rate + mobilisation)
 
         # - opex
         quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
         quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
+
+        # Todo: consider adding a landuse section here (compare containers)
 
         # add cash flow information to quay_wall object in a dataframe
         quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
