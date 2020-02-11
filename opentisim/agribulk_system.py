@@ -12,9 +12,13 @@ from opentisim import core
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for agribulk terminals.
-    The module allows variation of the type of quay crane used and the type of storage used. Terminal development is
-    governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable station
-    occupancy."""
+
+    The module allows variation of the type of quay crane used and the type of storage used.
+
+    Terminal development is governed by the following triggers:
+    - the allowable waiting time as a factor of service time at the berth
+    - the allowable dwell time of cargo in the storage area, and
+    - the allowable waiting time as a factor of service time at the station."""
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=agribulk_defaults.mobile_crane_data,
                  storage_type_defaults=agribulk_defaults.silo_data,
@@ -1082,16 +1086,18 @@ class System:
         return station_occupancy_planned, station_occupancy_online
 
     def check_crane_slot_available(self):
+        # find number of available crane slots
         list_of_elements = core.find_elements(self, Berth)
         slots = 0
         for element in list_of_elements:
             slots += element.max_cranes
 
+        # create a list of all quay unloaders
         list_of_elements_1 = core.find_elements(self, Cyclic_Unloader)
         list_of_elements_2 = core.find_elements(self, Continuous_Unloader)
         list_of_elements = list_of_elements_1 + list_of_elements_2
 
-        # when there are more slots than installed cranes ...
+        # when there are more available slots than installed cranes there are still slots available (True)
         if slots > len(list_of_elements):
             return True
         else:

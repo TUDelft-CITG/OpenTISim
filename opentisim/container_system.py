@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 
 # opentisim package
 from opentisim.container_objects import *
@@ -11,14 +12,26 @@ from opentisim import core
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for container terminals.
-    The module allows variation of the type of quay crane used and the type of stack equipment used. Terminal
-    development is governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable
-    station occupancy."""
+
+    The module allows variation of the type of quay crane used and the type of quay crane used and the type of stack
+    equipment used.
+
+    Terminal development is governed by the following triggers:
+    - the allowable waiting time as a factor of service time at the berth, and
+    - the distribution ratios (adding up to 1) for:
+        - ladens
+        - empties
+        - reefers
+        - out of gauges
+    - the transhipment ratio
+    """
+
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=7500, debug=False, elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data,
                  stack_equipment='rs', laden_stack='rs',
-                 allowable_berth_occupancy=0.6,
-                 laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.69,
+                 allowable_waiting_service_time_ratio_berth=0.1, allowable_berth_occupancy=0.6,
+                 laden_perc=0.80, empty_perc=0.05, reefer_perc=0.1, oog_perc=0.05,
+                 transhipment_ratio=0.69,
                  energy_price=0.17, fuel_price=1, land_price=0):
         # time inputs
         self.startyear = startyear
@@ -37,6 +50,7 @@ class System:
         self.laden_stack = laden_stack
 
         # triggers for the various elements (berth, storage and station)
+        self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
 
         # container split
@@ -45,7 +59,7 @@ class System:
         self.empty_perc = empty_perc
         self.oog_perc = oog_perc
 
-        #modal split
+        # modal split
         self.transhipment_ratio = transhipment_ratio
 
         # fuel and electrical power price
