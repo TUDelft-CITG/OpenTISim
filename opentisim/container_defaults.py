@@ -200,7 +200,6 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
 
-
 rmg_stack_data = {"name": 'RMG Stack',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,
@@ -221,7 +220,6 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "consumption": 4,  # kWh per active reefer
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
-
 
 sc_stack_data = {"name": 'SC Stack',
                  "ownership": 'Terminal operator',

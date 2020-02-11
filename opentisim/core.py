@@ -93,6 +93,7 @@ def add_cashflow_elements(Terminal, labour):
     cash_flows['insurance'] = 0
     cash_flows['energy'] = 0
     cash_flows['labour'] = 0
+    cash_flows['fuel'] = 0
     cash_flows['demurrage'] = Terminal.demurrage
     try:
        cash_flows['revenues'] = Terminal.revenues
@@ -140,6 +141,7 @@ def NPV(Terminal, labour):
            cash_flows_WACC_real['maintenance'].values + \
            cash_flows_WACC_real['energy'].values + \
            cash_flows_WACC_real['demurrage'].values + \
+           cash_flows_WACC_real['fuel'].values + \
            cash_flows_WACC_real['labour'].values
 
     # collect all results in a pandas dataframe
