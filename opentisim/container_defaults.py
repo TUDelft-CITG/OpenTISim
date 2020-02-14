@@ -48,13 +48,14 @@ quay_wall_data = {"name": 'Quay_01',
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "freeboard": 4,
+                  "Gijt_constant_2": 2800,
                   "Gijt_constant": 757.20,
                   "Gijt_coefficient": 1.2878,
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
-                  "apron_width": 65.5,
-                  "apron_pavement": 125} # all values from Ijzermans, 2019, P 91
+                  "apron_width": 65.5,  # see PIANC (2014b), p 62
+                  "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
 
 
 # *** Default inputs: Berth class ***
@@ -143,7 +144,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                         "utilisation": 0.80,
                         "fuel_consumption": 2,  # liter per box move
                         "productivity": 1,
-                        "required": 5,
+                        "required": 5,  # typical 3 - 6 see PIANC 2014b, p 58
                         "non_essential_moves": 1.2}  # todo input value for tractor productivity
 
 # *** Default inputs: Container class
@@ -151,28 +152,28 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 laden_container_data = {"name": 'Laden container',
                         "type": 'laden_container',
                         "teu_factor": 1.55,
-                        "dwell_time": 4,
+                        "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.8}
 
 reefer_container_data = {"name": 'Empty container',
                          "type": 'empty_container',
                          "teu_factor": 1.75,
-                         "dwell_time": 4,
+                         "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                          "peak_factor": 1.2,
                          "stack_occupancy": 0.8}
 
 empty_container_data = {"name": 'Empty container',
                         "type": 'empty_container',
                         "teu_factor": 1.55,
-                        "dwell_time": 10,
+                        "dwell_time": 10,  # days, PIANC (2014b) p 64 (10 - 20)
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.7}
 
 oog_container_data = {"name": 'OOG container',
                       "type": 'oog_container',
                       "teu_factor": 1.55,
-                      "dwell_time": 5,
+                      "dwell_time": 5,  # days, PIANC (2014b) p 64 (5 - 10)
                       "peak_factor": 1.2,
                       "stack_occupancy": 0.9}
 
@@ -188,7 +189,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "height": 5,  # TEU
                   "length": 30,  # TEU
                   "capacity": 900,  # TEU
-                  "gross_tgs": 18,
+                  "gross_tgs": 18,  # TEU Ground Slot
                   "area_factor": 2.04,  # Based on grasshopper layout
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
@@ -198,7 +199,6 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "consumption": 4,  # kWh per active reefer
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
-
 
 rmg_stack_data = {"name": 'RMG Stack',
                   "ownership": 'Terminal operator',
@@ -210,7 +210,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "height": 5,  # TEU
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
-                  "gross_tgs": 18.67,
+                  "gross_tgs": 18.67,  # TEU Ground Slot
                   "area_factor": 2.79,  # Based on grasshopper layout
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
@@ -220,7 +220,6 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "consumption": 4,  # kWh per active reefer
                   "reefer_rack": 3500,
                   "reefers_present": 0.5}  # per reefer spot
-
 
 sc_stack_data = {"name": 'SC Stack',
                  "ownership": 'Terminal operator',
@@ -232,7 +231,7 @@ sc_stack_data = {"name": 'SC Stack',
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 3840,  # TEU
-                 "gross_tgs": 26.46,
+                 "gross_tgs": 26.46,  # TEU Ground Slot
                  "area_factor": 1.45,  # Based on grasshopper layout
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -253,7 +252,7 @@ rs_stack_data = {"name": 'RS Stack',
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 320,  # TEU
-                 "gross_tgs": 18,
+                 "gross_tgs": 18,  # TEU Ground Slot
                  "area_factor": 3.23,  # Based on grasshopper layout
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -284,7 +283,7 @@ empty_stack_data = {"name": 'Empty Stack',
                     "height": 6,  # TEU
                     "length": 10,  # TEU
                     "capacity": 480,  # TEU
-                    "gross_tgs": 18,
+                    "gross_tgs": 18,  # TEU Ground Slot
                     "area_factor": 2.04,  # Based on grasshopper layout
                     "pavement": 200,  # DUMMY
                     "drainage": 50,
@@ -301,7 +300,7 @@ oog_stack_data = {"name": 'OOG Stack',
                   "height": 1,  # TEU
                   "length": 10,  # TEU
                   "capacity": 100,  # TEU
-                  "gross_tgs": 64,
+                  "gross_tgs": 64,  # TEU Ground Slot
                   "area_factor": 1.05,  # Based on grasshopper layout
                   "pavement": 200,  # DUMMY
                   "drainage": 50}  # DUMMY
@@ -417,7 +416,7 @@ empty_handler_data = {"name": 'Empty Handler',
                       "crew": 1,
                       "salary": 35_000,  # dummy
                       "fuel_consumption": 1.5,
-                      "required": 5}
+                      "required": 6}
 
 
 # *** Default inputs: Commodity class ***

@@ -12,13 +12,19 @@ from opentisim import core
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for agribulk terminals.
-    The module allows variation of the type of quay crane used and the type of storage used. Terminal development is
-    governed by three triggers: the allowable berth occupancy, the allowable dwell time and the allowable station
-    occupancy."""
+
+    The module allows variation of the type of quay crane used and the type of storage used.
+
+    Terminal development is governed by the following triggers:
+    - the allowable waiting time as a factor of service time at the berth
+    - the allowable dwell time of cargo in the storage area, and
+    - the allowable waiting time as a factor of service time at the station."""
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  crane_type_defaults=agribulk_defaults.mobile_crane_data,
                  storage_type_defaults=agribulk_defaults.silo_data,
-                 allowable_waiting_service_time_ratio=0.3, allowable_berth_occupancy=0.4, allowable_dwelltime=18 / 365, allowable_station_occupancy=0.4):
+                 allowable_waiting_service_time_ratio_berth=0.3, allowable_berth_occupancy=0.4,
+                 allowable_dwelltime=18 / 365,
+                 allowable_waiting_service_time_ratio_station=0.5, allowable_station_occupancy=0.4):
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -35,12 +41,14 @@ class System:
         self.storage_type_defaults = storage_type_defaults
 
         # triggers for the various elements (berth, storage and station)
-        self.allowable_waiting_service_time_ratio = allowable_waiting_service_time_ratio
+        self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
+        self.allowable_waiting_service_time_ratio_station = allowable_waiting_service_time_ratio_station
         self.allowable_station_occupancy = allowable_station_occupancy
 
         # storage variables for revenue
+        self.demurrage = []
         self.revenues = []
 
     # *** Overall terminal investment strategy for terminal class.
@@ -51,22 +59,23 @@ class System:
         a number of investment triggers.
 
         Generic approaches based on:
-        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2020). Ports and Waterways.
+        - PIANC. 2014. Master plans for the development of existing ports. MarCom - Report 158, PIANC
+        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (in preparation). Ports and Waterways.
           Navigating the changing world. TU Delft, Delft, The Netherlands.
         - Van Koningsveld, M. and J. P. M. Mulder. 2004. Sustainable Coastal Policy Developments in the
           Netherlands. A Systematic Approach Revealed. Journal of Coastal Research 20(2), pp. 375-385
 
-        Specific application based on:
+        Specific application based on (modifications have been applied where deemed an improvement):
         - Ijzermans, W., 2019. Terminal design optimization. Adaptive agribulk terminal planning
           in light of an uncertain future. Master's thesis. Delft University of Technology, Netherlands.
           URL: http://resolver.tudelft.nl/uuid:7ad9be30-7d0a-4ece-a7dc-eb861ae5df24.
 
-        The simulate method applies frame of reference style decisions while stepping through each year of the terminal
-        lifecycle and check if investment is needed (in light of strategic objective, operational objective,
-        QSC, decision recipe, intervention method):
+        The simulate method applies Frame of Reference style decisions while stepping through each year of the terminal
+        lifecycle and checks if investments are needed (in light of strategic objective, operational objective,
+        QSC, decision recipe and intervention method):
 
            1. for each year estimate the anticipated vessel arrivals based on the expected demand
-           2. for each year evaluate which investment are needed given the strategic and operational objectives
+           2. for each year evaluate which investments are needed given the strategic and operational objectives
            3. for each year calculate the energy costs (requires insight in realized demands)
            4. for each year calculate the demurrage costs (requires insight in realized demands)
            5. for each year calculate terminal revenues (requires insight in realized demands)
@@ -74,6 +83,7 @@ class System:
            7. calculate PV's and aggregate to NPV
 
         """
+        # Todo: check demurrage and revenues module
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
@@ -138,7 +148,7 @@ class System:
         # cash_flows, cash_flows_WACC_real = core.add_cashflow_elements(self)
 
         # 7. calculate PV's and aggregate to NPV
-        core.NPV(self,  Labour(**agribulk_defaults.labour_data))
+        core.NPV(self, Labour(**agribulk_defaults.labour_data))
 
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year, handysize, handymax, panamax):
@@ -147,17 +157,21 @@ class System:
         2004) for the berth investments.
 
         Decision recipe Berth:
-           QSC: berth_occupancy
-           Benchmarking procedure: there is a problem if the estimated berth_occupancy > allowable_berth_occupancy
-              - allowable_berth_occupancy = .40 # 40%
+           QSC: berth_occupancy & allowable_waiting_service_time_ratio
+           Benchmarking procedure: there is a problem if the estimated berth_occupancy triggers a waiting time over
+           service time ratio that is larger than the allowed waiting time over service time ratio
+              - allowable_waiting_service_time_ratio = .30 # 30% (see PIANC (2014))
               - a berth needs:
-                 - a quay
+                 - a quay, and
                  - cranes (min:1 and max: max_cranes)
               - berth occupancy depends on:
                  - total_calls, total_vol and time needed for mooring, unmooring
                  - total_service_capacity as delivered by the cranes
-           Intervention procedure: invest enough to make the berth_occupancy < allowable_berth_occupancy
-              - adding berths, quays and cranes decreases berth_occupancy_rate
+              - berth occupancy in combination with nr of berths is used to lookup the waiting over service time ratio
+           Intervention procedure: invest enough to make the planned waiting service time ratio < allowable waiting
+              service time ratio
+              - adding berths, quays and cranes decreases berth_occupancy_rate (and increases the number of servers)
+                which will yield a smaller waiting time over service time ratio
         """
 
         # report on the status of all berth elements
@@ -174,22 +188,22 @@ class System:
         core.report_element(self, Conveyor_Hinter, year)
         core.report_element(self, Unloading_station, year)
 
-        # calculate berth occupancy and nr of berths
+        # calculate planned berth occupancy and planned nr of berths
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
         berths = len(core.find_elements(self, Berth))
 
         # get the waiting time as a factor of service time
         if berths != 0:
-            planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+            planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
+                utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
         else:
-            planned_waiting_service_time_ratio = np.inf
+            planned_waiting_service_time_ratio_berth = np.inf
 
         if self.debug:
             print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-            print('     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+            print('     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             print('')
             print('--- Start investment analysis ----------------------')
@@ -200,8 +214,8 @@ class System:
         core.report_element(self, Quay_wall, year)
         core.report_element(self, Cyclic_Unloader, year)
 
-        # while planned_waiting_service_time_ratio is larger than self.allowable_waiting_service_time_ratio
-        while planned_waiting_service_time_ratio > self.allowable_waiting_service_time_ratio:
+        # while planned_waiting_service_time_ratio is larger than self.allowable_waiting_service_time_ratio_berth
+        while planned_waiting_service_time_ratio_berth > self.allowable_waiting_service_time_ratio_berth:
 
             # while planned waiting service time ratio is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
@@ -215,21 +229,22 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
+                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
-                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                        berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
+                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
-            # while planned berth occupancy is too large add a berth if a quay is needed
+            # while planned waiting service time ratio is too large add a berth if a quay is needed
             berths = len(core.find_elements(self, Berth))
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
-                length_v = max(agribulk_defaults.handysize_data["LOA"],agribulk_defaults.handymax_data["LOA"],
+                length_v = max(agribulk_defaults.handysize_data["LOA"], agribulk_defaults.handymax_data["LOA"],
                               agribulk_defaults.panamax_data["LOA"])  # average size
-                draft = max(agribulk_defaults.handysize_data["draft"],agribulk_defaults.handymax_data["draft"],
+                draft = max(agribulk_defaults.handysize_data["draft"], agribulk_defaults.handymax_data["draft"],
                            agribulk_defaults.panamax_data["draft"])
 
                 # apply PIANC 2014:
@@ -250,13 +265,14 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
+                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
-                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                        berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
+                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
@@ -264,13 +280,14 @@ class System:
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
                     self.calculate_berth_occupancy(year, handysize, handymax, panamax)
-                planned_waiting_service_time_ratio = core.occupancy_to_waitingfactor(occupancy=berth_occupancy_planned,
-                                                                                 nr_of_servers_chk=berths, poly_order=6)
+                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
+                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f}'.format(
-                        planned_waiting_service_time_ratio, self.allowable_waiting_service_time_ratio))
+                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                        berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
+                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
     def quay_invest(self, year, length, depth):
         """
@@ -280,9 +297,10 @@ class System:
         Decision recipe Quay:
            QSC: quay_per_berth
            Benchmarking procedure (triggered in self.berth_invest): there is a problem when
-              the number of berths > the number of quays, but also while the planned berth occupancy is too large
-           Intervention procedure: invest enough to make sure that each quay has a berth and the planned berth
-              occupancy is below the max allowable berth occupancy
+              the number of berths > the number of quays, but also while the planned waiting over service time ratio is
+              too large
+           Intervention procedure: invest enough to make sure that each quay has a berth and the planned waiting over
+           service time ratio is below the max allowable waiting over service time ratio
               - adding quay will increase quay_per_berth
               - quay_wall.length must be long enough to accommodate largest expected vessel
               - quay_wall.depth must be deep enough to accommodate largest expected vessel
@@ -294,15 +312,22 @@ class System:
         # add a Quay_wall element
         quay_wall = Quay_wall(**agribulk_defaults.quay_wall_data)
 
+        # add length and depth to the elements (useful for later reporting)
+        quay_wall.length = length
+        quay_wall.depth = depth
+
         # - capex
         unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
+        # Todo: consider adding cost of apron and cost of land here (compare containers)
         quay_wall.capex = int(length * unit_rate + mobilisation)
 
         # - opex
         quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
         quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
+
+        # Todo: consider adding a landuse section here (compare containers)
 
         # add cash flow information to quay_wall object in a dataframe
         quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
@@ -315,12 +340,12 @@ class System:
         Mulder, 2004) for the crane investments.
 
         Decision recipe Crane:
-           QSC: berth_occupancy_planned
-           Benchmarking procedure (triggered in self.berth_invest): there is a problem when the planned berth occupancy
-              is larger than the max allowable berth occupancy
-           Intervention procedure: invest until planned berth occupancy is below the max allowable berth occupancy
+           QSC: planned waiting over service time ratio
+           Benchmarking procedure (triggered in self.berth_invest): there is a problem when the planned planned
+           waiting over service time ratio is larger than the max allowable waiting over service time ratio
+           Intervention procedure: invest until planned waiting over service time ratio is below the max allowable
+           waiting over service time ratio
         """
-
 
         if self.debug:
             print('  *** add Harbour crane to elements')
@@ -341,9 +366,9 @@ class System:
         crane.insurance = unit_rate * crane.insurance_perc
         crane.maintenance = unit_rate * crane.maintenance_perc
 
-        # labour
+        # - labour
         labour = Labour(**agribulk_defaults.labour_data)
-        '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
+        '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length'''
         crane.shift = ((crane.crew * self.operational_hours) / (
                 labour.shift_length * labour.annual_shifts))
         crane.labour = crane.shift * labour.operational_salary
@@ -369,7 +394,6 @@ class System:
         basically the quay conveyors follow what happens on the berth)
 
         Decision recipe quay conveyor:
-        Decision recipe quay conveyor:
            QSC: quay_conveyor_capacity planned
            Benchmarking procedure: there is a problem when the quay_conveyor_capacity_planned is smaller than the
            quay_crane_service_rate_planned
@@ -385,6 +409,7 @@ class System:
         quay_conveyor_capacity_online = 0
         list_of_elements = core.find_elements(self, Conveyor_Quay)
         if list_of_elements != []:
+            # Todo: check if 'if isinstance(element, Conveyor_Quay):' is more efficient
             for element in list_of_elements:
                 quay_conveyor_capacity_planned += element.capacity_steps
                 if year >= element.year_online:
@@ -418,15 +443,13 @@ class System:
             conveyor_quay.insurance = capacity * unit_rate * conveyor_quay.insurance_perc
             conveyor_quay.maintenance = capacity * unit_rate * conveyor_quay.maintenance_perc
 
-            #   labour
+            # - labour
             labour = Labour(**agribulk_defaults.labour_data)
             conveyor_quay.shift = (
                     (conveyor_quay.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             conveyor_quay.labour = conveyor_quay.shift * labour.operational_salary
 
-            # # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-
-            # there should always be a new crane in the planning
+            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
             new_crane_years = [x for x in years_online if x >= year]
 
             # find the maximum online year of Conveyor_Quay or make it []
@@ -462,15 +485,15 @@ class System:
         Mulder, 2004) for the storage investments.
 
         Operational objective: maintain a storage capacity that is large enough to at least contain one time the largest
-        vessel call size or that is large enough to accommodate a maximum allowable dwelltime.
+        vessel call size or that is large enough to accommodate a maximum allowable dwell time plus 10 percent.
 
         Decision recipe storage:
            QSC: storage_capacity
            Benchmarking procedure: there is a problem when the storage_capacity is too small to store one time the
            largest call size or when it is too small to allow for a predetermined max allowable dwell time
-              The max allowable dwelltime is here determined as 5% of the annual demand, increased by 10% (PIANC, 2014)
+              The max allowable dwell time is here determined as 5% of the annual demand, increased by 10% (PIANC, 2014)
            Intervention procedure: the intervention strategy is to add storage until the benchmarking trigger is
-           achieved. The trigger is the max of one call size, or the volume derived from the dwelltime requirement.
+           achieved. The trigger is the max of one call size, or the volume derived from the dwell time requirement.
         """
 
         # from all storage objects sum online capacity
@@ -492,17 +515,17 @@ class System:
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
             self.calculate_berth_occupancy(year, handysize, handymax, panamax)
 
-        # here an important bug was fixed! Previous code took the max call size of all vessesls,
+        # here an important bug was fixed! Previous code took the max call size of all vessels,
         # but it needs to take the max call size of the vessels that actually arrive
         max_vessel_call_size = 0
         for vessel in core.find_elements(self, Vessel):
-            if vessel.type=='Handysize' and handysize != 0:
+            if vessel.type == 'Handysize' and handysize != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
-            if vessel.type=='Handymax' and handymax != 0:
+            if vessel.type == 'Handymax' and handymax != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
-            if vessel.type=='Panamax' and panamax != 0:
+            if vessel.type == 'Panamax' and panamax != 0:
                 max_vessel_call_size = max(vessel.call_size, max_vessel_call_size)
 
         # find the total service rate,
@@ -532,7 +555,7 @@ class System:
             storage.insurance = storage.unit_rate * storage.capacity * storage.insurance_perc
             storage.maintenance = storage.unit_rate * storage.capacity * storage.maintenance_perc
 
-            #   labour**agribulk_defaults
+            # - labour
             labour = Labour(**agribulk_defaults.labour_data)
             storage.shift = ((storage.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             storage.labour = storage.shift * labour.operational_salary
@@ -567,13 +590,24 @@ class System:
 
         station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
         train_calls = self.train_call(year)
+        unloading_stations = len(core.find_elements(self, Unloading_station))
+        # get the waiting time as a factor of service time
+        if unloading_stations != 0:
+            planned_waiting_service_time_ratio_station = core.occupancy_to_waitingfactor(
+                utilisation=station_occupancy_planned, nr_of_servers_to_chk=unloading_stations)
+        else:
+            planned_waiting_service_time_ratio_station = np.inf
 
         if self.debug:
             print('     Station occupancy planned (@ start of year): {:.2f}'.format(station_occupancy_planned))
-            # print('     Station occupancy online (@ start of year): {:.2f}'.format(station_occupancy_online))
+            print('     Waiting factor (@ start of year): {:.2f}'.format(planned_waiting_service_time_ratio_station))
+            print('     Number of stations planned (@start of year): {:.2f}'.format(unloading_stations))
             print('     Number of trains (@start of year): {:.2f}'.format(train_calls))
 
-        while station_occupancy_planned > self.allowable_station_occupancy:
+        # todo: check this trigger
+        # Ijzemans (2019): "In the end, based on reference projects in eastern Europe, the loading bay was modelled
+        # using queuing theory and an assumed allowable train waiting time equal to 50 % of service time."
+        while planned_waiting_service_time_ratio_station > self.allowable_waiting_service_time_ratio_station:
             # add a station when station occupancy is too high
             if self.debug:
                 print('  *** add unloading station to elements')
@@ -589,7 +623,7 @@ class System:
             station.insurance = unit_rate * station.insurance_perc
             station.maintenance = unit_rate * station.maintenance_perc
 
-            #   labour
+            # - labour
             labour = Labour(**agribulk_defaults.labour_data)
             station.shift = ((station.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             station.labour = station.shift * labour.operational_salary
@@ -605,6 +639,9 @@ class System:
             self.elements.append(station)
 
             station_occupancy_planned, station_occupancy_online = self.calculate_station_occupancy(year)
+            unloading_stations = len(core.find_elements(self, Unloading_station))
+            planned_waiting_service_time_ratio_station = core.occupancy_to_waitingfactor(
+                utilisation=station_occupancy_planned, nr_of_servers_to_chk=unloading_stations)
 
     def conveyor_hinter_invest(self, year, agribulk_defaults_hinterland_conveyor_data):
         """
@@ -686,7 +723,7 @@ class System:
                         hinter_conveyor_capacity_online,
                         hinter_conveyor_capacity_planned - hinter_conveyor_capacity_online))
 
-    # *** Energy costs, demurrage costs and revenue calculation methods
+    # *** Various cost calculation methods
     def calculate_energy_cost(self, year):
         """
         1. calculate the value of the total demand in year (demand * handling fee)
@@ -785,7 +822,7 @@ class System:
         berths = len(core.find_elements(self, Berth))
 
         waiting_factor = \
-            core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths)
 
         waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
@@ -864,7 +901,7 @@ class System:
             except:
                 pass
         if self.debug:
-            print('     Revenues (demand): {}'.format(revenues))
+            print('     Revenues (potential - given demand): {:.2f}'.format(revenues))
 
         handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
@@ -880,7 +917,7 @@ class System:
         rate_throughput_volume = service_rate * self.operational_hours / total_vol
 
         if self.debug:
-            print('     Revenues (throughput): {}'.format(
+            print('     Revenues (realised - throughput): {}'.format(
                 int(service_rate * self.operational_hours * fee * safety_factor)))
 
         try:
@@ -888,6 +925,8 @@ class System:
                 min(revenues * safety_factor, service_rate * self.operational_hours * fee * safety_factor))
         except:
             pass
+
+        # todo: check if rest value is included at the end of the simulation
 
     # *** General functions
     def calculate_vessel_calls(self, year=2019):
@@ -951,17 +990,20 @@ class System:
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
         service_rate_online = 0
-        if list_of_elements != []:
+        if list_of_elements != []:  # when cranes are at least planned
             for element in list_of_elements:
                 service_rate_planned += element.effective_capacity
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
+            # calculate mooring and unmooring times for each vessel type
             time_at_berth_planned_handysize = handysize_calls * agribulk_defaults.handysize_data["mooring_time"]
             time_at_berth_planned_handymax = handymax_calls * agribulk_defaults.handymax_data["mooring_time"]
             time_at_berth_planned_panamax = panamax_calls * agribulk_defaults.panamax_data["mooring_time"]
+            # calculate the time that the cranes require to load/unload the commodity
             time_at_cranes_planned = total_vol / service_rate_planned
 
+            # add mooring/unmooring and loading/unloading times
             total_time_at_berth_planned = np.sum([
                 time_at_cranes_planned,
                 time_at_berth_planned_handysize,
@@ -972,12 +1014,15 @@ class System:
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
             crane_occupancy_planned = time_at_cranes_planned / self.operational_hours
 
-            if service_rate_online != 0:
+            if service_rate_online != 0:  # when some cranes are actually online
+                # calculate mooring and unmooring times for each vessel type
                 time_at_berth_online_handysize = handysize_calls * agribulk_defaults.handysize_data["mooring_time"]
                 time_at_berth_online_handymax = handymax_calls * agribulk_defaults.handymax_data["mooring_time"]
                 time_at_berth_online_panamax = panamax_calls * agribulk_defaults.panamax_data["mooring_time"]
+                # calculate the time that the cranes require to load/unload the commodity
                 time_at_cranes_online = total_vol / service_rate_online
 
+                # add mooring/unmooring and loading/unloading times
                 total_time_at_berth_online = np.sum([
                     time_at_cranes_online,
                     time_at_berth_online_handysize,
@@ -1028,14 +1073,14 @@ class System:
                 if year >= element.year_online:
                     service_rate_throughput += element.effective_capacity * crane_occupancy_online
 
-            # determine time at stations planned (given the current throughput)
+            # determine time at stations planned (given the current throughput and planned service rate)
             if service_rate_planned != 0:
                 time_at_station_planned = service_rate_throughput * self.operational_hours / service_rate_planned  # element.service_rate
                 station_occupancy_planned = time_at_station_planned / self.operational_hours
             else:
                 station_occupancy_planned = float("inf")
 
-            # determine time at stations online (given the current throughput)
+            # determine time at stations online (given the current throughput and online service rate)
             if service_rate_online != 0:
                 time_at_station_online = service_rate_throughput * self.operational_hours / service_rate_online  # element.capacity
                 station_occupancy_online = time_at_station_online / self.operational_hours
@@ -1043,23 +1088,25 @@ class System:
                 station_occupancy_online = float("inf")
 
         else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            # if there are no unloading stations the station occupancy is 'infinite' so a station is certainly needed
             station_occupancy_planned = float("inf")
             station_occupancy_online = float("inf")
 
         return station_occupancy_planned, station_occupancy_online
 
     def check_crane_slot_available(self):
+        # find number of available crane slots
         list_of_elements = core.find_elements(self, Berth)
         slots = 0
         for element in list_of_elements:
             slots += element.max_cranes
 
+        # create a list of all quay unloaders
         list_of_elements_1 = core.find_elements(self, Cyclic_Unloader)
         list_of_elements_2 = core.find_elements(self, Continuous_Unloader)
         list_of_elements = list_of_elements_1 + list_of_elements_2
 
-        # when there are more slots than installed cranes ...
+        # when there are more available slots than installed cranes there are still slots available (True)
         if slots > len(list_of_elements):
             return True
         else:
@@ -1089,7 +1136,7 @@ class System:
         return train_calls
 
     # *** Plotting functions
-    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20):
+    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20, demand_step=100_000):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -1212,6 +1259,9 @@ class System:
                             max(conveyors_hinterland), max(conveyors_hinterland)])
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
         ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
+
+        ax2.set_yticks([x for x in range(0, np.max(demand["demand"]) + demand_step, demand_step)])
+        ax2.set_yticklabels([int(x) for x in range(0, np.max(demand["demand"]) + demand_step, demand_step)], fontsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
