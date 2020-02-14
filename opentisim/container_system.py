@@ -524,11 +524,11 @@ class System:
                 tractor.shift = tractor.crew * labour.daily_shifts
                 tractor.labour = tractor.shift * labour.blue_collar_salary
 
-                if year == self.startyear:
-                    # Todo: check why this is needed/logical
-                    tractor.year_online = year + tractor.delivery_time + 1
-                else:
-                    tractor.year_online = year + tractor.delivery_time
+                # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
+                years_online = []
+                for element in core.find_elements(self, Quay_wall):
+                    years_online.append(element.year_online)
+                tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
 
                 # add cash flow information to tractor object in a dataframe
                 tractor = core.add_cashflow_data_to_element(self, tractor)
@@ -2103,8 +2103,9 @@ class System:
             years.append(year)
             area.append(0)
 
-            stack_capacity_online, stack_capacity_planned,required_capacity, total_ground_slots, laden_stack_area = self.laden_reefer_stack_capacity(
-                year)
+            stack_capacity_online, stack_capacity_planned, required_capacity, \
+                total_ground_slots, laden_stack_area, reefer_capacity = \
+                self.laden_reefer_stack_capacity(year)
 
             for element in self.elements:
                 if isinstance(element, Laden_Stack):
