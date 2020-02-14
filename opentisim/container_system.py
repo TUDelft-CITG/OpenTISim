@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
+
 
 # opentisim package
 from opentisim.container_objects import *
@@ -878,16 +878,22 @@ class System:
         """
 
         sts_cranes_online = 0
+        sts_cranes_planned = 0
         stack_equipment_online = 0
+        stack_equipment_planned = 0
         stacks_online = 0
+        stacks_planned = 0
         for element in self.elements:
             if isinstance(element, Cyclic_Unloader):
+                sts_cranes_planned += 1
                 if year >= element.year_online:
                     sts_cranes_online += 1
             if isinstance(element, Stack_Equipment):
+                stack_equipment_planned += 1
                 if year >= element.year_online:
                     stack_equipment_online += 1
             if isinstance(element, Laden_Stack):
+                stacks_planned += 1
                 if year >= element.year_online:
                     stacks_online += 1
 
@@ -903,81 +909,50 @@ class System:
         if self.debug:
             print('     Number of stack equipment online (@ start of year): {}'.format(stack_equipment_online))
 
+        # the rtg, sc and rs are coupled with the STS cranes, the rmg with the stack
         if (self.stack_equipment == 'rtg' or
                 self.stack_equipment == 'sc' or
                 self.stack_equipment == 'rs'):
-            while sts_cranes_online > (stack_equipment_online / stack_equipment.required):
+            governing_object = sts_cranes_planned
+        elif self.stack_equipment == 'rmg':
+            governing_object = stacks_planned
 
-                # add stack equipment when not enough to serve number of STS cranes
-                if self.debug:
-                    print('  *** add stack equipment to elements')
+        # Todo: is seems that the distinction between rtg, sc and rs and rmg is not functional
+        while governing_object * stack_equipment.required > stack_equipment_planned:
 
-                # - capex
-                unit_rate = stack_equipment.unit_rate
-                mobilisation = stack_equipment.mobilisation
-                stack_equipment.capex = int(unit_rate + mobilisation)
+            # add stack equipment when not enough to serve number of STS cranes
+            if self.debug:
+                print('  *** add stack equipment to elements')
 
-                # - opex # todo calculate moves for energy costs
-                stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
-                stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
+            # - capex
+            unit_rate = stack_equipment.unit_rate
+            mobilisation = stack_equipment.mobilisation
+            stack_equipment.capex = int(unit_rate + mobilisation)
 
-                #   labour
-                labour = Labour(**container_defaults.labour_data)
-                stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-                stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
+            # - opex # todo calculate moves for energy costs
+            stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
+            stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
 
-                # apply proper timing for the crane to come online
-                # in the same year as the first Quay_wall or a new Berth
-                years_online = []
-                for element in core.find_elements(self, Laden_Stack):
-                    years_online.append(element.year_online)
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
+            stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
-                stack_equipment.year_online = max([year + stack_equipment.delivery_time, max(years_online)])
+            # apply proper timing for the crane to come online
+            # year + delivery time or in the year as the last laden stack
+            years_online = []
+            for element in core.find_elements(self, Laden_Stack):
+                years_online.append(element.year_online)
 
-                # add cash flow information to tractor object in a dataframe
-                stack_equipment = core.add_cashflow_data_to_element(self, stack_equipment)
+            stack_equipment.year_online = max([year + stack_equipment.delivery_time, max(years_online)])
 
-                self.elements.append(stack_equipment)
+            # add cash flow information to tractor object in a dataframe
+            stack_equipment = core.add_cashflow_data_to_element(self, stack_equipment)
 
-                list_of_elements_stack_equipment = core.find_elements(self, Stack_Equipment)
-                stack_equipment_online = len(list_of_elements_stack_equipment)
+            self.elements.append(stack_equipment)
 
-        if self.stack_equipment == 'rmg':
-            while stacks_online > (stack_equipment_online * 0.5):
-
-                # add stack equipment when not enough to serve number of STS cranes
-                if self.debug:
-                    print('  *** add stack equipment to elements')
-
-                # - capex
-                unit_rate = stack_equipment.unit_rate
-                mobilisation = stack_equipment.mobilisation
-                stack_equipment.capex = int(unit_rate + mobilisation)
-
-                # - opex # todo calculate moves for energy costs
-                stack_equipment.insurance = unit_rate * stack_equipment.insurance_perc
-                stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
-
-                #   labour
-                labour = Labour(**container_defaults.labour_data)
-                stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
-                stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
-
-                # apply proper timing for the crane to come online
-                # in the same year as the first Quay_wall or a new Berth
-                years_online = []
-                for element in core.find_elements(self, Laden_Stack):
-                    years_online.append(element.year_online)
-
-                stack_equipment.year_online = max([year + stack_equipment.delivery_time, max(years_online)])
-
-                # add cash flow information to tractor object in a dataframe
-                stack_equipment = core.add_cashflow_data_to_element(self, stack_equipment)
-
-                self.elements.append(stack_equipment)
-
-                list_of_elements_stack_equipment = core.find_elements(self, Stack_Equipment)
-                stack_equipment_online = len(list_of_elements_stack_equipment)
+            # add one to planned stack equipment (important for while loop)
+            stack_equipment_planned += 1
 
     def empty_handler_invest(self, year):
         """current strategy is to add empty hanlders as soon as a service trigger is achieved
@@ -986,18 +961,15 @@ class System:
         - find out how many empty handlers are needed
         - add empty handlers until service_trigger is no longer exceeded
         """
-        list_of_elements_empty_handler = core.find_elements(self, Empty_Handler)
-        list_of_elements_sts = core.find_elements(self, Cyclic_Unloader)
-        sts_cranes = len(list_of_elements_sts)
-        empty_handler_online = len(list_of_elements_empty_handler)
-
-        empty_handler = Empty_Handler(**container_defaults.empty_handler_data)
+        sts_cranes_planned = len(core.find_elements(self, Cyclic_Unloader))
+        empty_handlers_planned = len(core.find_elements(self, Empty_Handler))
 
         if self.debug:
-            # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
-            print('     Empty handlers online (@ start of year): {}'.format(empty_handler_online))
+            print('     Empty handlers planned (@ start of year): {}'.format(empty_handlers_planned))
 
-        while sts_cranes > (empty_handler_online / empty_handler.required):
+        # object needs to be instantiated here so that empty_handler.required may be determined
+        empty_handler = Empty_Handler(**container_defaults.empty_handler_data)
+        while sts_cranes_planned * empty_handler.required > empty_handlers_planned:
             # add a tractor when not enough to serve number of STS cranes
             if self.debug:
                 print('  *** add empty handler to elements')
@@ -1015,26 +987,20 @@ class System:
             empty_handler.shift = empty_handler.crew * labour.daily_shifts
             empty_handler.labour = empty_handler.shift * labour.blue_collar_salary
 
-            # apply proper timing for the crane to come online
-            # in the same year as the first Quay_wall or a new Berth
+            # apply proper timing for the empty handler to come online
+            # year + empty_handler.delivery_time or last Empty_Stack, which ever is largest
             years_online = []
             for element in core.find_elements(self, Empty_Stack):
                 years_online.append(element.year_online)
 
             empty_handler.year_online = max([year + empty_handler.delivery_time, max(years_online)])
 
-            # if year == self.startyear:
-            #     empty_handler.year_online = year + empty_handler.delivery_time + 1
-            # else:
-            #     empty_handler.year_online = year + empty_handler.delivery_time
-
             # add cash flow information to tractor object in a dataframe
             empty_handler = core.add_cashflow_data_to_element(self, empty_handler)
 
             self.elements.append(empty_handler)
 
-            list_of_elements_empty_handler = core.find_elements(self, Empty_Handler)
-            empty_handler_online = len(list_of_elements_empty_handler)
+            empty_handlers_planned += 1
 
     def gate_invest(self, year):
         """current strategy is to add gates as soon as trigger is achieved
@@ -1044,8 +1010,8 @@ class System:
               - add gate capacity until service_trigger is no longer exceeded
               """
 
-        gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(
-            year)
+        gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = \
+            self.calculate_gate_minutes(year)
 
         if self.debug:
             print('     Gate capacity online (@ start of year): {:.2f}'.format(gate_capacity_online))
@@ -1058,8 +1024,6 @@ class System:
                 print('  *** add gate to elements')
 
             gate = Gate(**container_defaults.gate_data)
-
-            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
             # - land use
             gate.land_use = gate.area
@@ -1089,8 +1053,8 @@ class System:
 
             self.elements.append(gate)
 
-            gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(
-                year)
+            gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = \
+                self.calculate_gate_minutes(year)
 
     def general_services_invest(self, year):
 
@@ -1760,48 +1724,51 @@ class System:
         - Occupancy is total_minutes_at_gate per hour divided by 1 hour
         """
 
-        # list all gate objects in system
+        # find the online and planned Gate capacity
         list_of_elements = core.find_elements(self, Gate)
-
-        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        capacity_planned = 0
-        capacity_online = 0
+        gate_capacity_planned = 0
+        gate_capacity_online = 0
         total_design_gate_minutes = 0
         if list_of_elements != []:
             for element in list_of_elements:
-                capacity_planned += element.capacity
+                gate_capacity_planned += element.capacity
                 if year >= element.year_online:
-                    capacity_online += element.capacity
+                    gate_capacity_online += element.capacity
 
             # estimate time at gate lanes
             '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
-            Every gate is 60 minutes, which is the capacity. Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
+            Every gate is 60 minutes, which is the capacity. 
+            Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
 
             ''' Calculate the total throughput in TEU per year'''
             laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
 
-            import_box_moves = (throughput_box * (
-                        1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
-            export_box_moves = (throughput_box * (
-                        1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
+            # half of the transhipment moves is import and half is export
+            import_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
+            export_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
             weeks_year = 52
 
+            # instantiate a Gate object
             gate = Gate(**container_defaults.gate_data)
 
-            design_exit_gate_minutes = import_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
-                                       gate.exit_inspection_time * gate.design_capacity
+            # Todo: this really needs to be checked
+            design_exit_gate_minutes = import_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
+                gate.peak_day * gate.peak_hour * \
+                gate.exit_inspection_time * gate.design_capacity
 
-            design_entry_gate_minutes = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * \
-                                        gate.entry_inspection_time * gate.design_capacity
+            # Todo: this really needs to be checked
+            design_entry_gate_minutes = export_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
+                gate.peak_day * gate.peak_hour * \
+                gate.entry_inspection_time * gate.design_capacity
 
             total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
 
-            service_rate_planend = total_design_gate_minutes / capacity_planned
+            service_rate_planned = total_design_gate_minutes / gate_capacity_planned
 
         else:
-            service_rate_planend = float("inf")
+            service_rate_planned = float("inf")
 
-        return capacity_planned, capacity_online, service_rate_planend, total_design_gate_minutes
+        return gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes
 
     def check_crane_slot_available(self):
         # find number of available crane slots
