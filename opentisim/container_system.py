@@ -541,9 +541,6 @@ class System:
                     print('     a total of {} tractors is online; {} tractors still pending'.format(
                         hor_transport_online, hor_transport_planned - hor_transport_online))
 
-        # Todo: check why this return statement is needed (and if it needs planned or online values)
-        return cranes_planned
-
     def laden_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
               - find out how much stack capacity is planned
