@@ -54,8 +54,8 @@ quay_wall_data = {"name": 'Quay_01',
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
-                  "apron_width": 65.5,
-                  "apron_pavement": 125} # all values from Ijzermans, 2019, P 91
+                  "apron_width": 65.5,  # see PIANC (2014b), p 62
+                  "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
 
 
 # *** Default inputs: Berth class ***
@@ -144,7 +144,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                         "utilisation": 0.80,
                         "fuel_consumption": 2,  # liter per box move
                         "productivity": 1,
-                        "required": 5,
+                        "required": 5,  # typical 3 - 6 see PIANC 2014b, p 58
                         "non_essential_moves": 1.2}  # todo input value for tractor productivity
 
 # *** Default inputs: Container class
@@ -152,28 +152,28 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
 laden_container_data = {"name": 'Laden container',
                         "type": 'laden_container',
                         "teu_factor": 1.55,
-                        "dwell_time": 4,
+                        "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.8}
 
 reefer_container_data = {"name": 'Empty container',
                          "type": 'empty_container',
                          "teu_factor": 1.75,
-                         "dwell_time": 4,
+                         "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                          "peak_factor": 1.2,
                          "stack_occupancy": 0.8}
 
 empty_container_data = {"name": 'Empty container',
                         "type": 'empty_container',
                         "teu_factor": 1.55,
-                        "dwell_time": 10,
+                        "dwell_time": 10,  # days, PIANC (2014b) p 64 (10 - 20)
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.7}
 
 oog_container_data = {"name": 'OOG container',
                       "type": 'oog_container',
                       "teu_factor": 1.55,
-                      "dwell_time": 5,
+                      "dwell_time": 5,  # days, PIANC (2014b) p 64 (5 - 10)
                       "peak_factor": 1.2,
                       "stack_occupancy": 0.9}
 
