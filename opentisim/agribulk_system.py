@@ -1132,7 +1132,7 @@ class System:
         return train_calls
 
     # *** Plotting functions
-    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20):
+    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20, demand_step=100_000):
         """Gather data from Terminal and plot which elements come online when"""
 
         # collect elements to add to plot
@@ -1255,6 +1255,9 @@ class System:
                             max(conveyors_hinterland), max(conveyors_hinterland)])
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
         ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
+
+        ax2.set_yticks([x for x in range(0, np.max(demand["demand"]) + demand_step, demand_step)])
+        ax2.set_yticklabels([int(x) for x in range(0, np.max(demand["demand"]) + demand_step, demand_step)], fontsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),

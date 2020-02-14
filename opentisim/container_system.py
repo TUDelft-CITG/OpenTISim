@@ -602,10 +602,16 @@ class System:
             # Todo: check if this is right? Doesn't seem right.
             stack.maintenance = int((pavement + drainage) * gross_tgs * area * area_factor * stack.maintenance_perc)
 
-            if year == self.startyear:
-                stack.year_online = year + stack.delivery_time + 1
-            else:
-                stack.year_online = year + stack.delivery_time
+            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
+            years_online = []
+            for element in core.find_elements(self, Quay_wall):
+                years_online.append(element.year_online)
+            stack.year_online = max([year + stack.delivery_time, max(years_online)])
+
+            # if year == self.startyear:
+            #     stack.year_online = year + stack.delivery_time + 1
+            # else:
+            #     stack.year_online = year + stack.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             stack = core.add_cashflow_data_to_element(self, stack)
@@ -1800,7 +1806,7 @@ class System:
             return False
 
     # *** Plotting functions
-    def terminal_elements_plot(self, width=0.08, alpha=0.6, fontsize=20):
+    def terminal_elements_plot(self, width=0.08, alpha=0.6, fontsize=20, demand_step=50_000):
         """Gather data from Terminal and plot which elements come online when"""
         years = []
         berths = []
@@ -1922,8 +1928,8 @@ class System:
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 10)])
         ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 10)], fontsize=fontsize)
 
-        ax2.set_yticks([x for x in range(0, np.max(demand["demand"])+50_000, 50_000)])
-        ax2.set_yticklabels([int(x) for x in range(0, np.max(demand["demand"])+50_000, 50_000)], fontsize=fontsize)
+        ax2.set_yticks([x for x in range(0, np.max(demand["demand"]) + demand_step, demand_step)])
+        ax2.set_yticklabels([int(x) for x in range(0, np.max(demand["demand"]) + demand_step, demand_step)], fontsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
