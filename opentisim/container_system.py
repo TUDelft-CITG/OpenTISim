@@ -137,42 +137,42 @@ class System:
 
             if self.debug:
                 print('')
-                print('$$$ Check horizontal transport (coupled with quay crane capacity) -----')
+                print('$$$ Check horizontal transport (coupled with quay crane presence) -----------')
             self.horizontal_transport_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check laden and reefer stack investments -------------------------')
+                print('$$$ Check laden and reefer stack investments (coupled with demand) ----------')
             self.laden_reefer_stack_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check empty stack investments ---------------')
+                print('$$$ Check empty stack investments (coupled with demand) ---------------------')
             self.empty_stack_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check stack investments ----------------------')
+                print('$$$ Check oog stack investments (coupled with demand) -----------------------')
             self.oog_stack_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check equipment investment -------------------')
+                print('$$$ Check stacking equipment investment (coupled with quay crane presence) --')
             self.stack_equipment_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check empty handlers -------------------------')
+                print('$$$ Check empty handlers (coupled with quay crane presence) -----------------')
             self.empty_handler_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check gate investments -----------------------')
+                print('$$$ Check gate investments (coupled with quay crane presence) ---------------')
             self.gate_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check general services -----------------------')
+                print('$$$ Check general services --------------------------------------------------')
             self.general_services_invest(year)
 
         # 3. for each year calculate the general labour, fuel and energy costs (requires insight in realized demands)
@@ -474,8 +474,8 @@ class System:
     def horizontal_transport_invest(self, year):
         """current strategy is to add horizontal transport (tractors) as soon as a service trigger is achieved
         - find out how many cranes are online and planned
-        - find out how many tractors are online and planned (each STS needs a pre-set number of tractors)
-        - add tractors until the required amount (given by the cranes) is achieved
+        - find out how many tractors trailers are online and planned (each STS needs a pre-set number of tractors trailers)
+        - add tractor trailers until the required amount (given by the cranes) is achieved
         """
 
         # check the number of cranes
@@ -504,7 +504,9 @@ class System:
             print('     Horizontal transport online (@ start of year): {}'.format(hor_transport_online))
             print('     Horizontal transport planned (@ start of year): {}'.format(hor_transport_planned))
 
+        # object needs to be instantiated here so that tractor.required may be determined
         tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+
         # when the total number of online horizontal transporters < total number of transporters required by the cranes
         if self.stack_equipment != 'sc':
 
@@ -534,7 +536,7 @@ class System:
                 # years_online = []
                 # for element in core.find_elements(self, Quay_wall):
                 #     years_online.append(element.year_online)
-                years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+                years_online = [element.year_online for element in core.find_elements(self, Cyclic_Unloader)]
                 tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
 
                 # add cash flow information to tractor object in a dataframe
@@ -610,7 +612,7 @@ class System:
             stack.maintenance = int((pavement + drainage) * gross_tgs * area * area_factor * stack.maintenance_perc)
 
             # apply proper timing for the crane to come online
-            # in the same year as the first Quay_wall or a new Berth
+            # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
             years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
             stack.year_online = max([year + stack.delivery_time, max(years_online)])
 
@@ -724,7 +726,7 @@ class System:
                 (pavement + drainage) * gross_tgs * area * area_factor * empty_stack.maintenance_perc)
 
             # apply proper timing for the crane to come online
-            # in the same year as the first Quay_wall or a new Berth
+            # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
             years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
             empty_stack.year_online = max([year + empty_stack.delivery_time, max(years_online)])
 
@@ -816,7 +818,7 @@ class System:
             oog_stack.land_use = stack_ground_slots * oog_stack.gross_tgs
 
             # apply proper timing for the crane to come online
-            # in the same year as the first Quay_wall or a new Berth
+            # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
             years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
             oog_stack.year_online = max([year + oog_stack.delivery_time, max(years_online)])
 
