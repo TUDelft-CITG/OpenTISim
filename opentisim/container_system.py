@@ -329,6 +329,8 @@ class System:
                 draft = max(container_defaults.handysize_data["draft"], container_defaults.handymax_data["draft"],
                             container_defaults.panamax_data["draft"])
 
+                quay_wall = Quay_wall(**container_defaults.quay_wall_data)
+
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
                 if quay_walls == 0:
@@ -341,7 +343,6 @@ class System:
                     length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
                 # - depth
-                quay_wall = Quay_wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
@@ -393,6 +394,10 @@ class System:
             print('  *** add Quay to elements')
         # add a Quay_wall element
         quay_wall = Quay_wall(**container_defaults.quay_wall_data)
+
+        # add length and depth to the elements (useful for later reporting)
+        quay_wall.length = length
+        quay_wall.depth = depth
 
         # - capex
         # Todo: check this. Clearly some error was introduced here (now made equal to agribulk example)
@@ -525,9 +530,11 @@ class System:
                 tractor.labour = tractor.shift * labour.blue_collar_salary
 
                 # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-                years_online = []
-                for element in core.find_elements(self, Quay_wall):
-                    years_online.append(element.year_online)
+                # [element.year_online for element in core.find_elements(self, Quay_wall)]
+                # years_online = []
+                # for element in core.find_elements(self, Quay_wall):
+                #     years_online.append(element.year_online)
+                years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
                 tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
 
                 # add cash flow information to tractor object in a dataframe
@@ -538,7 +545,7 @@ class System:
                 hor_transport_planned += 1
 
                 if self.debug:
-                    print('     a total of {} tractor trailers is online; {} tractors still pending'.format(
+                    print('     a total of {} tractor trailers is online; {} tractor trailers still pending'.format(
                         hor_transport_online, hor_transport_planned - hor_transport_online))
 
     def laden_reefer_stack_invest(self, year):
@@ -602,16 +609,10 @@ class System:
             # Todo: check if this is right? Doesn't seem right.
             stack.maintenance = int((pavement + drainage) * gross_tgs * area * area_factor * stack.maintenance_perc)
 
-            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-            years_online = []
-            for element in core.find_elements(self, Quay_wall):
-                years_online.append(element.year_online)
+            # apply proper timing for the crane to come online
+            # in the same year as the first Quay_wall or a new Berth
+            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
             stack.year_online = max([year + stack.delivery_time, max(years_online)])
-
-            # if year == self.startyear:
-            #     stack.year_online = year + stack.delivery_time + 1
-            # else:
-            #     stack.year_online = year + stack.delivery_time
 
             # add cash flow information to quay_wall object in a dataframe
             stack = core.add_cashflow_data_to_element(self, stack)
@@ -722,10 +723,10 @@ class System:
             empty_stack.maintenance = int(
                 (pavement + drainage) * gross_tgs * area * area_factor * empty_stack.maintenance_perc)
 
-            if year == self.startyear:
-                empty_stack.year_online = year + empty_stack.delivery_time + 1
-            else:
-                empty_stack.year_online = year + empty_stack.delivery_time
+            # apply proper timing for the crane to come online
+            # in the same year as the first Quay_wall or a new Berth
+            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+            empty_stack.year_online = max([year + empty_stack.delivery_time, max(years_online)])
 
             # add cash flow information to quay_wall object in a dataframe
             empty_stack = core.add_cashflow_data_to_element(self, empty_stack)
@@ -814,13 +815,13 @@ class System:
             stack_ground_slots = oog_stack.capacity / oog_stack.height
             oog_stack.land_use = stack_ground_slots * oog_stack.gross_tgs
 
-            if year == self.startyear:
-                oog_stack.year_online = year + oog_stack.delivery_time + 1
-            else:
-                oog_stack.year_online = year + oog_stack.delivery_time
+            # apply proper timing for the crane to come online
+            # in the same year as the first Quay_wall or a new Berth
+            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+            oog_stack.year_online = max([year + oog_stack.delivery_time, max(years_online)])
 
-                # add cash flow information to quay_wall object in a dataframe
-                oog_stack = core.add_cashflow_data_to_element(self, oog_stack)
+            # add cash flow information to quay_wall object in a dataframe
+            oog_stack = core.add_cashflow_data_to_element(self, oog_stack)
 
             self.elements.append(oog_stack)
 
@@ -874,22 +875,19 @@ class System:
         - add equipment until service_trigger is no longer exceeded
         """
 
-        cranes = 0
-        equipment = 0
-        stack = 0
+        sts_cranes_online = 0
+        stack_equipment_online = 0
+        stacks_online = 0
         for element in self.elements:
             if isinstance(element, Cyclic_Unloader):
                 if year >= element.year_online:
-                    cranes += 1
+                    sts_cranes_online += 1
             if isinstance(element, Stack_Equipment):
                 if year >= element.year_online:
-                    equipment += 1
+                    stack_equipment_online += 1
             if isinstance(element, Laden_Stack):
                 if year >= element.year_online:
-                    stack += 1
-
-        sts_cranes = cranes
-        stack_equipment_online = equipment
+                    stacks_online += 1
 
         if self.stack_equipment == 'rtg':
             stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
@@ -906,7 +904,7 @@ class System:
         if (self.stack_equipment == 'rtg' or
                 self.stack_equipment == 'sc' or
                 self.stack_equipment == 'rs'):
-            while sts_cranes > (stack_equipment_online // stack_equipment.required):
+            while sts_cranes_online > (stack_equipment_online / stack_equipment.required):
 
                 # add stack equipment when not enough to serve number of STS cranes
                 if self.debug:
@@ -926,10 +924,13 @@ class System:
                 stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
                 stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
-                if year == self.startyear:
-                    stack_equipment.year_online = year + stack_equipment.delivery_time + 1
-                else:
-                    stack_equipment.year_online = year + stack_equipment.delivery_time
+                # apply proper timing for the crane to come online
+                # in the same year as the first Quay_wall or a new Berth
+                years_online = []
+                for element in core.find_elements(self, Laden_Stack):
+                    years_online.append(element.year_online)
+
+                stack_equipment.year_online = max([year + stack_equipment.delivery_time, max(years_online)])
 
                 # add cash flow information to tractor object in a dataframe
                 stack_equipment = core.add_cashflow_data_to_element(self, stack_equipment)
@@ -940,7 +941,7 @@ class System:
                 stack_equipment_online = len(list_of_elements_stack_equipment)
 
         if self.stack_equipment == 'rmg':
-            while stack > (stack_equipment_online * 0.5):
+            while stacks_online > (stack_equipment_online * 0.5):
 
                 # add stack equipment when not enough to serve number of STS cranes
                 if self.debug:
@@ -960,10 +961,13 @@ class System:
                 stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
                 stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
-                if year == self.startyear:
-                    stack_equipment.year_online = year + stack_equipment.delivery_time + 1
-                else:
-                    stack_equipment.year_online = year + stack_equipment.delivery_time
+                # apply proper timing for the crane to come online
+                # in the same year as the first Quay_wall or a new Berth
+                years_online = []
+                for element in core.find_elements(self, Laden_Stack):
+                    years_online.append(element.year_online)
+
+                stack_equipment.year_online = max([year + stack_equipment.delivery_time, max(years_online)])
 
                 # add cash flow information to tractor object in a dataframe
                 stack_equipment = core.add_cashflow_data_to_element(self, stack_equipment)
@@ -991,7 +995,7 @@ class System:
             # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
             print('     Empty handlers online (@ start of year): {}'.format(empty_handler_online))
 
-        while sts_cranes > (empty_handler_online // empty_handler.required):
+        while sts_cranes > (empty_handler_online / empty_handler.required):
             # add a tractor when not enough to serve number of STS cranes
             if self.debug:
                 print('  *** add empty handler to elements')
@@ -1009,10 +1013,18 @@ class System:
             empty_handler.shift = empty_handler.crew * labour.daily_shifts
             empty_handler.labour = empty_handler.shift * labour.blue_collar_salary
 
-            if year == self.startyear:
-                empty_handler.year_online = year + empty_handler.delivery_time + 1
-            else:
-                empty_handler.year_online = year + empty_handler.delivery_time
+            # apply proper timing for the crane to come online
+            # in the same year as the first Quay_wall or a new Berth
+            years_online = []
+            for element in core.find_elements(self, Empty_Stack):
+                years_online.append(element.year_online)
+
+            empty_handler.year_online = max([year + empty_handler.delivery_time, max(years_online)])
+
+            # if year == self.startyear:
+            #     empty_handler.year_online = year + empty_handler.delivery_time + 1
+            # else:
+            #     empty_handler.year_online = year + empty_handler.delivery_time
 
             # add cash flow information to tractor object in a dataframe
             empty_handler = core.add_cashflow_data_to_element(self, empty_handler)
@@ -1891,7 +1903,7 @@ class System:
                label="oog stack", color=colors[6], edgecolor='darkgrey')
         ax1.bar([x - offset + 7 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
                label="stack equipment", color=colors[7], edgecolor='darkgrey')
-        ax1.bar([x - offset + 8 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
+        ax1.bar([x - offset + 8 * width for x in years], empty_handler, zorder=1, width=width, alpha=alpha,
                label="empty handlers", color=colors[8], edgecolor='darkgrey')
         ax1.bar([x - offset + 9 * width for x in years], gates, zorder=1, width=width, alpha=alpha,
                label="gates", color=colors[9], edgecolor='darkgrey')
@@ -1924,7 +1936,7 @@ class System:
         max_elements = max([max(berths), max(quays), max(cranes),
                             max(tractor_trailer), max(laden_reefer_stack),
                             max(empty_stack), max(oog_stack),
-                            max(stack_equipment), max(gates)])
+                            max(stack_equipment), max(empty_handler), max(gates)])
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 10)])
         ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 10)], fontsize=fontsize)
 

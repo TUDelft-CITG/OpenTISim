@@ -416,7 +416,7 @@ empty_handler_data = {"name": 'Empty Handler',
                       "crew": 1,
                       "salary": 35_000,  # dummy
                       "fuel_consumption": 1.5,
-                      "required": 5}
+                      "required": 6}
 
 
 # *** Default inputs: Commodity class ***

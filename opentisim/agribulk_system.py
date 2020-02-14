@@ -312,6 +312,10 @@ class System:
         # add a Quay_wall element
         quay_wall = Quay_wall(**agribulk_defaults.quay_wall_data)
 
+        # add length and depth to the elements (useful for later reporting)
+        quay_wall.length = length
+        quay_wall.depth = depth
+
         # - capex
         unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
         mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
