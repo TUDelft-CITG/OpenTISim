@@ -142,9 +142,8 @@ class System:
 
             if self.debug:
                 print('')
-                # print('$$$ Check horizontal transport (coupled with quay crane capacity) -----')
-                print('$$$ Check laden stack investments ---------------')
-            self.laden_stack_invest(year)
+                print('$$$ Check laden and reefer stack investments -------------------------')
+            self.laden_reefer_stack_invest(year)
 
             if self.debug:
                 print('')
@@ -507,7 +506,7 @@ class System:
             while cranes_planned * tractor.required > hor_transport_planned:
                 # add a tractor to elements
                 if self.debug:
-                    print('  *** add tractor to elements')
+                    print('  *** add tractor trailer to elements')
                 tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
                 # - capex
@@ -539,10 +538,10 @@ class System:
                 hor_transport_planned += 1
 
                 if self.debug:
-                    print('     a total of {} tractors is online; {} tractors still pending'.format(
+                    print('     a total of {} tractor trailers is online; {} tractors still pending'.format(
                         hor_transport_online, hor_transport_planned - hor_transport_online))
 
-    def laden_stack_invest(self, year):
+    def laden_reefer_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
               - find out how much stack capacity is planned
               - find out how much stack capacity is online
@@ -687,16 +686,13 @@ class System:
                      - add stack capacity until service_trigger is no longer exceeded
                      """
 
-        empty_capacity_online, empty_capacity_planned, empty_required_capacity, empty_ground_slots, empty_stack_area = \
-            self.empty_stack_capacity(year)
+        empty_capacity_planned, empty_capacity_required = self.empty_stack_capacity(year)
 
         if self.debug:
-            print('     Empty stack capacity online (@ start of year): {:.2f}'.format(empty_capacity_online))
             print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(empty_capacity_planned))
-            print('     Empty stack capacity required (@ start of year): {:.2f}'.format(empty_required_capacity))
-            print('     Empty ground slots required (@ start of year): {:.2f}'.format(empty_ground_slots))
+            print('     Empty stack capacity required (@ start of year): {:.2f}'.format(empty_capacity_required))
 
-        while empty_required_capacity > empty_capacity_planned:
+        while empty_capacity_required > empty_capacity_planned:
             if self.debug:
                 print('  *** add empty stack to elements')
 
@@ -731,44 +727,51 @@ class System:
 
             self.elements.append(empty_stack)
 
-            empty_capacity_online, empty_capacity_planned, empty_required_capacity, empty_ground_slots, \
-                empty_stack_area = self.empty_stack_capacity(year)
+            empty_capacity_planned, empty_capacity_required = self.empty_stack_capacity(year)
 
     def empty_stack_capacity(self, year):
         """
         - #todo beschrijving empty stack
         """
 
-        list_of_elements = core.find_elements(self, Empty_Stack)
         # find the total stack capacity
-
+        list_of_elements = core.find_elements(self, Empty_Stack)
         empty_capacity_planned = 0
         empty_capacity_online = 0
-        empty_required_capacity = 0
         for element in list_of_elements:
             empty_capacity_planned += element.capacity
             if year >= element.year_online:
                 empty_capacity_online += element.capacity
 
-        ts = self.transhipment_ratio
-
+        # determine the on-terminal total TEU/year for every throughput type (types: ladens, reefers, empties, oogs)
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
-
-        empty = Container(**container_defaults.empty_container_data)
-        stack = Empty_Stack(**container_defaults.empty_stack_data)
-
-        operational_days = self.operational_hours / 24
 
         # Transhipment containers are counted twice in berth throughput calculations – once off the ship and once on the
         # ship – but are counted only once in the yard capacity calculations. PIANC (2014b), p 63
+        # total positions = half of the amount that it transhipped + the full amount of what is not transhipped
+        ts = self.transhipment_ratio
         empty_teu = (empty_teu * ts * 0.5) + (empty_teu * (1 - ts))
 
-        empty_ground_slots = empty_teu * empty.peak_factor * empty.dwell_time / empty.stack_occupancy / stack.height / operational_days
+        # instantiate laden, reefer and stack objects
+        empty = Container(**container_defaults.empty_container_data)
+        stack = Empty_Stack(**container_defaults.empty_stack_data)
 
-        empty_required_capacity = empty_ground_slots * stack.height
+        # calculate operational days
+        operational_days = self.operational_hours / 24
+
+        # determine empty ground slots
+        #  total nr of containers to be stacked divided by stack occupancy increases nr of containers to be stacked
+        #  increased total nr of containers divided by stack height you get a number of ground slots
+        #  if you divide the total nr of ground slots by operational days, you get the number of ground slots you need
+        empty_ground_slots = (((empty_teu * empty.peak_factor * empty.dwell_time) / empty.stack_occupancy) /
+                              stack.height) / operational_days
+
+        empty_capacity_required = empty_ground_slots * stack.height
+
+        # Todo: check how this area factor compares with the element by element calculated area
         empty_stack_area = empty_ground_slots * stack.area_factor
 
-        return empty_capacity_online, empty_capacity_planned,  empty_required_capacity, empty_ground_slots, empty_stack_area
+        return empty_capacity_planned, empty_capacity_required
 
     def oog_stack_invest(self, year):
         """Current strategy is to add stacks as soon as trigger is achieved
