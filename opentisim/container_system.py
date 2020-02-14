@@ -1971,23 +1971,23 @@ class System:
         quay_stack_empty_oog_gate = np.add(quay_stack_empty_oog, gate_land_use).tolist()
 
         # generate plot
-        # generate plot
         fig, ax = plt.subplots(figsize=(20, 12))
         ax.grid(zorder=0, which='major', axis='both')
 
-        ax.bar([x - 0.5 * width for x in years], quay_land_use, width=width, alpha=alpha, label="apron")
-        ax.bar([x - 0.5 * width for x in years], stack_land_use, width=width, alpha=alpha,
-               label="laden and reefer stack",
-               bottom=quay_land_use)
-        ax.bar([x - 0.5 * width for x in years], empty_land_use, width=width, alpha=alpha, label="empty stack",
-               bottom=quay_stack)
-        ax.bar([x - 0.5 * width for x in years], oog_land_use, width=width, alpha=alpha, label="oog stack",
-               bottom=quay_stack_empty)
-        ax.bar([x - 0.5 * width for x in years], gate_land_use, width=width, alpha=alpha, label="gate area",
-               bottom=quay_stack_empty_oog)
-        ax.bar([x - 0.5 * width for x in years], general_land_use, width=width, alpha=alpha,
-               label="general service area",
-               bottom=quay_stack_empty_oog_gate)
+        offset = 0 * width
+
+        ax.bar([x - offset for x in years], quay_land_use, width=width, alpha=alpha,
+               label="apron")
+        ax.bar([x - offset for x in years], stack_land_use, width=width, alpha=alpha,
+               label="laden and reefer stack", bottom=quay_land_use)
+        ax.bar([x - offset for x in years], empty_land_use, width=width, alpha=alpha,
+               label="empty stack", bottom=quay_stack)
+        ax.bar([x - offset for x in years], oog_land_use, width=width, alpha=alpha,
+               label="oog stack", bottom=quay_stack_empty)
+        ax.bar([x - offset for x in years], gate_land_use, width=width, alpha=alpha,
+               label="gate area", bottom=quay_stack_empty_oog)
+        ax.bar([x - offset for x in years], general_land_use, width=width, alpha=alpha,
+               label="general service area", bottom=quay_stack_empty_oog_gate)
 
         # title and labels
         ax.set_title('Terminal land use ' + self.stack_equipment, fontsize=fontsize)
