@@ -1056,6 +1056,59 @@ class System:
             gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = \
                 self.calculate_gate_minutes(year)
 
+    def calculate_gate_minutes(self, year):
+        """
+        - Find all gates and sum their effective_capacity to get service_capacity
+        - Calculate average entry and exit time to get total time at gate
+        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
+        """
+
+        # find the online and planned Gate capacity
+        list_of_elements = core.find_elements(self, Gate)
+        gate_capacity_planned = 0
+        gate_capacity_online = 0
+        total_design_gate_minutes = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                gate_capacity_planned += element.capacity
+                if year >= element.year_online:
+                    gate_capacity_online += element.capacity
+
+            # estimate time at gate lanes
+            '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
+            Every gate is 60 minutes, which is the capacity. 
+            Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
+
+            ''' Calculate the total throughput in TEU per year'''
+            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
+
+            # half of the transhipment moves is import and half is export
+            import_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
+            export_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
+            weeks_year = 52
+
+            # instantiate a Gate object
+            gate = Gate(**container_defaults.gate_data)
+
+            # Todo: this really needs to be checked
+            design_exit_gate_minutes = import_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
+                gate.peak_day * gate.peak_hour * \
+                gate.exit_inspection_time * gate.design_capacity
+
+            # Todo: this really needs to be checked
+            design_entry_gate_minutes = export_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
+                gate.peak_day * gate.peak_hour * \
+                gate.entry_inspection_time * gate.design_capacity
+
+            total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
+
+            service_rate_planned = total_design_gate_minutes / gate_capacity_planned
+
+        else:
+            service_rate_planned = float("inf")
+
+        return gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes
+
     def general_services_invest(self, year):
 
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
@@ -1135,7 +1188,7 @@ class System:
 
             self.elements.append(general)
 
-    # *** Energy costs, demurrage costs and revenue calculation methods
+    # *** Various cost calculation methods
     def calculate_energy_cost(self, year):  # todo voeg energy toe voor nieuwe elementen
         """
 
@@ -1430,8 +1483,7 @@ class System:
 
         cash_flows['capex'].values = indirect_costs
 
-    # *** Financial analyses
-
+    # *** General functions
     def calculate_vessel_calls(self, year):
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
 
@@ -1465,6 +1517,136 @@ class System:
         total_calls = np.sum([handysize_calls, handymax_calls, panamax_calls])
 
         return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
+
+    def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
+        """
+        - Find all cranes and sum their effective_capacity to get service_capacity
+        - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
+        - Occupancy is total_time_at_berth divided by operational hours
+        """
+
+        # intialize values to be returned
+        total_vol = 0
+
+        # gather volumes from each commodity scenario
+        commodities = core.find_elements(self, Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                total_vol += volume
+            except:
+                pass
+
+        # list all crane objects in the system
+        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        service_rate_planned = 0
+        service_rate_online = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                service_rate_planned += element.effective_capacity
+                if year >= element.year_online:
+                    service_rate_online += element.effective_capacity
+
+            # calculate mooring and unmooring times for each vessel type
+            time_at_berth_planned_handysize = handysize_calls * container_defaults.handysize_data["mooring_time"]
+            time_at_berth_planned_handymax = handymax_calls * container_defaults.handymax_data["mooring_time"]
+            time_at_berth_planned_panamax = panamax_calls * container_defaults.panamax_data["mooring_time"]
+            # calculate the time that the cranes require to load/unload the commodity
+            time_at_cranes_planned = total_vol / service_rate_planned
+
+            # add mooring/unmooring and loading/unloading times
+            total_time_at_berth_planned = np.sum([
+                time_at_cranes_planned,
+                time_at_berth_planned_handysize,
+                time_at_berth_planned_handymax,
+                time_at_berth_planned_panamax])
+
+            # berth_occupancy is the total time at berth divided by the operational hours
+            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
+            crane_occupancy_planned = time_at_cranes_planned / self.operational_hours
+
+            if service_rate_online != 0:  # when some cranes are actually online
+                # calculate mooring and unmooring times for each vessel type
+                time_at_berth_online_handysize = handysize_calls * container_defaults.handysize_data["mooring_time"]
+                time_at_berth_online_handymax = handymax_calls * container_defaults.handymax_data["mooring_time"]
+                time_at_berth_online_panamax = panamax_calls * container_defaults.panamax_data["mooring_time"]
+                # calculate the time that the cranes require to load/unload the commodity
+                time_at_cranes_online = total_vol / service_rate_online
+
+                # add mooring/unmooring and loading/unloading times
+                total_time_at_berth_online = np.sum([
+                    time_at_cranes_online,
+                    time_at_berth_online_handysize,
+                    time_at_berth_online_handymax,
+                    time_at_berth_online_panamax])
+
+                # berth_occupancy is the total time at berth divided by the operational hours
+                berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
+                crane_occupancy_online = min([time_at_cranes_online / self.operational_hours, 1])
+
+            else:
+                berth_occupancy_online = float("inf")
+                crane_occupancy_online = float("inf")
+
+        else:
+            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
+            berth_occupancy_planned = float("inf")
+            berth_occupancy_online = float("inf")
+            crane_occupancy_planned = float("inf")
+            crane_occupancy_online = float("inf")
+
+        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
+
+    def check_crane_slot_available(self):
+        # find number of available crane slots
+        list_of_elements = core.find_elements(self, Berth)
+        slots = 0
+        for element in list_of_elements:
+            slots += element.max_cranes
+
+        # create a list of all quay unloaders
+        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+
+        # when there are more available slots than installed cranes there are still slots available (True)
+        if slots > len(list_of_elements):
+            return True
+        else:
+            return False
+
+    def calculate_throughput(self, year):
+        """Find throughput (minimum of crane capacity and demand)"""
+        # intialize values to be returned
+        total_vol = 0
+
+        # gather volumes from each commodity scenario
+        commodities = core.find_elements(self, Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                total_vol += volume
+            except:
+                pass
+
+        # find the total service rate and determine the capacity at the quay
+        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+        quay_capacity_planned = 0
+        quay_capacity_online = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                quay_capacity_planned += (
+                            element.effective_capacity * self.operational_hours * self.allowable_berth_occupancy)
+                if year >= element.year_online:
+                    quay_capacity_online += (
+                                element.effective_capacity * self.operational_hours * self.allowable_berth_occupancy)
+
+        if quay_capacity_online is not 0:
+            throughput_online = min(quay_capacity_online, total_vol)
+        else:
+            throughput_online = total_vol
+
+        return throughput_online
 
     def throughput_characteristics(self, year):
         """
@@ -1602,189 +1784,6 @@ class System:
             general_land_use
 
         return total_land_use
-
-    def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
-        """
-        - Find all cranes and sum their effective_capacity to get service_capacity
-        - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
-        - Occupancy is total_time_at_berth divided by operational hours
-        """
-
-        # intialize values to be returned
-        total_vol = 0
-
-        # gather volumes from each commodity scenario
-        commodities = core.find_elements(self, Commodity)
-        for commodity in commodities:
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                total_vol += volume
-            except:
-                pass
-
-        # list all crane objects in the system
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
-
-        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        service_rate_planned = 0
-        service_rate_online = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                service_rate_planned += element.effective_capacity
-                if year >= element.year_online:
-                    service_rate_online += element.effective_capacity
-
-            # calculate mooring and unmooring times for each vessel type
-            time_at_berth_planned_handysize = handysize_calls * container_defaults.handysize_data["mooring_time"]
-            time_at_berth_planned_handymax = handymax_calls * container_defaults.handymax_data["mooring_time"]
-            time_at_berth_planned_panamax = panamax_calls * container_defaults.panamax_data["mooring_time"]
-            # calculate the time that the cranes require to load/unload the commodity
-            time_at_cranes_planned = total_vol / service_rate_planned
-
-            # add mooring/unmooring and loading/unloading times
-            total_time_at_berth_planned = np.sum([
-                time_at_cranes_planned,
-                time_at_berth_planned_handysize,
-                time_at_berth_planned_handymax,
-                time_at_berth_planned_panamax])
-
-            # berth_occupancy is the total time at berth divided by the operational hours
-            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
-            crane_occupancy_planned = time_at_cranes_planned / self.operational_hours
-
-            if service_rate_online != 0:  # when some cranes are actually online
-                # calculate mooring and unmooring times for each vessel type
-                time_at_berth_online_handysize = handysize_calls * container_defaults.handysize_data["mooring_time"]
-                time_at_berth_online_handymax = handymax_calls * container_defaults.handymax_data["mooring_time"]
-                time_at_berth_online_panamax = panamax_calls * container_defaults.panamax_data["mooring_time"]
-                # calculate the time that the cranes require to load/unload the commodity
-                time_at_cranes_online = total_vol / service_rate_online
-
-                # add mooring/unmooring and loading/unloading times
-                total_time_at_berth_online = np.sum([
-                    time_at_cranes_online,
-                    time_at_berth_online_handysize,
-                    time_at_berth_online_handymax,
-                    time_at_berth_online_panamax])
-
-                # berth_occupancy is the total time at berth divided by the operational hours
-                berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
-                crane_occupancy_online = min([time_at_cranes_online / self.operational_hours, 1])
-
-            else:
-                berth_occupancy_online = float("inf")
-                crane_occupancy_online = float("inf")
-
-        else:
-            # if there are no cranes the berth occupancy is 'infinite' so a berth is certainly needed
-            berth_occupancy_planned = float("inf")
-            berth_occupancy_online = float("inf")
-            crane_occupancy_planned = float("inf")
-            crane_occupancy_online = float("inf")
-
-        return berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online
-
-    def calculate_throughput(self, year):
-        """Find throughput (minimum of crane capacity and demand)"""
-        # intialize values to be returned
-        total_vol = 0
-
-        # gather volumes from each commodity scenario
-        commodities = core.find_elements(self, Commodity)
-        for commodity in commodities:
-            try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                total_vol += volume
-            except:
-                pass
-
-        # find the total service rate and determine the capacity at the quay
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
-        quay_capacity_planned = 0
-        quay_capacity_online = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                quay_capacity_planned += (
-                            element.effective_capacity * self.operational_hours * self.allowable_berth_occupancy)
-                if year >= element.year_online:
-                    quay_capacity_online += (
-                                element.effective_capacity * self.operational_hours * self.allowable_berth_occupancy)
-
-        if quay_capacity_online is not 0:
-            throughput_online = min(quay_capacity_online, total_vol)
-        else:
-            throughput_online = total_vol
-
-        return throughput_online
-
-    def calculate_gate_minutes(self, year):
-        """
-        - Find all gates and sum their effective_capacity to get service_capacity
-        - Calculate average entry and exit time to get total time at gate
-        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
-        """
-
-        # find the online and planned Gate capacity
-        list_of_elements = core.find_elements(self, Gate)
-        gate_capacity_planned = 0
-        gate_capacity_online = 0
-        total_design_gate_minutes = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                gate_capacity_planned += element.capacity
-                if year >= element.year_online:
-                    gate_capacity_online += element.capacity
-
-            # estimate time at gate lanes
-            '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
-            Every gate is 60 minutes, which is the capacity. 
-            Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
-
-            ''' Calculate the total throughput in TEU per year'''
-            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
-
-            # half of the transhipment moves is import and half is export
-            import_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
-            export_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
-            weeks_year = 52
-
-            # instantiate a Gate object
-            gate = Gate(**container_defaults.gate_data)
-
-            # Todo: this really needs to be checked
-            design_exit_gate_minutes = import_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
-                gate.peak_day * gate.peak_hour * \
-                gate.exit_inspection_time * gate.design_capacity
-
-            # Todo: this really needs to be checked
-            design_entry_gate_minutes = export_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
-                gate.peak_day * gate.peak_hour * \
-                gate.entry_inspection_time * gate.design_capacity
-
-            total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
-
-            service_rate_planned = total_design_gate_minutes / gate_capacity_planned
-
-        else:
-            service_rate_planned = float("inf")
-
-        return gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes
-
-    def check_crane_slot_available(self):
-        # find number of available crane slots
-        list_of_elements = core.find_elements(self, Berth)
-        slots = 0
-        for element in list_of_elements:
-            slots += element.max_cranes
-
-        # create a list of all quay unloaders
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
-
-        # when there are more available slots than installed cranes there are still slots available (True)
-        if slots > len(list_of_elements):
-            return True
-        else:
-            return False
 
     # *** Plotting functions
     def terminal_elements_plot(self, width=0.08, alpha=0.6, fontsize=20, demand_step=50_000):
@@ -2068,55 +2067,6 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
-
-    # def cashflow_plot(self, cash_flows, width=0.3, alpha=0.6):
-    #     """Gather data from Terminal elements and combine into a cash flow plot"""
-    #     #prepare NPV
-    #     NPV, capex_normal, opex_normal, labour_normal = self.NPV()
-    #     print(NPV)
-    #
-    #
-    #
-    #     # prepare years, revenue, capex and opex for plotting
-    #     years = cash_flows['year'].values
-    #     # revenue = self.revenues
-    #     capex = cash_flows['capex'].values
-    #     opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-    #            cash_flows['labour'].values + cash_flows['demurrage'].values
-    #
-    #     # sum cash flows to get profits as a function of year
-    #     profits = []
-    #     for year in years:
-    #         profits.append(-cash_flows.loc[cash_flows['year'] == year]['capex'].item() -
-    #                        cash_flows.loc[cash_flows['year'] == year]['insurance'].item() -
-    #                        cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
-    #                        cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
-    #                        cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-    #                        cash_flows.loc[cash_flows['year'] == year]['demurrage'].item())
-    #                       # + revenue[cash_flows.loc[cash_flows['year'] == year].index.item()])
-    #
-    #     # cumulatively sum profits to get profits_cum
-    #     profits_cum = [None] * len(profits)
-    #     for index, value in enumerate(profits):
-    #         if index == 0:
-    #             profits_cum[index] = 0
-    #         else:
-    #             profits_cum[index] = profits_cum[index - 1] + profits[index]
-    #
-    #     # generate plot
-    #     fig, ax = plt.subplots(figsize=(16, 7))
-    #
-    #     ax.bar([x - width for x in years], -opex, width=width, alpha=alpha, label="opex", color='lightblue')
-    #     ax.bar(years, -capex, width=width, alpha=alpha, label="capex", color='red')
-    #     # ax.bar([x + width for x in years], revenue, width=width, alpha=alpha, label="revenue", color='lightgreen')
-    #     # ax.step(years, profits, label='profits', where='mid')
-    #     # ax.step(years, profits_cum, label='profits_cum', where='mid')
-    #     ax.set_xlabel('Years')
-    #     ax.set_ylabel('Cashflow [000 M $]')
-    #     ax.set_title('Cash flow plot')
-    #     ax.set_xticks([x for x in years])
-    #     ax.set_xticklabels(years)
-    #     ax.legend()
 
     def laden_stack_area_plot(self, width=0.25, alpha=0.6):
         """Gather data from laden stack area and plot it against demand"""

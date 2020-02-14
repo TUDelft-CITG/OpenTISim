@@ -723,7 +723,7 @@ class System:
                         hinter_conveyor_capacity_online,
                         hinter_conveyor_capacity_planned - hinter_conveyor_capacity_online))
 
-    # *** Energy costs, demurrage costs and revenue calculation methods
+    # *** Various cost calculation methods
     def calculate_energy_cost(self, year):
         """
         1. calculate the value of the total demand in year (demand * handling fee)
