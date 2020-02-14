@@ -162,13 +162,13 @@ class System:
 
             if self.debug:
                 print('')
-                print('$$$ Check gate investments -----------------------')
-            self.gate_invest(year)
+                print('$$$ Check empty handlers -------------------------')
+            self.empty_handler_invest(year)
 
             if self.debug:
                 print('')
-                print('$$$ Check empty handlers -------------------------')
-            self.empty_handler_invest(year)
+                print('$$$ Check gate investments -----------------------')
+            self.gate_invest(year)
 
             if self.debug:
                 print('')
@@ -564,7 +564,7 @@ class System:
         # So while this is not the case, add stacks
         while total_capacity_required > stack_capacity_planned:
             if self.debug:
-                print('  *** add stack to elements')
+                print('  *** add laden / reefer stack to elements')
 
             if self.laden_stack == 'rtg':  # Rubber Tired Gantry Crane
                 stack = Laden_Stack(**container_defaults.rtg_stack_data)
@@ -678,13 +678,12 @@ class System:
         return stack_capacity_planned, total_capacity_required, reefer_ground_slots
 
     def empty_stack_invest(self, year):
-
         """current strategy is to add stacks as soon as trigger is achieved
-                     - find out how much stack capacity is online
-                     - find out how much stack capacity is planned
-                     - find out how much stack capacity is needed
-                     - add stack capacity until service_trigger is no longer exceeded
-                     """
+             - find out how much stack capacity is online
+             - find out how much stack capacity is planned
+             - find out how much stack capacity is needed
+             - add stack capacity until service_trigger is no longer exceeded
+        """
 
         empty_capacity_planned, empty_capacity_required = self.empty_stack_capacity(year)
 
@@ -730,9 +729,7 @@ class System:
             empty_capacity_planned, empty_capacity_required = self.empty_stack_capacity(year)
 
     def empty_stack_capacity(self, year):
-        """
-        - #todo beschrijving empty stack
-        """
+        """Calculate the stack capacity for empty containers"""
 
         # find the total stack capacity
         list_of_elements = core.find_elements(self, Empty_Stack)
@@ -781,16 +778,15 @@ class System:
         - add stack capacity until service_trigger is no longer exceeded
         """
 
-        oog_capacity_online, oog_capacity_planned, oog_required_capacity = self.oog_stack_capacity(year)
+        oog_capacity_planned, oog_capacity_required = self.oog_stack_capacity(year)
 
         if self.debug:
-            print('     OOG slots online (@ start of year): {:.2f}'.format(oog_capacity_online))
             print('     OOG slots planned (@ start of year): {:.2f}'.format(oog_capacity_planned))
-            print('     OOG slots required (@ start of year): {:.2f}'.format(oog_required_capacity))
+            print('     OOG slots required (@ start of year): {:.2f}'.format(oog_capacity_required))
 
-        while oog_required_capacity > (oog_capacity_planned):
+        while oog_capacity_required > oog_capacity_planned:
             if self.debug:
-                print('  *** add empty stack to elements')
+                print('  *** add OOG stack to elements')
 
             oog_stack = OOG_Stack(**container_defaults.oog_stack_data)
 
@@ -822,17 +818,13 @@ class System:
 
             self.elements.append(oog_stack)
 
-            oog_capacity_online, oog_capacity_planned, oog_required_capacity = self.oog_stack_capacity(year)
+            oog_capacity_planned, oog_capacity_required = self.oog_stack_capacity(year)
 
     def oog_stack_capacity(self, year):
+        """Calculate the stack capacity for OOG containers"""
 
-        """
-        - #todo beschrijving oog stack
-        """
-
-        list_of_elements = core.find_elements(self, OOG_Stack)
         # find the total stack capacity
-
+        list_of_elements = core.find_elements(self, OOG_Stack)
         oog_capacity_planned = 0
         oog_capacity_online = 0
         oog_required_capacity = 0
@@ -840,25 +832,33 @@ class System:
             oog_capacity_planned += element.capacity
             if year >= element.year_online:
                 oog_capacity_online += element.capacity
-        ts = self.transhipment_ratio
 
+        # determine the on-terminal total TEU/year for every throughput type (types: ladens, reefers, empties, oogs)
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
         # Transhipment containers are counted twice in berth throughput calculations – once off the ship and once on the
         # ship – but are counted only once in the yard capacity calculations. PIANC (2014b), p 63
+        # total positions = half of the amount that it transhipped + the full amount of what is not transhipped
+        ts = self.transhipment_ratio
         oog_teu = (oog_teu * ts * 0.5) + (oog_teu * (1 - ts))
 
+        # instantiate laden, reefer and stack objects
         oog = Container(**container_defaults.oog_container_data)
-
         stack = OOG_Stack(**container_defaults.oog_stack_data)
 
+        # calculate operational days
         operational_days = self.operational_hours // 24
 
-        oog_spots = oog_teu * oog.peak_factor * oog.dwell_time / oog.stack_occupancy / stack.height / operational_days / oog.teu_factor
+        # determine empty ground slots
+        #  total nr of containers to be stacked divided by stack occupancy increases nr of containers to be stacked
+        #  increased total nr of containers divided by stack height you get a number of ground slots
+        #  if you divide the total nr of ground slots by operational days, you get the number of ground slots you need
+        oog_ground_spots = ((((oog_teu * oog.peak_factor * oog.dwell_time) / oog.stack_occupancy) /
+                            stack.height) / operational_days) / oog.teu_factor
 
-        oog_required_capacity = oog_spots
+        oog_capacity_required = oog_ground_spots
 
-        return oog_capacity_online, oog_capacity_planned, oog_required_capacity
+        return oog_capacity_planned, oog_capacity_required
 
     def stack_equipment_invest(self, year):
         """current strategy is to add stack equipment as soon as a service trigger is achieved
@@ -967,6 +967,55 @@ class System:
                 list_of_elements_stack_equipment = core.find_elements(self, Stack_Equipment)
                 stack_equipment_online = len(list_of_elements_stack_equipment)
 
+    def empty_handler_invest(self, year):
+        """current strategy is to add empty hanlders as soon as a service trigger is achieved
+        - find out how many empty handlers are online
+        - find out how many empty handlers areplanned
+        - find out how many empty handlers are needed
+        - add empty handlers until service_trigger is no longer exceeded
+        """
+        list_of_elements_empty_handler = core.find_elements(self, Empty_Handler)
+        list_of_elements_sts = core.find_elements(self, Cyclic_Unloader)
+        sts_cranes = len(list_of_elements_sts)
+        empty_handler_online = len(list_of_elements_empty_handler)
+
+        empty_handler = Empty_Handler(**container_defaults.empty_handler_data)
+
+        if self.debug:
+            # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
+            print('     Empty handlers online (@ start of year): {}'.format(empty_handler_online))
+
+        while sts_cranes > (empty_handler_online // empty_handler.required):
+            # add a tractor when not enough to serve number of STS cranes
+            if self.debug:
+                print('  *** add empty handler to elements')
+
+            # - capex
+            unit_rate = empty_handler.unit_rate
+            mobilisation = empty_handler.mobilisation
+            empty_handler.capex = int(unit_rate + mobilisation)
+
+            # - opex
+            empty_handler.maintenance = unit_rate * empty_handler.maintenance_perc
+
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            empty_handler.shift = empty_handler.crew * labour.daily_shifts
+            empty_handler.labour = empty_handler.shift * labour.blue_collar_salary
+
+            if year == self.startyear:
+                empty_handler.year_online = year + empty_handler.delivery_time + 1
+            else:
+                empty_handler.year_online = year + empty_handler.delivery_time
+
+            # add cash flow information to tractor object in a dataframe
+            empty_handler = core.add_cashflow_data_to_element(self, empty_handler)
+
+            self.elements.append(empty_handler)
+
+            list_of_elements_empty_handler = core.find_elements(self, Empty_Handler)
+            empty_handler_online = len(list_of_elements_empty_handler)
+
     def gate_invest(self, year):
         """current strategy is to add gates as soon as trigger is achieved
               - find out how much gate capacity is online
@@ -1022,55 +1071,6 @@ class System:
 
             gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = self.calculate_gate_minutes(
                 year)
-
-    def empty_handler_invest(self, year):
-        """current strategy is to add empty hanlders as soon as a service trigger is achieved
-        - find out how many empty handlers are online
-        - find out how many empty handlers areplanned
-        - find out how many empty handlers are needed
-        - add empty handlers until service_trigger is no longer exceeded
-        """
-        list_of_elements_empty_handler = core.find_elements(self, Empty_Handler)
-        list_of_elements_sts = core.find_elements(self, Cyclic_Unloader)
-        sts_cranes = len(list_of_elements_sts)
-        empty_handler_online = len(list_of_elements_empty_handler)
-
-        empty_handler = Empty_Handler(**container_defaults.empty_handler_data)
-
-        if self.debug:
-            # print('     Horizontal transport planned (@ start of year): {}'.format(tractor_planned))
-            print('     Empty handlers online (@ start of year): {}'.format(empty_handler_online))
-
-        while sts_cranes > (empty_handler_online // empty_handler.required):
-            # add a tractor when not enough to serve number of STS cranes
-            if self.debug:
-                print('  *** add tractor to elements')
-
-            # - capex
-            unit_rate = empty_handler.unit_rate
-            mobilisation = empty_handler.mobilisation
-            empty_handler.capex = int(unit_rate + mobilisation)
-
-            # - opex
-            empty_handler.maintenance = unit_rate * empty_handler.maintenance_perc
-
-            #   labour
-            labour = Labour(**container_defaults.labour_data)
-            empty_handler.shift = empty_handler.crew * labour.daily_shifts
-            empty_handler.labour = empty_handler.shift * labour.blue_collar_salary
-
-            if year == self.startyear:
-                empty_handler.year_online = year + empty_handler.delivery_time + 1
-            else:
-                empty_handler.year_online = year + empty_handler.delivery_time
-
-            # add cash flow information to tractor object in a dataframe
-            empty_handler = core.add_cashflow_data_to_element(self, empty_handler)
-
-            self.elements.append(empty_handler)
-
-            list_of_elements_empty_handler = core.find_elements(self, Empty_Handler)
-            empty_handler_online = len(list_of_elements_empty_handler)
 
     def general_services_invest(self, year):
 
@@ -1800,32 +1800,32 @@ class System:
             return False
 
     # *** Plotting functions
-    def terminal_elements_plot(self, width=0.1, alpha=0.6, fontsize=20):
+    def terminal_elements_plot(self, width=0.08, alpha=0.6, fontsize=20):
         """Gather data from Terminal and plot which elements come online when"""
-
-        # collect elements to add to plot
         years = []
         berths = []
-        cranes = []
         quays = []
-        tractor = []
-        stack = []
-        stack_equipment = []
-        gates = []
+        cranes = []
+        tractor_trailer = []
+        laden_reefer_stack = []
         empty_stack = []
         oog_stack = []
+        stack_equipment = []
+        empty_handler = []
+        gates = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             berths.append(0)
             quays.append(0)
             cranes.append(0)
-            tractor.append(0)
-            stack.append(0)
-            stack_equipment.append(0)
-            gates.append(0)
+            tractor_trailer.append(0)
+            laden_reefer_stack.append(0)
             empty_stack.append(0)
             oog_stack.append(0)
+            stack_equipment.append(0)
+            empty_handler.append(0)
+            gates.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1837,74 +1837,98 @@ class System:
                 if isinstance(element, Cyclic_Unloader):
                     if year >= element.year_online:
                         cranes[-1] += 1
+                if isinstance(element, Horizontal_Transport):
+                    if year >= element.year_online:
+                        tractor_trailer[-1] += 1
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
-                        stack[-1] += 1
-                if isinstance(element, Stack_Equipment):
-                    if year >= element.year_online:
-                        stack_equipment[-1] += 1
-                if isinstance(element, Gate):
-                    if year >= element.year_online:
-                        gates[-1] += 1
-                if isinstance(element, OOG_Stack):
-                    if year >= element.year_online:
-                        oog_stack[-1] += 1
+                        laden_reefer_stack[-1] += 1
                 if isinstance(element, Empty_Stack):
                     if year >= element.year_online:
                         empty_stack[-1] += 1
-                if isinstance(element, Horizontal_Transport):
+                if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
-                        tractor[-1] += 1
+                        oog_stack[-1] += 1
+                if isinstance(element, Stack_Equipment):
+                    if year >= element.year_online:
+                        stack_equipment[-1] += 1
+                if isinstance(element, Empty_Handler):
+                    if year >= element.year_online:
+                        empty_handler[-1] += 1
+                if isinstance(element, Gate):
+                    if year >= element.year_online:
+                        gates[-1] += 1
 
-        tractor = [x / 10 for x in tractor]
+        # tractor_trailer = [x / 10 for x in tractor_trailer]
 
         # generate plot
-        fig, ax = plt.subplots(figsize=(20, 12))
-        ax.grid(zorder=0, which='major', axis='both')
+        fig, ax1 = plt.subplots(figsize=(20, 12))
+        ax1.grid(zorder=0, which='major', axis='both')
 
         colors = ['firebrick', 'darksalmon', 'sandybrown', 'darkkhaki', 'palegreen', 'lightseagreen', 'mediumpurple',
-                  'mediumvioletred', 'lightgreen']
-        offset = 4 * width
+                  'mediumvioletred', 'lightgreen', 'red']
+        offset = 4.5 * width
 
-        ax.bar([x - offset + 0 * width for x in years], berths, zorder=1, width=width, alpha=alpha, label="berths",
-               color=colors[0], edgecolor='darkgrey')
-        ax.bar([x - offset + 1 * width for x in years], quays, zorder=1, width=width, alpha=alpha, label="quays",
-               color=colors[1], edgecolor='darkgrey')
-        ax.bar([x - offset + 2 * width for x in years], cranes, zorder=1, width=width, alpha=alpha, label="STS cranes",
-               color=colors[2], edgecolor='darkgrey')
-        ax.bar([x - offset + 3 * width for x in years], tractor, zorder=1, width=width, alpha=alpha,
-               label="tractor x10", color=colors[3], edgecolor='darkgrey')
-        ax.bar([x - offset + 4 * width for x in years], stack, zorder=1, width=width, alpha=alpha, label="stack",
-               color=colors[4], edgecolor='darkgrey')
-        ax.bar([x - offset + 5 * width for x in years], empty_stack, zorder=1, width=width, alpha=alpha,
+        ax1.bar([x - offset + 0 * width for x in years], berths, zorder=1, width=width, alpha=alpha,
+               label="berths", color=colors[0], edgecolor='darkgrey')
+        ax1.bar([x - offset + 1 * width for x in years], quays, zorder=1, width=width, alpha=alpha,
+               label="quays", color=colors[1], edgecolor='darkgrey')
+        ax1.bar([x - offset + 2 * width for x in years], cranes, zorder=1, width=width, alpha=alpha,
+               label="STS cranes", color=colors[2], edgecolor='darkgrey')
+        ax1.bar([x - offset + 3 * width for x in years], tractor_trailer, zorder=1, width=width, alpha=alpha,
+               label="tractor_trailers", color=colors[3], edgecolor='darkgrey')
+        ax1.bar([x - offset + 4 * width for x in years], laden_reefer_stack, zorder=1, width=width, alpha=alpha,
+               label="laden / reefer stack", color=colors[4], edgecolor='darkgrey')
+        ax1.bar([x - offset + 5 * width for x in years], empty_stack, zorder=1, width=width, alpha=alpha,
                label="empty stack", color=colors[5], edgecolor='darkgrey')
-        ax.bar([x - offset + 6 * width for x in years], oog_stack, zorder=1, width=width, alpha=alpha,
+        ax1.bar([x - offset + 6 * width for x in years], oog_stack, zorder=1, width=width, alpha=alpha,
                label="oog stack", color=colors[6], edgecolor='darkgrey')
-        ax.bar([x - offset + 7 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
+        ax1.bar([x - offset + 7 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
                label="stack equipment", color=colors[7], edgecolor='darkgrey')
-        ax.bar([x - offset + 8 * width for x in years], gates, zorder=1, width=width, alpha=alpha, label="gates",
-               color=colors[8], edgecolor='darkgrey')
+        ax1.bar([x - offset + 8 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
+               label="empty handlers", color=colors[8], edgecolor='darkgrey')
+        ax1.bar([x - offset + 9 * width for x in years], gates, zorder=1, width=width, alpha=alpha,
+               label="gates", color=colors[9], edgecolor='darkgrey')
+
+        # get demand
+        demand = pd.DataFrame()
+        demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
+        demand['demand'] = 0
+        for commodity in core.find_elements(self, Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+            except:
+                pass
+
+        # Making a second graph
+        ax2 = ax1.twinx()
+        ax2.step(years, demand['demand'].values, zorder=2, label="Demand [teu/y]", where='mid', color='blue')
 
         # title and labels
-        ax.set_title('Terminal elements online', fontsize=fontsize)
-        ax.set_xlabel('Years', fontsize=fontsize)
-        ax.set_ylabel('Terminal elements on line [nr]', fontsize=fontsize)
-        ax.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
+        ax1.set_title('Terminal elements online', fontsize=fontsize)
+        ax1.set_xlabel('Years', fontsize=fontsize)
+        ax1.set_ylabel('Terminal elements on line [nr]', fontsize=fontsize)
+        ax2.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
 
         # ticks and tick labels
-        ax.set_xticks([x for x in years])
-        ax.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
         max_elements = max([max(berths), max(quays), max(cranes),
-                            max(tractor), max(stack),
+                            max(tractor_trailer), max(laden_reefer_stack),
                             max(empty_stack), max(oog_stack),
                             max(stack_equipment), max(gates)])
-        ax.set_yticks([x for x in range(0, max_elements + 1 + 2, 10)])
-        ax.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 10)], fontsize=fontsize)
+        ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 10)])
+        ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 10)], fontsize=fontsize)
+
+        ax2.set_yticks([x for x in range(0, np.max(demand["demand"])+50_000, 50_000)])
+        ax2.set_yticklabels([int(x) for x in range(0, np.max(demand["demand"])+50_000, 50_000)], fontsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
                    fancybox=True, shadow=True, ncol=5, fontsize=fontsize)
-        fig.subplots_adjust(bottom=0.18)
+        fig.subplots_adjust(bottom=0.23)
 
     def land_use_plot(self, width=0.25, alpha=0.6, fontsize=20):
         """Gather data from Terminal and plot which elements come online when"""
