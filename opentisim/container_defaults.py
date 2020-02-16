@@ -422,12 +422,11 @@ empty_handler_data = {"name": 'Empty Handler',
 # *** Default inputs: Commodity class ***
 
 container_data = {"name": 'Laden',
-                "handling_fee": 150,
-                "handysize_perc": 0,
-                "handymax_perc": 0,
-                "panamax_perc": 100,
-                "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                    'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+                  "handling_fee": 150,
+                  "handysize_perc": 0,
+                  "handymax_perc": 0,
+                  "panamax_perc": 100,
+                  "historic_data": []}
 
 
 # *** Default inputs: Vessel class ***

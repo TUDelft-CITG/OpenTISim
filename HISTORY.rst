@@ -2,6 +2,10 @@
 History
 =======
 
+v0.6.0 (2020-02-14)
+------------------
+
+* Updated the container code and example
 
 v0.5.0 (2020-01-24)
 ------------------

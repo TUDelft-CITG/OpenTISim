@@ -242,10 +242,15 @@ class System:
             berths = len(core.find_elements(self, Berth))
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
-                length_v = max(agribulk_defaults.handysize_data["LOA"], agribulk_defaults.handymax_data["LOA"],
-                              agribulk_defaults.panamax_data["LOA"])  # average size
-                draft = max(agribulk_defaults.handysize_data["draft"], agribulk_defaults.handymax_data["draft"],
-                           agribulk_defaults.panamax_data["draft"])
+                # bug fixed, should only take the value of the vessels that actually come
+                length_v = max(
+                    (not agribulk_defaults.maize_data['handysize_perc'] == 0) * agribulk_defaults.handysize_data["LOA"],
+                    (not agribulk_defaults.maize_data['handymax_perc'] == 0) * agribulk_defaults.handymax_data["LOA"],
+                    (not agribulk_defaults.maize_data['panamax_perc'] == 0) * agribulk_defaults.panamax_data["LOA"])  # max size
+                draft = max(
+                    (not agribulk_defaults.maize_data['handysize_perc'] == 0) * agribulk_defaults.handysize_data["draft"],
+                    (not agribulk_defaults.maize_data['handymax_perc'] == 0) * agribulk_defaults.handymax_data["draft"],
+                    (not agribulk_defaults.maize_data['panamax_perc'] == 0) * agribulk_defaults.panamax_data["draft"])
 
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
@@ -315,18 +320,21 @@ class System:
         # add length and depth to the elements (useful for later reporting)
         quay_wall.length = length
         quay_wall.depth = depth
+        quay_wall.retaining_height = 2 * (depth + quay_wall.freeboard)
 
         # - capex
-        unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
-        mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
+        quay_wall.unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
+        mobilisation = int(max((length * quay_wall.unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         # Todo: consider adding cost of apron and cost of land here (compare containers)
-        quay_wall.capex = int(length * unit_rate + mobilisation)
+
+        quay_wall.capex = int(length * quay_wall.unit_rate + mobilisation)
 
         # - opex
-        quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
-        quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
+        quay_wall.insurance = quay_wall.unit_rate * length * quay_wall.insurance_perc
+        quay_wall.maintenance = quay_wall.unit_rate * length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
 
+        # - land use
         # Todo: consider adding a landuse section here (compare containers)
 
         # add cash flow information to quay_wall object in a dataframe

@@ -36,6 +36,7 @@ class System:
         self.h2retrieval_type_defaults = h2retrieval_type_defaults
 
         # triggers for the various elements (berth, storage and h2retrieval)
+        self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
         self.h2retrieval_trigger = h2retrieval_trigger

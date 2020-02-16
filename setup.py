@@ -69,6 +69,6 @@ setup(
     test_suite="tests",
     tests_require=tests_require,
     url="https://github.com/TUDelft-CITG/OpenTISim",
-    version="v0.5.0",
+    version="v0.6.0",
     zip_safe=False,
 )

@@ -324,12 +324,15 @@ class System:
             berths = len(core.find_elements(self, Berth))
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
-                length_v = max(container_defaults.handysize_data["LOA"], container_defaults.handymax_data["LOA"],
-                               container_defaults.panamax_data["LOA"])  # average size
-                draft = max(container_defaults.handysize_data["draft"], container_defaults.handymax_data["draft"],
-                            container_defaults.panamax_data["draft"])
-
-                quay_wall = Quay_wall(**container_defaults.quay_wall_data)
+                # bug fixed, should only take the value of the vessels that actually come
+                length_v = max(
+                    (not container_defaults.container_data['handysize_perc'] == 0) * container_defaults.handysize_data["LOA"],
+                    (not container_defaults.container_data['handymax_perc'] == 0) * container_defaults.handymax_data["LOA"],
+                    (not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"])  # average size
+                draft = max(
+                    (not container_defaults.container_data['handysize_perc'] == 0) * container_defaults.handysize_data["draft"],
+                    (not container_defaults.container_data['handymax_perc'] == 0) * container_defaults.handymax_data["draft"],
+                    (not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draft"])
 
                 # apply PIANC 2014:
                 # see Ijzermans, 2019 - infrastructure.py line 107 - 111
@@ -343,6 +346,7 @@ class System:
                     length = 1.1 * berths * (length_v + 15) - 1.1 * (berths - 1) * (length_v + 15)
 
                 # - depth
+                quay_wall = Quay_wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
@@ -398,19 +402,18 @@ class System:
         # add length and depth to the elements (useful for later reporting)
         quay_wall.length = length
         quay_wall.depth = depth
+        quay_wall.retaining_height = 2 * (depth + quay_wall.freeboard)
 
         # - capex
-        # Todo: check this. Clearly some error was introduced here (now made equal to agribulk example)
-        # unit_rate = int(quay_wall.Gijt_constant * (depth * 2 + quay_wall.freeboard) ** quay_wall.Gijt_coefficient)
-        unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
-        mobilisation = int(max((length * unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
+        quay_wall.unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
+        mobilisation = int(max((length * quay_wall.unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
         cost_of_land = length * quay_wall.apron_width * self.land_price
-        quay_wall.capex = int(length * unit_rate + mobilisation + apron_pavement + cost_of_land)
+        quay_wall.capex = int(length * quay_wall.unit_rate + mobilisation + apron_pavement + cost_of_land)
 
         # - opex
-        quay_wall.insurance = unit_rate * length * quay_wall.insurance_perc
-        quay_wall.maintenance = unit_rate * length * quay_wall.maintenance_perc
+        quay_wall.insurance = quay_wall.unit_rate * length * quay_wall.insurance_perc
+        quay_wall.maintenance = quay_wall.unit_rate * length * quay_wall.maintenance_perc
         quay_wall.year_online = year + quay_wall.delivery_time
 
         # - land use
