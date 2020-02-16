@@ -457,7 +457,6 @@ class System:
 
         #   labour
         labour = Labour(**container_defaults.labour_data)
-        '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length  '''
         crane.shift = crane.crew * labour.daily_shifts
         crane.labour = crane.shift * labour.blue_collar_salary
         # Todo: check if the number of shifts (crane.shift) is modelled correctly

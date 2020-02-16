@@ -376,7 +376,6 @@ class System:
 
         # - labour
         labour = Labour(**agribulk_defaults.labour_data)
-        '''old formula --> crane.labour = crane.crew * self.operational_hours / labour.shift_length'''
         crane.shift = ((crane.crew * self.operational_hours) / (
                 labour.shift_length * labour.annual_shifts))
         crane.labour = crane.shift * labour.operational_salary
