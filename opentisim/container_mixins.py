@@ -89,27 +89,27 @@ class hasopex_properties_mixin(object):
 
     opex: list with cost to be applied from investment year"""
 
-    def __init__(self, labour=[], maintenance=[], energy=[], insurance=[], lease=[], demurrage=[],
-                 maintenance_dredging=[], bridge_maintenance=[], offshore_maintenance=[],
+    def __init__(self, labour=[], maintenance=[], energy=[], insurance=[], fuel=[],
+                 demurrage=[], ocean_transport=[],
+                 maintenance_dredging=[], bridge_maintenance=[], structure_maintenance=[],
                  barge_opex=[], barge_maintenance=[], truck_opex=[], truck_maintenance=[],
-                 residual=[], fuel=[], *args, **kwargs):
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
         self.labour = labour
         self.maintenance = maintenance
         self.energy = energy
         self.insurance = insurance
-        self.lease = lease
+        self.fuel = fuel
         self.demurrage = demurrage
+        self.ocean_transport = ocean_transport
         self.maintenance_dredging = maintenance_dredging
         self.bridge_maintenance = bridge_maintenance
-        self.offshore_maintenance = offshore_maintenance
+        self.structure_maintenance = structure_maintenance
         self.barge_opex = barge_opex
         self.barge_maintenace = barge_maintenance
         self.truck_opex = truck_opex
         self.truck_maintenace = truck_maintenance
-        self.residual = residual
-        self.fuel = fuel
 
 
 class hasrevenue_properties_mixin(object):

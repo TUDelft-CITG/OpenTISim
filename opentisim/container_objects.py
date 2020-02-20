@@ -231,6 +231,7 @@ Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_
 
 # The general Vessel class
 Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
+                         container_mixins.history_properties_mixin,
                          container_mixins.vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 

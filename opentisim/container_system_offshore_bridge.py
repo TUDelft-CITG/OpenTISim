@@ -13,7 +13,7 @@ from opentisim import container_defaults
 class System:
     def __init__(self, startyear=2020, lifecycle=20, stack_equipment='rs', laden_stack='rs',
                  operational_hours=7500, debug=False, elements=None,
-                 offshore_distance=40, foreshore_slope=3.0, bathymetry_factor = 0.5, wave_height=3.0,
+                 offshore_distance=40, foreshore_slope=3.0, bathymetry_factor = 0.5, wave_height=3.0, reclamation_height = 7.0,
                  crane_type_defaults='STS crane', allowable_berth_occupancy=0.5,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05, transhipment_ratio=0.30,
                  energy_price=0.17, fuel_price=1, land_price=0):
@@ -45,6 +45,7 @@ class System:
         self.foreshore_slope = foreshore_slope
         self.bathymetry_factor = bathymetry_factor
         self.wave_height = wave_height
+        self.reclamation_height = reclamation_height
 
         # triggers for the various elements (berth, storage and station)
         self.allowable_berth_occupancy = allowable_berth_occupancy

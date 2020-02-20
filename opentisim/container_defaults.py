@@ -40,7 +40,7 @@ quay_wall_data = {"name": 'Quay',
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
-                  "freeboard": 4,  # m todo vragen of dit realistisch is
+                  "freeboard": 4,  # m
                   "Gijt_constant": 757.8,  # USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
                   "Gijt_coefficient": 1.2729,
                   "max_sinkage": 0.5,
@@ -53,7 +53,7 @@ quay_wall_data = {"name": 'Quay',
 
 berth_data = {"name": 'Berth',
               "crane_type": 'Mobile cranes',
-              "delivery_time": 1,
+              "delivery_time": 2,
               "max_cranes": 3}  # STS cranes
 
 channel_data = {"name": 'Channel',
@@ -214,7 +214,7 @@ oog_container_data = {"name": 'OOG container',
                       "peak_factor": 1.2,
                       "stack_occupancy": 0.9}
 
-# *** Default inputs: Laden_Stack class
+# *** Default inputs: Laden_Stack class within the stacks
 
 rtg_stack_data = {"name": 'RTG Stack',
                   "ownership": 'Terminal operator',
@@ -247,7 +247,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "height": 5,  # TEU
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
-                  "gross_tgs": 18.67,
+                  "gross_tgs": 18.67,  # TEU Ground Slot
                   "area_factor": 2.79,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # DUMMY
                   "drainage": 50,  # DUMMY
@@ -268,7 +268,7 @@ sc_stack_data = {"name": 'SC Stack',
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 3840,  # TEU
-                 "gross_tgs": 26.46,
+                 "gross_tgs": 26.46,  # TEU Ground Slot
                  "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -289,7 +289,7 @@ rs_stack_data = {"name": 'RS Stack',
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 320,  # TEU
-                 "gross_tgs": 18,
+                 "gross_tgs": 18,  # TEU Ground Slot
                  "area_factor": 3.23,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -317,7 +317,7 @@ empty_stack_data = {"name": 'Empty Stack',
                     "height": 6,  # TEU
                     "length": 10,  # TEU
                     "capacity": 480,  # TEU
-                    "gross_tgs": 18,
+                    "gross_tgs": 18,  # TEU Ground Slot
                     "area_factor": 2.04,  # Based on grasshopper layout
                     "pavement": 200,  # DUMMY
                     "drainage": 50,
@@ -334,7 +334,7 @@ oog_stack_data = {"name": 'OOG Stack',
                   "height": 1,  # TEU
                   "length": 10,  # TEU
                   "capacity": 100,  # TEU
-                  "gross_tgs": 64,
+                  "gross_tgs": 64,  # TEU Ground Slot
                   "area_factor": 1.05,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # DUMMY
                   "drainage": 50}  # DUMMY
