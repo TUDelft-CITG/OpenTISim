@@ -243,6 +243,7 @@ class System:
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
                 # bug fixed, should only take the value of the vessels that actually come
+                # Todo: make sure that also other commodities are included
                 length_v = max(
                     (not agribulk_defaults.maize_data['handysize_perc'] == 0) * agribulk_defaults.handysize_data["LOA"],
                     (not agribulk_defaults.maize_data['handymax_perc'] == 0) * agribulk_defaults.handymax_data["LOA"],

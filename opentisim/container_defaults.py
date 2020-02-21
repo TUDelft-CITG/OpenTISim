@@ -47,6 +47,7 @@ quay_wall_data = {"name": 'Quay_01',
                   "mobilisation_perc": 0.02,
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
+                  "berthing_gap": 15,  # see PIANC (2014), p 98
                   "freeboard": 4,
                   "Gijt_constant_2": 2800,
                   "Gijt_constant": 757.20,
@@ -154,36 +155,36 @@ laden_container_data = {"name": 'Laden container',
                         "teu_factor": 1.55,
                         "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                         "peak_factor": 1.2,
-                        "stack_occupancy": 0.8}
+                        "stack_occupancy": 0.8}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
 reefer_container_data = {"name": 'Empty container',
                          "type": 'empty_container',
                          "teu_factor": 1.75,
                          "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                          "peak_factor": 1.2,
-                         "stack_occupancy": 0.8}
+                         "stack_occupancy": 0.8}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
 empty_container_data = {"name": 'Empty container',
                         "type": 'empty_container',
                         "teu_factor": 1.55,
                         "dwell_time": 10,  # days, PIANC (2014b) p 64 (10 - 20)
                         "peak_factor": 1.2,
-                        "stack_occupancy": 0.7}
+                        "stack_occupancy": 0.7}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
 oog_container_data = {"name": 'OOG container',
                       "type": 'oog_container',
                       "teu_factor": 1.55,
                       "dwell_time": 5,  # days, PIANC (2014b) p 64 (5 - 10)
                       "peak_factor": 1.2,
-                      "stack_occupancy": 0.9}
+                      "stack_occupancy": 0.9}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
 # *** Default inputs: Laden_Stack class
 
 rtg_stack_data = {"name": 'RTG Stack',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,
-                  "lifespan": 40,
-                  "mobilisation": 25_000,
+                  "delivery_time": 1,  # years
+                  "lifespan": 40,  # years
+                  "mobilisation": 25_000,  # USD
                   "maintenance_perc": 0.1,
                   "width": 6,  # TEU
                   "height": 5,  # TEU
@@ -191,50 +192,50 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "capacity": 900,  # TEU
                   "gross_tgs": 18,  # TEU Ground Slot
                   "area_factor": 2.04,  # Based on grasshopper layout
-                  "pavement": 200,  # DUMMY
-                  "drainage": 50,  # DUMMY
+                  "pavement": 200,  # m2 DUMMY
+                  "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
                   "digout_margin": 1.2,  # percentage
                   "reefer_factor": 2.33,  # RHDHV
                   "consumption": 4,  # kWh per active reefer
-                  "reefer_rack": 3500,
+                  "reefer_rack": 3500,  # USD
                   "reefers_present": 0.5}  # per reefer spot
 
 rmg_stack_data = {"name": 'RMG Stack',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,
-                  "lifespan": 40,
-                  "mobilisation": 50_000,
-                  "maintenance_perc": 0.1,
+                  "delivery_time": 1,  # years
+                  "lifespan": 40,  # years
+                  "mobilisation": 50_000,  # USD
+                  "maintenance_perc": 0.1,  # [-]
                   "width": 6,  # TEU
                   "height": 5,  # TEU
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
                   "gross_tgs": 18.67,  # TEU Ground Slot
                   "area_factor": 2.79,  # Based on grasshopper layout
-                  "pavement": 200,  # DUMMY
-                  "drainage": 50,  # DUMMY
+                  "pavement": 200,  # m2 DUMMY
+                  "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
                   "digout_margin": 1.2,  # percentage
                   "reefer_factor": 2.33,  # RHDHV
                   "consumption": 4,  # kWh per active reefer
-                  "reefer_rack": 3500,
+                  "reefer_rack": 3500,  # USD
                   "reefers_present": 0.5}  # per reefer spot
 
 sc_stack_data = {"name": 'SC Stack',
                  "ownership": 'Terminal operator',
-                 "delivery_time": 1,
-                 "lifespan": 40,
-                 "mobilisation": 50_000,
-                 "maintenance_perc": 0.1,
+                 "delivery_time": 1,  # years
+                 "lifespan": 40,  # years
+                 "mobilisation": 50_000,  # USD
+                 "maintenance_perc": 0.1,  # [-]
                  "width": 48,  # TEU
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 3840,  # TEU
                  "gross_tgs": 26.46,  # TEU Ground Slot
                  "area_factor": 1.45,  # Based on grasshopper layout
-                 "pavement": 200,  # DUMMY
-                 "drainage": 50,  # DUMMY
+                 "pavement": 200,  # m2 DUMMY
+                 "drainage": 50,  # m2 DUMMY
                  "household": 0.1,  # moves
                  "digout_margin": 1.2,  # percentage
                  "reefer_factor": 2.33,  # RHDHV
@@ -244,10 +245,10 @@ sc_stack_data = {"name": 'SC Stack',
 
 rs_stack_data = {"name": 'RS Stack',
                  "ownership": 'Terminal operator',
-                 "delivery_time": 1,
-                 "lifespan": 40,
-                 "mobilisation": 10_000,
-                 "maintenance_perc": 0.1,
+                 "delivery_time": 1,  # years
+                 "lifespan": 40,  # years
+                 "mobilisation": 10_000,  # USD
+                 "maintenance_perc": 0.1,  # [-]
                  "width": 4,  # TEU
                  "height": 4,  # TEU
                  "length": 20,  # TEU
@@ -260,7 +261,7 @@ rs_stack_data = {"name": 'RS Stack',
                  "digout_margin": 1.2,  # percentage
                  "reefer_factor": 2.33,  # RHDHV
                  "consumption": 4,  # kWh per active reefer
-                 "reefer_rack": 3500,
+                 "reefer_rack": 3500,  # USD
                  "reefers_present": 0.5}  # per reefer spot
 
 

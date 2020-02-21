@@ -125,7 +125,7 @@ class hastriggers_properties_mixin(object):
 
 class quay_wall_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, freeboard, Gijt_constant_2, Gijt_constant, Gijt_coefficient,
+                 maintenance_perc, insurance_perc, berthing_gap, freeboard, Gijt_constant_2, Gijt_constant, Gijt_coefficient,
                  max_sinkage, wave_motion, safety_margin, apron_width, apron_pavement, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -136,6 +136,7 @@ class quay_wall_properties_mixin(object):
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
+        self.berthing_gap = berthing_gap
         self.freeboard = freeboard
         self.Gijt_constant_2 = Gijt_constant_2
         self.Gijt_constant = Gijt_constant
