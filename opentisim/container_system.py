@@ -1316,6 +1316,7 @@ class System:
                     element.df.loc[element.df['year'] == year, 'labour'] = 0
 
     def calculate_fuel_cost(self, year):
+        """Fuel cost"""
         sts_moves, tractor_moves, empty_moves, stack_moves = self.box_moves(year)
         fuel_price = self.fuel_price
 
@@ -1376,7 +1377,6 @@ class System:
                 element.df.loc[element.df['year'] == year, 'fuel'] = 0
 
     def calculate_demurrage_cost(self, year):
-
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
         handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
