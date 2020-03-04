@@ -283,6 +283,29 @@ class cyclic_properties_mixin(object):
         self.peak_capacity = self.payload * self.hourly_cycles
         self.effective_capacity = int(eff_fact * self.peak_capacity) # TEU/hr
 
+class barge_crane_properties_mixin(object):
+    def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
+                 consumption, insurance_perc, crew, lifting_capacity, hourly_cycles, avg_utilisation, eff_fact,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.consumption = consumption
+        self.insurance_perc = insurance_perc
+        self.crew = crew
+        self.lifting_capacity = lifting_capacity
+        self.hourly_cycles = hourly_cycles
+        self.eff_fact = eff_fact  # effectiveness factor
+        self.payload = self.lifting_capacity * 1.0  # for lashing
+        self.peak_capacity = self.payload * self.hourly_cycles
+        self.avg_utilisation = avg_utilisation
+        self.effective_capacity = int(eff_fact * avg_utilisation * self.peak_capacity)  # TEU/hr
+
 
 class transport_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc, insurance_perc, crew, salary,
@@ -493,7 +516,7 @@ class commodity_properties_mixin(object):
 
 class vessel_properties_mixin(object):
     def __init__(self, type, starting_time, call_size, LOA, draught, beam, max_cranes, all_turn_time,
-                 mooring_time, demurrage_rate, transport_costs, *args, **kwargs):
+                 mooring_time, demurrage_rate, transport_costs, avg_transport_costs, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -507,6 +530,7 @@ class vessel_properties_mixin(object):
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
         self.transport_costs = transport_costs
+        self.avg_transport_costs = avg_transport_costs
 
 
 class barge_properties_mixin(object):

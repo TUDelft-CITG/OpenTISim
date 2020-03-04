@@ -56,13 +56,30 @@ berth_data = {"name": 'Berth',
               "delivery_time": 2,
               "max_cranes": 3}  # STS cranes
 
+# *** Default inputs: Barge_Berth class ***
+
+barge_berth_data = {"name": 'Barge_Berth',
+                    "type": 'barge_berth',
+                    "ownership": "Terminal operator",
+                    "delivery_time": 2,                 # years
+                    "lifespan": 50,                     # equal to quay wall OGV
+                    "unit_rate": 30_000,                # USD/barge_berth
+                    "mobilisation": 5000,               # USD/barge_berth
+                    "maintenance_perc": 0.02,           # percentage
+                    "nom_crane_productivity": 15.0,     # moves per hour
+                    "utilisation": 0.90,                # rate
+                    "efficiency": 0.75,                 # rate
+                    "crane_per_berth": 1.30,            # rate
+                    "handling_time_ratio": 0.90,        # handling time to berthing time ratio
+                    "peak_factor": 1.10}
+
 channel_data = {"name": 'Channel',
                 "ownership": 'Port authority',
                 "delivery_time": 2,                 # years
                 "lifespan": 50,                     # years
-                "capital_dredging_rate": 7.0,       # USD per m3
-                "infill_dredging_rate": 5.5,        # USD per m3
-                "maintenance_dredging_rate": 4.5,   # USD per m3
+                "capital_dredging_rate": 7.0,       # USD per m3 (source: Payra, $6.82)
+                "infill_dredging_rate": 5.5,        # USD per m3 (source: Payra, $5.25)
+                "maintenance_dredging_rate": 4.5,   # USD per m3 (source: Payra, $4.43)
                 "mobilisation_min": 2_500_000,
                 "mobilisation_perc": 0.02,
                 "maintenance_perc": 0.10,
@@ -164,6 +181,20 @@ sts_crane_data = {"name": 'STS_crane',
                   "hourly_cycles": 25,  # PIANC wg135
                   "eff_fact": 0.75}
 
+barge_crane_data = {"name": 'Barge Crane',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,  # years
+                    "lifespan": 40,  # years
+                    "unit_rate": 5_000_000,  # USD per unit
+                    "mobilisation_perc": 0.15,  # percentage
+                    "maintenance_perc": 0.02,  # percentage
+                    "insurance_perc": 0.01,  # percentage
+                    "consumption": 4,  # RHDHV
+                    "crew": 1.5,  # 1.5 crane driver (per shift)
+                    "lifting_capacity": 1.60,  # RHDHV, weighted average of TEU per lift
+                    "hourly_cycles": 15,  # RHDHV
+                    "avg_utilisation": 0.9,  # RHDHV
+                    "eff_fact": 0.75}  # RHDHV
 
 # Default inputs: Horizontal_Transport class *** #todo add sources
 
@@ -339,7 +370,7 @@ oog_stack_data = {"name": 'OOG Stack',
                   "pavement": 200,  # DUMMY
                   "drainage": 50}  # DUMMY
 
-# *** Default inputs: Stack_Equipment class #todo add eRTG
+# *** Default inputs: Stack_Equipment class
 
 rtg_data = {"name": 'RTG',
             "type": 'rtg',
@@ -431,23 +462,6 @@ gate_data = {"name": 'Gate',
              "operating_days": 6,  #
              "capacity": 60}
 
-# *** Default inputs: Barge_Berth class ***
-
-barge_berth_data = {"name": 'Barge_Berth',
-                    "type": 'barge_berth',
-                    "ownership": "Terminal operator",
-                    "delivery_time": 2,                 # years
-                    "lifespan": 50,                     # equal to quay wall OGV
-                    "unit_rate": 30_000,                # USD/barge_berth
-                    "mobilisation": 5000,               # USD/barge_berth
-                    "maintenance_perc": 0.02,           # percentage
-                    "nom_crane_productivity": 15.0,     # moves per hour
-                    "utilisation": 0.90,                # rate
-                    "efficiency": 0.75,                 # rate
-                    "crane_per_berth": 1.30,            # rate
-                    "handling_time_ratio": 0.90,        # handling time to berthing time ratio
-                    "peak_factor": 1.10}
-
 # *** Default inputs: ECH class***
 
 empty_handler_data = {"name": 'Empty Handler',
@@ -489,7 +503,9 @@ fully_cellular_data = {"name": 'Fully_Cellular_1',
                        "all_turn_time": 31,  # todo source
                        "mooring_time": 6,  # berthing + deberthing time
                        "demurrage_rate": 730,  # USD todo edit
-                       "transport_costs": 200}  # USD per TEU
+                       "transport_costs": 200,  # USD per TEU, RHDHV
+                       "avg_transport_costs": 2128 # USD per TEU, Ports and Terminals p.158
+                       }
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
@@ -502,7 +518,9 @@ panamax_data = {"name": 'Panamax_1',
                 "all_turn_time": 31,  # todo source [hr]
                 "mooring_time": 6,  # berthing + deberthing time [hr]
                 "demurrage_rate": 730,  # USD todo edit
-                "transport_costs": 180}  # USD per TEU
+                "transport_costs": 180, # USD per TEU, RHDHV
+                "avg_transport_costs": 1881 # USD per TEU, Ports and Terminals p.158
+                }
 
 panamax_max_data = {"name": 'Panamax_Max_1',
                     "type": 'Panamax_Max',
@@ -515,7 +533,9 @@ panamax_max_data = {"name": 'Panamax_Max_1',
                     "all_turn_time": 31,  # todo source [hr]
                     "mooring_time": 2,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
-                    "transport_costs": 160}  # USD per TEU
+                    "transport_costs": 160,  # USD per TEU, RHDHV
+                    "avg_transport_costs": 1682 # USD per TEU, Ports and Terminals p.158
+                    }
 
 post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "type": 'Post_Panamax_I',
@@ -528,7 +548,9 @@ post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "all_turn_time": 31,  # todo source [hr]
                        "mooring_time": 2,  # berthing + deberthing time [hr]
                        "demurrage_rate": 730,  # USD todo edit
-                       "transport_costs": 150}  # USD per TEU
+                       "transport_costs": 150,  # USD per TEU, RHDHV
+                       "avg_transport_costs": 1499 # USD per TEU, Ports and Terminals p.158
+                       }
 
 post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                         "type": 'Post_Panamax_II',
@@ -541,7 +563,9 @@ post_panamax_II_data = {"name": 'Post_Panamax_II_1',
                         "all_turn_time": 31,  # todo source [hr]
                         "mooring_time": 2,  # berthing + deberthing time [hr]
                         "demurrage_rate": 730,  # USD todo edit
-                        "transport_costs": 140}  # USD per TEU
+                        "transport_costs": 140,  # USD per TEU, RHDHV
+                        "avg_transport_costs": 1304 # USD per TEU, Ports and Terminals p.158
+                        }
 
 new_panamax_data = {"name": 'New_Panamax_1',
                     "type": 'New_Panamax',
@@ -554,7 +578,9 @@ new_panamax_data = {"name": 'New_Panamax_1',
                     "all_turn_time": 31,  # todo source [hr]
                     "mooring_time": 6,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
-                    "transport_costs": 120}  # USD per TEU
+                    "transport_costs": 120, # USD per TEU, RHDHV
+                    "avg_transport_costs": 1118 # USD per TEU, Ports and Terminals p.158
+                    }
 
 VLCS_data = {"name": 'VLCS_1',
              "type": 'VLCS',
@@ -567,7 +593,9 @@ VLCS_data = {"name": 'VLCS_1',
              "all_turn_time": 31,  # todo source [hr]
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
-             "transport_costs": 80}  # USD per TEU
+             "transport_costs": 80, # USD per TEU, RHDHV
+             "avg_transport_costs": 2128 # USD per TEU, Ports and Terminals p.158
+             }
 
 ULCS_data = {"name": 'ULCS_1',
              "type": 'ULCS',
@@ -580,7 +608,9 @@ ULCS_data = {"name": 'ULCS_1',
              "all_turn_time": 31,  # todo source [hr]
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
-             "transport_costs": 60}  # USD per TEU
+             "transport_costs": 60, # USD per TEU, RHDHV
+             "avg_transport_costs": 908 # USD per TEU, Ports and Terminals p.158
+             }
 
 # *** Default inputs: Barge class *** # todo add sources
 
