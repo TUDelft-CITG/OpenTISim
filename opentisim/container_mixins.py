@@ -283,6 +283,7 @@ class cyclic_properties_mixin(object):
         self.peak_capacity = self.payload * self.hourly_cycles
         self.effective_capacity = int(eff_fact * self.peak_capacity) # TEU/hr
 
+
 class barge_crane_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, unit_rate, mobilisation_perc, maintenance_perc,
                  consumption, insurance_perc, crew, lifting_capacity, hourly_cycles, avg_utilisation, eff_fact,

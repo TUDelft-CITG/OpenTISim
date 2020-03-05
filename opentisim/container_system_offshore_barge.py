@@ -1303,17 +1303,16 @@ class System:
             - find out how much laden stack capacity is planned
             - find out how much laden stack capacity is needed
             - add stack capacity until service_trigger is no longer exceeded"""
-
-        stack_capacity_planned, stack_capacity_online, required_capacity, stack_ground_slots, laden_stack_area, reefer_slots = self.laden_reefer_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_online, stack_capacity_required, stack_ground_slots, stack_storage_area, reefer_slots = self.laden_reefer_stack_capacity(year)
 
         if self.debug:
             print('     Stack Capacity planned  (@ start of year): {}'.format(round(stack_capacity_planned)))
             print('     Stack Capacity online   (@ start of year): {}'.format(round(stack_capacity_online)))
-            print('     Stack Capacity required (@ start of year): {}'.format(round(required_capacity)))
+            print('     Stack Capacity required (@ start of year): {}'.format(round(stack_capacity_required)))
             print('     Laden and Reefer Ground Slots required (@ start of year): {}'.format(round(stack_ground_slots)))
             print('')
 
-        while required_capacity > stack_capacity_planned:
+        while stack_capacity_required > stack_capacity_planned:
             if self.debug:
                 print('  *** add Laden Stack to elements')
 
@@ -1329,8 +1328,8 @@ class System:
             reefer_slots = (self.reefer_perc / self.laden_perc) * stack.capacity
 
             # land use
-            stack_ground_slots = stack.capacity / stack.height
-            stack.storage_area = stack_ground_slots * stack.gross_tgs
+            stack_ground_slots = stack.capacity / stack.height          # TEU per ground slot
+            stack.storage_area = stack_ground_slots * stack.gross_tgs   # area per ground slot
             stack.land_use = stack.storage_area * stack.area_factor
 
             # capex
@@ -1357,7 +1356,7 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_online, required_capacity, stack_ground_slots, laden_stack_area, reefer_slots = self.laden_reefer_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_online, stack_capacity_required, stack_ground_slots, stack_storage_area, reefer_slots = self.laden_reefer_stack_capacity(year)
 
     def empty_stack_invest(self, year):
 
@@ -1367,16 +1366,16 @@ class System:
             - find out how much stack capacity is needed
             - add stack capacity until service_trigger is no longer exceeded"""
 
-        empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, empty_stack_area = self.empty_stack_capacity(year)
+        empty_capacity_planned, empty_capacity_online, empty_capacity_required, empty_ground_slots, empty_stack_area = self.empty_stack_capacity(year)
 
         if self.debug:
             print('     Empty Stack capacity planned  (@ start of year): {}'.format(round(empty_capacity_planned)))
             print('     Empty Stack capacity online   (@ start of year): {}'.format(round(empty_capacity_online)))
-            print('     Empty Stack capacity required (@ start of year): {}'.format(round(empty_required_capacity)))
+            print('     Empty Stack capacity required (@ start of year): {}'.format(round(empty_capacity_required)))
             print('     Empty Ground Slots required   (@ start of year): {}'.format(round(empty_ground_slots)))
             print('')
 
-        while empty_required_capacity > empty_capacity_planned:
+        while empty_capacity_required > empty_capacity_planned:
             if self.debug:
                 print('  *** add Empty Stack to elements')
 
@@ -1407,14 +1406,13 @@ class System:
             else:
                 empty_stack.year_online = year + empty_stack.delivery_time
 
+
             # add cash flow information to quay_wall object in a DataFrame
             empty_stack = self.add_cashflow_data_to_element(empty_stack)
 
             self.elements.append(empty_stack)
 
-            empty_capacity_planned, empty_capacity_online, empty_required_capacity, empty_ground_slots, \
-            empty_stack_area = self.empty_stack_capacity(
-                year)
+            empty_capacity_planned, empty_capacity_online, empty_capacity_required, empty_ground_slots, empty_stack_area = self.empty_stack_capacity(year)
 
     def oog_stack_invest(self, year):  # out of gauge
 
@@ -1424,15 +1422,15 @@ class System:
             - find out how much OOG stack capacity is needed
             - add stack capacity until service_trigger is no longer exceeded"""
 
-        oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
+        oog_capacity_planned, oog_capacity_online, oog_capacity_required = self.oog_stack_capacity(year)
 
         if self.debug:
             print('     OOG Slots planned  (@ start of year): {}'.format(round(oog_capacity_planned)))
             print('     OOG Slots online   (@ start of year): {}'.format(round(oog_capacity_online)))
-            print('     OOG Slots required (@ start of year): {}'.format(round(oog_required_capacity)))
+            print('     OOG Slots required (@ start of year): {}'.format(round(oog_capacity_required)))
             print('')
 
-        while oog_required_capacity > oog_capacity_planned:
+        while oog_capacity_required > oog_capacity_planned:
             if self.debug:
                 print('  *** add OOG stack to elements')
 
@@ -1466,7 +1464,7 @@ class System:
 
             self.elements.append(oog_stack)
 
-            oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
+            oog_capacity_planned, oog_capacity_online, oog_capacity_required = self.oog_stack_capacity(year)
 
     def stack_equipment_invest(self, year):
 
@@ -2223,7 +2221,6 @@ class System:
         # find the total stack capacity
         stack_capacity_planned = 0
         stack_capacity_online = 0
-        # required_capacity = 0
 
         for element in list_of_elements:
             stack_capacity_planned += element.capacity
@@ -2257,12 +2254,12 @@ class System:
         reefer_ground_slots = (reefer_teu * reefer.peak_factor * reefer.dwell_time / reefer.stack_occupancy /
                                stack.height / operational_days * stack.reefer_factor)
         stack_ground_slots = laden_ground_slots + reefer_ground_slots
-        reefer_slots = reefer_ground_slots * stack.height
+        reefer_capacity_required = reefer_ground_slots * stack.height
 
-        required_capacity = (laden_ground_slots + reefer_ground_slots) * stack.height
-        laden_stack_area = stack_ground_slots * stack.area_factor
+        stack_capacity_required = (laden_ground_slots + reefer_ground_slots) * stack.height
+        stack_storage_area = stack_ground_slots * stack.area_factor
 
-        return stack_capacity_planned, stack_capacity_online, required_capacity, stack_ground_slots, laden_stack_area, reefer_slots
+        return stack_capacity_planned, stack_capacity_online, stack_capacity_required, stack_ground_slots, stack_storage_area, reefer_capacity_required
 
     def empty_stack_capacity(self, year):  # todo beschrijving empty stack
 
@@ -2332,14 +2329,16 @@ class System:
         oog_capacity_planned, oog_capacity_online, oog_required_capacity = self.oog_stack_capacity(year)
 
         total_ground_slots = stack_ground_slots + empty_ground_slots
+        total_online_capacity = stack_capacity_online + empty_capacity_online + oog_capacity_online
         total_required_capacity = stack_required_capacity + empty_required_capacity + oog_required_capacity
 
         # calibration
-        print('     Total Ground Slots required (@ start of year): ', f'{int(total_ground_slots):,}', "TEU")
-        print('     Total Stack capacity required (@ start of year): ', f'{int(total_required_capacity):,}', "TEU" )
+        print('     Total Ground Slots required   (@ start of year): ', f'{int(round(total_ground_slots)):,}')
+        print('     Total Stack capacity required (@ start of year): ', f'{int(round(total_required_capacity,-2)):,}', "TEU")
+        print('     Total Stack capacity online   (@ start of year): ', f'{int(round(total_online_capacity, -2)):,}', "TEU")
         print('')
 
-        return total_ground_slots, total_required_capacity
+        return total_ground_slots, total_online_capacity, total_required_capacity
 
     def calculate_berth_occupancy(self, year, fully_cellular_calls, panamax_calls, panamax_max_calls,
                                   post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls):
@@ -3523,78 +3522,77 @@ class System:
             ax3.grid(False, which='major')
         generate_land_use_plot()
 
-    def storage_area_plot(self, width=0.25, alpha=0.6):
+    def storage_capacity_plot(self, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
-        # get storage area
+        "get storage capacity"
         years = []
-        stack_storage_area = []
-        empty_storage_area = []
-        oog_storage_area = []
+        stack_storage_capacity = []
+        empty_storage_capacity = []
+        oog_storage_capacity = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
-            stack_storage_area.append(0)
-            empty_storage_area.append(0)
-            oog_storage_area.append(0)
+            stack_storage_capacity.append(0)
+            empty_storage_capacity.append(0)
+            oog_storage_capacity.append(0)
 
             for element in self.elements:
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
-                        stack_storage_area[-1] += element.storage_area
+                        stack_storage_capacity[-1] += element.capacity
                 if isinstance(element, Empty_Stack):
                     if year >= element.year_online:
-                        empty_storage_area[-1] += element.storage_area
+                        empty_storage_capacity[-1] += element.capacity
                 if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
-                        oog_storage_area[-1] += element.storage_area
+                        oog_storage_capacity[-1] += element.capacity
 
-        "total storage area"
-        total_storage_area = [stack_storage_area, empty_storage_area, oog_storage_area]
-        total_storage_area = sum(map(np.array, total_storage_area))/1000
-        storage_area_df = pd.DataFrame(list(zip(years, total_storage_area)), columns = ['Year', 'Storage Area'])
-        storage_area_df.set_index('Year')
+        def offshore_storage_capacity_df():
+            offshore_storage_capacity = [stack_storage_capacity, empty_storage_capacity, oog_storage_capacity]
+            offshore_storage_capacity = sum(map(np.array, offshore_storage_capacity))
+            storage_capacity_df = pd.DataFrame(list(zip(years, stack_storage_capacity, empty_storage_capacity,
+                                                        oog_storage_capacity, offshore_storage_capacity)),
+                                               columns=['Year', 'Laden storage (TEU)', 'Empty storage (TEU)', 'OOG storage (TEU)', 'Total storage (TEU)'])
+            storage_capacity_df.set_index('Year', inplace=True)
+            display(storage_capacity_df)
+            return offshore_storage_capacity
+        offshore_storage_capacity = offshore_storage_capacity_df()
 
-        stack_storage_area = [x * 0.001 for x in stack_storage_area]
-        empty_storage_area = [x * 0.001 for x in empty_storage_area]
-        oog_storage_area = [x * 0.001 for x in oog_storage_area]
+        # define bottoms
+        stack_empty = np.add(stack_storage_capacity, empty_storage_capacity).tolist()
 
-        stack_empty = np.add(stack_storage_area, empty_storage_area).tolist()
-        stack_empty_storage = np.add(empty_storage_area, oog_storage_area).tolist()
-
-        def generate_storage_area_plot():
+        def generate_storage_capacity_plot():
             fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
 
-            ax1.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
-            ax1.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area)
-            ax1.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty)
-
-            ax1.step(years, total_storage_area, where='mid', label='Storage Area', color='tab:gray')
+            ax1.bar(years, stack_storage_capacity, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
+            ax1.bar(years, empty_storage_capacity, width=width, alpha=alpha, label="Empty Stack",            bottom=stack_storage_capacity)
+            ax1.bar(years, oog_storage_capacity,   width=width, alpha=alpha, label="OOG Stack",              bottom=stack_empty)
+            ax1.step(years, offshore_storage_capacity, where='mid', color='tab:gray', label="Total storage capacity")
 
             # ax1.set_xlabel('Years')
-            ax1.set_ylabel('Storage Area [TEU]')
-            ax1.set_title('Onshore Storage Area')
+            ax1.set_ylabel('Storage Capacity [TEU]')
+            ax1.set_title('Offshore Storage Capacity')
             ax1.set_xticks([x for x in years])
             ax1.set_xticklabels(years)
             ax1.legend()
 
-            ax2.bar(years, stack_storage_area, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
-            ax2.bar(years, empty_storage_area, width=width, alpha=alpha, label="Empty Stack", bottom=stack_storage_area)
-            ax2.bar(years, oog_storage_area, width=width, alpha=alpha, label="OOG Stack", bottom=stack_empty)
-
-            ax2.step(years, total_storage_area, where='mid', color='tab:gray')
+            ax2.bar(years, stack_storage_capacity, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
+            ax2.bar(years, empty_storage_capacity, width=width, alpha=alpha, label="Empty Stack",            bottom=stack_storage_capacity)
+            ax2.bar(years, oog_storage_capacity,   width=width, alpha=alpha, label="OOG Stack",              bottom=stack_empty)
+            ax2.step(years, offshore_storage_capacity, where='mid', color='tab:gray', label="Total storage capacity")
 
             ax2.set_xlabel('Years')
-            ax2.set_ylabel('Storage Area [TEU]')
-            ax2.set_title('Onshore Storage Area')
+            ax2.set_ylabel('Storage Capacity [TEU]')
+            ax2.set_title('Onshore Storage Capacity')
             ax2.set_xticks([x for x in years])
             ax2.set_xticklabels(years)
             ax2.legend()
 
             plt.setp(ax1.patches, linewidth=0)
             plt.setp(ax2.patches, linewidth=0)
-        generate_storage_area_plot()
+        generate_storage_capacity_plot()
 
     def terminal_opex_plot(self, cash_flows_df):
 
