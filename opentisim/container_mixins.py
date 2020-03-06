@@ -147,7 +147,7 @@ class hastriggers_properties_mixin(object):
 
 class quay_wall_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, freeboard, Gijt_constant, Gijt_coefficient, max_sinkage, wave_motion,
+                 maintenance_perc, insurance_perc, berthing_gap, freeboard, Gijt_constant, Gijt_coefficient, max_sinkage, wave_motion,
                  safety_margin, apron_width, apron_pavement, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -158,6 +158,7 @@ class quay_wall_properties_mixin(object):
         self.mobilisation_perc = mobilisation_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
+        self.berthing_gap = berthing_gap
         self.freeboard = freeboard
         self.Gijt_constant = Gijt_constant
         self.Gijt_coefficient = Gijt_coefficient
@@ -459,6 +460,7 @@ class gate_properties_mixin(object):
         self.operating_days = operating_days
         self.capacity = capacity
 
+
 class barge_berth_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation, maintenance_perc,
                  nom_crane_productivity, utilisation, efficiency, crane_per_berth, handling_time_ratio, peak_factor, *args, **kwargs):
@@ -477,8 +479,6 @@ class barge_berth_properties_mixin(object):
         self.crane_per_berth = crane_per_berth
         self.handling_time_ratio = handling_time_ratio
         self.peak_factor = peak_factor
-
-
 
 
 class empty_handler_properties_mixin(object):
@@ -516,12 +516,12 @@ class commodity_properties_mixin(object):
 
 
 class vessel_properties_mixin(object):
-    def __init__(self, type, starting_time, call_size, LOA, draught, beam, max_cranes, all_turn_time,
-                 mooring_time, demurrage_rate, transport_costs, avg_transport_costs, *args, **kwargs):
+    def __init__(self, type, delivery_time, call_size, LOA, draught, beam, max_cranes, all_turn_time,
+                 mooring_time, demurrage_rate, transport_costs, all_in_transport_costs, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
-        self.starting_time = starting_time
+        self.delivery_time = delivery_time
         self.call_size = call_size
         self.LOA = LOA
         self.draught = draught
@@ -531,7 +531,7 @@ class vessel_properties_mixin(object):
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
         self.transport_costs = transport_costs
-        self.avg_transport_costs = avg_transport_costs
+        self.all_in_transport_costs = all_in_transport_costs
 
 
 class barge_properties_mixin(object):

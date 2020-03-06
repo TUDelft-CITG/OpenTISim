@@ -264,7 +264,10 @@ Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_
 # The general Vessel class
 Vessel = type('Vessel', (container_mixins.identifiable_properties_mixin,
                          container_mixins.history_properties_mixin,
-                         container_mixins.vessel_properties_mixin),
+                         container_mixins.vessel_properties_mixin,
+                         container_mixins.hascapex_properties_mixin,  # Give it capex info
+                         container_mixins.hasopex_properties_mixin,  # Give it opex info
+                         container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
               {})  # The dictionary is empty because the site type is generic
 
 # The general Labour class
