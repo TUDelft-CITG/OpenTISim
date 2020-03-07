@@ -173,15 +173,25 @@ Cyclic_Unloader = type('Cyclic_Unloader', (container_mixins.identifiable_propert
                                            container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                        {})  # The dictionary is empty because the site type is generic
 
-# The generic Barge Crane class
-Barge_Crane = type('Barge_Crane', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                                   container_mixins.history_properties_mixin,  # Give it procurement history
-                                   container_mixins.barge_crane_properties_mixin,
-                                   container_mixins.hascapex_properties_mixin,  # Give it capex info
-                                   container_mixins.hasopex_properties_mixin,  # Give it opex info
-                                   container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
-                                   container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
-                       {})  # The dictionary is empty because the site type is generic
+# The generic Offshore Barge Crane class
+Offshore_Barge_Crane = type('Offshore_Barge_Crane', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                                                     container_mixins.history_properties_mixin,  # Give it procurement history
+                                                     container_mixins.barge_crane_properties_mixin,
+                                                     container_mixins.hascapex_properties_mixin,  # Give it capex info
+                                                     container_mixins.hasopex_properties_mixin,  # Give it opex info
+                                                     container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                                                     container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                           {})  # The dictionary is empty because the site type is generic
+
+# The generic Onshore Barge Crane class
+Onshore_Barge_Crane = type('Onshore_Barge_Crane', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                                                   container_mixins.history_properties_mixin,  # Give it procurement history
+                                                   container_mixins.barge_crane_properties_mixin,
+                                                   container_mixins.hascapex_properties_mixin,  # Give it capex info
+                                                   container_mixins.hasopex_properties_mixin,  # Give it opex info
+                                                   container_mixins.hasrevenue_properties_mixin,  # Give it revenue info
+                                                   container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
+                           {})  # The dictionary is empty because the site type is generic
 
 # The generic Horizontal transport class
 Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiable_properties_mixin,  # Give it a name

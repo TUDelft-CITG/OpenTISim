@@ -50,29 +50,73 @@ quay_wall_data = {"name": 'Quay',
                   "apron_width": 65.5,  # see PIANC (2014b), p 62
                   "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
 
-# *** Default inputs: Berth class ***  # todo add min_cranes
+# *** Default inputs: Berth class ***
 
 berth_data = {"name": 'Berth',
               "crane_type": 'Mobile cranes',
               "delivery_time": 2,
               "max_cranes": 3}  # STS cranes
 
+# *** Default inputs: Crane class *** todo check sources sts_crane_data and check small sts_crane_data for the barge berths
+
+sts_crane_data = {"name": 'STS_crane',
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 1,  # years
+                  "lifespan": 40,  # years
+                  "unit_rate": 10_000_000,  # USD per unit
+                  "mobilisation_perc": 0.15,  # percentage
+                  "maintenance_perc": 0.02,  # percentage
+                  "insurance_perc": 0.01,  # percentage
+                  "consumption": 8,  # Source: Peter Beamish (RHDHV)
+                  "crew": 5.5,  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
+                  "crane_type": 'STS crane',
+                  "lifting_capacity": 2.13,  # weighted average of TEU per lift
+                  "hourly_cycles": 25,  # PIANC wg135
+                  "eff_fact": 0.75}
+
 # *** Default inputs: Barge_Berth class ***
 
 barge_berth_data = {"name": 'Barge_Berth',
-                    "type": 'barge_berth',
-                    "ownership": "Terminal operator",
                     "delivery_time": 2,  # years
-                    "lifespan": 50,  # equal to quay wall OGV
-                    "unit_rate": 30_000,  # USD/barge_berth
-                    "mobilisation": 5000,  # USD/barge_berth
+                    "max_cranes": 1.0}  # barge_cranes/barge_berth (Source: RHDHV)
+
+barge_quay_wall_data = {"name": 'Barge_Quay',
+                        "ownership": "Terminal operator",
+                        "delivery_time": 2,  # years
+                        "lifespan": 50,  # equal to quay wall OGV
+                        "mobilisation_min": 1_000_000,  # todo add source
+                        "mobilisation_perc": 0.02,
+                        "maintenance_perc": 0.01,
+                        "insurance_perc": 0.01,
+                        "berthing_gap": 15,  # see PIANC (2014), p 98
+                        "freeboard": 4,  # m
+                        "Gijt_constant": 753.24, # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
+                        "Gijt_coefficient": 1.2729, # Source: (J. de Gijt, 2011) Figure 2
+                        "max_sinkage": 0.5,
+                        "wave_motion": 0.5,
+                        "safety_margin": 0.5,
+                        "apron_width": 30,  # todo add source, check PIANC 2014b
+                        "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
+
+barge_crane_data = {"name": 'Barge Crane',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,  # years
+                    "lifespan": 40,  # years
+                    "unit_rate": 5_000_000,  # USD per unit
+                    "mobilisation_perc": 0.15,  # percentage
                     "maintenance_perc": 0.02,  # percentage
+                    "insurance_perc": 0.01,  # percentage
+                    "consumption": 4,  # RHDHV
+                    "crew": 1.5,  # 1.5 crane driver (per shift)
+                    "lifting_capacity": 1.60,  # RHDHV, weighted average of TEU per lift
+                    "avg_utilisation": 0.9,  # RHDHV
                     "nom_crane_productivity": 15.0,  # moves per hour
                     "utilisation": 0.90,  # rate
                     "efficiency": 0.75,  # rate
-                    "crane_per_berth": 1.30,  # rate
                     "handling_time_ratio": 0.90,  # handling time to berthing time ratio
-                    "peak_factor": 1.10}
+                    "peak_factor": 1.10}  # RHDHV
+
+# *** Default inputs: ***
 
 channel_data = {"name": 'Channel',
                 "ownership": 'Port authority',
@@ -119,83 +163,6 @@ breakwater_data = {"name": 'Breakwater',
                    "quay_length_rate": 1.5,
                    "maintenance_perc": 0.01,
                    "insurance_perc": 0.00}
-
-# *** Default inputs: Cyclic_Unloader class *** todo check sources sts_crane_data and add small sts_crane_data for the barge berths
-
-# gantry_crane_data = {"name": 'Gantry_crane',
-#                      "ownership": 'Terminal operator',
-#                      "delivery_time": 1,
-#                      "lifespan": 40,
-#                      "unit_rate": 9_750_000,
-#                      "mobilisation_perc": 0.15,
-#                      "maintenance_perc": 0.02,
-#                      "consumption": 561,
-#                      "insurance_perc": 0.01,
-#                      "crew": 3,
-#                      "crane_type": 'Gantry crane',
-#                      "lifting_capacity": 50,
-#                      "hourly_cycles": 50,
-#                      "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
-#
-# harbour_crane_data = {"name": 'Harbour_crane',
-#                       "ownership": 'Terminal operator',
-#                       "delivery_time": 1,
-#                       "lifespan": 40,
-#                       "unit_rate": 7_880_000,
-#                       "mobilisation_perc": 0.15,
-#                       "maintenance_perc": 0.02,
-#                       "consumption": 210,
-#                       "insurance_perc": 0.01,
-#                       "crew": 3,
-#                       "crane_type": 'Harbour crane',
-#                       "lifting_capacity": 25,
-#                       "hourly_cycles": 40,
-#                       "eff_fact": 0.40}  # all values from Ijzermans, 2019, P 100
-#
-# mobile_crane_data = {"name": 'Mobile_crane',
-#                      "ownership": 'Terminal operator',
-#                      "delivery_time": 1,
-#                      "lifespan": 40,
-#                      "unit_rate": 3_325_000,
-#                      "mobilisation_perc": 0.15,
-#                      "maintenance_perc": 0.02,
-#                      "consumption": 485,
-#                      "insurance_perc": 0.01,
-#                      "crew": 3,
-#                      "crane_type": 'Mobile crane',
-#                      "lifting_capacity": 30,
-#                      "hourly_cycles": 25,
-#                      "eff_fact": 0.35}  # all values from Ijzermans, 2019, P 100
-
-sts_crane_data = {"name": 'STS_crane',
-                  "ownership": 'Terminal operator',
-                  "delivery_time": 1,  # years
-                  "lifespan": 40,  # years
-                  "unit_rate": 10_000_000,  # USD per unit
-                  "mobilisation_perc": 0.15,  # percentage
-                  "maintenance_perc": 0.02,  # percentage
-                  "insurance_perc": 0.01,  # percentage
-                  "consumption": 8,  # Source: Peter Beamish (RHDHV)
-                  "crew": 5.5,  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
-                  "crane_type": 'STS crane',
-                  "lifting_capacity": 2.13,  # weighted average of TEU per lift
-                  "hourly_cycles": 25,  # PIANC wg135
-                  "eff_fact": 0.75}
-
-barge_crane_data = {"name": 'Barge Crane',
-                    "ownership": 'Terminal operator',
-                    "delivery_time": 1,  # years
-                    "lifespan": 40,  # years
-                    "unit_rate": 5_000_000,  # USD per unit
-                    "mobilisation_perc": 0.15,  # percentage
-                    "maintenance_perc": 0.02,  # percentage
-                    "insurance_perc": 0.01,  # percentage
-                    "consumption": 4,  # RHDHV
-                    "crew": 1.5,  # 1.5 crane driver (per shift)
-                    "lifting_capacity": 1.60,  # RHDHV, weighted average of TEU per lift
-                    "hourly_cycles": 15,  # RHDHV
-                    "avg_utilisation": 0.9,  # RHDHV
-                    "eff_fact": 0.75}  # RHDHV
 
 # Default inputs: Horizontal_Transport class *** #todo add sources
 
@@ -331,11 +298,6 @@ rs_stack_data = {"name": 'RS Stack',
                  "consumption": 4,  # kWh per active reefer
                  "reefer_rack": 3500,  # USD
                  "reefers_present": 0.5}  # per reefer spot
-
-# #*** Default inputs: Reefer data
-# reefer_rack_data = {"reefer_factor":2.33, #RHDHV
-#                  "consumption":4, #kWh per active reefer
-#                  "reefer_rack": 3500} #per reefer spot
 
 # *** Default inputs: Other_Stack class
 
@@ -628,7 +590,6 @@ small_barge_data = {"name": 'Small_Barge_1',
                     "operations_perc": 0.10,
                     "maintenance_perc": 0.10,
                     "insurance_perc": 0.01,
-                    "max_cranes": 1,  # small STS cranes
                     "mooring_time": 6,  # berthing + deberthing time
                     "transport_costs": 200}  # USD per TEU
 
@@ -645,7 +606,6 @@ medium_barge_data = {"name": 'Medium_Barge_1',
                      "operations_perc": 0.10,
                      "maintenance_perc": 0.10,
                      "insurance_perc": 0.01,
-                     "max_cranes": 1,  # small STS cranes
                      "mooring_time": 6,  # berthing + deberthing time
                      "transport_costs": 200}  # USD per TEU
 
@@ -662,7 +622,6 @@ large_barge_data = {"name": 'Large_Barge_1',
                     "operations_perc": 0.10,
                     "maintenance_perc": 0.10,
                     "insurance_perc": 0.01,
-                    "max_cranes": 1,  # small STS cranes
                     "mooring_time": 6,  # berthing + deberthing time
                     "transport_costs": 200}  # USD per TEU
 
