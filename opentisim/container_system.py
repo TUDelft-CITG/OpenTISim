@@ -1498,7 +1498,7 @@ class System:
 
             ULCS = Vessel(**container_defaults.ULCS_data)
             service_time_ULCS = ULCS.call_size / service_rate
-            waiting_time_hours_ULCS = factor * service_time_ULCS
+            waiting_time_hours_ULCS = waiting_factor * service_time_ULCS
             port_time_ULCS = waiting_time_hours_ULCS + service_time_ULCS + ULCS.mooring_time
             penalty_time_ULCS = max(0, port_time_ULCS - ULCS.all_turn_time)
             demurrage_time_ULCS = penalty_time_ULCS * ULCS_calls
