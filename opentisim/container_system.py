@@ -1426,13 +1426,6 @@ class System:
         waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
-        # waiting_factor = \
-        #     core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths)
-        #
-        # handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        #
-        # factor, waiting_time_occupancy = self.waiting_time(year)
-
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
         quay_walls = len(core.find_elements(self, Quay_wall))
 
@@ -1443,21 +1436,13 @@ class System:
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
-            handymax = Vessel(**container_defaults.handymax_data)
-            service_time_handymax = handymax.call_size / service_rate
-            waiting_time_hours_handymax = waiting_factor * service_time_handymax
-            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
-            demurrage_time_handymax = penalty_time_handymax * handymax_calls
-            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
-
-            handysize = Vessel(**container_defaults.handysize_data)
-            service_time_handysize = handysize.call_size / service_rate
-            waiting_time_hours_handysize = waiting_factor * service_time_handysize
-            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
-            demurrage_time_handysize = penalty_time_handysize * handysize_calls
-            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+            fully_cellular = Vessel(**container_defaults.fully_cellular_data)
+            service_time_fully_cellular = fully_cellular.call_size / service_rate
+            waiting_time_hours_fully_cellular = waiting_factor * service_time_fully_cellular
+            port_time_fully_cellular = waiting_time_hours_fully_cellular + service_time_fully_cellular + fully_cellular.mooring_time
+            penalty_time_fully_cellular = max(0, port_time_fully_cellular - fully_cellular.all_turn_time)
+            demurrage_time_fully_cellular = penalty_time_fully_cellular * fully_cellular_calls
+            demurrage_cost_fully_cellular = demurrage_time_fully_cellular * fully_cellular.demurrage_rate
 
             panamax = Vessel(**container_defaults.panamax_data)
             service_time_panamax = panamax.call_size / service_rate
@@ -1467,12 +1452,67 @@ class System:
             demurrage_time_panamax = penalty_time_panamax * panamax_calls
             demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
-        else:
-            demurrage_cost_handymax = 0
-            demurrage_cost_handysize = 0
-            demurrage_cost_panamax = 0
+            panamax_max = Vessel(**container_defaults.panamax_max_data)
+            service_time_panamax_max = panamax_max.call_size / service_rate
+            waiting_time_hours_panamax_max = waiting_factor * service_time_panamax_max
+            port_time_panamax_max = waiting_time_hours_panamax_max + service_time_panamax_max + panamax_max.mooring_time
+            penalty_time_panamax_max = max(0, port_time_panamax_max - panamax_max.all_turn_time)
+            demurrage_time_panamax_max = penalty_time_panamax_max * panamax_max_calls
+            demurrage_cost_panamax_max = demurrage_time_panamax_max * panamax_max.demurrage_rate
 
-        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+            post_panamax_I = Vessel(**container_defaults.post_panamax_I_data)
+            service_time_post_panamax_I = post_panamax_I.call_size / service_rate
+            waiting_time_hours_post_panamax_I = waiting_factor * service_time_post_panamax_I
+            port_time_post_panamax_I = waiting_time_hours_post_panamax_I + service_time_post_panamax_I + post_panamax_I.mooring_time
+            penalty_time_post_panamax_I = max(0, port_time_post_panamax_I - post_panamax_I.all_turn_time)
+            demurrage_time_post_panamax_I = penalty_time_post_panamax_I * post_panamax_I_calls
+            demurrage_cost_post_panamax_I = demurrage_time_post_panamax_I * post_panamax_I.demurrage_rate
+
+            post_panamax_II = Vessel(**container_defaults.post_panamax_II_data)
+            service_time_post_panamax_II = post_panamax_II.call_size / service_rate
+            waiting_time_hours_post_panamax_II = waiting_factor * service_time_post_panamax_II
+            port_time_post_panamax_II = waiting_time_hours_post_panamax_II + service_time_post_panamax_II + post_panamax_II.mooring_time
+            penalty_time_post_panamax_II = max(0, port_time_post_panamax_II - post_panamax_II.all_turn_time)
+            demurrage_time_post_panamax_II = penalty_time_post_panamax_II * post_panamax_II_calls
+            demurrage_cost_post_panamax_II = demurrage_time_post_panamax_II * post_panamax_II.demurrage_rate
+
+            new_panamax = Vessel(**container_defaults.new_panamax_data)
+            service_time_new_panamax = new_panamax.call_size / service_rate
+            waiting_time_hours_new_panamax = waiting_factor * service_time_new_panamax
+            port_time_new_panamax = waiting_time_hours_new_panamax + service_time_new_panamax + new_panamax.mooring_time
+            penalty_time_new_panamax = max(0, port_time_new_panamax - new_panamax.all_turn_time)
+            demurrage_time_new_panamax = penalty_time_new_panamax * new_panamax_calls
+            demurrage_cost_new_panamax = demurrage_time_new_panamax * new_panamax.demurrage_rate
+
+            VLCS = Vessel(**container_defaults.VLCS_data)
+            service_time_VLCS = VLCS.call_size / service_rate
+            waiting_time_hours_VLCS = waiting_factor * service_time_VLCS
+            port_time_VLCS = waiting_time_hours_VLCS + service_time_VLCS + VLCS.mooring_time
+            penalty_time_VLCS = max(0, port_time_VLCS - VLCS.all_turn_time)
+            demurrage_time_VLCS = penalty_time_VLCS * VLCS_calls
+            demurrage_cost_VLCS = demurrage_time_VLCS * VLCS.demurrage_rate
+
+            ULCS = Vessel(**container_defaults.ULCS_data)
+            service_time_ULCS = ULCS.call_size / service_rate
+            waiting_time_hours_ULCS = factor * service_time_ULCS
+            port_time_ULCS = waiting_time_hours_ULCS + service_time_ULCS + ULCS.mooring_time
+            penalty_time_ULCS = max(0, port_time_ULCS - ULCS.all_turn_time)
+            demurrage_time_ULCS = penalty_time_ULCS * ULCS_calls
+            demurrage_cost_ULCS = demurrage_time_ULCS * ULCS.demurrage_rate
+
+        else:
+            demurrage_cost_fully_cellular = 0
+            demurrage_cost_panamax = 0
+            demurrage_cost_panamax_max = 0
+            demurrage_cost_post_panamax_I = 0
+            demurrage_cost_post_panamax_II = 0
+            demurrage_cost_new_panamax = 0
+            demurrage_cost_VLCS = 0
+            demurrage_cost_ULCS = 0
+
+        total_demurrage_cost = demurrage_cost_fully_cellular + demurrage_cost_panamax + demurrage_cost_panamax_max + \
+                               demurrage_cost_post_panamax_I + demurrage_cost_post_panamax_II + \
+                               demurrage_cost_new_panamax + demurrage_cost_VLCS + demurrage_cost_ULCS
 
         self.demurrage.append(total_demurrage_cost)
 
