@@ -142,8 +142,8 @@ class System:
             # self.access_channel_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
 
             # 2. for each year evaluate which investment are needed given the strategic and operational objectives
-            self.berth_invest(year, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
-                new_panamax_calls, VLCS_calls, ULCS_calls)
+            self.berth_invest(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                              post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
 
             if self.debug:
                 print('')
@@ -338,26 +338,27 @@ class System:
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
                 # bug fixed, should only take the value of the vessels that actually come
-                Ls_max = max(
-                    (not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
-                    (not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
-                    (not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["LOA"]
-                    (not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["LOA"]
-                    (not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["LOA"]
-                    (not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"]
-                    (not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"]
-                    (not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
-                    )  # max size
-                draft = max(
-                    (not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draft"],
-                    (not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draft"],
-                    (not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["draft"]
-                    (not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["draft"]
-                    (not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["draft"]
-                    (not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["draft"]
-                    (not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draft"]
-                    (not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draft"]
-                    )  # max draft
+                print((not container_defaults.container_data['fully_cellular_perc'] == 0))
+                Ls_max = max([
+                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
+                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
+                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["LOA"],
+                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["LOA"],
+                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["LOA"],
+                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"],
+                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"],
+                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
+                    ])  # max size
+                draught = max([
+                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
+                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draught"],
+                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["draught"],
+                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["draught"],
+                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["draught"],
+                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["draught"],
+                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draught"],
+                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draught"]
+                    ])  # max draught
 
                 Ls_avg = (fully_cellular * container_defaults.fully_cellular_data["LOA"] +
                           panamax * container_defaults.panamax_data["LOA"] +
@@ -381,7 +382,7 @@ class System:
 
                 # - depth
                 quay_wall = Quay_wall(**container_defaults.quay_wall_data)
-                depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
+                depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
@@ -441,7 +442,8 @@ class System:
         quay_wall.retaining_height = 2 * (depth + quay_wall.freeboard)
 
         # - capex
-        quay_wall.unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
+        # Todo: check this unit rate estimate
+        quay_wall.unit_rate = int(quay_wall.Gijt_constant * (2 * (depth  + quay_wall.freeboard)) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * quay_wall.unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
         cost_of_land = length * quay_wall.apron_width * self.land_price
@@ -1416,7 +1418,9 @@ class System:
         fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
             new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-            self.calculate_berth_occupancy(year, handysize_calls, handymax_calls, panamax_calls)
+            self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                           post_panamax_I_calls, post_panamax_II_calls,
+                                           new_panamax_calls, VLCS_calls, ULCS_calls)
 
         berths = len(core.find_elements(self, Berth))
 
@@ -2174,21 +2178,19 @@ class System:
         years = []
         cranes = []
         cranes_capacity = []
-        # storages = []
-        # storages_capacity = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
             cranes.append(0)
             cranes_capacity.append(0)
-            # storages.append(0)
-            # storages_capacity.append(0)
 
             fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
-                new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, handysize_calls, handymax_calls, panamax_calls)
+            new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                               post_panamax_I_calls, post_panamax_II_calls,
+                                               new_panamax_calls, VLCS_calls, ULCS_calls)
 
             for element in self.elements:
                 if isinstance(element, Cyclic_Unloader):
@@ -2197,10 +2199,6 @@ class System:
                         cranes[-1] += 1
                         cranes_capacity[
                             -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
-                # if isinstance(element, Storage):
-                #     if year >= element.year_online:
-                #         storages[-1] += 1
-                #         storages_capacity[-1] += element.capacity * 365 / 18
 
         # get demand
         demand = pd.DataFrame()
