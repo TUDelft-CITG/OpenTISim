@@ -2,6 +2,11 @@
 History
 =======
 
+v0.6.2 (2020-03-09)
+------------------
+
+* Updated the container code (minor bugs fixed)
+
 v0.6.1 (2020-03-09)
 ------------------
 

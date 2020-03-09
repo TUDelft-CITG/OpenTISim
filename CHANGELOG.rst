@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.6.2
+===========
+
+- Updated the container code (minor bugs fixed)
+
 Version 0.6.1
 ===========
 

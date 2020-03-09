@@ -82,10 +82,7 @@ Horizontal_Transport = type('Horizontal_Transport', (container_mixins.identifiab
                {})
 
 # The generic Commodity class
-# - Maize
-# - Soybean
-# - Wheat
-# - Laden
+# - Container
 Commodity = type('Commodity', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.commodity_properties_mixin,
                                container_mixins.hasscenario_properties_mixin),
@@ -100,67 +97,59 @@ Container = type('Container', (container_mixins.identifiable_properties_mixin,  
 # - RMG stack
 # - SC stack
 # - RS stack
-
 Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
-                                container_mixins.laden_stack_properties_mixin,
-                                container_mixins.hasopex_properties_mixin,
+                               container_mixins.laden_stack_properties_mixin,
+                               container_mixins.hasopex_properties_mixin,
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
                                container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
-                                container_mixins.hasland_properties_mixin),
+                               container_mixins.hasland_properties_mixin),
                  {})
+
+# Empty_stack class
+Empty_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                               container_mixins.empty_stack_properties_mixin,
+                               container_mixins.hasopex_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                               container_mixins.hasland_properties_mixin),
+                            {})
+
+# OOG_stack class
+OOG_Stack = type('OOG_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                               container_mixins.oog_stack_properties_mixin,
+                               container_mixins.hasopex_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                               container_mixins.hasland_properties_mixin),
+                {})
+
+# The general Gates class
+Gate = type('Gate', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                               container_mixins.gate_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hasopex_properties_mixin,  # Give it opex info
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                               container_mixins.hasland_properties_mixin),
+                    {})
 
 # The generic stack equipment class
 # - RTG
 # - RMG
 # - Straddle carrier
 # - Reach stacker
-
-
 Stack_Equipment = type('Stack_Equipment', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
-                                container_mixins.stack_equipment_properties_mixin,
+                               container_mixins.stack_equipment_properties_mixin,
                                container_mixins.hascapex_properties_mixin,  # Give it capex info
                                container_mixins.hasopex_properties_mixin,  # Give it opex info
                                container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                  {})
 
-
-
-# Empty_stack class
-
-Empty_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                               container_mixins.history_properties_mixin,
-                                container_mixins.empty_stack_properties_mixin,
-                                container_mixins.hasopex_properties_mixin,
-                               container_mixins.hascapex_properties_mixin,  # Give it capex info
-                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
-                                container_mixins.hasland_properties_mixin),
-                            {})
-
-# OOG_stack class
-
-OOG_Stack = type('Empty_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                               container_mixins.history_properties_mixin,
-                                container_mixins.oog_stack_properties_mixin,
-                                container_mixins.hasopex_properties_mixin,
-                               container_mixins.hascapex_properties_mixin,  # Give it capex info
-                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
-                                 container_mixins.hasland_properties_mixin),
-                {})
-
-# The general Gates class
-Gate = type('Gate', (container_mixins.identifiable_properties_mixin,  # Give it a name
-                               container_mixins.history_properties_mixin,
-                                container_mixins.gate_properties_mixin,
-                               container_mixins.hascapex_properties_mixin,  # Give it capex info
-                               container_mixins.hasopex_properties_mixin,  # Give it opex info
-                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
-                                container_mixins.hasland_properties_mixin),
-                    {})
-
 # The general Empty Container Handler (ECH) class
-
 Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
                                 container_mixins.empty_handler_properties_mixin,
@@ -168,9 +157,6 @@ Empty_Handler = type('Empty_Handler', (container_mixins.identifiable_properties_
                                container_mixins.hasopex_properties_mixin,  # Give it opex info
                                container_mixins.hastriggers_properties_mixin),  # Give it investment triggers
                  {})
-
-
-
 
 # The general Vessel class
 # - Handysize

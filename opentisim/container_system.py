@@ -26,13 +26,17 @@ class System:
     - the transhipment ratio
     """
 
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=7500, debug=False, elements=[],
+    def __init__(self, terminal_name='Terminal', startyear=2019, lifecycle=20, operational_hours=7500, debug=False,
+                 elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data,
                  stack_equipment='rs', laden_stack='rs',
                  allowable_waiting_service_time_ratio_berth=0.1, allowable_berth_occupancy=0.6,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05,
                  transhipment_ratio=0.69,
                  energy_price=0.17, fuel_price=1, land_price=0):
+        # identity
+        self.terminal_name = terminal_name
+
         # time inputs
         self.startyear = startyear
         self.lifecycle = lifecycle
@@ -338,7 +342,6 @@ class System:
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
                 # bug fixed, should only take the value of the vessels that actually come
-                print((not container_defaults.container_data['fully_cellular_perc'] == 0))
                 Ls_max = max([
                     int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
                     int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
@@ -438,12 +441,12 @@ class System:
 
         # add length and depth to the elements (useful for later reporting)
         quay_wall.length = length
-        quay_wall.depth = depth
+        quay_wall.depth = depth  # draught + max_sinkage + wave_motion + safety_margin
         quay_wall.retaining_height = 2 * (depth + quay_wall.freeboard)
 
         # - capex
         # Todo: check this unit rate estimate
-        quay_wall.unit_rate = int(quay_wall.Gijt_constant * (2 * (depth  + quay_wall.freeboard)) ** quay_wall.Gijt_coefficient)
+        quay_wall.unit_rate = int(quay_wall.Gijt_constant * quay_wall.retaining_height ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * quay_wall.unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
         cost_of_land = length * quay_wall.apron_width * self.land_price
@@ -548,47 +551,45 @@ class System:
         tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
         # when the total number of online horizontal transporters < total number of transporters required by the cranes
-        if self.stack_equipment != 'sc':
+        while cranes_planned * tractor.required > hor_transport_planned:
+            # add a tractor to elements
+            if self.debug:
+                print('  *** add tractor trailer to elements')
+            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
-            while cranes_planned * tractor.required > hor_transport_planned:
-                # add a tractor to elements
-                if self.debug:
-                    print('  *** add tractor trailer to elements')
-                tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+            # - capex
+            unit_rate = tractor.unit_rate
+            mobilisation = tractor.mobilisation
+            tractor.capex = int(unit_rate + mobilisation)
 
-                # - capex
-                unit_rate = tractor.unit_rate
-                mobilisation = tractor.mobilisation
-                tractor.capex = int(unit_rate + mobilisation)
+            # - opex
+            # Todo: shouldn't the tractor also be insured?
+            tractor.maintenance = unit_rate * tractor.maintenance_perc
 
-                # - opex
-                # Todo: shouldn't the tractor also be insured?
-                tractor.maintenance = unit_rate * tractor.maintenance_perc
+            # - labour
+            labour = Labour(**container_defaults.labour_data)
+            # Todo: check if the number of shifts is calculated properly
+            tractor.shift = tractor.crew * labour.daily_shifts
+            tractor.labour = tractor.shift * labour.blue_collar_salary
 
-                # - labour
-                labour = Labour(**container_defaults.labour_data)
-                # Todo: check if the number of shifts is calculated properly
-                tractor.shift = tractor.crew * labour.daily_shifts
-                tractor.labour = tractor.shift * labour.blue_collar_salary
+            # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
+            # [element.year_online for element in core.find_elements(self, Quay_wall)]
+            # years_online = []
+            # for element in core.find_elements(self, Quay_wall):
+            #     years_online.append(element.year_online)
+            years_online = [element.year_online for element in core.find_elements(self, Cyclic_Unloader)]
+            tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
 
-                # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-                # [element.year_online for element in core.find_elements(self, Quay_wall)]
-                # years_online = []
-                # for element in core.find_elements(self, Quay_wall):
-                #     years_online.append(element.year_online)
-                years_online = [element.year_online for element in core.find_elements(self, Cyclic_Unloader)]
-                tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
+            # add cash flow information to tractor object in a dataframe
+            tractor = core.add_cashflow_data_to_element(self, tractor)
 
-                # add cash flow information to tractor object in a dataframe
-                tractor = core.add_cashflow_data_to_element(self, tractor)
+            self.elements.append(tractor)
 
-                self.elements.append(tractor)
+            hor_transport_planned += 1
 
-                hor_transport_planned += 1
-
-                if self.debug:
-                    print('     a total of {} tractor trailers is online; {} tractor trailers still pending'.format(
-                        hor_transport_online, hor_transport_planned - hor_transport_online))
+            if self.debug:
+                print('     a total of {} tractor trailers is online; {} tractor trailers still pending'.format(
+                    hor_transport_online, hor_transport_planned - hor_transport_online))
 
     def laden_reefer_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
@@ -971,6 +972,10 @@ class System:
             # add one to planned stack equipment (important for while loop)
             stack_equipment_planned += 1
 
+            if self.debug:
+                print('     a total of {} stack equipment is online; {} stack equipment still pending'.format(
+                    stack_equipment_online, stack_equipment_planned - stack_equipment_online))
+
     def empty_handler_invest(self, year):
         """current strategy is to add empty hanlders as soon as a service trigger is achieved
         - find out how many empty handlers are online
@@ -979,7 +984,14 @@ class System:
         - add empty handlers until service_trigger is no longer exceeded
         """
         sts_cranes_planned = len(core.find_elements(self, Cyclic_Unloader))
-        empty_handlers_planned = len(core.find_elements(self, Empty_Handler))
+
+        empty_handlers_planned = 0
+        empty_handlers_online = 0
+        for element in self.elements:
+            if isinstance(element, Empty_Handler):
+                empty_handlers_planned += 1
+                if year >= element.year_online:
+                    empty_handlers_online += 1
 
         if self.debug:
             print('     Empty handlers planned (@ start of year): {}'.format(empty_handlers_planned))
@@ -1018,6 +1030,11 @@ class System:
             self.elements.append(empty_handler)
 
             empty_handlers_planned += 1
+
+            if self.debug:
+                print('     a total of {} empty handlers is online; {} empty handlers still pending'.format(
+                    empty_handlers_online, empty_handlers_planned - empty_handlers_online))
+
 
     def gate_invest(self, year):
         """current strategy is to add gates as soon as trigger is achieved
