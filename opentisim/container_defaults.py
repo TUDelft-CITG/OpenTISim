@@ -42,8 +42,8 @@ quay_wall_data = {"name": 'Quay',
                   "insurance_perc": 0.01,
                   "berthing_gap": 15,  # see PIANC (2014), p 98
                   "freeboard": 4,  # m
-                  "Gijt_constant": 753.24, # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
-                  "Gijt_coefficient": 1.2729, # Source: (J. de Gijt, 2011) Figure 2
+                  "Gijt_constant": 753.24,  # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
+                  "Gijt_coefficient": 1.2729,  # Source: (J. de Gijt, 2011) Figure 2
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
@@ -70,15 +70,15 @@ sts_crane_data = {"name": 'STS_crane',
                   "consumption": 8,  # Source: Peter Beamish (RHDHV)
                   "crew": 5.5,  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                   "crane_type": 'STS crane',
-                  "lifting_capacity": 2.13,  # weighted average of TEU per lift
+                  "lifting_capacity": 1.60,  # weighted average of TEU per lift
                   "hourly_cycles": 25,  # PIANC wg135
-                  "eff_fact": 0.75}
+                  "eff_fact": 1.0}
 
 # *** Default inputs: Barge_Berth class ***
 
 barge_berth_data = {"name": 'Barge_Berth',
                     "delivery_time": 2,  # years
-                    "max_cranes": 1.0}  # barge_cranes/barge_berth (Source: RHDHV)
+                    "max_cranes": 1.3}  # barge_cranes/barge_berth (Source: RHDHV)
 
 barge_quay_wall_data = {"name": 'Barge_Quay',
                         "ownership": "Terminal operator",
@@ -90,8 +90,8 @@ barge_quay_wall_data = {"name": 'Barge_Quay',
                         "insurance_perc": 0.01,
                         "berthing_gap": 15,  # see PIANC (2014), p 98
                         "freeboard": 4,  # m
-                        "Gijt_constant": 753.24, # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
-                        "Gijt_coefficient": 1.2729, # Source: (J. de Gijt, 2011) Figure 2
+                        "Gijt_constant": 753.24,  # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
+                        "Gijt_coefficient": 1.2729,  # Source: (J. de Gijt, 2011) Figure 2
                         "max_sinkage": 0.5,
                         "wave_motion": 0.5,
                         "safety_margin": 0.5,
@@ -106,15 +106,14 @@ barge_crane_data = {"name": 'Barge Crane',
                     "mobilisation_perc": 0.15,  # percentage
                     "maintenance_perc": 0.02,  # percentage
                     "insurance_perc": 0.01,  # percentage
-                    "consumption": 4,  # RHDHV
-                    "crew": 1.5,  # 1.5 crane driver (per shift)
-                    "lifting_capacity": 1.60,  # RHDHV, weighted average of TEU per lift
-                    "avg_utilisation": 0.9,  # RHDHV
-                    "nom_crane_productivity": 15.0,  # moves per hour
-                    "utilisation": 0.90,  # rate
-                    "efficiency": 0.75,  # rate
-                    "handling_time_ratio": 0.90,  # handling time to berthing time ratio
-                    "peak_factor": 1.10}  # RHDHV
+                    "consumption": 4,  # (Source: RHDHV)
+                    "crew": 1.5,  # 1.5 crane driver (per shift) (Source: RHDHV)
+                    "lifting_capacity": 1.60,  # weighted average of TEU per lift (Source: RHDHV)
+                    "nom_crane_productivity": 15.0,  # moves per hour (Source: RHDHV)
+                    "utilisation": 0.90,  # (Source: RHDHV)
+                    "efficiency": 0.75,  # (Source: RHDHV)
+                    "handling_time_ratio": 0.90,  # handling time to berthing time ratio (Source: RHDHV)
+                    "peak_factor": 1.10}  # (Source: RHDHV)
 
 # *** Default inputs: ***
 
@@ -140,29 +139,29 @@ bridge_data = {"name": 'Bridge',
 
 reclamation_data = {"name": 'Reclamation',
                     "ownership": 'Port authority',
-                    "delivery_time": 2,  # years
+                    "delivery_time": 1,  # years  (simplified)
                     "lifespan": 50,  # years
-                    "reclamation_rate": 12.50,  # USD per m3
-                    "maintenance_perc": 0.02,
-                    "insurance_perc": 0.00}
+                    "reclamation_sand": 12.5,     # USD per m3 (Source: RHDHV)
+                    "maintenance_perc": 0.01,     # only for island protection, not for the reclamation
+                    "soil_improvement": 40.0,     # USD per m2 (Source: RHDHV)
+                    "heavy_duting_paving": 100.0, # USD per m2 (Source: RHDHV)
+                    "bed_protection": 1900.0,     # USD per m  (Source: RHDHV)
+                    "bank_protection": 12_500.0}  # USD per m  (Source: RHDHV)
 
 revetment_data = {"name": 'Revetment',
                   "ownership": 'Port authority',
-                  "delivery_time": 2,  # years
+                  "delivery_time": 1,  # years  (simplified)
                   "lifespan": 50,  # years
-                  "revetment_rate": 180_000,  # USD per m
-                  "quay_length_rate": 1.5,
-                  "maintenance_perc": 0.01,
-                  "insurance_perc": 0.00}
+                  "revetment_rate": 180_000,  # USD per m (source: RHDHV)
+                  "maintenance_perc": 0.01}
 
 breakwater_data = {"name": 'Breakwater',
                    "ownership": 'Port authority',
-                   "delivery_time": 2,  # years
+                   "delivery_time": 1,  # years  (simplified)
                    "lifespan": 50,  # years
-                   "breakwater_rate": 275_000,  # USD per m
+                   "breakwater_rate": 275_000,  # USD per m (source: RHDHV)
                    "quay_length_rate": 1.5,
-                   "maintenance_perc": 0.01,
-                   "insurance_perc": 0.00}
+                   "maintenance_perc": 0.01}
 
 # Default inputs: Horizontal_Transport class *** #todo add sources
 
@@ -416,12 +415,12 @@ gate_data = {"name": 'Gate',
              "staff_gates": 1,  #
              "service_gates": 1,  #
              "design_capacity": 0.98,  #
-             "exit_inspection_time": 2,  # min #dummy
-             "entry_inspection_time": 2,  # min #dummy
-             "peak_hour": 0.25,  # dummy
-             "peak_day": 0.1,  # dummy
+             "exit_inspection_time": 2,  # min
+             "entry_inspection_time": 2,  # min
+             "peak_hour": 0.1,  # dummy
+             "peak_day": 0.25,  # dummy
              "peak_factor": 1.2,
-             "truck_moves": 0.75,
+             "truck_moves": 0.75,  #
              "operating_days": 6,
              "capacity": 60}
 
@@ -575,55 +574,61 @@ ULCS_data = {"name": 'ULCS_1',
              "all_in_transport_costs": 908  # USD per TEU, Ports and Terminals p.158
              }
 
-# *** Default inputs: Barge class *** # todo add sources
+# *** Default inputs: Barge class *** # todo add crew, shifts,
 
-small_barge_data = {"name": 'Small_Barge_1',
+small_barge_data = {"name": 'Small_Barge',
                     "type": 'small',
                     "ownership": 'Port authority',
                     "delivery_time": 1,  # years
-                    "lifespan": 10,  # years
+                    "lifespan": 30,  # years
                     "call_size": 200,  # TEU
-                    "LOA": 90,  # m
-                    "draught": 4.5,  # m
-                    "beam": 12.0,  # m
-                    "unit_rate": 1_000_000,  # USD per barge
-                    "operations_perc": 0.10,
-                    "maintenance_perc": 0.10,
-                    "insurance_perc": 0.01,
+                    "LOA": 90,  # m (Source:RHDHV)
+                    "draught": 4.25,  # m (Source:RHDHV)
+                    "beam": 12.0,  # m (Source:RHDHV)
+                    "unit_rate": 2_000_000,  # USD per barge
+                    "maintenance_perc": 0.05,  # (Source:RHDHV)
+                    "sailing_speed": 4.10,  # m/s (Source:RHDHV)
                     "mooring_time": 6,  # berthing + deberthing time
-                    "transport_costs": 200}  # USD per TEU
+                    "bunker_sail": 6000,  # USD/day (Source:RHDHV)
+                    "bunker_port": 600,  # USD/day (Source:RHDHV)
+                    "crew": 3,  # (Source:RHDHV)
+                    "daily_shifts": 3}  # (Source:RHDHV)
 
-medium_barge_data = {"name": 'Medium_Barge_1',
+medium_barge_data = {"name": 'Medium_Barge',
                      "type": 'medium',
                      "ownership": 'Port authority',
                      "delivery_time": 1,  # years
-                     "lifespan": 10,  # years
+                     "lifespan": 30,  # years
                      "call_size": 250,  # TEU
-                     "LOA": 100,  # m
-                     "draught": 5.0,  # m
-                     "beam": 13.0,  # m
-                     "unit_rate": 1_000_000,  # USD per barge
-                     "operations_perc": 0.10,
-                     "maintenance_perc": 0.10,
-                     "insurance_perc": 0.01,
+                     "LOA": 100,  # m (Source:RHDHV)
+                     "draught": 4.5,  # m(Source:RHDHV)
+                     "beam": 13.0,  # m (Source:RHDHV)
+                     "unit_rate": 4_000_000,  # USD per barge
+                     "maintenance_perc": 0.05,  # (Source:RHDHV)
+                     "sailing_speed": 4.10, # m/s (Source:RHDHV)
                      "mooring_time": 6,  # berthing + deberthing time
-                     "transport_costs": 200}  # USD per TEU
+                     "bunker_sail": 6000,  # USD/day (Source:RHDHV)
+                     "bunker_port": 600,  # USD/day (Source:RHDHV)
+                     "crew": 3,  # (Source:RHDHV)
+                     "daily_shifts": 3}  # (Source:RHDHV)
 
-large_barge_data = {"name": 'Large_Barge_1',
+large_barge_data = {"name": 'Large_Barge',
                     "type": 'large',
                     "ownership": 'Port authority',
                     "delivery_time": 1,  # years
-                    "lifespan": 10,  # years
+                    "lifespan": 30,  # years
                     "call_size": 300,  # TEU
                     "LOA": 120,  # m
-                    "draught": 5.5,  # m
-                    "beam": 14.0,  # m
+                    "draught": 5.0,  # m (Source:RHDHV)
+                    "beam": 14.0,  # m (Source:RHDHV)
                     "unit_rate": 1_000_000,  # USD per barge
-                    "operations_perc": 0.10,
-                    "maintenance_perc": 0.10,
-                    "insurance_perc": 0.01,
+                    "maintenance_perc": 0.05,  # (Source:RHDHV)
+                    "sailing_speed": 4.10, # m/s (Source:RHDHV)
                     "mooring_time": 6,  # berthing + deberthing time
-                    "transport_costs": 200}  # USD per TEU
+                    "bunker_sail": 6000,  # USD/day (Source:RHDHV)
+                    "bunker_port": 600,  # USD/day (Source:RHDHV)
+                    "crew": 3,  # (Source:RHDHV)
+                    "daily_shifts": 3}  # (Source:RHDHV)
 
 truck_data = {"name": 'Truck',
               "ownership": 'Port authority',
