@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.6.1
+===========
+
+- Updated the container code with vessel classes
+
 Version 0.6.0
 ===========
 
