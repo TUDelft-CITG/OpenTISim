@@ -30,7 +30,7 @@ class System:
                  crane_type_defaults=container_defaults.sts_crane_data,
                  stack_equipment='rs', laden_stack='rs',
                  allowable_waiting_service_time_ratio_berth=0.1, allowable_berth_occupancy=0.6,
-                 laden_perc=0.80, empty_perc=0.05, reefer_perc=0.1, oog_perc=0.05,
+                 laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05,
                  transhipment_ratio=0.69,
                  energy_price=0.17, fuel_price=1, land_price=0):
         # time inputs
@@ -123,18 +123,27 @@ class System:
                 print('### Simulate year: {} ############################'.format(year))
 
             # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
-            handysize, handymax, panamax, total_calls, total_vol = self.calculate_vessel_calls(year)
+            fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
+                new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
             if self.debug:
                 print('--- Cargo volume and vessel calls for {} ---------'.format(year))
                 print('  Total cargo volume: {}'.format(total_vol))
                 print('  Total vessel calls: {}'.format(total_calls))
-                print('     Handysize calls: {}'.format(handysize))
-                print('     Handymax calls: {}'.format(handymax))
-                print('     Panamax calls: {}'.format(panamax))
+                print('     Fully cellular calls: {}'.format(fully_cellular_calls))
+                print('     Panamax calls: {}'.format(panamax_calls))
+                print('     Panamax max calls: {}'.format(panamax_max_calls))
+                print('     Post Panamax I calls: {}'.format(post_panamax_I_calls))
+                print('     Post Panamax II calls: {}'.format(post_panamax_II_calls))
+                print('     New Panamax calls: {}'.format(new_panamax_calls))
+                print('     VLCS calls: {}'.format(VLCS_calls))
+                print('     ULCS calls: {}'.format(ULCS_calls))
                 print('----------------------------------------------------')
 
+            # self.access_channel_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
+
             # 2. for each year evaluate which investment are needed given the strategic and operational objectives
-            self.berth_invest(year, handysize, handymax, panamax)
+            self.berth_invest(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                              post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
 
             if self.debug:
                 print('')
@@ -233,7 +242,8 @@ class System:
         # return NPV, data
 
     # *** Individual investment methods for terminal elements
-    def berth_invest(self, year, handysize, handymax, panamax):
+    def berth_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax,
+                     VLCS, ULCS):
         """
         Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
         Mulder, 2004) for the berth investments.
@@ -268,7 +278,8 @@ class System:
 
         # calculate planned berth occupancy and planned nr of berths
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-            self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+            self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II,
+                                           new_panamax, VLCS, ULCS)
         berths = len(core.find_elements(self, Berth))
 
         # get the waiting time as a factor of service time
@@ -311,7 +322,8 @@ class System:
                 berths = len(core.find_elements(self, Berth))
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
+                                                   post_panamax_II, new_panamax, VLCS, ULCS)
                 planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
@@ -326,17 +338,38 @@ class System:
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
                 # bug fixed, should only take the value of the vessels that actually come
-                Ls_max = max(
-                    (not container_defaults.container_data['handysize_perc'] == 0) * container_defaults.handysize_data["LOA"],
-                    (not container_defaults.container_data['handymax_perc'] == 0) * container_defaults.handymax_data["LOA"],
-                    (not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"])  # average size
-                draft = max(
-                    (not container_defaults.container_data['handysize_perc'] == 0) * container_defaults.handysize_data["draft"],
-                    (not container_defaults.container_data['handymax_perc'] == 0) * container_defaults.handymax_data["draft"],
-                    (not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draft"])
-                Ls_avg = (handysize * container_defaults.handysize_data["LOA"] +
-                             handymax * container_defaults.handymax_data["LOA"] +
-                             panamax * container_defaults.panamax_data["LOA"])/(handysize + handymax + panamax)
+                print((not container_defaults.container_data['fully_cellular_perc'] == 0))
+                Ls_max = max([
+                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
+                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
+                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["LOA"],
+                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["LOA"],
+                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["LOA"],
+                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"],
+                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"],
+                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
+                    ])  # max size
+                draught = max([
+                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
+                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draught"],
+                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["draught"],
+                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["draught"],
+                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["draught"],
+                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["draught"],
+                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draught"],
+                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draught"]
+                    ])  # max draught
+
+                Ls_avg = (fully_cellular * container_defaults.fully_cellular_data["LOA"] +
+                          panamax * container_defaults.panamax_data["LOA"] +
+                          panamax_max * container_defaults.panamax_max_data["LOA"] +
+                          post_panamax_I * container_defaults.post_panamax_I_data["LOA"] +
+                          post_panamax_II * container_defaults.post_panamax_II_data["LOA"] +
+                          new_panamax * container_defaults.new_panamax_data["LOA"] +
+                          VLCS * container_defaults.VLCS_data["LOA"] +
+                          ULCS * container_defaults.ULCS_data["LOA"]) / \
+                          (fully_cellular + panamax + panamax_max + post_panamax_I + post_panamax_II + new_panamax +
+                          VLCS + ULCS)
 
                 # apply PIANC 2014:
                 berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
@@ -349,11 +382,12 @@ class System:
 
                 # - depth
                 quay_wall = Quay_wall(**container_defaults.quay_wall_data)
-                depth = np.sum([draft, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
+                depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
                 self.quay_invest(year, length, depth)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
+                                                   post_panamax_II, new_panamax, VLCS, ULCS)
                 planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
@@ -368,7 +402,8 @@ class System:
                 self.crane_invest(year)
 
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, handysize, handymax, panamax)
+                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
+                                                   post_panamax_II, new_panamax, VLCS, ULCS)
                 planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
@@ -407,7 +442,8 @@ class System:
         quay_wall.retaining_height = 2 * (depth + quay_wall.freeboard)
 
         # - capex
-        quay_wall.unit_rate = int(quay_wall.Gijt_constant_2 * 2 * (depth + quay_wall.freeboard))
+        # Todo: check this unit rate estimate
+        quay_wall.unit_rate = int(quay_wall.Gijt_constant * (2 * (depth  + quay_wall.freeboard)) ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * quay_wall.unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
         apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
         cost_of_land = length * quay_wall.apron_width * self.land_price
@@ -1130,9 +1166,9 @@ class System:
                 if year >= element.year_online:
                     gate_land_use += element.land_use
 
-        total_land_use = (
-                                     quay_land_use + stack_land_use + empty_land_use + oog_land_use + gate_land_use + general.office
-                                     + general.workshop + general.scanning_inspection_area + general.repair_building) * 0.0001
+        total_land_use = \
+            (quay_land_use + stack_land_use + empty_land_use + oog_land_use + gate_land_use + general.office +
+             general.workshop + general.scanning_inspection_area + general.repair_building) * 0.0001
 
         if year == (self.startyear + 1):
             # add general services as soon as berth  is online
@@ -1379,9 +1415,12 @@ class System:
     def calculate_demurrage_cost(self, year):
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
-        handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+        fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
+            new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-            self.calculate_berth_occupancy(year, handysize_calls, handymax_calls, panamax_calls)
+            self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                           post_panamax_I_calls, post_panamax_II_calls,
+                                           new_panamax_calls, VLCS_calls, ULCS_calls)
 
         berths = len(core.find_elements(self, Berth))
 
@@ -1390,13 +1429,6 @@ class System:
 
         waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
-
-        # waiting_factor = \
-        #     core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths)
-        #
-        # handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-        #
-        # factor, waiting_time_occupancy = self.waiting_time(year)
 
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
         quay_walls = len(core.find_elements(self, Quay_wall))
@@ -1408,21 +1440,13 @@ class System:
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
-            handymax = Vessel(**container_defaults.handymax_data)
-            service_time_handymax = handymax.call_size / service_rate
-            waiting_time_hours_handymax = waiting_factor * service_time_handymax
-            port_time_handymax = waiting_time_hours_handymax + service_time_handymax + handymax.mooring_time
-            penalty_time_handymax = max(0, port_time_handymax - handymax.all_turn_time)
-            demurrage_time_handymax = penalty_time_handymax * handymax_calls
-            demurrage_cost_handymax = demurrage_time_handymax * handymax.demurrage_rate
-
-            handysize = Vessel(**container_defaults.handysize_data)
-            service_time_handysize = handysize.call_size / service_rate
-            waiting_time_hours_handysize = waiting_factor * service_time_handysize
-            port_time_handysize = waiting_time_hours_handysize + service_time_handysize + handysize.mooring_time
-            penalty_time_handysize = max(0, port_time_handysize - handysize.all_turn_time)
-            demurrage_time_handysize = penalty_time_handysize * handysize_calls
-            demurrage_cost_handysize = demurrage_time_handysize * handysize.demurrage_rate
+            fully_cellular = Vessel(**container_defaults.fully_cellular_data)
+            service_time_fully_cellular = fully_cellular.call_size / service_rate
+            waiting_time_hours_fully_cellular = waiting_factor * service_time_fully_cellular
+            port_time_fully_cellular = waiting_time_hours_fully_cellular + service_time_fully_cellular + fully_cellular.mooring_time
+            penalty_time_fully_cellular = max(0, port_time_fully_cellular - fully_cellular.all_turn_time)
+            demurrage_time_fully_cellular = penalty_time_fully_cellular * fully_cellular_calls
+            demurrage_cost_fully_cellular = demurrage_time_fully_cellular * fully_cellular.demurrage_rate
 
             panamax = Vessel(**container_defaults.panamax_data)
             service_time_panamax = panamax.call_size / service_rate
@@ -1432,12 +1456,67 @@ class System:
             demurrage_time_panamax = penalty_time_panamax * panamax_calls
             demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
-        else:
-            demurrage_cost_handymax = 0
-            demurrage_cost_handysize = 0
-            demurrage_cost_panamax = 0
+            panamax_max = Vessel(**container_defaults.panamax_max_data)
+            service_time_panamax_max = panamax_max.call_size / service_rate
+            waiting_time_hours_panamax_max = waiting_factor * service_time_panamax_max
+            port_time_panamax_max = waiting_time_hours_panamax_max + service_time_panamax_max + panamax_max.mooring_time
+            penalty_time_panamax_max = max(0, port_time_panamax_max - panamax_max.all_turn_time)
+            demurrage_time_panamax_max = penalty_time_panamax_max * panamax_max_calls
+            demurrage_cost_panamax_max = demurrage_time_panamax_max * panamax_max.demurrage_rate
 
-        total_demurrage_cost = demurrage_cost_handymax + demurrage_cost_handysize + demurrage_cost_panamax
+            post_panamax_I = Vessel(**container_defaults.post_panamax_I_data)
+            service_time_post_panamax_I = post_panamax_I.call_size / service_rate
+            waiting_time_hours_post_panamax_I = waiting_factor * service_time_post_panamax_I
+            port_time_post_panamax_I = waiting_time_hours_post_panamax_I + service_time_post_panamax_I + post_panamax_I.mooring_time
+            penalty_time_post_panamax_I = max(0, port_time_post_panamax_I - post_panamax_I.all_turn_time)
+            demurrage_time_post_panamax_I = penalty_time_post_panamax_I * post_panamax_I_calls
+            demurrage_cost_post_panamax_I = demurrage_time_post_panamax_I * post_panamax_I.demurrage_rate
+
+            post_panamax_II = Vessel(**container_defaults.post_panamax_II_data)
+            service_time_post_panamax_II = post_panamax_II.call_size / service_rate
+            waiting_time_hours_post_panamax_II = waiting_factor * service_time_post_panamax_II
+            port_time_post_panamax_II = waiting_time_hours_post_panamax_II + service_time_post_panamax_II + post_panamax_II.mooring_time
+            penalty_time_post_panamax_II = max(0, port_time_post_panamax_II - post_panamax_II.all_turn_time)
+            demurrage_time_post_panamax_II = penalty_time_post_panamax_II * post_panamax_II_calls
+            demurrage_cost_post_panamax_II = demurrage_time_post_panamax_II * post_panamax_II.demurrage_rate
+
+            new_panamax = Vessel(**container_defaults.new_panamax_data)
+            service_time_new_panamax = new_panamax.call_size / service_rate
+            waiting_time_hours_new_panamax = waiting_factor * service_time_new_panamax
+            port_time_new_panamax = waiting_time_hours_new_panamax + service_time_new_panamax + new_panamax.mooring_time
+            penalty_time_new_panamax = max(0, port_time_new_panamax - new_panamax.all_turn_time)
+            demurrage_time_new_panamax = penalty_time_new_panamax * new_panamax_calls
+            demurrage_cost_new_panamax = demurrage_time_new_panamax * new_panamax.demurrage_rate
+
+            VLCS = Vessel(**container_defaults.VLCS_data)
+            service_time_VLCS = VLCS.call_size / service_rate
+            waiting_time_hours_VLCS = waiting_factor * service_time_VLCS
+            port_time_VLCS = waiting_time_hours_VLCS + service_time_VLCS + VLCS.mooring_time
+            penalty_time_VLCS = max(0, port_time_VLCS - VLCS.all_turn_time)
+            demurrage_time_VLCS = penalty_time_VLCS * VLCS_calls
+            demurrage_cost_VLCS = demurrage_time_VLCS * VLCS.demurrage_rate
+
+            ULCS = Vessel(**container_defaults.ULCS_data)
+            service_time_ULCS = ULCS.call_size / service_rate
+            waiting_time_hours_ULCS = factor * service_time_ULCS
+            port_time_ULCS = waiting_time_hours_ULCS + service_time_ULCS + ULCS.mooring_time
+            penalty_time_ULCS = max(0, port_time_ULCS - ULCS.all_turn_time)
+            demurrage_time_ULCS = penalty_time_ULCS * ULCS_calls
+            demurrage_cost_ULCS = demurrage_time_ULCS * ULCS.demurrage_rate
+
+        else:
+            demurrage_cost_fully_cellular = 0
+            demurrage_cost_panamax = 0
+            demurrage_cost_panamax_max = 0
+            demurrage_cost_post_panamax_I = 0
+            demurrage_cost_post_panamax_II = 0
+            demurrage_cost_new_panamax = 0
+            demurrage_cost_VLCS = 0
+            demurrage_cost_ULCS = 0
+
+        total_demurrage_cost = demurrage_cost_fully_cellular + demurrage_cost_panamax + demurrage_cost_panamax_max + \
+                               demurrage_cost_post_panamax_I + demurrage_cost_post_panamax_II + \
+                               demurrage_cost_new_panamax + demurrage_cost_VLCS + demurrage_cost_ULCS
 
         self.demurrage.append(total_demurrage_cost)
 
@@ -1449,7 +1528,6 @@ class System:
         # collect CAPEX from terminal elements
         cash_flows, cash_flows_WACC_real = core.add_cashflow_elements(self, Labour(**container_defaults.labour_data))
         capex = cash_flows['capex'].values
-        print(capex)
 
         # add indirect costs for different stack equipment:
         #  - electrical work, miscellaneous, preliminaries and engineering
@@ -1471,19 +1549,29 @@ class System:
         """Calculate volumes to be transported and the number of vessel calls (both per vessel type and in total) """
 
         # intialize values to be returned
-        handysize_vol = 0
-        handymax_vol = 0
+        fully_cellular_vol = 0
         panamax_vol = 0
+        panamax_max_vol = 0
+        post_panamax_I_vol = 0
+        post_panamax_II_vol = 0
+        new_panamax_vol = 0
+        VLCS_vol = 0
+        ULCS_vol = 0
         total_vol = 0
 
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
         commodities = core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
-                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                handysize_vol += volume * commodity.handysize_perc / 100
-                handymax_vol += volume * commodity.handymax_perc / 100
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()  # The total amount of annualy transported TEU
+                fully_cellular_vol += volume * commodity.fully_cellular_perc / 100
                 panamax_vol += volume * commodity.panamax_perc / 100
+                panamax_max_vol += volume * commodity.panamax_max_perc / 100
+                post_panamax_I_vol += volume * commodity.post_panamax_I_perc / 100
+                post_panamax_II_vol += volume * commodity.post_panamax_II_perc / 100
+                new_panamax_vol += volume * commodity.new_panamax_perc / 100
+                VLCS_vol += volume * commodity.VLCS_perc / 100
+                ULCS_vol += volume * commodity.ULCS_perc / 100
                 total_vol += volume
             except:
                 pass
@@ -1491,17 +1579,35 @@ class System:
         # gather vessels and calculate the number of calls each vessel type needs to make
         vessels = core.find_elements(self, Vessel)
         for vessel in vessels:
-            if vessel.type == 'Handysize':
-                handysize_calls = int(np.ceil(handysize_vol / vessel.call_size))
-            elif vessel.type == 'Handymax':
-                handymax_calls = int(np.ceil(handymax_vol / vessel.call_size))
+            if vessel.type == 'Fully_Cellular':
+                fully_cellular_calls = int(np.ceil(fully_cellular_vol / vessel.call_size))
             elif vessel.type == 'Panamax':
                 panamax_calls = int(np.ceil(panamax_vol / vessel.call_size))
-        total_calls = np.sum([handysize_calls, handymax_calls, panamax_calls])
+            elif vessel.type == 'Panamax_Max':
+                panamax_max_calls = int(np.ceil(panamax_max_vol / vessel.call_size))
+            elif vessel.type == 'Post_Panamax_I':
+                post_panamax_I_calls = int(np.ceil(post_panamax_I_vol / vessel.call_size))
+            elif vessel.type == 'Post_Panamax_II':
+                post_panamax_II_calls = int(np.ceil(post_panamax_II_vol / vessel.call_size))
+            elif vessel.type == 'New_Panamax':
+                new_panamax_calls = int(np.ceil(new_panamax_vol / vessel.call_size))
+            elif vessel.type == 'VLCS':
+                VLCS_calls = int(np.ceil(VLCS_vol / vessel.call_size))
+            elif vessel.type == 'ULCS':
+                ULCS_calls = int(np.ceil(ULCS_vol / vessel.call_size))
 
-        return handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol
+        total_calls = np.sum([fully_cellular_calls, panamax_calls, panamax_max_calls,
+                              post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls,
+                              VLCS_calls, ULCS_calls])
 
-    def calculate_berth_occupancy(self, year, handysize_calls, handymax_calls, panamax_calls):
+        return fully_cellular_calls, panamax_calls, panamax_max_calls, \
+               post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, \
+               VLCS_calls, ULCS_calls, \
+               total_calls, total_vol
+
+    def calculate_berth_occupancy(self, year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                  post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls,
+                                  VLCS_calls, ULCS_calls):
         """
         - Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
@@ -1521,53 +1627,128 @@ class System:
                 pass
 
         # list all crane objects in the system
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements_cranes = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements_berths = core.find_elements(self, Berth)
+        # Todo: check if nr_berths is important to include or nor
+        nr_berths = len(list_of_elements_berths)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         service_rate_planned = 0
         service_rate_online = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
+        if list_of_elements_cranes != []:
+            for element in list_of_elements_cranes:
                 service_rate_planned += element.effective_capacity
                 if year >= element.year_online:
                     service_rate_online += element.effective_capacity
 
-            # calculate mooring and unmooring times for each vessel type
-            time_at_berth_planned_handysize = handysize_calls * container_defaults.handysize_data["mooring_time"]
-            time_at_berth_planned_handymax = handymax_calls * container_defaults.handymax_data["mooring_time"]
-            time_at_berth_planned_panamax = panamax_calls * container_defaults.panamax_data["mooring_time"]
-            # calculate the time that the cranes require to load/unload the commodity
-            time_at_cranes_planned = total_vol / service_rate_planned
+            time_mooring_unmooring_fully_cellular = fully_cellular_calls * \
+                container_defaults.fully_cellular_data["mooring_time"]
+            time_at_cranes_planned_fully_cellular = fully_cellular_calls * \
+                (container_defaults.fully_cellular_data["call_size"] / service_rate_planned)
 
-            # add mooring/unmooring and loading/unloading times
-            total_time_at_berth_planned = np.sum([
-                time_at_cranes_planned,
-                time_at_berth_planned_handysize,
-                time_at_berth_planned_handymax,
-                time_at_berth_planned_panamax])
+            time_mooring_unmooring_panamax = panamax_calls * \
+                container_defaults.panamax_data["mooring_time"]
+            time_at_cranes_planned_panamax = panamax_calls * \
+                (container_defaults.panamax_data["call_size"] / service_rate_planned)
 
-            # berth_occupancy is the total time at berth divided by the operational hours
+            time_mooring_unmooring_panamax_max = panamax_max_calls * \
+                container_defaults.panamax_max_data["mooring_time"]
+            time_at_cranes_planned_panamax_max = panamax_max_calls * \
+                (container_defaults.panamax_max_data["call_size"] / service_rate_planned)
+
+            time_mooring_unmooring_post_panamax_I = post_panamax_I_calls * \
+                container_defaults.post_panamax_I_data["mooring_time"]
+            time_at_cranes_planned_post_panamax_I = post_panamax_I_calls * \
+                (container_defaults.post_panamax_I_data["call_size"] / service_rate_planned)
+
+            time_mooring_unmooring_post_panamax_II = post_panamax_II_calls * \
+                container_defaults.post_panamax_II_data["mooring_time"]
+            time_at_cranes_planned_post_panamax_II = post_panamax_II_calls * \
+                (container_defaults.post_panamax_II_data["call_size"] / service_rate_planned)
+
+            time_mooring_unmooring_new_panamax = new_panamax_calls * \
+                container_defaults.new_panamax_data["mooring_time"]
+            time_at_cranes_planned_new_panamax = new_panamax_calls * \
+                (container_defaults.new_panamax_data["call_size"] / service_rate_planned)
+
+            time_mooring_unmooring_VLCS = VLCS_calls * \
+                container_defaults.VLCS_data["mooring_time"]
+            time_at_cranes_planned_VLCS = VLCS_calls * \
+                (container_defaults.VLCS_data["call_size"] / service_rate_planned)
+
+            time_mooring_unmooring_ULCS = ULCS_calls * \
+                container_defaults.ULCS_data["mooring_time"]
+            time_at_cranes_planned_ULCS = ULCS_calls * \
+                (container_defaults.ULCS_data["call_size"] / service_rate_planned)
+
+            # total time at berth
+            total_time_at_berth_planned = np.sum(
+                [time_mooring_unmooring_fully_cellular + time_at_cranes_planned_fully_cellular,
+                 time_mooring_unmooring_panamax + time_at_cranes_planned_panamax,
+                 time_mooring_unmooring_panamax_max + time_at_cranes_planned_panamax_max,
+                 time_mooring_unmooring_post_panamax_I + time_at_cranes_planned_post_panamax_I,
+                 time_mooring_unmooring_post_panamax_II + time_at_cranes_planned_post_panamax_II,
+                 time_mooring_unmooring_new_panamax + time_at_cranes_planned_new_panamax,
+                 time_mooring_unmooring_VLCS + time_at_cranes_planned_VLCS,
+                 time_mooring_unmooring_ULCS + time_at_cranes_planned_ULCS])
+
+            # total time at cranes
+            total_time_at_cranes_planned = np.sum(
+                [time_at_cranes_planned_fully_cellular,
+                 time_at_cranes_planned_panamax,
+                 time_at_cranes_planned_panamax_max,
+                 time_at_cranes_planned_post_panamax_I,
+                 time_at_cranes_planned_post_panamax_II,
+                 time_at_cranes_planned_new_panamax,
+                 time_at_cranes_planned_VLCS,
+                 time_at_cranes_planned_ULCS])
+
+            # occupancy is the total time at berth divided by the operational hours
             berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
-            crane_occupancy_planned = time_at_cranes_planned / self.operational_hours
+            crane_occupancy_planned = total_time_at_cranes_planned / self.operational_hours
 
             if service_rate_online != 0:  # when some cranes are actually online
-                # calculate mooring and unmooring times for each vessel type
-                time_at_berth_online_handysize = handysize_calls * container_defaults.handysize_data["mooring_time"]
-                time_at_berth_online_handymax = handymax_calls * container_defaults.handymax_data["mooring_time"]
-                time_at_berth_online_panamax = panamax_calls * container_defaults.panamax_data["mooring_time"]
-                # calculate the time that the cranes require to load/unload the commodity
-                time_at_cranes_online = total_vol / service_rate_online
 
-                # add mooring/unmooring and loading/unloading times
-                total_time_at_berth_online = np.sum([
-                    time_at_cranes_online,
-                    time_at_berth_online_handysize,
-                    time_at_berth_online_handymax,
-                    time_at_berth_online_panamax])
+                time_at_cranes_online_fully_cellular = fully_cellular_calls * \
+                    (container_defaults.fully_cellular_data["call_size"] / service_rate_online)
+                time_at_cranes_online_panamax = panamax_calls * \
+                    (container_defaults.panamax_data["call_size"] / service_rate_online)
+                time_at_cranes_online_panamax_max = panamax_max_calls * \
+                    (container_defaults.panamax_max_data["call_size"] / service_rate_online)
+                time_at_cranes_online_post_panamax_I = post_panamax_I_calls * \
+                    (container_defaults.post_panamax_I_data["call_size"] / service_rate_online)
+                time_at_cranes_online_post_panamax_II = post_panamax_II_calls * \
+                    (container_defaults.post_panamax_II_data["call_size"] / service_rate_online)
+                time_at_cranes_online_new_panamax = new_panamax_calls * \
+                    (container_defaults.new_panamax_data["call_size"] / service_rate_online)
+                time_at_cranes_online_VLCS = VLCS_calls * \
+                    (container_defaults.VLCS_data["call_size"] / service_rate_online)
+                time_at_cranes_online_ULCS = ULCS_calls * \
+                    (container_defaults.ULCS_data["call_size"] / service_rate_online)
+
+                total_time_at_berth_online = np.sum(
+                    [time_mooring_unmooring_fully_cellular + time_at_cranes_online_fully_cellular,
+                     time_mooring_unmooring_panamax + time_at_cranes_online_panamax,
+                     time_mooring_unmooring_panamax_max + time_at_cranes_online_panamax_max,
+                     time_mooring_unmooring_post_panamax_I + time_at_cranes_online_post_panamax_I,
+                     time_mooring_unmooring_post_panamax_II + time_at_cranes_online_post_panamax_II,
+                     time_mooring_unmooring_new_panamax + time_at_cranes_online_new_panamax,
+                     time_mooring_unmooring_VLCS + time_at_cranes_online_VLCS,
+                     time_mooring_unmooring_ULCS + time_at_cranes_online_ULCS])
+
+                total_time_at_cranes_online = np.sum(
+                    [time_at_cranes_online_fully_cellular,
+                     time_at_cranes_online_panamax,
+                     time_at_cranes_online_panamax_max,
+                     time_at_cranes_online_post_panamax_I,
+                     time_at_cranes_online_post_panamax_II,
+                     time_at_cranes_online_new_panamax,
+                     time_at_cranes_online_VLCS,
+                     time_at_cranes_online_ULCS])
 
                 # berth_occupancy is the total time at berth divided by the operational hours
                 berth_occupancy_online = min([total_time_at_berth_online / self.operational_hours, 1])
-                crane_occupancy_online = min([time_at_cranes_online / self.operational_hours, 1])
+                crane_occupancy_online = min([total_time_at_cranes_online / self.operational_hours, 1])
 
             else:
                 berth_occupancy_online = float("inf")
@@ -1997,20 +2178,19 @@ class System:
         years = []
         cranes = []
         cranes_capacity = []
-        # storages = []
-        # storages_capacity = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
             cranes.append(0)
             cranes_capacity.append(0)
-            # storages.append(0)
-            # storages_capacity.append(0)
 
-            handysize_calls, handymax_calls, panamax_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
-            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, handysize_calls, handymax_calls, panamax_calls)
+            fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
+            new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
+            berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                               post_panamax_I_calls, post_panamax_II_calls,
+                                               new_panamax_calls, VLCS_calls, ULCS_calls)
 
             for element in self.elements:
                 if isinstance(element, Cyclic_Unloader):
@@ -2019,10 +2199,6 @@ class System:
                         cranes[-1] += 1
                         cranes_capacity[
                             -1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
-                # if isinstance(element, Storage):
-                #     if year >= element.year_online:
-                #         storages[-1] += 1
-                #         storages_capacity[-1] += element.capacity * 365 / 18
 
         # get demand
         demand = pd.DataFrame()

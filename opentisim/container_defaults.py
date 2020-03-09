@@ -1,5 +1,5 @@
-"""Main generic object classes:
-
+"""
+Main generic object classes:
 - 1. Quay_wall
 - 2. Berth
 - 3. Cyclic_Unloader
@@ -14,15 +14,7 @@
     - Empty
     - OOG
 - 7. Laden and reefer stack
-    - RTG stack
-    - RMG stack
-    - SC stack
-    - RS stack
 - 8. Stack equipment
-    - RTG
-    - RMG
-    - SC
-    - RS
 - 9. Empty stack
 - 10. OOG stack
 - 11. Gates
@@ -30,16 +22,16 @@
 - 13. Vessel
 - 14. Labour
 - 15. Energy
-
-#todo add sources here
+- 16. General
+- 17. Indirect Costs
 """
 
 # package(s) for data handling
 import pandas as pd
 
-# *** Default inputs: Quay class ***
+# *** Default inputs: Quay_Wall class *** todo add values of RHDHV or general (e.g. PIANC)
 
-quay_wall_data = {"name": 'Quay_01',
+quay_wall_data = {"name": 'Quay',
                   "ownership": 'Port authority',
                   "delivery_time": 2,
                   "lifespan": 50,
@@ -48,88 +40,130 @@ quay_wall_data = {"name": 'Quay_01',
                   "maintenance_perc": 0.01,
                   "insurance_perc": 0.01,
                   "berthing_gap": 15,  # see PIANC (2014), p 98
-                  "freeboard": 4,
-                  "Gijt_constant_2": 2800,
-                  "Gijt_constant": 757.20,
-                  "Gijt_coefficient": 1.2878,
+                  "freeboard": 4,  # m
+                  "Gijt_constant": 753.24, # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
+                  "Gijt_coefficient": 1.2729, # Source: (J. de Gijt, 2011) Figure 2
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
                   "apron_width": 65.5,  # see PIANC (2014b), p 62
                   "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
 
-
 # *** Default inputs: Berth class ***
 
-berth_data = {"name": 'Berth_01',
+berth_data = {"name": 'Berth',
               "crane_type": 'Mobile cranes',
-              "delivery_time": 1,
-              "max_cranes": 4}  #STS cranes
+              "delivery_time": 2,
+              "max_cranes": 3}  # STS cranes
 
-# *** Default inputs: CyclicUnloader class ***
-
-gantry_crane_data = {"name": 'Gantry_crane_01',
-                     "ownership": 'Terminal operator',
-                     "delivery_time": 1,
-                     "lifespan": 40,
-                     "unit_rate": 9_750_000,
-                     "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 561,
-                     "insurance_perc": 0.01,
-                     "crew": 3,
-                     "crane_type": 'Gantry crane',
-                     "lifting_capacity": 50,
-                     "hourly_cycles": 50,
-                     "eff_fact": 0.50}  # all values from Ijzermans, 2019, P 100
-
-harbour_crane_data = {"name": 'Harbour_crane_01',
-                      "ownership": 'Terminal operator',
-                      "delivery_time": 1,
-                      "lifespan": 40,
-                      "unit_rate": 7_880_000,
-                      "mobilisation_perc": 0.15,
-                      "maintenance_perc": 0.02,
-                      "consumption": 210,
-                      "insurance_perc": 0.01,
-                      "crew": 3,
-                      "crane_type": 'Harbour crane',
-                      "lifting_capacity": 25,
-                      "hourly_cycles": 40,
-                      "eff_fact": 0.40}  # all values from Ijzermans, 2019, P 100
-
-mobile_crane_data = {"name": 'Mobile_crane_01',
-                     "ownership": 'Terminal operator',
-                     "delivery_time": 1,
-                     "lifespan": 40,
-                     "unit_rate": 3_325_000,
-                     "mobilisation_perc": 0.15,
-                     "maintenance_perc": 0.02,
-                     "consumption": 485,
-                     "insurance_perc": 0.01,
-                     "crew": 3,
-                     "crane_type": 'Mobile crane',
-                     "lifting_capacity": 30,
-                     "hourly_cycles": 25,
-                     "eff_fact": 0.35}  # all values from Ijzermans, 2019, P 100
+# *** Default inputs: Crane class *** todo check sources sts_crane_data and check small sts_crane_data for the barge berths
 
 sts_crane_data = {"name": 'STS_crane',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,
-                  "lifespan": 40,
-                  "unit_rate": 10_000_000,
-                  "mobilisation_perc": 0.15,
-                  "maintenance_perc": 0.02,
-                  "consumption": 8,  # Peter Beamish
-                  "insurance_perc": 0.01,
-                  "crew": 5.5,  # todo is dit per shift?  #1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
+                  "delivery_time": 1,  # years
+                  "lifespan": 40,  # years
+                  "unit_rate": 10_000_000,  # USD per unit
+                  "mobilisation_perc": 0.15,  # percentage
+                  "maintenance_perc": 0.02,  # percentage
+                  "insurance_perc": 0.01,  # percentage
+                  "consumption": 8,  # Source: Peter Beamish (RHDHV)
+                  "crew": 5.5,  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
                   "crane_type": 'STS crane',
                   "lifting_capacity": 2.13,  # weighted average of TEU per lift
                   "hourly_cycles": 25,  # PIANC wg135
-                  "eff_fact": 1}
+                  "eff_fact": 0.75}
 
+# *** Default inputs: Barge_Berth class ***
 
-# Default inputs: Horizontal Transport class ***
+barge_berth_data = {"name": 'Barge_Berth',
+                    "delivery_time": 2,  # years
+                    "max_cranes": 1.0}  # barge_cranes/barge_berth (Source: RHDHV)
+
+barge_quay_wall_data = {"name": 'Barge_Quay',
+                        "ownership": "Terminal operator",
+                        "delivery_time": 2,  # years
+                        "lifespan": 50,  # equal to quay wall OGV
+                        "mobilisation_min": 1_000_000,  # todo add source
+                        "mobilisation_perc": 0.02,
+                        "maintenance_perc": 0.01,
+                        "insurance_perc": 0.01,
+                        "berthing_gap": 15,  # see PIANC (2014), p 98
+                        "freeboard": 4,  # m
+                        "Gijt_constant": 753.24, # Source: (J. de Gijt, 2011) Figure 2 ; USD/m (if 1.0 EUR = 1.12 USD, 670.45 EUR = 757.8 USD)
+                        "Gijt_coefficient": 1.2729, # Source: (J. de Gijt, 2011) Figure 2
+                        "max_sinkage": 0.5,
+                        "wave_motion": 0.5,
+                        "safety_margin": 0.5,
+                        "apron_width": 30,  # todo add source, check PIANC 2014b
+                        "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
+
+barge_crane_data = {"name": 'Barge Crane',
+                    "ownership": 'Terminal operator',
+                    "delivery_time": 1,  # years
+                    "lifespan": 40,  # years
+                    "unit_rate": 5_000_000,  # USD per unit
+                    "mobilisation_perc": 0.15,  # percentage
+                    "maintenance_perc": 0.02,  # percentage
+                    "insurance_perc": 0.01,  # percentage
+                    "consumption": 4,  # RHDHV
+                    "crew": 1.5,  # 1.5 crane driver (per shift)
+                    "lifting_capacity": 1.60,  # RHDHV, weighted average of TEU per lift
+                    "avg_utilisation": 0.9,  # RHDHV
+                    "nom_crane_productivity": 15.0,  # moves per hour
+                    "utilisation": 0.90,  # rate
+                    "efficiency": 0.75,  # rate
+                    "handling_time_ratio": 0.90,  # handling time to berthing time ratio
+                    "peak_factor": 1.10}  # RHDHV
+
+# *** Default inputs: ***
+
+channel_data = {"name": 'Channel',
+                "ownership": 'Port authority',
+                "delivery_time": 2,  # years
+                "lifespan": 50,  # years
+                "capital_dredging_rate": 7.0,  # USD per m3 (source: Payra, $6.82)
+                "infill_dredging_rate": 5.5,  # USD per m3 (source: Payra, $5.25)
+                "maintenance_dredging_rate": 4.5,  # USD per m3 (source: Payra, $4.43)
+                "mobilisation_min": 2_500_000,
+                "mobilisation_perc": 0.02,
+                "maintenance_perc": 0.10,
+                "insurance_perc": 0.01}
+
+bridge_data = {"name": 'Bridge',
+               "ownership": 'Port authority',
+               "delivery_time": 3,
+               "lifespan": 50,  # years
+               "unit_rate": 100_000_000,  # USD per km
+               "maintenance_perc": 0.025,
+               "insurance_perc": 0.01}
+
+reclamation_data = {"name": 'Reclamation',
+                    "ownership": 'Port authority',
+                    "delivery_time": 2,  # years
+                    "lifespan": 50,  # years
+                    "reclamation_rate": 12.50,  # USD per m3
+                    "maintenance_perc": 0.02,
+                    "insurance_perc": 0.00}
+
+revetment_data = {"name": 'Revetment',
+                  "ownership": 'Port authority',
+                  "delivery_time": 2,  # years
+                  "lifespan": 50,  # years
+                  "revetment_rate": 180_000,  # USD per m
+                  "quay_length_rate": 1.5,
+                  "maintenance_perc": 0.01,
+                  "insurance_perc": 0.00}
+
+breakwater_data = {"name": 'Breakwater',
+                   "ownership": 'Port authority',
+                   "delivery_time": 2,  # years
+                   "lifespan": 50,  # years
+                   "breakwater_rate": 275_000,  # USD per m
+                   "quay_length_rate": 1.5,
+                   "maintenance_perc": 0.01,
+                   "insurance_perc": 0.00}
+
+# Default inputs: Horizontal_Transport class *** #todo add sources
 
 tractor_trailer_data = {"name": 'Tractor-trailer',
                         "type": 'tractor_trailer',
@@ -148,19 +182,19 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                         "required": 5,  # typical 3 - 6 see PIANC 2014b, p 58
                         "non_essential_moves": 1.2}  # todo input value for tractor productivity
 
-# *** Default inputs: Container class
+# *** Default inputs: Container class #todo add sources
 
 laden_container_data = {"name": 'Laden container',
                         "type": 'laden_container',
-                        "teu_factor": 1.55,
-                        "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
+                        "teu_factor": 1.60,
+                        "dwell_time": 3,  # days, PIANC (2014b) p 64 (5 - 10)
                         "peak_factor": 1.2,
                         "stack_occupancy": 0.8}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
 reefer_container_data = {"name": 'Empty container',
                          "type": 'empty_container',
                          "teu_factor": 1.75,
-                         "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
+                         "dwell_time": 3,  # days, PIANC (2014b) p 64 (5 - 10)
                          "peak_factor": 1.2,
                          "stack_occupancy": 0.8}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
@@ -174,11 +208,11 @@ empty_container_data = {"name": 'Empty container',
 oog_container_data = {"name": 'OOG container',
                       "type": 'oog_container',
                       "teu_factor": 1.55,
-                      "dwell_time": 5,  # days, PIANC (2014b) p 64 (5 - 10)
+                      "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                       "peak_factor": 1.2,
                       "stack_occupancy": 0.9}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 
-# *** Default inputs: Laden_Stack class
+# *** Default inputs: Laden_Stack class within the stacks
 
 rtg_stack_data = {"name": 'RTG Stack',
                   "ownership": 'Terminal operator',
@@ -191,7 +225,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "length": 30,  # TEU
                   "capacity": 900,  # TEU
                   "gross_tgs": 18,  # TEU Ground Slot
-                  "area_factor": 2.04,  # Based on grasshopper layout
+                  "area_factor": 2.04,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
@@ -206,13 +240,13 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "delivery_time": 1,  # years
                   "lifespan": 40,  # years
                   "mobilisation": 50_000,  # USD
-                  "maintenance_perc": 0.1,  # [-]
+                  "maintenance_perc": 0.1,
                   "width": 6,  # TEU
                   "height": 5,  # TEU
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
                   "gross_tgs": 18.67,  # TEU Ground Slot
-                  "area_factor": 2.79,  # Based on grasshopper layout
+                  "area_factor": 2.79,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
@@ -227,34 +261,13 @@ sc_stack_data = {"name": 'SC Stack',
                  "delivery_time": 1,  # years
                  "lifespan": 40,  # years
                  "mobilisation": 50_000,  # USD
-                 "maintenance_perc": 0.1,  # [-]
+                 "maintenance_perc": 0.1,
                  "width": 48,  # TEU
                  "height": 4,  # TEU
                  "length": 20,  # TEU
                  "capacity": 3840,  # TEU
                  "gross_tgs": 26.46,  # TEU Ground Slot
-                 "area_factor": 1.45,  # Based on grasshopper layout
-                 "pavement": 200,  # m2 DUMMY
-                 "drainage": 50,  # m2 DUMMY
-                 "household": 0.1,  # moves
-                 "digout_margin": 1.2,  # percentage
-                 "reefer_factor": 2.33,  # RHDHV
-                 "consumption": 4,  # kWh per active reefer
-                 "reefer_rack": 3500,
-                 "reefers_present": 0.5}  # per reefer spot
-
-rs_stack_data = {"name": 'RS Stack',
-                 "ownership": 'Terminal operator',
-                 "delivery_time": 1,  # years
-                 "lifespan": 40,  # years
-                 "mobilisation": 10_000,  # USD
-                 "maintenance_perc": 0.1,  # [-]
-                 "width": 4,  # TEU
-                 "height": 4,  # TEU
-                 "length": 20,  # TEU
-                 "capacity": 320,  # TEU
-                 "gross_tgs": 18,  # TEU Ground Slot
-                 "area_factor": 3.23,  # Based on grasshopper layout
+                 "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
                  "household": 0.1,  # moves
@@ -264,13 +277,26 @@ rs_stack_data = {"name": 'RS Stack',
                  "reefer_rack": 3500,  # USD
                  "reefers_present": 0.5}  # per reefer spot
 
-
-# #*** Default inputs: Reefer data
-# reefer_rack_data = {"reefer_factor":2.33,  # RHDHV
-#                  "consumption":4,  # kWh per active reefer
-#                  "reefer_rack": 3500}  # per reefer spot
-
-
+rs_stack_data = {"name": 'RS Stack',
+                 "ownership": 'Terminal operator',
+                 "delivery_time": 1,  # years
+                 "lifespan": 40,  # years
+                 "mobilisation": 10_000,  # USD
+                 "maintenance_perc": 0.1,
+                 "width": 4,  # TEU
+                 "height": 4,  # TEU
+                 "length": 20,  # TEU
+                 "capacity": 320,  # TEU
+                 "gross_tgs": 18,  # TEU Ground Slot
+                 "area_factor": 3.23,  # m2/TEU (based on grasshopper layout P. Koster)
+                 "pavement": 200,  # m2 DUMMY
+                 "drainage": 50,  # m2 DUMMY
+                 "household": 0.1,  # moves
+                 "digout_margin": 1.2,  # percentage
+                 "reefer_factor": 2.33,  # RHDHV
+                 "consumption": 4,  # kWh per active reefer
+                 "reefer_rack": 3500,  # USD
+                 "reefers_present": 0.5}  # per reefer spot
 
 # *** Default inputs: Other_Stack class
 
@@ -302,12 +328,11 @@ oog_stack_data = {"name": 'OOG Stack',
                   "length": 10,  # TEU
                   "capacity": 100,  # TEU
                   "gross_tgs": 64,  # TEU Ground Slot
-                  "area_factor": 1.05,  # Based on grasshopper layout
+                  "area_factor": 1.05,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # DUMMY
                   "drainage": 50}  # DUMMY
 
 # *** Default inputs: Stack_Equipment class
-#RTG # todo add eRTG
 
 rtg_data = {"name": 'RTG',
             "type": 'rtg',
@@ -325,7 +350,6 @@ rtg_data = {"name": 'RTG',
             "power_consumption": 0
             }
 
-#RMG
 rmg_data = {"name": 'RMG',
             "type": 'rmg',
             "ownership": 'Terminal operator',
@@ -342,59 +366,55 @@ rmg_data = {"name": 'RMG',
             "power_consumption": 15  # kWh/box move
             }
 
-#Straddle carrier #
 sc_data = {"name": 'Straddle carrier',
-            "type": 'sc',
-            "ownership": 'Terminal operator',
-            "delivery_time": 0,
-            "lifespan": 10,
-            "unit_rate": 2_000_000,  # dummy
-            "mobilisation": 5000,
-            "maintenance_perc": 0.1,  # dummy
-            "insurance_perc": 0,
-            "crew": 0,  # dummy
-            "salary": 50_000,  # dummy
-            "required": 5,
-            "fuel_consumption": 0,  # dummy
-            "power_consumption": 30
-            }
+           "type": 'sc',
+           "ownership": 'Terminal operator',
+           "delivery_time": 0,
+           "lifespan": 10,
+           "unit_rate": 2_000_000,  # dummy
+           "mobilisation": 5000,
+           "maintenance_perc": 0.1,  # dummy
+           "insurance_perc": 0,
+           "crew": 0,  # dummy
+           "salary": 50_000,  # dummy
+           "required": 5,
+           "fuel_consumption": 0,  # dummy
+           "power_consumption": 30
+           }
 
-#Reach stacker
 rs_data = {"name": 'Reach stacker',
-            "type": 'rs',
-            "ownership": 'Terminal operator',
-            "delivery_time": 0,
-            "lifespan": 10,
-            "unit_rate": 500_000,
-            "mobilisation": 5000,
-            "maintenance_perc": 0.1,  # dummy
-            "insurance_perc": 0,
-            "crew": 2,  # dummy
-            "salary": 50_000,  # dummy
-            "required": 4,
-            "fuel_consumption": 1,  # dummy
-            "power_consumption": 0
-            }
-
-
+           "type": 'rs',
+           "ownership": 'Terminal operator',
+           "delivery_time": 0,
+           "lifespan": 10,
+           "unit_rate": 500_000,
+           "mobilisation": 5000,
+           "maintenance_perc": 0.1,  # dummy
+           "insurance_perc": 0,
+           "crew": 2,  # dummy
+           "salary": 50_000,  # dummy
+           "required": 4,
+           "fuel_consumption": 1,  # dummy
+           "power_consumption": 0
+           }
 
 # *** Default inputs: Gate class ***
 
 gate_data = {"name": 'Gate',
              "type": 'gate',
-             "ownership":  "Terminal operator",
-             "delivery_time": 1,
-             "lifespan": 15,
-             "unit_rate": 30_000,
-             "mobilisation": 5000,
+             "ownership": "Terminal operator",
+             "delivery_time": 1,  # years
+             "lifespan": 15,  # years
+             "unit_rate": 30_000,  # USD/gate
+             "mobilisation": 5000,  # USD/gate
              "maintenance_perc": 0.02,
-             "crew": 2,
-             "salary": 30_000,  # dummy
-             "canopy_costs": 250,  # USD/m2 dummy
+             "crew": 2,  # crew
+             "salary": 30_000,  # Dummy
+             "canopy_costs": 250,  # USD/m2 # Dummy
              "area": 288.75,  # PIANC WG135
-             "staff_gates": 1,
-             "service_gates": 1,
-             "design_capacity": 0.98,
+             "staff_gates": 1,  #
+             "service_gates": 1,  #
+             "design_capacity": 0.98,  #
              "exit_inspection_time": 2,  # min #dummy
              "entry_inspection_time": 2,  # min #dummy
              "peak_hour": 0.25,  # dummy
@@ -408,7 +428,7 @@ gate_data = {"name": 'Gate',
 
 empty_handler_data = {"name": 'Empty Handler',
                       "type": 'empty_handler',
-                      "ownership":  "Terminal operator",
+                      "ownership": "Terminal operator",
                       "delivery_time": 1,
                       "lifespan": 15,
                       "unit_rate": 500_000,
@@ -417,150 +437,201 @@ empty_handler_data = {"name": 'Empty Handler',
                       "crew": 1,
                       "salary": 35_000,  # dummy
                       "fuel_consumption": 1.5,
-                      "required": 6}
-
+                      "required": 5}
 
 # *** Default inputs: Commodity class ***
 
 container_data = {"name": 'Laden',
                   "handling_fee": 150,
-                  "handysize_perc": 0,
-                  "handymax_perc": 0,
-                  "panamax_perc": 100,
-                  "historic_data": []}
+                  "fully_cellular_perc": 0,
+                  "panamax_perc": 0,
+                  "panamax_max_perc": 0,
+                  "post_panamax_I_perc": 0,
+                  "post_panamax_II_perc": 0,
+                  "new_panamax_perc": 100,
+                  "VLCS_perc": 0,
+                  "ULCS_perc": 0}
 
+# *** Default inputs: Vessel class *** (Source: i) The Geography of Transport Systems, Jean-Paul Rodrigue (2017), ii) UNCTAD)
 
-# *** Default inputs: Vessel class ***
+fully_cellular_data = {"name": 'Fully_Cellular_1',
+                       "type": 'Fully_Cellular',
+                       "delivery_time": 0,  # years
+                       "call_size": 2500 / 8,  # TEU
+                       "LOA": 215,  # m
+                       "draught": 10.0,  # m
+                       "beam": 20.0,  # m
+                       "max_cranes": 4,  # STS cranes
+                       "all_turn_time": 31,  # todo source
+                       "mooring_time": 6,  # berthing + deberthing time
+                       "demurrage_rate": 730,  # USD todo edit
+                       "transport_costs": 200,  # USD per TEU, RHDHV
+                       "all_in_transport_costs": 2128  # USD per TEU, Ports and Terminals p.158
+                       }
 
-feeder_800_data = {"name": 'Feeder_800_1',  # https://products.damen.com/en/ranges/container-feeder
-                   "type": 'Feeder_800',
-                   "call_size": 803,  # TEU
-                   "tonnage": 0,  # todo: verify
-                   "LOA": 140.64,  # m
-                   "beam": 21.8,  # m
-                   "draft": 7.33,  # m
-                   # "speedmax": 17,  # kts
-                   "max_cranes": 1,  # todo: verify
-                   "all_turn_time": 31,  # todo: verify
-                   "mooring_time": 6,  # todo: verify
-                   "demurrage_rate": 730}  # todo: verify
-
-feeder_900_data = {"name": 'Feeder_900_1',  # https://products.damen.com/en/ranges/container-feeder
-                   "type": 'Feeder_900',
-                   "call_size": 888,  # TEU
-                   "tonnage": 0,  # todo: verify
-                   "LOA": 150.17,  # m
-                   "beam": 21.8,  # m
-                   "draft": 7.2,  # m
-                   # "speedmax": 17,  # kts
-                   "max_cranes": 1,  # todo: verify
-                   "all_turn_time": 31,  # todo: verify
-                   "mooring_time": 6,  # todo: verify
-                   "demurrage_rate": 730}  # todo: verify
-
-feeder_1100_data = {"name": 'Feeder_1100_1',  # https://products.damen.com/en/ranges/container-feeder
-                    "type": 'Feeder_1100',
-                    "call_size": 1719,  # TEU
-                    "tonnage": 0,  # todo: verify
-                    "LOA": 148.8,  # m
-                    "beam": 25.5,  # m
-                    "draft": 8.5,  # m
-                    # "speedmax": 15,  # kts
-                    "max_cranes": 1,  # todo: verify
-                    "all_turn_time": 31,  # todo: verify
-                    "mooring_time": 6,  # todo: verify
-                    "demurrage_rate": 730}  # todo: verify
-
-feeder_1700_data = {"name": 'Feeder_1700_1',  # https://products.damen.com/en/ranges/container-feeder
-                    "type": 'Feeder_1700',
-                    "call_size": 1740,  # TEU
-                    "tonnage": 0,  # todo: verify
-                    "LOA": 172,  # m
-                    "beam": 28.8,  # m
-                    "draft": 8.5,  # m
-                    # "speedmax": 18,  # kts
-                    "max_cranes": 2,  # todo: verify
-                    "all_turn_time": 31,  # todo: verify
-                    "mooring_time": 6,  # todo: verify
-                    "demurrage_rate": 730}  # todo: verify
-
-feeder_2500_data = {"name": 'Feeder_2500_1',  # https://products.damen.com/en/ranges/container-feeder
-                    "type": 'Feeder_2500',
-                    "call_size": 2500,  # TEU
-                    "tonnage": 0,  # todo: verify
-                    "LOA": 195,  # m
-                    "beam": 32.2,  # m
-                    "draft": 9.5,  # m
-                    # "speedmax": 19,  # kts
-                    "max_cranes": 2,  # todo: verify
-                    "all_turn_time": 31,  # todo: verify
-                    "mooring_time": 6,  # todo: verify
-                    "demurrage_rate": 730}  # todo: verify
-
-panamax_data = {"name": 'Panamax_1',  # https://en.wikipedia.org/wiki/Container_ship
+panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
-                "call_size": 5_100,  # TEU
-                # "tonnage": 53_500,  # DWT
-                "LOA": 294.13,  # m
-                "beam": 32.31,  # m
-                "draft": 12.04,  # m
-                # "speedmax": 20,  # kts - https://transportgeography.org/?page_id=5955
+                "delivery_time": 0,  # years
+                "call_size": 3400 / 8,  # TEU
+                "LOA": 250,  # m
+                "draught": 12.5,  # m
+                "beam": 32.2,  # m
                 "max_cranes": 4,  # STS cranes
-                "all_turn_time": 31,  # UNCTAD geeft deze waarde voor container schepen
-                "mooring_time": 6,  # berthing + deberthing time
-                "demurrage_rate": 730}
+                "all_turn_time": 31,  # todo source [hr]
+                "mooring_time": 6,  # berthing + deberthing time [hr]
+                "demurrage_rate": 730,  # USD todo edit
+                "transport_costs": 180,  # USD per TEU, RHDHV
+                "all_in_transport_costs": 1881  # USD per TEU, Ports and Terminals p.158
+                }
 
-neopanamax_data = {"name": 'Neopanamax_1',  # https://en.wikipedia.org/wiki/Container_ship
-                   "type": 'Neopanamax',
-                   "call_size": 14_500,  # TEU
-                   # "tonnage": 120_000,  # DWT
-                   "LOA": 366,  # m
-                   "beam": 49,  # m
-                   "draft": 15.2,  # m
-                   # "speedmax": 20,  # kts - https://transportgeography.org/?page_id=5955
-                   "max_cranes": 4,  # STS cranes
-                   "all_turn_time": 31,  # UNCTAD geeft deze waarde voor container schepen
-                   "mooring_time": 6,  # berthing + deberthing time
-                   "demurrage_rate": 730}
+panamax_max_data = {"name": 'Panamax_Max_1',
+                    "type": 'Panamax_Max',
+                    "delivery_time": 0,  # years
+                    "call_size": 4500 / 8,  # TEU
+                    "LOA": 290,  # m
+                    "draught": 12.5,  # m
+                    "beam": 32.0,  # m
+                    "max_cranes": 4,  # STS cranes
+                    "all_turn_time": 31,  # todo source [hr]
+                    "mooring_time": 2,  # berthing + deberthing time [hr]
+                    "demurrage_rate": 730,  # USD todo edit
+                    "transport_costs": 160,  # USD per TEU, RHDHV
+                    "all_in_transport_costs": 1682  # USD per TEU, Ports and Terminals p.158
+                    }
 
-ulcv_data = {"name": 'ULCV_1',  # https://en.wikipedia.org/wiki/Container_ship
-                "type": 'ULCV',
-                "call_size": 20_000,  # TEU
-                "tonnage": 120_000,  # DWT
-                "LOA": 366,  # m
-                "beam": 49,  # m
-                "draft": 15.2,  # m
-                # "speedmax": 20,  # kts - https://transportgeography.org/?page_id=5955
-                "max_cranes": 4,  # STS cranes
-                "all_turn_time": 31,  # UNCTAD geeft deze waarde voor container schepen
-                "mooring_time": 6,  # berthing + deberthing time
-                "demurrage_rate": 730}
+post_panamax_I_data = {"name": 'Post_Panamax_I_1',
+                       "type": 'Post_Panamax_I',
+                       "delivery_time": 0,  # years
+                       "call_size": 6000 / 8,  # TEU
+                       "LOA": 300,  # m
+                       "draught": 13.0,  # m
+                       "beam": 40.0,  # m
+                       "max_cranes": 4,  # STS cranes
+                       "all_turn_time": 31,  # todo source [hr]
+                       "mooring_time": 2,  # berthing + deberthing time [hr]
+                       "demurrage_rate": 730,  # USD todo edit
+                       "transport_costs": 150,  # USD per TEU, RHDHV
+                       "all_in_transport_costs": 1499  # USD per TEU, Ports and Terminals p.158
+                       }
 
+post_panamax_II_data = {"name": 'Post_Panamax_II_1',
+                        "type": 'Post_Panamax_II',
+                        "delivery_time": 0,  # years
+                        "call_size": 8500 / 8,  # TEU
+                        "LOA": 340,  # m
+                        "draught": 14.5,  # m
+                        "beam": 43.0,  # m
+                        "max_cranes": 4,  # STS cranes
+                        "all_turn_time": 31,  # todo source [hr]
+                        "mooring_time": 2,  # berthing + deberthing time [hr]
+                        "demurrage_rate": 730,  # USD todo edit
+                        "transport_costs": 140,  # USD per TEU, RHDHV
+                        "all_in_transport_costs": 1304  # USD per TEU, Ports and Terminals p.158
+                        }
 
-handysize_data = {"name": 'Handysize_1',
-                  "type": 'Handysize',
-                  "call_size": 35_000,
-                  "LOA": 130,
-                  "draft": 10,
-                  "beam": 24,
-                  # "speedmax": 20,  # kts - https://transportgeography.org/?page_id=5955
-                  "max_cranes": 2,
-                  "all_turn_time": 24,
-                  "mooring_time": 3,
-                  "demurrage_rate": 600}
+new_panamax_data = {"name": 'New_Panamax_1',
+                    "type": 'New_Panamax',
+                    "delivery_time": 0,  # years
+                    "call_size": 12500 / 8,  # TEU
+                    "LOA": 366,  # m
+                    "draught": 15.2,  # m
+                    "beam": 49.0,  # m
+                    "max_cranes": 4,  # STS cranes
+                    "all_turn_time": 31,  # todo source [hr]
+                    "mooring_time": 6,  # berthing + deberthing time [hr]
+                    "demurrage_rate": 730,  # USD todo edit
+                    "transport_costs": 120,  # USD per TEU, RHDHV
+                    "all_in_transport_costs": 1118  # USD per TEU, Ports and Terminals p.158
+                    }
 
-handymax_data = {"name": 'Handymax_1',
-                 "type": 'Handymax',
-                 "call_size": 55_000,
-                 "LOA": 180,
-                 "draft": 11.5,
-                 "beam": 28,
-                 # "speedmax": 20,  # kts - https://transportgeography.org/?page_id=5955
-                 "max_cranes": 2,
-                 "all_turn_time": 24,
-                 "mooring_time": 3,
-                 "demurrage_rate": 750}
+VLCS_data = {"name": 'VLCS_1',
+             "type": 'VLCS',
+             "delivery_time": 0,  # years
+             "call_size": 15000 / 8,  # TEU
+             "LOA": 397,  # m
+             "draught": 15.5,  # m
+             "beam": 56.0,  # m
+             "max_cranes": 4,  # STS cranes
+             "all_turn_time": 31,  # todo source [hr]
+             "mooring_time": 6,  # berthing + deberthing time [hr]
+             "demurrage_rate": 730,  # USD todo edit
+             "transport_costs": 80,  # USD per TEU, RHDHV
+             "all_in_transport_costs": 2128  # USD per TEU, Ports and Terminals p.158
+             }
 
+ULCS_data = {"name": 'ULCS_1',
+             "type": 'ULCS',
+             "delivery_time": 0,  # years
+             "call_size": 21000 / 8,  # TEU
+             "LOA": 400,  # m
+             "draught": 16.0,  # m
+             "beam": 59.0,  # m
+             "max_cranes": 4,  # STS cranes
+             "all_turn_time": 31,  # todo source [hr]
+             "mooring_time": 6,  # berthing + deberthing time [hr]
+             "demurrage_rate": 730,  # USD todo edit
+             "transport_costs": 60,  # USD per TEU, RHDHV
+             "all_in_transport_costs": 908  # USD per TEU, Ports and Terminals p.158
+             }
+
+# *** Default inputs: Barge class *** # todo add sources
+
+small_barge_data = {"name": 'Small_Barge_1',
+                    "type": 'small',
+                    "ownership": 'Port authority',
+                    "delivery_time": 1,  # years
+                    "lifespan": 10,  # years
+                    "call_size": 200,  # TEU
+                    "LOA": 90,  # m
+                    "draught": 4.5,  # m
+                    "beam": 12.0,  # m
+                    "unit_rate": 1_000_000,  # USD per barge
+                    "operations_perc": 0.10,
+                    "maintenance_perc": 0.10,
+                    "insurance_perc": 0.01,
+                    "mooring_time": 6,  # berthing + deberthing time
+                    "transport_costs": 200}  # USD per TEU
+
+medium_barge_data = {"name": 'Medium_Barge_1',
+                     "type": 'medium',
+                     "ownership": 'Port authority',
+                     "delivery_time": 1,  # years
+                     "lifespan": 10,  # years
+                     "call_size": 250,  # TEU
+                     "LOA": 100,  # m
+                     "draught": 5.0,  # m
+                     "beam": 13.0,  # m
+                     "unit_rate": 1_000_000,  # USD per barge
+                     "operations_perc": 0.10,
+                     "maintenance_perc": 0.10,
+                     "insurance_perc": 0.01,
+                     "mooring_time": 6,  # berthing + deberthing time
+                     "transport_costs": 200}  # USD per TEU
+
+large_barge_data = {"name": 'Large_Barge_1',
+                    "type": 'large',
+                    "ownership": 'Port authority',
+                    "delivery_time": 1,  # years
+                    "lifespan": 10,  # years
+                    "call_size": 300,  # TEU
+                    "LOA": 120,  # m
+                    "draught": 5.5,  # m
+                    "beam": 14.0,  # m
+                    "unit_rate": 1_000_000,  # USD per barge
+                    "operations_perc": 0.10,
+                    "maintenance_perc": 0.10,
+                    "insurance_perc": 0.01,
+                    "mooring_time": 6,  # berthing + deberthing time
+                    "transport_costs": 200}  # USD per TEU
+
+truck_data = {"name": 'Truck',
+              "ownership": 'Port authority',
+              "delivery_time": 1,
+              "lifespan": 10,
+              "unit_rate": 10_000,  # USD per truck
+              "operations_perc": 0.10,
+              "maintenance_perc": 0.10,
+              "insurance_perc": 0.01}
 
 # *** Default inputs: Labour class ***
 
@@ -570,11 +641,11 @@ labour_data = {"name": 'Labour',
                "local_salary": 18_850,
                "local_staff": 10,
                "operational_salary": 16_750,
-               "shift_length": 6.5,
+               "shift_length": 6.5,  # hr per shift
                "annual_shifts": 200,
-               "daily_shifts": 5,
-               "blue_collar_salary": 25_000,
-               "white_collar_salary": 35_000}
+               "daily_shifts": 5,  # shifts per day
+               "blue_collar_salary": 25_000,  # USD per crew per day
+               "white_collar_salary": 35_000}  # USD per crew per day
 
 # *** Default inputs: Energy class ***
 
@@ -592,7 +663,7 @@ general_services_data = {"name": 'General_Services"',
                          "fuel_station_cost": 500_000,
                          "scanning_inspection_area": 2700,
                          "scanning_inspection_area_cost": 1000,
-                         "lighting_mast_required": 1.2,  #masts per ha
+                         "lighting_mast_required": 1.2,  # masts per ha
                          "lighting_mast_cost": 30_000,
                          "firefight_cost": 2_000_000,
                          "maintenance_tools_cost": 10_000_000,
@@ -614,9 +685,11 @@ general_services_data = {"name": 'General_Services"',
                          "lighting_consumption": 1,
                          "general_consumption": 1000}
 
+# *** Default inputs: Indirect_Costs class ***
+
 indirect_costs_data = {"name": 'Indirect_Costs',
-               "preliminaries": 0.15,
-               "engineering": 0.05,
-               "miscellaneous": 0.15,
-               "electrical_works_fuel_terminal": 0.12,
-               "electrical_works_power_terminal": 0.15}
+                       "preliminaries": 0.15,
+                       "engineering": 0.05,
+                       "miscellaneous": 0.15,
+                       "electrical_works_fuel_terminal": 0.12,
+                       "electrical_works_power_terminal": 0.15}

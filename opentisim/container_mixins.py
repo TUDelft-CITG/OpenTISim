@@ -125,8 +125,8 @@ class hastriggers_properties_mixin(object):
 
 class quay_wall_properties_mixin(object):
     def __init__(self, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, insurance_perc, berthing_gap, freeboard, Gijt_constant_2, Gijt_constant, Gijt_coefficient,
-                 max_sinkage, wave_motion, safety_margin, apron_width, apron_pavement, *args, **kwargs):
+                 maintenance_perc, insurance_perc, berthing_gap, freeboard, Gijt_constant, Gijt_coefficient, max_sinkage, wave_motion,
+                 safety_margin, apron_width, apron_pavement, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -138,12 +138,11 @@ class quay_wall_properties_mixin(object):
         self.insurance_perc = insurance_perc
         self.berthing_gap = berthing_gap
         self.freeboard = freeboard
-        self.Gijt_constant_2 = Gijt_constant_2
         self.Gijt_constant = Gijt_constant
         self.Gijt_coefficient = Gijt_coefficient
         self.max_sinkage = max_sinkage
         self.wave_motion = wave_motion
-        self.safety_margin= safety_margin
+        self.safety_margin = safety_margin
         self.apron_width = apron_width
         self.apron_pavement = apron_pavement
 
@@ -354,30 +353,38 @@ class empty_handler_properties_mixin(object):
 
 
 class commodity_properties_mixin(object):
-    def __init__(self, handling_fee, handysize_perc, handymax_perc, panamax_perc, *args, **kwargs):
+    def __init__(self, handling_fee, fully_cellular_perc, panamax_perc, panamax_max_perc, post_panamax_I_perc,
+                 post_panamax_II_perc, new_panamax_perc, VLCS_perc, ULCS_perc, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.handling_fee = handling_fee
-        self.handysize_perc = handysize_perc
-        self.handymax_perc = handymax_perc
+        self.fully_cellular_perc = fully_cellular_perc
         self.panamax_perc = panamax_perc
+        self.panamax_max_perc = panamax_max_perc
+        self.post_panamax_I_perc = post_panamax_I_perc
+        self.post_panamax_II_perc = post_panamax_II_perc
+        self.new_panamax_perc = new_panamax_perc
+        self.VLCS_perc = VLCS_perc
+        self.ULCS_perc = ULCS_perc
 
 
 class vessel_properties_mixin(object):
-    def __init__(self,
-                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, mooring_time, demurrage_rate,
-                 *args, **kwargs):
+    def __init__(self, type, delivery_time, call_size, LOA, draught, beam, max_cranes, all_turn_time,
+                 mooring_time, demurrage_rate, transport_costs, all_in_transport_costs, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
+        self.delivery_time = delivery_time
         self.call_size = call_size
         self.LOA = LOA
-        self.draft = draft
+        self.draught = draught
         self.beam = beam
         self.max_cranes = max_cranes
         self.all_turn_time = all_turn_time
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
+        self.transport_costs = transport_costs
+        self.all_in_transport_costs = all_in_transport_costs
 
 
 class labour_properties_mixin(object):
