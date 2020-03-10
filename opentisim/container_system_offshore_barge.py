@@ -83,6 +83,7 @@ class System:
     """ Simulation engine """
 
     def simulate(self):
+
         """ Terminal investment strategy simulation
 
         This method automatically generates investment decisions, parametrically derived from overall demand trends and
@@ -595,7 +596,10 @@ class System:
                 pass
         throughput = volume
 
-        print("throughput", throughput)
+        # apply proper timing for the ocean transport to come operational (in the same year as the latest Berth)
+        years_online = []
+        for element in self.find_elements(Berth):
+            years_online.append(element.year_online)
 
         # gather vessels and calculate the transport costs of each vessel type
         vessels = self.find_elements(Vessel)
@@ -603,34 +607,42 @@ class System:
             if fully_cellular > 0:
                 vessel = Vessel(**container_defaults.fully_cellular_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif panamax > 0:
                 vessel = Vessel(**container_defaults.panamax_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif panamax_max > 0:
                 vessel = Vessel(**container_defaults.panamax_max_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif post_panamax_I > 0:
                 vessel = Vessel(**container_defaults.post_panamax_I_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif post_panamax_II > 0:
                 vessel = Vessel(**container_defaults.post_panamax_II_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif new_panamax > 0:
                 vessel = Vessel(**container_defaults.new_panamax_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif VLCS > 0:
                 vessel = Vessel(**container_defaults.VLCS_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
             elif ULCS > 0:
                 vessel = Vessel(**container_defaults.ULCS_data)
                 vessel.year_online = year + vessel.delivery_time
+                # vessel.year_online = max([year + vessel.delivery_time, max(years_online)])
                 vessel.ocean_transport = vessel.transport_costs * throughput / 2
 
         container_ship_costs = vessel.ocean_transport
@@ -1088,7 +1100,9 @@ class System:
         # opex
         quay_wall.offshore_insurance = unit_rate * quay_length * quay_wall.insurance_perc
         quay_wall.maintenance = unit_rate * quay_length * quay_wall.maintenance_perc
+
         # quay_wall.year_online = year + quay_wall.delivery_time
+
         # apply proper timing for the quay to come online (in the same year as the latest Berth)
         years_online = []
         for element in self.find_elements(Berth):
@@ -1295,6 +1309,41 @@ class System:
 
         self.elements.append(offshore_barge_quay_wall)
 
+    def offshore_barge_crane_invest(self, year):
+
+        if self.debug:
+            print('  *** add Offshore Barge Crane to elements')
+
+        # add barge crane object
+        offshore_barge_crane = Offshore_Barge_Crane(**container_defaults.barge_crane_data)
+
+        # capex
+        unit_rate = offshore_barge_crane.unit_rate
+        mobilisation = unit_rate * offshore_barge_crane.mobilisation_perc
+        offshore_barge_crane.offshore_capex = int(unit_rate + mobilisation)
+
+        # opex
+        offshore_barge_crane.offshore_insurance = unit_rate * offshore_barge_crane.insurance_perc
+        offshore_barge_crane.maintenance = unit_rate * offshore_barge_crane.maintenance_perc
+        offshore_barge_crane.year_online = year + offshore_barge_crane.delivery_time
+
+        # apply proper timing for the offshore barge crane to come online
+        years_online = []
+        for element in self.find_elements(Offshore_Barge_Berth):
+            years_online.append(element.year_online)
+        offshore_barge_crane.year_online = max([year + offshore_barge_crane.delivery_time, max(years_online)])
+
+        # labour
+        labour = Labour(**container_defaults.labour_data)
+        offshore_barge_crane.shift = offshore_barge_crane.crew * labour.daily_shifts
+        offshore_barge_crane.offshore_labour = offshore_barge_crane.shift * labour.blue_collar_salary
+
+        # add cash flow information to offshore_barge_crane object in a DataFrame
+        offshore_barge_crane = self.add_cashflow_data_to_element(offshore_barge_crane)
+
+        # add object to elements
+        self.elements.append(offshore_barge_crane)
+
     def reclamation_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS):
 
         """ Current strategy is to ...."""  # todo add strategy
@@ -1452,35 +1501,6 @@ class System:
             self.elements.append(breakwater)
 
             return breakwater_length
-
-    def offshore_barge_crane_invest(self, year):
-
-        if self.debug:
-            print('  *** add Offshore Barge Crane to elements')
-
-        # add barge crane object
-        offshore_barge_crane = Offshore_Barge_Crane(**container_defaults.barge_crane_data)
-
-        # capex
-        unit_rate = offshore_barge_crane.unit_rate
-        mobilisation = unit_rate * offshore_barge_crane.mobilisation_perc
-        offshore_barge_crane.offshore_capex = int(unit_rate + mobilisation)
-
-        # opex
-        offshore_barge_crane.offshore_insurance = unit_rate * offshore_barge_crane.insurance_perc
-        offshore_barge_crane.maintenance = unit_rate * offshore_barge_crane.maintenance_perc
-        offshore_barge_crane.year_online = year + offshore_barge_crane.delivery_time
-
-        # labour
-        labour = Labour(**container_defaults.labour_data)
-        offshore_barge_crane.shift = offshore_barge_crane.crew * labour.daily_shifts
-        offshore_barge_crane.offshore_labour = offshore_barge_crane.shift * labour.blue_collar_salary
-
-        # add cash flow information to offshore_barge_crane object in a DataFrame
-        offshore_barge_crane = self.add_cashflow_data_to_element(offshore_barge_crane)
-
-        # add object to elements
-        self.elements.append(offshore_barge_crane)
 
     def horizontal_transport_invest(self, year):
 
@@ -3799,48 +3819,6 @@ class System:
         cash_flows_df = cash_flows_df.fillna(0)
         cash_flows_WACC_real_df = cash_flows_WACC_real_df.fillna(0)
 
-        # todo edit 'Ocean Transport'
-        containers = list(cash_flows_df['Ocean Transport'])
-        containers_WACC = list(cash_flows_WACC_real_df['Ocean Transport'])
-
-        def convert_ocean_transport(list):
-            ocean_transport = []
-            for i in range(len(list)):
-                if i == 0:
-                    ocean_transport.append(0)
-                elif i == 1:
-                    ocean_transport.append(0)
-                else:
-                    ocean_transport.append(list[i] - list[i - 1])
-            return ocean_transport
-
-        ocean_transport = convert_ocean_transport(containers)
-        ocean_transport_WACC = convert_ocean_transport(containers_WACC)
-
-        cash_flows_df['Ocean Transport'] = ocean_transport
-        cash_flows_WACC_real_df['Ocean Transport'] = ocean_transport_WACC
-
-        # todo edit 'Barge Capex'
-        barges = list(cash_flows_df['Barge Capex'])
-        barges_WACC = list(cash_flows_WACC_real_df['Barge Capex'])
-
-        def convert_barges(list):
-            barges = []
-            for i in range(len(list)):
-                if i == 0:
-                    barges.append(0)
-                elif i == 1:
-                    barges.append(0)
-                else:
-                    barges.append(list[i] - list[i - 1])
-            return barges
-
-        barges = convert_barges(barges)
-        barges_WACC = convert_barges(barges_WACC)
-
-        cash_flows_df['Barge Capex'] = barges
-        cash_flows_WACC_real_df['Barge Capex'] = barges
-
         return cash_flows_df, cash_flows_WACC_real_df
 
     def add_cashflow_data_to_element(self, element):
@@ -3963,13 +3941,13 @@ class System:
 
         # container ships
         if ocean_transport:
-            df.loc[df["Year"] >= year_online, "Ocean Transport"] = ocean_transport
+            df.loc[df["Year"] == year_online + 2, "Ocean Transport"] = ocean_transport
         if demurrage:
             df.loc[df["Year"] >= year_online, "Demurrage"] = demurrage
 
         # barges
         if barge_capex:
-            df.loc[df["Year"] >= year_online, "Barge Capex"] = barge_capex
+            df.loc[df["Year"] == year_online - 1, "Barge Capex"] = barge_capex
         if barge_operations:
             df.loc[df["Year"] >= year_online, "Barge Operations"] = barge_operations
         if barge_maintenance:
@@ -4012,7 +3990,7 @@ class System:
 
         return WACC_real
 
-    def net_present_value(self):
+    def net_present_value(self, display_df=True):
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
         "add cash flow information for each of the Terminal elements"
@@ -4068,116 +4046,186 @@ class System:
         revenues = 0
         total = capex + opex
 
-        NPV = np.sum(- total)
+        NPV = np.sum(total)
 
         # collect all results in a pandas dataframe
         NPV_df = pd.DataFrame()
         NPV_df['Years'] = years
-        NPV_df['Capex'] = - capex
-        NPV_df['Opex'] = - opex
-        NPV_df['PV'] = - capex - opex + revenues
-        NPV_df['cum-PV'] = np.cumsum(- capex - opex + revenues)
-        display(NPV_df)
+        NPV_df['Capex'] = capex
+        NPV_df['Opex'] = opex
+        NPV_df['PV'] = capex + opex  # PV of the costs
+        # NPV_df['PV'] = - capex - opex + revenues
+        NPV_df['cum-PV'] = np.cumsum(capex + opex)
+
+        if display_df == True:
+            display(NPV_df)
 
         return NPV, NPV_df
 
     """ Plotting functions """
 
-    def terminal_elements_plot(self, width=0.10, alpha=0.6):
+    def terminal_elements_plot(self, width=0.08, alpha=0.6):
         """ Gather data from Terminal and plot which elements come online when """
 
         "get demand"
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
+        demand['offshore'] = 0
+        demand['onshore'] = 0
 
         for commodity in self.find_elements(Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
+                        demand['offshore'] += commodity.scenario_data[column]
+                        demand['onshore'] += commodity.scenario_data[column] * self.onshore_perc
             except:
                 pass
 
-        "collect elements to add to plot"
+        "collect elements to add to offshore plot"
         years = []
         OGV_berths = []
-        cranes = []
-        quays = []
-        tractor = []
-        laden_stack = []
-        empty_stack = []
-        oog_stack = []
-        stack_equipment = []
-        gates = []
-        offshore_barge_berths = []
-        onshore_barge_berths = []
+        OGV_cranes = []
+        off_tractor = []
+        off_laden_stack = []
+        off_empty_stack = []
+        off_oog_stack = []
+        off_stack_equipment = []
+        off_empty_handler = []
+        off_barge_berths = []
+        off_barge_cranes = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             OGV_berths.append(0)
-            quays.append(0)
-            cranes.append(0)
-            tractor.append(0)
-            laden_stack.append(0)
-            empty_stack.append(0)
-            oog_stack.append(0)
-            stack_equipment.append(0)
-            gates.append(0)
-            offshore_barge_berths.append(0)
-            onshore_barge_berths.append(0)
+            OGV_cranes.append(0)
+            off_tractor.append(0)
+            off_laden_stack.append(0)
+            off_empty_stack.append(0)
+            off_oog_stack.append(0)
+            off_stack_equipment.append(0)
+            off_empty_handler.append(0)
+            off_barge_berths.append(0)
+            off_barge_cranes.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
                         OGV_berths[-1] += 1
-                if isinstance(element, Quay_Wall):
-                    if year >= element.year_online:
-                        quays[-1] += 1
                 if isinstance(element, Cyclic_Unloader):
                     if year >= element.year_online:
-                        cranes[-1] += 1
+                        OGV_cranes[-1] += 1
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
-                        tractor[-1] += 1
+                        off_tractor[-1] += 1
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
-                        laden_stack[-1] += 1
+                        off_laden_stack[-1] += 1
                 if isinstance(element, Empty_Stack):
                     if year >= element.year_online:
-                        empty_stack[-1] += 1
+                        off_empty_stack[-1] += 1
                 if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
-                        oog_stack[-1] += 1
+                        off_oog_stack[-1] += 1
                 if isinstance(element, Stack_Equipment):
                     if year >= element.year_online:
-                        stack_equipment[-1] += 1
-                if isinstance(element, Gate):
+                        off_stack_equipment[-1] += 1
+                if isinstance(element, Empty_Handler):
                     if year >= element.year_online:
-                        gates[-1] += 1
+                        off_empty_handler[-1] += 1
                 if isinstance(element, Offshore_Barge_Berth):
                     if year >= element.year_online:
-                        offshore_barge_berths[-1] += 1
+                        off_barge_berths[-1] += 1
+                if isinstance(element, Offshore_Barge_Crane):
+                    if year >= element.year_online:
+                        off_barge_cranes[-1] += 1
+
+        "collect elements to add to onshore plot"
+        years = []
+        on_barge_berths = []
+        on_barge_cranes = []
+        on_tractor = []
+        on_laden_stack = []
+        on_empty_stack = []
+        on_oog_stack = []
+        on_stack_equipment = []
+        on_empty_handler = []
+        on_hinterland_berths = []
+        on_hinterland_cranes = []
+        on_gates = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            on_barge_berths.append(0)
+            on_barge_cranes.append(0)
+            on_tractor.append(0)
+            on_stack_equipment.append(0)
+            on_laden_stack.append(0)
+            on_empty_stack.append(0)
+            on_oog_stack.append(0)
+            on_empty_handler.append(0)
+            on_hinterland_berths.append(0)
+            on_hinterland_cranes.append(0)
+            on_gates.append(0)
+
+            for element in self.elements:
                 if isinstance(element, Onshore_Barge_Berth):
                     if year >= element.year_online:
-                        onshore_barge_berths[-1] += 1
+                        on_barge_berths[-1] += 1
+                if isinstance(element, Onshore_Barge_Crane):
+                    if year >= element.year_online:
+                        on_barge_cranes[-1] += 1
+                if isinstance(element, Horizontal_Transport):
+                    if year >= element.year_online:
+                        on_tractor[-1] += 1
+                if isinstance(element, Stack_Equipment):
+                    if year >= element.year_online:
+                        on_stack_equipment[-1] += 1
+                if isinstance(element, Laden_Stack):
+                    if year >= element.year_online:
+                        on_laden_stack[-1] += 1
+                if isinstance(element, Empty_Stack):
+                    if year >= element.year_online:
+                        on_empty_stack[-1] += 1
+                if isinstance(element, OOG_Stack):
+                    if year >= element.year_online:
+                        on_oog_stack[-1] += 1
+                if isinstance(element, Empty_Handler):
+                    if year >= element.year_online:
+                        on_empty_handler[-1] += 1
+                if isinstance(element, Hinterland_Barge_Berth):
+                    if year >= element.year_online:
+                        on_hinterland_berths[-1] += 1
+                if isinstance(element, Hinterland_Barge_Crane):
+                    if year >= element.year_online:
+                        on_hinterland_cranes[-1] += 1
+                if isinstance(element, Gate):
+                    if year >= element.year_online:
+                        on_gates[-1] += 1
 
         "scale elements"
-        tractor = [x / 5 for x in tractor]
-        stack_equipment = [x / 5 for x in stack_equipment]
+        off_tractor = [x / 5 for x in off_tractor]
+        off_stack_equipment = [x / 5 for x in off_stack_equipment]
+        off_empty_handler = [x / 5 for x in off_empty_handler]
+
+        on_tractor = [x / 5 for x in on_tractor]
+        on_stack_equipment = [x / 5 for x in on_stack_equipment]
+        on_empty_handler = [x / 5 for x in on_empty_handler]
 
         "generate plot"
         fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
 
         "offshore plot"
-        ax1.bar([x - 3.5 * width for x in years], OGV_berths, width=width, alpha=alpha, label="OGV berths")
-        ax1.bar([x - 2.5 * width for x in years], cranes, width=width, alpha=alpha, label="STS cranes")
-        ax1.bar([x - 1.5 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 5)")
-        ax1.bar([x - 0.5 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
-        ax1.bar([x + 0.5 * width for x in years], laden_stack, width=width, alpha=alpha, label="Laden stacks (1200 TEU)")
-        ax1.bar([x + 1.5 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
-        ax1.bar([x + 2.5 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
-        ax1.bar([x + 3.5 * width for x in years], offshore_barge_berths, width=width, alpha=alpha, label="Barge berths")
+        ax1.bar([x - 4.5 * width for x in years], OGV_berths, width=width, alpha=alpha, label="OGV berths")
+        ax1.bar([x - 3.5 * width for x in years], OGV_cranes, width=width, alpha=alpha, label="STS cranes")
+        ax1.bar([x - 2.5 * width for x in years], off_tractor, width=width, alpha=alpha, label="Tractors (x 5)")
+        ax1.bar([x - 1.5 * width for x in years], off_stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
+        ax1.bar([x - 0.5 * width for x in years], off_empty_handler, width=width, alpha=alpha, label="Empty handlers (x 5)")
+        ax1.bar([x + 0.5 * width for x in years], off_laden_stack, width=width, alpha=alpha, label="Laden stacks (1200 TEU)")
+        ax1.bar([x + 1.5 * width for x in years], off_empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
+        ax1.bar([x + 2.5 * width for x in years], off_oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
+        ax1.bar([x + 3.5 * width for x in years], off_barge_berths, width=width, alpha=alpha, label="Barge berths")
+        ax1.bar([x + 4.5 * width for x in years], off_barge_cranes, width=width, alpha=alpha, label="Barge cranes")
 
         ax1.set_xlabel('Years', fontsize='large')
         ax1.set_ylabel('Elements [nr]', fontsize='large')
@@ -4189,36 +4237,37 @@ class System:
 
         ax3 = ax1.twinx()
         ax3.set_ylabel('Demand [TEU]', fontsize='large')
-        ax3.step(years, demand['demand'].values, where='mid', color='tab:gray', label='Demand')
+        ax3.step(years, demand['offshore'].values, where='mid', color='tab:gray', label='Demand')
         ax3.grid(False, which='major')
 
         if self.lifecycle == 10:
             ax1.legend(loc='lower left', fancybox=True, shadow=False, framealpha=1.0,
                        fontsize='large', title="Offshore terminal elements", title_fontsize='large')
             # ax1.set_yticks([0, 2, 4, 6, 8, 10, 12, 14, 16, 18])
-            ax3.set_ylim(0, 1_530_000)
-            ax3.set_yticks([0, 500_000, 1_000_000, 1_500_000])
+            ax3.set_ylim(0, max(demand['offshore'].values) * 1.05)
             ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
                        fontsize='large')
         if self.lifecycle == 20:
             ax1.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
                        fontsize='large', title="Offshore terminal elements", title_fontsize='large')
-            ax3.set_ylim(0, 2_030_000)
-            ax3.set_yticks([0, 500_000, 1_000_000, 1_500_000, 2_000_000])
+            ax3.set_ylim(0, max(demand['offshore'].values) * 1.05)
             ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
                        fontsize='large', bbox_to_anchor=(0.2, 1.0))
 
         fig.tight_layout()
 
         "onshore plot"
-        ax2.bar([x - 3.5 * width for x in years], onshore_barge_berths, width=width, alpha=alpha, label="Barge berths")
-        ax2.bar([x - 2.5 * width for x in years], cranes, width=width, alpha=alpha, label="Barge cranes")
-        ax2.bar([x - 1.5 * width for x in years], tractor, width=width, alpha=alpha, label="Tractors (x 5)")
-        ax2.bar([x - 0.5 * width for x in years], stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
-        ax2.bar([x + 0.5 * width for x in years], laden_stack, width=width, alpha=alpha, label="Laden stacks (1200 TEU)")
-        ax2.bar([x + 1.5 * width for x in years], empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
-        ax2.bar([x + 2.5 * width for x in years], oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
-        ax2.bar([x + 3.5 * width for x in years], gates, width=width, alpha=alpha, label="Lanes")
+        ax2.bar([x - 5.0 * width for x in years], on_barge_berths, width=width, alpha=alpha, label="Barge berths")
+        ax2.bar([x - 4.0 * width for x in years], on_barge_cranes, width=width, alpha=alpha, label="Barge cranes")
+        ax2.bar([x - 3.0 * width for x in years], on_tractor, width=width, alpha=alpha, label="Tractors (x 5)")
+        ax2.bar([x - 2.0 * width for x in years], on_stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
+        ax2.bar([x - 1.0 * width for x in years], on_empty_handler, width=width, alpha=alpha, label="Empty handlers (x 5)")
+        ax2.bar([x + 0.0 * width for x in years], on_laden_stack, width=width, alpha=alpha, label="Laden stacks (1200 TEU)")
+        ax2.bar([x + 1.0 * width for x in years], on_empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
+        ax2.bar([x + 2.0 * width for x in years], on_oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
+        ax2.bar([x + 3.0 * width for x in years], on_hinterland_berths, width=width, alpha=alpha, label="Hinterland barge berths")
+        ax2.bar([x + 4.0 * width for x in years], on_hinterland_cranes, width=width, alpha=alpha, label="Hinterland barge cranes")
+        ax2.bar([x + 5.0 * width for x in years], on_gates, width=width, alpha=alpha, label="Lanes")
 
         # ax2.set_xlabel('Years', fontsize='large')
         ax2.set_ylabel('Elements [nr]', fontsize='large')
@@ -4233,23 +4282,20 @@ class System:
         ax3 = ax2.twinx()
         ax3.set_ylabel('Demand [TEU]', fontsize='large')
         ax3.set_ylim(0, 2_030_000)
-        ax3.step(years, demand['demand'].values, where='mid', color='tab:gray', label='Demand')
+        ax3.step(years, demand['onshore'].values, where='mid', color='tab:gray', label='Demand')
         ax3.grid(False, which='major')
-        ax3.set_yticks([0, 500_000, 1_000_000, 1_500_000, 2_000_000])
 
         if self.lifecycle == 10:
             ax2.legend(loc='lower left', fancybox=True, shadow=True, framealpha=1.0,
                        fontsize='large', title="Onshore terminal elements", title_fontsize='large')
             # ax2.set_yticks([0, 2, 4, 6, 8, 10, 12, 14, 16, 18])
-            ax3.set_ylim(0, 1_530_000)
-            ax3.set_yticks([0, 500_000, 1_000_000, 1_500_000])
+            ax3.set_ylim(0, max(demand['onshore'].values) * 1.05)
             ax3.legend(loc='upper left', fancybox=True, shadow=True, framealpha=1.0,
                        fontsize='large')
         if self.lifecycle == 20:
             ax2.legend(loc='upper left', fancybox=True, shadow=True, framealpha=1.0,
                        fontsize='large', title="Onshore terminal elements", title_fontsize='large')
-            ax3.set_ylim(0, 2_030_000)
-            ax3.set_yticks([0, 500_000, 1_000_000, 1_500_000, 2_000_000])
+            ax3.set_ylim(0, max(demand['onshore'].values) * 1.05)
             ax3.legend(loc='upper left', fancybox=True, shadow=True, framealpha=1.0,
                        fontsize='large', bbox_to_anchor=(0.2, 1.0))
         fig.tight_layout()
@@ -4266,61 +4312,74 @@ class System:
 
         "get crane service capacity"
         years = []
-        cranes = []
-        cranes_capacity = []
+        STS_cranes = []
+        STS_cranes_capacity = []
+
+        barge_cranes = []
+        barge_cranes_capacity = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
 
             years.append(year)
-            cranes.append(0)
-            cranes_capacity.append(0)
+            STS_cranes.append(0)
+            STS_cranes_capacity.append(0)
+
+            barge_cranes.append(0)
+            barge_cranes_capacity.append(0)
 
             fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, \
             total_vol = self.calculate_vessel_calls(year)
 
             berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = self.calculate_berth_occupancy(
-                year, fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls,
-                post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
+                year, fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
 
             for element in self.elements:
                 if isinstance(element, Cyclic_Unloader):
                     if year >= element.year_online:
-                        cranes[-1] += 1
-                        cranes_capacity[-1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
+                        STS_cranes[-1] += 1
+                        STS_cranes_capacity[-1] += element.effective_capacity * self.operational_hours * crane_occupancy_online
+                        barge_cranes[-1] += 1
+                        barge_cranes_capacity[-1] += element.effective_capacity * self.operational_hours * crane_occupancy_online * self.onshore_perc
 
         "get demand"
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
+        demand['offshore'] = 0
+        demand['onshore'] = 0
 
         for commodity in self.find_elements(Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
+                        demand['offshore'] += commodity.scenario_data[column]
+                        demand['onshore'] += commodity.scenario_data[column] * self.onshore_perc
             except:
                 pass
 
         def generate_terminal_capacity_plot():
             fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 10))
 
-            ax1.bar(years, cranes_capacity, width=width, alpha=alpha, label="OGV Berth Capacity")
-            ax1.step(years, demand['demand'].values, where='mid', label='Demand', color='tab:gray')
+            ax1.bar(years, STS_cranes_capacity, width=width, alpha=alpha, label="OGV Berth Capacity")
+            ax1.step(years, demand['offshore'].values, where='mid', label='Demand', color='tab:gray')
 
             # ax1.set_xlabel('Years')
             ax1.set_ylabel('Throughput capacity [TEU/year]', fontsize='large')
             ax1.set_title('Offshore Terminal', fontsize='large')
             ax1.set_xticks([x for x in years])
             ax1.set_xticklabels(years)
+            ax1.set_yticks([0,250_000,500_000,750_000,1_000_000])
+            ax1.set_yticklabels(["0","250,000","500,000","750,000","1,000,000"])
             ax1.legend()
-            ax2.bar(years, cranes_capacity, width=width, alpha=alpha, label="Barge Berth Capacity")
-            ax2.step(years, demand['demand'].values, where='mid', label='Demand', color='tab:grey')
+            ax2.bar(years, barge_cranes_capacity, width=width, alpha=alpha, label="Barge Berth Capacity")
+            ax2.step(years, demand['onshore'].values, where='mid', label='Demand', color='tab:grey')
 
             ax2.set_xlabel('Years', fontsize='large')
             ax2.set_ylabel('Throughput capacity [TEU/year]', fontsize='large')
             ax2.set_title('Onshore Terminal', fontsize='large')
             ax2.set_xticks([x for x in years])
             ax2.set_xticklabels(years)
+            ax2.set_yticks([0,250_000,500_000,750_000])
+            ax2.set_yticklabels(["0","250,000","500,000","750,000"])
             ax2.legend()
 
             plt.setp(ax1.patches, linewidth=0)
@@ -4331,7 +4390,7 @@ class System:
 
         generate_terminal_capacity_plot()
 
-    def terminal_land_use_plot(self, display_dfs, width=0.25, alpha=0.6):
+    def terminal_land_use_plot(self, display_df=True, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         "get land use"
@@ -4348,13 +4407,15 @@ class System:
         "get demand"
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
-        demand['demand'] = 0
+        demand['offshore'] = 0
+        demand['onshore'] = 0
 
         for commodity in self.find_elements(Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
+                        demand['offshore'] += commodity.scenario_data[column]
+                        demand['onshore'] += commodity.scenario_data[column] * self.onshore_perc
             except:
                 pass
 
@@ -4406,7 +4467,7 @@ class System:
             land_use_df = pd.DataFrame(list(zip(years, stack_land_use_ha, oog_land_use_ha, empty_land_use_ha, storage_land_use_ha, offshore_total_land_use)),
                                        columns=['Year', 'Laden stack (ha)', 'OOG stack (ha)', 'Empty stack (ha)', 'Total storage (ha)', 'Total land use (ha)'])
             land_use_df.set_index('Year', inplace=True)
-            if display_dfs == True:
+            if display_df == True:
                 display(land_use_df)
         land_use_df()
 
@@ -4466,14 +4527,18 @@ class System:
             ax2.legend(loc='lower left', fontsize='large')
 
             ax3 = ax1.twinx()
-            ax3.step(years, demand['demand'].values, where='mid', color='tab:gray', label='Demand')
+            ax3.step(years, demand['offshore'].values, where='mid', color='tab:gray', label='Demand')
             ax3.set_ylabel('Demand [TEU]', fontsize='large')
-            ax3.set_ylim(0, )
+            ax3.set_yticks([0, 250000, 500000, 750000, 1000000])
+            ax3.set_yticklabels(["0","250,000","500,000","750,000","1,000,000"])
+            ax3.set_ylim(0, max(demand['offshore'].values))
 
             ax3 = ax2.twinx()
-            ax3.step(years, demand['demand'].values, where='mid', color='tab:gray', label='Demand')
+            ax3.step(years, demand['onshore'].values, where='mid', color='tab:gray', label='Demand')
             ax3.set_ylabel('Demand [TEU]', fontsize='large')
-            ax3.set_ylim(0, )
+            ax3.set_yticks([0,250000,500000,750000])
+            ax3.set_yticklabels(["0","250,000","500,000","750,000"])
+            ax3.set_ylim(0, max(demand['onshore'].values))
 
             fig.tight_layout()
 
@@ -4486,7 +4551,7 @@ class System:
             ax3.grid(False, which='major')
         generate_land_use_plot()
 
-    def storage_capacity_plot(self, display_dfs, width=0.25, alpha=0.6):
+    def storage_capacity_plot(self, display_df=True, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
         "get storage capacity"
@@ -4520,7 +4585,7 @@ class System:
                                                         oog_storage_capacity, offshore_storage_capacity)),
                                                columns=['Year', 'Laden storage (TEU)', 'Empty storage (TEU)', 'OOG storage (TEU)', 'Total storage (TEU)'])
             storage_capacity_df.set_index('Year', inplace=True)
-            if display_dfs == True:
+            if display_df == True:
                 display(storage_capacity_df)
             return offshore_storage_capacity
         offshore_storage_capacity = offshore_storage_capacity_df()
@@ -4560,7 +4625,7 @@ class System:
 
         generate_storage_capacity_plot()
 
-    def terminal_opex_plot(self, cash_flows_df, display_dfs, width=0.2, alpha=0.6):
+    def terminal_opex_plot(self, cash_flows_df, display_df=True, width=0.2, alpha=0.6):
 
         """Gather data from Terminal elements and combine into a cash flow plot"""
 
@@ -4602,7 +4667,7 @@ class System:
         data_ocean_transport = {'Ocean Transport': ocean_transport}
         ocean_transport_df = pd.DataFrame(data_ocean_transport, years)
 
-        if display_dfs == True:
+        if display_df == True:
             print("Offshore"), display(offshore_opex_df)
             print("Onshore"), display(onshore_opex_df)
             print("Barges"), display(barge_opex_df)
@@ -4633,11 +4698,11 @@ class System:
         bar9 = ax.bar([x + 0.5 * width for x in years],  on_fuel, width=width, color='tab:green', alpha=0.7, bottom=on_bottom_2, label="Fuel")
         bar10 = ax.bar([x + 0.5 * width for x in years], on_labour, width=width, color='tab:green', alpha=0.6, bottom=on_bottom_3, label="Labour")
 
-        bar11 = ax.bar([x + 1.5 * width for x in years], barge_operations, width=width, color='tab:olive', alpha=1.0, bottom=None, label="Energy")
-        bar12 = ax.bar([x + 1.5 * width for x in years], barge_maintenance, width=width, color='tab:olive', alpha=0.8, bottom=barge_operations, label="Fuel")
-        bar13 = ax.bar([x + 1.5 * width for x in years], barge_labour, width=width, color='tab:olive', alpha=0.6, bottom=barge_bottom, label="Labour")
+        bar11 = ax.bar([x + 1.5 * width for x in years], barge_operations, width=width, color='tab:orange', alpha=1.0, bottom=None, label="Energy")
+        bar12 = ax.bar([x + 1.5 * width for x in years], barge_maintenance, width=width, color='tab:orange', alpha=0.8, bottom=barge_operations, label="Fuel")
+        bar13 = ax.bar([x + 1.5 * width for x in years], barge_labour, width=width, color='tab:orange', alpha=0.6, bottom=barge_bottom, label="Labour")
 
-        bar14 = ax.bar([x - 1.5 * width for x in years], ocean_transport, width=width, color='tab:cyan', alpha=0.8, bottom=None, label="Ocean Transport")
+        bar14 = ax.bar([x - 1.5 * width for x in years], ocean_transport, width=width, color='tab:cyan', alpha=1.0, bottom=None, label="Ocean Transport")
 
         ax.set_xlabel('Years', fontsize='large')
         ax.set_ylabel('Opex [M US$]', fontsize='large')
@@ -4648,22 +4713,22 @@ class System:
         ax.set_yticklabels(["0", "$ 10.0M", "$ 20.0M", "$ 30.0M", "$ 40.0M", "$ 50.0M", "$ 60.0M", "$ 70.0M", "$ 80.0M"])
 
         first_leg = ax.legend(handles=[bar1, bar2, bar3, bar4, bar5],
-                              loc='upper left', bbox_to_anchor=(0, 0.90), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                              loc='upper left', bbox_to_anchor=(0, 0.80), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                               title="Offshore", title_fontsize='large')
         add_first_leg = plt.gca().add_artist(first_leg)
 
         second_leg = ax.legend(handles=[bar6, bar7, bar8, bar9, bar10],
-                               loc='upper left', bbox_to_anchor=(0, 0.60), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                               loc='upper left', bbox_to_anchor=(0, 0.50), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                                title="Onshore", title_fontsize='large')
         add_second_leg = plt.gca().add_artist(second_leg)
 
         third_leg = ax.legend(handles=[bar11, bar12, bar13],
-                              loc='upper left', bbox_to_anchor=(0, 0.30), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                              loc='upper left', bbox_to_anchor=(0, 0.20), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                               title="Barge", title_fontsize='large')
         add_third_leg = plt.gca().add_artist(third_leg)
 
         ax.legend(handles=[bar14],
-                  loc='upper left', bbox_to_anchor=(0, 0.10), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                  loc='upper left', bbox_to_anchor=(0, 1.0), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                   title="Ocean Transport", title_fontsize='large')
 
         plt.setp(ax.patches, linewidth=0)
@@ -4813,7 +4878,7 @@ class System:
         # plot3 = ax.axhline(y = costs_cum[len(costs_cum)-1], label="PV of the costs", color='tab:gray', linestyle='--', alpha=1.0, zorder=4)
 
         ax.set_xlabel('Years')
-        ax.set_ylabel('PV of the costs [M US$]')
+        ax.set_ylabel('PV of the costs [US$]')
         ax.set_title('Cost estimation plot')
 
         ax.set_yticks([0, 250_000_000, 500_000_000, 750_000_000, 1_000_000_000])
@@ -4827,17 +4892,17 @@ class System:
         #                       loc='upper right', bbox_to_anchor=(1.0, 0.30), fancybox=True, shadow=True, framealpha = 1.0, fontsize='large',
         #                       title="Cost-estimation",title_fontsize='large')
         first_leg = ax.legend(handles=[plot1, ],
-                              loc='upper right', bbox_to_anchor=(1.0, 0.275), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                              loc='upper right', bbox_to_anchor=(1.0, 1.0), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                               title="Cost-estimation", title_fontsize='large')
         add_first_leg = plt.gca().add_artist(first_leg)
 
         second_leg = ax.legend(handles=[bar1, bar2, bar3, bar4, bar5, bar6],
-                               loc='upper right', bbox_to_anchor=(1.0, 0.9), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                               loc='upper right', bbox_to_anchor=(1.0, 0.90), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                                title="Capex", title_fontsize='large')
         add_second_leg = plt.gca().add_artist(second_leg)
 
         ax.legend(handles=[bar7, bar8, bar9, bar10, bar11, bar12],
-                  loc='upper right', bbox_to_anchor=(1.0, 0.575), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
+                  loc='upper right', bbox_to_anchor=(1.0, 0.6), fancybox=True, shadow=True, framealpha=1.0, fontsize='large',
                   title="Opex", title_fontsize='large')
 
         # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, framealpha = 1.0, ncol=5, fontsize='large')

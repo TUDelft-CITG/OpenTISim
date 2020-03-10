@@ -63,9 +63,9 @@ sts_crane_data = {"name": 'STS_crane',
                   "ownership": 'Terminal operator',
                   "delivery_time": 1,  # years
                   "lifespan": 40,  # years
-                  "unit_rate": 10_000_000,  # USD per unit
+                  "unit_rate": 10_170_000,  # USD per unit (Source: RHDHV)
                   "mobilisation_perc": 0.15,  # percentage
-                  "maintenance_perc": 0.02,  # percentage
+                  "maintenance_perc": 0.03,  # percentage
                   "insurance_perc": 0.01,  # percentage
                   "consumption": 8,  # Source: Peter Beamish (RHDHV)
                   "crew": 5.5,  # 1.5 crane driver, 2 quay staff, 2 twistlock handler (per shift)
@@ -102,7 +102,7 @@ barge_crane_data = {"name": 'Barge Crane',
                     "ownership": 'Terminal operator',
                     "delivery_time": 1,  # years
                     "lifespan": 40,  # years
-                    "unit_rate": 5_000_000,  # USD per unit
+                    "unit_rate": 6_780_000,  # USD per unit (Source: RHDHV)
                     "mobilisation_perc": 0.15,  # percentage
                     "maintenance_perc": 0.02,  # percentage
                     "insurance_perc": 0.01,  # percentage
@@ -131,11 +131,11 @@ channel_data = {"name": 'Channel',
 
 bridge_data = {"name": 'Bridge',
                "ownership": 'Port authority',
-               "delivery_time": 3,
+               "delivery_time": 2,
                "lifespan": 50,  # years
-               "unit_rate": 100_000_000,  # USD per km
-               "maintenance_perc": 0.025,
-               "insurance_perc": 0.01}
+               "unit_rate": 100_000_000,  # USD per km (Source: RHDHV)
+               "maintenance_perc": 0.025,  # (Source: RHDHV)
+               "insurance_perc": 0.01}  # (Source: RHDHV)
 
 reclamation_data = {"name": 'Reclamation',
                     "ownership": 'Port authority',
@@ -163,7 +163,7 @@ breakwater_data = {"name": 'Breakwater',
                    "quay_length_rate": 1.5,
                    "maintenance_perc": 0.01}
 
-# Default inputs: Horizontal_Transport class *** #todo add sources
+# Default inputs: Horizontal_Transport class ***
 
 tractor_trailer_data = {"name": 'Tractor-trailer',
                         "type": 'tractor_trailer',
@@ -171,8 +171,8 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                         "delivery_time": 0,
                         "lifespan": 10,
                         "mobilisation": 1_000,
-                        "unit_rate": 85_000,
-                        "maintenance_perc": 0.10,
+                        "unit_rate": 113_000,  # USD per unit (Source: RHDHV)
+                        "maintenance_perc": 0.10,  # USD per unit (Source: RHDHV)
                         "insurance_perc": 0.01,
                         "crew": 1,
                         "salary": 30_000,  # dummy
@@ -180,7 +180,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                         "fuel_consumption": 2,  # liter per box move
                         "productivity": 1,
                         "required": 5,  # typical 3 - 6 see PIANC 2014b, p 58
-                        "non_essential_moves": 1.2}  # todo input value for tractor productivity
+                        "non_essential_moves": 1.2}
 
 # *** Default inputs: Container class #todo add sources
 
@@ -339,10 +339,10 @@ rtg_data = {"name": 'RTG',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
-            "unit_rate": 1_400_000,
+            "unit_rate": 1_400_000, # USD per unit (Source: RHDHV)
             "mobilisation": 5000,
-            "maintenance_perc": 0.1,  # dummy
-            "insurance_perc": 0,
+            "maintenance_perc": 0.5,
+            "insurance_perc": 0.0,
             "crew": 1,  # dummy
             "salary": 50_000,  # dummy
             "required": 3,
@@ -355,10 +355,10 @@ rmg_data = {"name": 'RMG',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
-            "unit_rate": 2_500_000,
+            "unit_rate": 2_500_000, # USD per unit (Source: RHDHV)
             "mobilisation": 5000,
-            "maintenance_perc": 0.1,  # dummy
-            "insurance_perc": 0,
+            "maintenance_perc": 0.5,  # dummy
+            "insurance_perc": 0.0,
             "crew": 0,  # dummy
             "salary": 50_000,  # dummy
             "required": 1,  # one per stack
@@ -371,9 +371,9 @@ sc_data = {"name": 'Straddle carrier',
            "ownership": 'Terminal operator',
            "delivery_time": 0,
            "lifespan": 10,
-           "unit_rate": 2_000_000,  # dummy
+           "unit_rate": 2_000_000,  # USD per unit (Source: RHDHV)
            "mobilisation": 5000,
-           "maintenance_perc": 0.1,  # dummy
+           "maintenance_perc": 0.2,
            "insurance_perc": 0,
            "crew": 0,  # dummy
            "salary": 50_000,  # dummy
@@ -387,9 +387,9 @@ rs_data = {"name": 'Reach stacker',
            "ownership": 'Terminal operator',
            "delivery_time": 0,
            "lifespan": 10,
-           "unit_rate": 500_000,
+           "unit_rate": 500_000,  # USD per unit (Source: RHDHV)
            "mobilisation": 5000,
-           "maintenance_perc": 0.1,  # dummy
+           "maintenance_perc": 0.2,
            "insurance_perc": 0,
            "crew": 2,  # dummy
            "salary": 50_000,  # dummy
