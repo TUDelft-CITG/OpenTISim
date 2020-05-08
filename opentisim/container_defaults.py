@@ -47,8 +47,8 @@ quay_wall_data = {"name": 'Quay',
                   "max_sinkage": 0.5,
                   "wave_motion": 0.5,
                   "safety_margin": 0.5,
-                  "apron_width": 65.5,  # see PIANC (2014b), p 62
-                  "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
+                  "apron_width": 100.0,  # see PIANC (2014b), p 62 for RMG system
+                  "apron_pavement": 125}  # all values from Ijzermans, 2019, p 91
 
 # *** Default inputs: Berth class ***
 
@@ -95,7 +95,7 @@ barge_quay_wall_data = {"name": 'Barge_Quay',
                         "max_sinkage": 0.5,
                         "wave_motion": 0.5,
                         "safety_margin": 0.5,
-                        "apron_width": 30,  # todo add source, check PIANC 2014b
+                        "apron_width": 50,  # see PIANC (2014), p.62
                         "apron_pavement": 125}  # all values from Ijzermans, 2019, P 91
 
 barge_crane_data = {"name": 'Barge Crane',
@@ -133,7 +133,11 @@ bridge_data = {"name": 'Bridge',
                "ownership": 'Port authority',
                "delivery_time": 2,
                "lifespan": 50,  # years
-               "unit_rate": 100_000_000,  # USD per km (Source: RHDHV)
+               "construction_rate_20": 59_000_000,  # USD per km (Source: plot reference projects, see report Hugo Stam)
+               "construction_rate_30": 50_000_000,  # USD per km (Source: plot reference projects, see report Hugo Stam)
+               "construction_rate_40": 44_000_000,  # USD per km (Source: plot reference projects, see report Hugo Stam)
+               "construction_rate_50": 40_000_000,  # USD per km (Source: plot reference projects, see report Hugo Stam)
+               "construction_rate_60": 37_000_000,  # USD per km (Source: plot reference projects, see report Hugo Stam)
                "maintenance_perc": 0.025,  # (Source: RHDHV)
                "insurance_perc": 0.01}  # (Source: RHDHV)
 
@@ -172,7 +176,7 @@ tractor_trailer_data = {"name": 'Tractor-trailer',
                         "lifespan": 10,
                         "mobilisation": 1_000,
                         "unit_rate": 113_000,  # USD per unit (Source: RHDHV)
-                        "maintenance_perc": 0.10,  # USD per unit (Source: RHDHV)
+                        "maintenance_perc": 0.10,  # (Source: RHDHV)
                         "insurance_perc": 0.01,
                         "crew": 1,
                         "salary": 30_000,  # dummy
@@ -511,6 +515,7 @@ post_panamax_I_data = {"name": 'Post_Panamax_I_1',
                        "mooring_time": 2,  # berthing + deberthing time [hr]
                        "demurrage_rate": 730,  # USD todo edit
                        "transport_costs": 150,  # USD per TEU, RHDHV
+                       # "transport_costs": 200,  # USD per TEU (Singapore and Rotterdam), Rodrigue (2020)
                        "all_in_transport_costs": 1499  # USD per TEU, Ports and Terminals p.158
                        }
 
@@ -541,6 +546,7 @@ new_panamax_data = {"name": 'New_Panamax_1',
                     "mooring_time": 6,  # berthing + deberthing time [hr]
                     "demurrage_rate": 730,  # USD todo edit
                     "transport_costs": 120,  # USD per TEU, RHDHV
+                    # "transport_costs": 180,  # USD per TEU (Singapore and Rotterdam), Rodrigue (2020)
                     "all_in_transport_costs": 1118  # USD per TEU, Ports and Terminals p.158
                     }
 
@@ -555,7 +561,7 @@ VLCS_data = {"name": 'VLCS_1',
              "all_turn_time": 31,  # todo source [hr]
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
-             "transport_costs": 80,  # USD per TEU, RHDHV
+             "transport_costs": 110,  # USD per TEU, RHDHV
              "all_in_transport_costs": 2128  # USD per TEU, Ports and Terminals p.158
              }
 
@@ -571,10 +577,12 @@ ULCS_data = {"name": 'ULCS_1',
              "mooring_time": 6,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "transport_costs": 60,  # USD per TEU, RHDHV
+             "transport_costs": 100,  # USD per TEU (RHDHV
+             # "transport_costs": 150,  # USD per TEU (Singapore and Rotterdam), Rodrigue (2020)
              "all_in_transport_costs": 908  # USD per TEU, Ports and Terminals p.158
              }
 
-# *** Default inputs: Barge class *** # todo add crew, shifts,
+# *** Default inputs: Barge class ***
 
 small_barge_data = {"name": 'Small_Barge',
                     "type": 'small',
@@ -634,10 +642,14 @@ truck_data = {"name": 'Truck',
               "ownership": 'Port authority',
               "delivery_time": 1,
               "lifespan": 10,
-              "unit_rate": 10_000,  # USD per truck
+              "call_size": 1.5,  # TEU per truck
+              "unit_rate": 20_000,  # USD per truck
               "operations_perc": 0.10,
               "maintenance_perc": 0.10,
-              "insurance_perc": 0.01}
+              "insurance_perc": 0.01,
+              "driving_speed": 15.0,  # m/s (dummy)
+              "crew": 1,  # (Source:RHDHV)
+              "daily_shifts": 3}  # (Source:RHDHV)
 
 # *** Default inputs: Labour class ***
 

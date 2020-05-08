@@ -10,15 +10,16 @@ import decimal
 from opentisim.container_objects import *
 from opentisim import container_defaults
 
+
 class System:
     def __init__(self, startyear=2020, lifecycle=20, operational_hours=8640, debug=False, elements=None,
-                 stack_equipment='rtg', laden_stack='rtg', crane_type_defaults='STS crane', allowable_berth_occupancy=0.6,
-                 offshore_dwell_time = 2.0, onshore_offshore_ratio = 2, onshore_perc=0.75, modal_split=0.50, transhipment_ratio=0.0,
+                 stack_equipment='rtg', laden_stack='rtg', crane_type_defaults='STS crane', allowable_berth_occupancy=0.7,
+                 offshore_dwell_time=2.0, onshore_offshore_ratio=2, onshore_perc=0.75, modal_split=0.50, transhipment_ratio=0.0,
                  offshore_distance=40, foreshore_slope=2.0, bathymetry_factor=0.75, wave_height=3.0, tidal_range=3.0,
-                 barge_type='medium', barge_utilisation=0.8, truck_utilisation=0.9,
+                 barge_type='medium', barge_utilisation=0.8,
                  # allowable_waiting_service_time_ratio_berth=0.1,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.075, oog_perc=0.025,
-                 energy_price=0.17, fuel_price=1, land_price=0, interest=0.06, inflation=0.02):
+                 energy_price=0.17, fuel_price=1, land_price=0, interest=0.06, inflation=0.0):
 
         # list of elements
         if elements is None:
@@ -50,7 +51,6 @@ class System:
         # modalities
         self.barge_type = barge_type
         self.barge_utilisation = barge_utilisation
-        self.truck_utilisation = truck_utilisation
 
         # site specific conditions
         self.offshore_distance = offshore_distance
@@ -118,7 +118,7 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             if self.debug:
                 print('')
-                print('Offshore Port System - Bridge Connection')
+                print('Offshore Port System - Barge Connection')
                 print('')
                 print('Below, the various investment decisions are evaluated for the year {}.'.format(year))
                 print('')
@@ -147,19 +147,20 @@ class System:
             self.total_stack_capacity(year)
             self.stack_equipment_invest(year)
             self.empty_handler_invest(year)
-            self.offshore_gate_invest(year)
+            self.offshore_barge_berth_invest(year)
             self.general_services_invest(year)
 
             self.access_channel_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
             self.reclamation_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
             self.revetment_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
+            # self.breakwater_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
 
             # connection offshore-onshore
-            self.bridge_invest(year)
-            self.truck_invest(year)
+            self.barge_invest(year)
+            self.barge_channel_invest(year)
 
             # onshore
-            self.onshore_gate_invest(year)
+            self.onshore_barge_berth_invest(year)
             self.hinterland_gate_invest(year)
             self.hinterland_barge_berth_invest(year)
 
@@ -196,10 +197,13 @@ class System:
 
         # land use
         offshore_land_use, offshore_land_use_ha = self.calculate_offshore_land_use(year)
-        onshore_land_use, onshore_land_use_ha  = self.calculate_onshore_land_use(year)
+        onshore_land_use, onshore_land_use_ha = self.calculate_onshore_land_use(year)
+
+        # channel dimensions
+        # ...
 
         " 8. calculate cashflows and aggregate to NPV "
-        NPV, NPV_df, costs_df, costs_df_sum = self.net_present_value()
+        NPV, NPV_df, costs_df = self.net_present_value()
 
     def summary(self, year):
         """key numbers at the end of the lifecycle"""
@@ -213,11 +217,16 @@ class System:
         print("Number of empty stacks:", len(self.find_elements(Empty_Stack)))
         print("Number of OOG stacks:", len(self.find_elements(OOG_Stack)))
         print("Number of stack equipment:", len(self.find_elements(Stack_Equipment)))
-        print("Number of offshore lanes:", len(self.find_elements(Offshore_Gate)))
+        print("Number of empty handlers:", len(self.find_elements(Empty_Handler)))
+        print("Number of barge berths:", len(self.find_elements(Offshore_Barge_Berth)))
+        print("Number of barge quay walls:", len(self.find_elements(Offshore_Barge_Quay_Wall)))
+        print("Number of barges cranes:", len(self.find_elements(Offshore_Barge_Crane)))
         print("")
         print("Onshore Terminal")
         print("")
-        print("Number of onshore lanes:", len(self.find_elements(Onshore_Gate)))
+        print("Number of barge berths:", len(self.find_elements(Onshore_Barge_Berth)))
+        print("Number of barge quays:", len(self.find_elements(Onshore_Barge_Quay_Wall)))
+        print("Number of barges cranes:", len(self.find_elements(Onshore_Barge_Crane)))
         print("Number of hinterland lanes:", len(self.find_elements(Hinterland_Gate)))
         print("Number of hinterland berths:", len(self.find_elements(Hinterland_Barge_Berth)))
         print("Number of hinterland quay walls:", len(self.find_elements(Hinterland_Barge_Quay_Wall)))
@@ -226,11 +235,11 @@ class System:
         print("Connection")
         print("")
         print("Number of OGV channels:", len(self.find_elements(Channel)))
-        print("Number of bridges:", len(self.find_elements(Bridge)))
+        print("Number of barge channels:", len(self.find_elements(Barge_Channel)))
         print("Number of reclamations:", len(self.find_elements(Reclamation)))
         print("Number of revetments:", len(self.find_elements(Revetment)))
         print("Number of breakwaters:", len(self.find_elements(Breakwater)))
-        print("Number of trucks:", len(self.find_elements(Truck)))
+        print("Number of barges:", len(self.find_elements(Barge)))
 
     """ Operational expenditures """
 
@@ -241,7 +250,7 @@ class System:
         2. Find the total energy price to multiply the consumption with the energy price
         """
 
-        sts_moves, hinterland_barge_crane_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+        sts_moves, offshore_barge_crane_moves, onshore_barge_crane_moves, hinterland_barge_crane_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
         energy_price = self.energy_price
 
         "STS crane energy costs"
@@ -259,6 +268,38 @@ class System:
                         element.consumption * moves_per_element * energy_price
             else:
                 element.df.loc[element.df['Year'] == year, 'Offshore Energy'] = 0
+
+        "Offshore barge crane energy costs"
+        cranes = 0
+        for element in self.elements:
+            if isinstance(element, Offshore_Barge_Crane):
+                if year >= element.year_online:
+                    cranes += 1
+
+        for element in self.find_elements(Offshore_Barge_Crane):
+            if year >= element.year_online:
+                moves_per_element = offshore_barge_crane_moves / cranes
+                if element.consumption * moves_per_element * energy_price != np.inf:
+                    element.df.loc[element.df['Year'] == year, 'Offshore Energy'] = \
+                        element.consumption * moves_per_element * energy_price
+            else:
+                element.df.loc[element.df['Year'] == year, 'Offshore Energy'] = 0
+
+        "Onshore barge crane energy costs"
+        cranes = 0
+        for element in self.elements:
+            if isinstance(element, Onshore_Barge_Crane):
+                if year >= element.year_online:
+                    cranes += 1
+
+        for element in self.find_elements(Onshore_Barge_Crane):
+            if year >= element.year_online:
+                moves_per_element = offshore_barge_crane_moves / cranes
+                if element.consumption * moves_per_element * energy_price != np.inf:
+                    element.df.loc[element.df['Year'] == year, 'Onshore Energy'] = \
+                        element.consumption * moves_per_element * energy_price
+            else:
+                element.df.loc[element.df['Year'] == year, 'Onshore Energy'] = 0
 
         "Hinterland barge crane energy costs"
         cranes = 0
@@ -320,7 +361,7 @@ class System:
         general = General_Services(**container_defaults.general_services_data)
 
         offshore_land_use, offshore_land_use_ha = self.calculate_offshore_land_use(year)
-        onshore_land_use, onshore_land_use_ha  = self.calculate_onshore_land_use(year)
+        onshore_land_use, onshore_land_use_ha = self.calculate_onshore_land_use(year)
 
         offshore_lighting = offshore_land_use * energy_price * general.lighting_consumption
         onshore_lighting = onshore_land_use * energy_price * general.lighting_consumption
@@ -375,7 +416,7 @@ class System:
                     element.df.loc[element.df['Year'] == year, 'General Labour'] = 0
 
     def calculate_fuel_cost(self, year):
-        sts_moves, hinterland_barge_crane_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
+        sts_moves, offshore_barge_crane_moves, onshore_barge_crane_moves, hinterland_barge_crane_moves, stack_moves, empty_moves, tractor_moves = self.box_moves(year)
         fuel_price = self.fuel_price
 
         "calculate empty handler fuel costs"
@@ -437,7 +478,7 @@ class System:
 
             else:
                 element.df.loc[element.df['Year'] == year, 'Offshore Fuel'] = 0
-                element.df.loc[element.df['Year'] == year, 'Offshore Fuel'] = 0
+                element.df.loc[element.df['Year'] == year, 'Onshore Fuel'] = 0
 
     def calculate_demurrage_cost(self, year):
 
@@ -620,7 +661,7 @@ class System:
 
     def access_channel_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS):
 
-        """ Current strategy is to ...."""  # todo add access channel invest strategy
+        """ Current strategy is to ...."""  # todo add access channel invest
 
         vessels = self.find_elements(Vessel)
         for vessel in vessels:
@@ -671,7 +712,7 @@ class System:
         print("beam", beam)
 
         # quay_length = self.berth_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
-        quay_length = 1272 # todo check quay length
+        quay_length = 1272  # todo check quay length
 
         access_channels = len(self.find_elements(Channel))
 
@@ -682,6 +723,7 @@ class System:
 
             # add an Access_Channel object
             access_channel = Channel(**container_defaults.channel_data)
+            quay_wall = Quay_Wall(**container_defaults.quay_wall_data)
 
             # dimensions access channel (According to PIANC 2014 for moderate conditions)
             width_standard = beam * 1.5
@@ -698,11 +740,10 @@ class System:
                                  width_aids_navigation + width_bottom_surface + width_depth_waterway + width_bank_clearance) + width_passing
 
             wave_height = self.wave_height
-            tidal_window = 0.0
-            max_sinkage = 1.0
+            max_sinkage = quay_wall.max_sinkage
             wave_response = wave_height / 2
-            net_underkeel_clearance = 0.5
-            channel_depth = draught - tidal_window + max_sinkage + wave_response + net_underkeel_clearance
+            net_underkeel_clearance = quay_wall.safety_margin
+            channel_depth = draught + max_sinkage + wave_response + net_underkeel_clearance
 
             offshore_distance = self.offshore_distance * 10 ** 3
             channel_length_max = self.foreshore_slope * 10 ** 3 * channel_depth
@@ -778,8 +819,8 @@ class System:
         if self.debug:
             print('     Berth occupancy planned (@ start of year): {}'.format(round(berth_occupancy_planned, 3)))
             print('     Berth occupancy online  (@ start of year): {}'.format(round(berth_occupancy_online, 3)))
-            print('     Crane occupancy planned (@ start of year): {}'.format(round(crane_occupancy_planned, 3)))
-            print('     Crane occupancy online  (@ start of year): {}'.format(round(crane_occupancy_online, 3)))
+            # print('     Crane occupancy planned (@ start of year): {}'.format(round(crane_occupancy_planned, 3)))
+            # print('     Crane occupancy online  (@ start of year): {}'.format(round(crane_occupancy_online, 3)))
             # print('     Waiting time factor     (@ start of year): {}'.format(round(factor, 3)))
             # print('     Waiting time occupancy  (@ start of year): {}'.format(round(waiting_time_occupancy, 3)))
             print('')
@@ -806,8 +847,6 @@ class System:
             berths = len(self.find_elements(Berth))
             quay_walls = len(self.find_elements(Quay_Wall))
 
-            print('  >> nr of OGV berths:', berths)
-
             if berths > quay_walls:
                 length_vessel = max(
                     (not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
@@ -828,13 +867,14 @@ class System:
                     (not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draught"],
                     (not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draught"])
 
-                # check max vessel length
-                print("     >> max vessel length:", length_vessel)
+                if self.debug:
+                    print("  >>> Number of OGV berths:", berths)
+                    print("     >> The length of the design vessel is", length_vessel, "m")
 
                 # quay wall length: PIANC 2014 (see Ijzermans, 2019 - infrastructure.py line 107 - 111)
                 berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
 
-                if quay_walls == 0:  # length when next quay is n = 1
+                if quay_walls == 0:
                     quay_length = length_vessel + 2 * berthing_gap
                 else:
                     quay_length = 1.1 * berths * (length_vessel + berthing_gap) + berthing_gap
@@ -842,9 +882,6 @@ class System:
                 # quay wall depth
                 quay_wall = Quay_Wall(**container_defaults.quay_wall_data)
                 quay_depth = np.sum([draught, self.tidal_range, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
-
-                natural_depth = self.offshore_distance / self.foreshore_slope
-                quay_depth = max(quay_depth, natural_depth)
 
                 # checks
                 if self.debug:
@@ -855,7 +892,7 @@ class System:
                 "The quay length that needs to be built"
                 if quay_walls == 0:  # length when next quay is n = 1
                     quay_length = length_vessel + 2 * berthing_gap
-                elif quay_walls == 1:  # length when next quay is n > 1
+                elif quay_walls == 1:   # length when next quay is n > 1
                     quay_length = 1.1 * berths * (length_vessel + berthing_gap) + berthing_gap - (length_vessel + 2 * berthing_gap)
                 else:
                     quay_length = 1.1 * berths * (length_vessel + berthing_gap) - 1.1 * (berths - 1) * (length_vessel + berthing_gap)
@@ -910,13 +947,9 @@ class System:
         cost_of_land = quay_length * quay_wall.apron_width * self.land_price
         quay_wall.offshore_capex = int(quay_length * unit_rate + mobilisation + apron_pavement + cost_of_land)
 
-        print("check retaining height:", retaining_height)
-
         # opex
         quay_wall.offshore_insurance = unit_rate * quay_length * quay_wall.insurance_perc
         quay_wall.offshore_maintenance = unit_rate * quay_length * quay_wall.maintenance_perc
-
-        # quay_wall.year_online = year + quay_wall.delivery_time
 
         # apply proper timing for the quay to come online (in the same year as the latest Berth)
         years_online = []
@@ -976,61 +1009,204 @@ class System:
         # add object to elements
         self.elements.append(crane)
 
-    def offshore_gate_invest(self, year):
+    def offshore_barge_berth_invest(self, year):
 
-        """ Current strategy is to add gates as soon as trigger is achieved
-            - find out how much gate capacity is online
-            - find out how much gate capacity is planned
-            - find out how much gate capacity is needed
-            - add gate capacity until service_trigger is no longer exceeded"""
+        """ Current strategy is to add barge berths as soon as trigger is achieved
+            - find out how much barge berths capacity is online
+            - find out how much barge berths capacity is planned
+            - find out how much barge berths capacity is needed
+            - add barge berths capacity until service_trigger is no longer exceeded"""
 
-        gate_capacity_planned, gate_capacity_online, gate_capacity_required, service_rate_planned = self.calculate_offshore_gate_minutes(year)
+        barge_berth_capacity_planned, barge_berth_capacity_online, barge_berth_capacity_required, service_rate_planned, \
+        nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.calculate_offshore_barge_productivity(year)
 
         if self.debug:
-            print('     Offshore Gate capacity planned     (@ start of year): {}'.format(round(gate_capacity_planned)))
-            print('     Offshore Gate capacity online      (@ start of year): {}'.format(round(gate_capacity_online)))
-            print('     Offshore Gate capacity required    (@ start of year): {}'.format(round(gate_capacity_required)))
-            print('     Offshore Gate service rate planned (@ start of year): {}'.format(round(service_rate_planned, 3)))
+            print('')
+            print('     Offshore barge berth capacity planned     (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_planned, -1)))
+            print('     Offshore barge berth capacity online      (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_online, -1)))
+            print('     Offshore barge berth capacity required    (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_required, -1)))
+            print('     Offshore barge berth service rate planned (@ start of year): {}'.format(service_rate_planned))
             print('')
 
         while service_rate_planned > 1:
             if self.debug:
-                print('  *** add Offshore Gate to elements')
+                print('  *** add Offshore Barge Berth to elements')
 
-            offshore_gate = Offshore_Gate(**container_defaults.gate_data)
-            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+            offshore_barge_berth = Offshore_Barge_Berth(**container_defaults.barge_berth_data)
+            offshore_barge_berth.year_online = year + offshore_barge_berth.delivery_time
+            self.elements.append(offshore_barge_berth)
 
-            # land use
-            offshore_gate.offshore_land_use = offshore_gate.area
+            # barge berth capacity after adding a barge berth
+            barge_berth_capacity_planned, barge_berth_capacity_online, barge_berth_capacity_required, service_rate_planned, \
+            nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.calculate_offshore_barge_productivity(year)
 
-            # capex
-            unit_rate = offshore_gate.unit_rate
-            mobilisation = offshore_gate.mobilisation
-            canopy = offshore_gate.canopy_costs * offshore_gate.area
-            cost_of_land = self.land_price
-            offshore_gate.offshore_capex = int(unit_rate + mobilisation + canopy + (cost_of_land * offshore_gate.area))
+            if self.debug:
+                print('     Offshore barge berth capacity planned (after adding Berth): {}'.format(round(barge_berth_capacity_planned, -1)), "[TEU/yr]")
+                print('     Offshore barge berth capacity online  (after adding Berth): {}'.format(round(barge_berth_capacity_online, -1)), "[TEU/yr]")
+                print('')
 
-            # opex
-            offshore_gate.offshore_maintenance = unit_rate * offshore_gate.maintenance_perc
+            # check if a quay is needed
+            offshore_barge_berths = len(self.find_elements(Offshore_Barge_Berth))
+            offshore_barge_quay_walls = len(self.find_elements(Offshore_Barge_Quay_Wall))
 
-            # labour
-            labour = Labour(**container_defaults.labour_data)
-            offshore_gate_shift = offshore_gate.crew * labour.daily_shifts
-            offshore_gate.offshore_labour = offshore_gate_shift * labour.blue_collar_salary
+            print('  >> nr of offshore barge berths:', offshore_barge_berths)
+            print('  >> nr of offshore barge quays: ', offshore_barge_quay_walls)
 
-            if year == self.startyear:
-                offshore_gate.year_online = year + offshore_gate.delivery_time + 1
-            else:
-                offshore_gate.year_online = year + offshore_gate.delivery_time
+            if offshore_barge_berths > offshore_barge_quay_walls:
 
-            # add cash flow information to tractor object in a DataFrame
-            offshore_gate = self.add_cashflow_data_to_element(offshore_gate)
+                if self.barge_type == 'small':
+                    length_barge = container_defaults.small_barge_data["LOA"]
+                    draught_barge = container_defaults.small_barge_data["draught"]
+                if self.barge_type == 'medium':
+                    length_barge = container_defaults.medium_barge_data["LOA"]
+                    draught_barge = container_defaults.medium_barge_data["draught"]
+                if self.barge_type == 'large':
+                    length_barge = container_defaults.large_barge_data["LOA"]
+                    draught_barge = container_defaults.large_barge_data["draught"]
 
-            self.elements.append(offshore_gate)
+                # barge quay length: PIANC 2014
+                berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
 
-            gate_capacity_planned, gate_capacity_online, gate_capacity_required, service_rate_planned = self.calculate_offshore_gate_minutes(year)
+                if offshore_barge_quay_walls == 0:  # length when next quay is n = 1
+                    barge_quay_length = length_barge + 2 * berthing_gap
+                else:
+                    barge_quay_length = 1.1 * offshore_barge_berths * (length_barge + berthing_gap) + berthing_gap
 
-            print("     >> nr of offshore lanes:", len(self.find_elements(Offshore_Gate)))
+                # barge quay wall depth (same defaults as Quay_Wall)
+                offshore_barge_quay_wall = Offshore_Barge_Quay_Wall(**container_defaults.quay_wall_data)
+
+                natural_depth = self.offshore_distance / self.foreshore_slope
+                barge_quay_depth = np.sum([draught_barge, self.tidal_range, offshore_barge_quay_wall.max_sinkage,
+                                           offshore_barge_quay_wall.wave_motion, offshore_barge_quay_wall.safety_margin])
+                barge_quay_depth = max(barge_quay_depth, natural_depth)
+
+                # checks
+                if self.debug:
+                    print("     >> The length of the quay is", f'{int(barge_quay_length):,}', "m")
+                    print("     >> The water depth at the quay is", f'{int(barge_quay_depth):,}', "m")
+                    print("")
+
+                "The quay length that needs to be built"
+                if offshore_barge_quay_walls == 0:  # length when next quay is n = 1
+                    barge_quay_length = length_barge + 2 * berthing_gap
+                elif offshore_barge_quay_walls == 1:   # length when next quay is n > 1
+                    barge_quay_length = 1.1 * offshore_barge_berths * (length_barge + berthing_gap) + berthing_gap - (length_barge + 2 * berthing_gap)
+                else:
+                    barge_quay_length = 1.1 * offshore_barge_berths * (length_barge + berthing_gap) - \
+                                        1.1 * (offshore_barge_berths - 1) * (length_barge + berthing_gap)
+
+                # checks
+                if self.debug:
+                    print("     >> The length of the barge quay that needs to be built", f'{int(barge_quay_length):,}', "m")
+                    print("")
+
+                self.offshore_barge_quay_invest(year, barge_quay_length, barge_quay_depth)
+
+                # barge berth capacity after adding a quay
+                barge_berth_capacity_planned, barge_berth_capacity_online, barge_berth_capacity_required, service_rate_planned, \
+                nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.calculate_offshore_barge_productivity(year)
+
+                if self.debug:
+                    print('     Offshore barge berth capacity planned     (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_planned, -1)))
+                    print('     Offshore barge berth capacity online      (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_online, -1)))
+                    print('     Offshore barge berth capacity required    (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_required, -1)))
+                    print('     Offshore barge berth service rate planned (@ start of year): {}'.format(service_rate_planned))
+                    print('')
+
+            # check if a crane is needed
+            offshore_barge_cranes = len(self.find_elements(Offshore_Barge_Crane))
+            print('  >> nr of offshore barge cranes:', offshore_barge_cranes)
+
+            while offshore_barge_berths * offshore_barge_berth.max_cranes > offshore_barge_cranes:
+                self.offshore_barge_crane_invest(year)
+
+                offshore_barge_cranes = len(self.find_elements(Offshore_Barge_Crane))
+                print('  >> nr of offshore barge cranes:', offshore_barge_cranes)
+
+                if self.debug:
+                    print('     Offshore barge berth capacity planned (after adding Crane): {}'.format(round(barge_berth_capacity_planned, -1)), "[TEU/yr]")
+                    print('     Offshore barge berth capacity online  (after adding Crane): {}'.format(round(barge_berth_capacity_online, -1)), "[TEU/yr]")
+                    print('')
+
+        # checks
+        print("")
+        print("Calibration Offshore Barge Berth")
+        print("nom_crane_productivity", f'{round(nom_crane_productivity, 1):,}', "TEU/hr")
+        print("net_crane_productivity", f'{round(net_crane_productivity, 1):,}', "TEU/hr")
+        print("net_berth_productivity", f'{round(net_berth_productivity, 0):,}', "TEU/yr")
+        print("")
+
+        return nom_crane_productivity, net_crane_productivity, net_berth_productivity
+
+    def offshore_barge_quay_invest(self, year, barge_quay_length, barge_quay_depth):
+
+        """ Current strategy is to add quay as quay_per_berth < 1
+            - adding quay will increase quay_per_berth
+            - quay_wall.quay_length must be long enough to accommodate largest expected vessel
+            - quay_wall.quay_depth must be deep enough to accommodate largest expected vessel
+            - quay_wall.freeboard must be high enough to accommodate largest expected vessel"""
+
+        if self.debug:
+            print('  *** add Offshore Barge Quay to elements')
+
+        # add a Quay_Wall element
+        offshore_barge_quay_wall = Offshore_Barge_Quay_Wall(**container_defaults.barge_quay_wall_data)
+
+        # capex
+        retaining_height = 2 * (barge_quay_depth + offshore_barge_quay_wall.freeboard)  # (de Gijt 2010; de Gijt and Broeken 2014)
+        unit_rate = int(offshore_barge_quay_wall.Gijt_constant * (retaining_height) ** offshore_barge_quay_wall.Gijt_coefficient)
+        mobilisation = int(max((barge_quay_length * unit_rate * offshore_barge_quay_wall.mobilisation_perc), offshore_barge_quay_wall.mobilisation_min))
+        apron_pavement = barge_quay_length * offshore_barge_quay_wall.apron_width * offshore_barge_quay_wall.apron_pavement
+        cost_of_land = barge_quay_length * offshore_barge_quay_wall.apron_width * self.land_price
+        offshore_barge_quay_wall.offshore_capex = int(barge_quay_length * unit_rate + mobilisation + apron_pavement + cost_of_land)
+
+        # opex
+        offshore_barge_quay_wall.offshore_insurance = unit_rate * barge_quay_length * offshore_barge_quay_wall.insurance_perc
+        offshore_barge_quay_wall.offshore_maintenance = unit_rate * barge_quay_length * offshore_barge_quay_wall.maintenance_perc
+        offshore_barge_quay_wall.year_online = year + offshore_barge_quay_wall.delivery_time
+
+        # land use
+        offshore_barge_quay_wall.offshore_land_use = barge_quay_length * offshore_barge_quay_wall.apron_width
+
+        # add cash flow information to quay_wall object in a DataFrame
+        offshore_barge_quay_wall = self.add_cashflow_data_to_element(offshore_barge_quay_wall)
+
+        self.elements.append(offshore_barge_quay_wall)
+
+    def offshore_barge_crane_invest(self, year):
+
+        if self.debug:
+            print('  *** add Offshore Barge Crane to elements')
+
+        # add barge crane object
+        offshore_barge_crane = Offshore_Barge_Crane(**container_defaults.barge_crane_data)
+
+        # capex
+        unit_rate = offshore_barge_crane.unit_rate
+        mobilisation = unit_rate * offshore_barge_crane.mobilisation_perc
+        offshore_barge_crane.offshore_capex = int(unit_rate + mobilisation)
+
+        # opex
+        offshore_barge_crane.offshore_insurance = unit_rate * offshore_barge_crane.insurance_perc
+        offshore_barge_crane.offshore_maintenance = unit_rate * offshore_barge_crane.maintenance_perc
+        offshore_barge_crane.year_online = year + offshore_barge_crane.delivery_time
+
+        # apply proper timing for the offshore barge crane to come online
+        years_online = []
+        for element in self.find_elements(Offshore_Barge_Berth):
+            years_online.append(element.year_online)
+        offshore_barge_crane.year_online = max([year + offshore_barge_crane.delivery_time, max(years_online)])
+
+        # labour
+        labour = Labour(**container_defaults.labour_data)
+        offshore_barge_crane_shift = offshore_barge_crane.crew * labour.daily_shifts
+        offshore_barge_crane.offshore_labour = offshore_barge_crane_shift * labour.blue_collar_salary
+
+        # add cash flow information to offshore_barge_crane object in a DataFrame
+        offshore_barge_crane = self.add_cashflow_data_to_element(offshore_barge_crane)
+
+        # add object to elements
+        self.elements.append(offshore_barge_crane)
 
     def reclamation_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS):
 
@@ -1057,7 +1233,7 @@ class System:
             reclamation.area = reclamation_area
 
             # water depth
-            natural_depth = self.offshore_distance/ self.foreshore_slope  # meters
+            natural_depth = self.offshore_distance / self.foreshore_slope  # meters
 
             draught = max(
                 (not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
@@ -1074,18 +1250,20 @@ class System:
             quay_depth = np.sum([draught, self.tidal_range, quay_wall.max_sinkage,
                                  quay_wall.wave_motion, quay_wall.safety_margin])
 
-            # reclamation_depth = max([natural_depth, quay_depth])
-            reclamation_depth = natural_depth
+            reclamation_depth = max([natural_depth, quay_depth])
 
-            print("     >> draught vessel", f'{round(draught,1):,}', "m")
-            print("     >> natural depth", f'{round(natural_depth,1):,}', "m")
-            print("     >> water depth", f'{round(reclamation_depth,1):,}', "m")
+            print("     >> draught vessel", f'{round(draught, 1):,}', "m")
+            print("     >> natural depth", f'{round(natural_depth, 1):,}', "m")
+            print("     >> water depth", f'{round(reclamation_depth, 1):,}', "m")
 
             reclamation_volume = reclamation_area * reclamation_depth
 
             print("")
-            print("     >> reclamation_area", f'{int(round(reclamation_area, -3)):,}', "m2")
-            print("     >> reclamation_volume", f'{int(round(reclamation_volume, -3)):,}', "m3")
+            print("     >> reclamation area", f'{int(round(reclamation_area, -3)):,}', "m2")
+            print("     >> reclamation volume", f'{int(round(reclamation_volume, -3)):,}', "m3")
+            print("")
+            print('     >> reclamation area required', reclamation_required)
+            print("     >> reclamation volume required", f'{int(round(reclamation_required * reclamation_depth, -3)):,}', "m3")
 
             # capex
             reclamation_sand = reclamation.reclamation_sand * reclamation_volume
@@ -1129,7 +1307,7 @@ class System:
 
             # dimensions revetment (ratio quay_length + barge_quay_length to sqrt(offshore_area) is ~ 3/1)
             revetment_length = revetment_required - revetment_planned
-            revetment.length = revetment_length     # meters
+            revetment.length = revetment_length  # meters
             print("")
             print("     >> revetment_length", f'{int(round(revetment_length, -1)):,}', "m")
 
@@ -1155,7 +1333,7 @@ class System:
 
         """ Current strategy is to ...."""  # todo add strategy
 
-        quay_length = 1272 # todo check quay length
+        quay_length = 1272  # todo check quay length
 
         breakwaters = len(self.find_elements(Breakwater))
 
@@ -1222,8 +1400,9 @@ class System:
         if self.debug:
             print('     STS cranes online            (@ start of year): {}'.format(cranes_online))
             print('     STS cranes planned           (@ start of year): {}'.format(cranes_planned))
-            print('     Horizontal Transport online  (@ start of year): {}'.format(hor_transport_online))
-            print('     Horizontal Transport planned (@ start of year): {}'.format(hor_transport_planned))
+            print('     Horizontal transport online  (@ start of year): {}'.format(hor_transport_online))
+            print('     Horizontal transport planned (@ start of year): {}'.format(hor_transport_planned))
+            print('')
 
         tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
 
@@ -1629,10 +1808,14 @@ class System:
         general = General_Services(**container_defaults.general_services_data)
 
         offshore_land_use, offshore_land_use_ha = self.calculate_offshore_land_use(year)
+        onshore_land_use, onshore_land_use_ha = self.calculate_onshore_land_use(year)
 
-        total_land_use = (offshore_land_use + general.office + general.workshop + general.scanning_inspection_area + general.repair_building) * 0.0001
+        off_total_land_use = (offshore_land_use + general.office + general.workshop + general.scanning_inspection_area + general.repair_building) * 0.0001
+        on_total_land_use = (onshore_land_use + general.office + general.workshop + general.scanning_inspection_area + general.repair_building) * 0.0001
 
-        if year == (self.startyear + 1):
+        berth = Berth(**container_defaults.berth_data)
+
+        if year == (self.startyear + berth.delivery_time):
             # add general services as soon as berth  is online
             if self.debug:
                 print('  *** add General Services to elements')
@@ -1647,18 +1830,18 @@ class System:
             office = general.office * general.office_cost
             workshop = general.workshop * general.workshop_cost
             inspection = general.scanning_inspection_area * general.scanning_inspection_area_cost
-            light = general.lighting_mast_cost * (total_land_use / general.lighting_mast_required)
+            off_light = general.lighting_mast_cost * (off_total_land_use / general.lighting_mast_required)
+            on_light = general.lighting_mast_cost * (on_total_land_use / general.lighting_mast_required)
             repair = general.repair_building * general.repair_building_cost
             basic = general.fuel_station_cost + general.firefight_cost + general.maintenance_tools_cost + general.terminal_operating_software_cost + general.electrical_station_cost
-            general.offshore_capex = office + workshop + inspection + light + repair + basic + (area * cost_of_land)
-            general.onshore_capex = self.onshore_offshore_ratio * self.onshore_perc * office + workshop + inspection + light + repair + basic + (area * cost_of_land)
+            general.offshore_capex = office + workshop + inspection + off_light + repair + basic + (area * cost_of_land)
+            general.onshore_capex = office + workshop + inspection + on_light + repair + basic + (area * cost_of_land)
 
             # opex
             general.offshore_maintenance = general.offshore_capex * general.general_maintenance
             general.onshore_maintenance = general.onshore_capex * general.general_maintenance
 
             # no delivery time
-            # general.year_online = year + general.delivery_time
             general.year_online = year
 
             # add cash flow information to tractor object in a DataFrame
@@ -1668,61 +1851,198 @@ class System:
 
     """ Onshore Terminal investment functions """
 
-    def onshore_gate_invest(self, year):
+    def onshore_barge_berth_invest(self, year):
 
-        """ Current strategy is to add gates as soon as trigger is achieved
-            - find out how much gate capacity is online
-            - find out how much gate capacity is planned
-            - find out how much gate capacity is needed
-            - add gate capacity until service_trigger is no longer exceeded"""
+        """ Current strategy is to add barge berths as soon as trigger is achieved
+            - find out how much barge berths capacity is online
+            - find out how much barge berths capacity is planned
+            - find out how much barge berths capacity is needed
+            - add barge berths capacity until service_trigger is no longer exceeded"""
 
-        gate_capacity_planned, gate_capacity_online, gate_capacity_required, service_rate_planned = self.calculate_onshore_gate_minutes(year)
+        barge_berth_capacity_planned, barge_berth_capacity_online, barge_berth_capacity_required, service_rate_planned, \
+        nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.calculate_onshore_barge_productivity(year)
 
         if self.debug:
-            print('     Onshore Gate capacity planned     (@ start of year): {}'.format(round(gate_capacity_planned)))
-            print('     Onshore Gate capacity online      (@ start of year): {}'.format(round(gate_capacity_online)))
-            print('     Onshore Gate capacity required    (@ start of year): {}'.format(round(gate_capacity_required)))
-            print('     Onshore Gate service rate planned (@ start of year): {}'.format(round(service_rate_planned, 3)))
+            print('')
+            print('     Onshore barge berth capacity planned     (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_planned, -1)))
+            print('     Onshore barge berth capacity online      (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_online, -1)))
+            print('     Onshore barge berth capacity required    (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_required, -1)))
+            print('     Onshore barge berth service rate planned (@ start of year): {} [-]'.format(round(service_rate_planned, 3)))
             print('')
 
         while service_rate_planned > 1:
             if self.debug:
-                print('  *** add Onshore Gate to elements')
+                print('  *** add Onshore Barge Berth to elements')
 
-            onshore_gate = Onshore_Gate(**container_defaults.gate_data)
-            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+            onshore_barge_berth = Onshore_Barge_Berth(**container_defaults.barge_berth_data)
+            onshore_barge_berth.year_online = year + onshore_barge_berth.delivery_time
+            self.elements.append(onshore_barge_berth)
 
-            # land use
-            onshore_gate.onshore_land_use = onshore_gate.area
+            # barge berth capacity after adding a barge berth
+            barge_berth_capacity_planned, barge_berth_capacity_online, barge_berth_capacity_required, service_rate_planned, \
+            nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.calculate_onshore_barge_productivity(year)
 
-            # capex
-            unit_rate = onshore_gate.unit_rate
-            mobilisation = onshore_gate.mobilisation
-            canopy = onshore_gate.canopy_costs * onshore_gate.area
-            cost_of_land = self.land_price
-            onshore_gate.onshore_capex = int(unit_rate + mobilisation + canopy + (cost_of_land * onshore_gate.area))
+            if self.debug:
+                print('     Onshore barge berth capacity planned (after adding Berth): {}'.format(round(barge_berth_capacity_planned, -1)), "[TEU/yr]")
+                print('     Onshore barge berth capacity online  (after adding Berth): {}'.format(round(barge_berth_capacity_online, -1)), "[TEU/yr]")
+                print('')
 
-            # opex
-            onshore_gate.onshore_maintenance = unit_rate * onshore_gate.maintenance_perc
+            # check if a quay is needed
+            onshore_barge_berths = len(self.find_elements(Onshore_Barge_Berth))
+            onshore_barge_quay_walls = len(self.find_elements(Onshore_Barge_Quay_Wall))
+            print('  >> nr of onshore barge berths:', onshore_barge_berths)
+            print('  >> nr of onshore barge quays:', onshore_barge_quay_walls)
 
-            # labour
-            labour = Labour(**container_defaults.labour_data)
-            onshore_gate_shift = onshore_gate.crew * labour.daily_shifts
-            onshore_gate.onshore_labour = onshore_gate_shift * labour.blue_collar_salary
+            if onshore_barge_berths > onshore_barge_quay_walls:
 
-            if year == self.startyear:
-                onshore_gate.year_online = year + onshore_gate.delivery_time + 1
-            else:
-                onshore_gate.year_online = year + onshore_gate.delivery_time
+                if self.barge_type == 'small':
+                    length_barge = container_defaults.small_barge_data["LOA"]
+                    draught_barge = container_defaults.small_barge_data["draught"]
+                if self.barge_type == 'medium':
+                    length_barge = container_defaults.medium_barge_data["LOA"]
+                    draught_barge = container_defaults.medium_barge_data["draught"]
+                if self.barge_type == 'large':
+                    length_barge = container_defaults.large_barge_data["LOA"]
+                    draught_barge = container_defaults.large_barge_data["draught"]
 
-            # add cash flow information to tractor object in a DataFrame
-            onshore_gate = self.add_cashflow_data_to_element(onshore_gate)
+                # barge quay length: PIANC 2014 (see Ijzermans, 2019 - infrastructure.py line 107 - 111)
+                berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
 
-            self.elements.append(onshore_gate)
+                if onshore_barge_quay_walls == 0:  # length when next quay is n = 1
+                    barge_quay_length = length_barge + 2 * berthing_gap
+                else:
+                    barge_quay_length = 1.1 * onshore_barge_berths * (length_barge + berthing_gap) + berthing_gap
 
-            gate_capacity_planned, gate_capacity_online, gate_capacity_required, service_rate_planned = self.calculate_onshore_gate_minutes(year)
+                # barge quay wall depth (same defaults as Quay_Wall)
+                onshore_barge_quay_wall = Onshore_Barge_Quay_Wall(**container_defaults.quay_wall_data)
+                barge_quay_depth = np.sum([draught_barge, self.tidal_range, onshore_barge_quay_wall.max_sinkage,
+                                           onshore_barge_quay_wall.wave_motion, onshore_barge_quay_wall.safety_margin])
 
-            print("     >> nr of onshore lanes:", len(self.find_elements(Onshore_Gate)))
+                # checks
+                if self.debug:
+                    print("     >> The length of the quay is", f'{int(barge_quay_length):,}', "m")
+                    print("     >> The water depth at the quay is", f'{int(barge_quay_depth):,}', "m")
+                    print("")
+
+                "The quay length that needs to be built"
+                if onshore_barge_quay_walls == 0:  # length when next quay is n = 1
+                    barge_quay_length = length_barge + 2 * berthing_gap
+                elif onshore_barge_quay_walls == 1:   # length when next quay is n > 1
+                    barge_quay_length = 1.1 * onshore_barge_berths * (length_barge + berthing_gap) + berthing_gap - (length_barge + 2 * berthing_gap)
+                else:
+                    barge_quay_length = 1.1 * onshore_barge_berths * (length_barge + berthing_gap) - \
+                                        1.1 * (onshore_barge_berths - 1) * (length_barge + berthing_gap)
+
+                # checks
+                if self.debug:
+                    print("     >> The length of the barge quay that needs to be built", f'{int(barge_quay_length):,}', "m")
+                    print("")
+
+                self.onshore_barge_quay_invest(year, barge_quay_length, barge_quay_depth)
+
+                # barge berth capacity after adding a quay
+                barge_berth_capacity_planned, barge_berth_capacity_online, barge_berth_capacity_required, service_rate_planned, \
+                nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.calculate_onshore_barge_productivity(year)
+
+                if self.debug:
+                    print('     Onshore barge berth capacity planned     (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_planned, 3)))
+                    print('     Onshore barge berth capacity online      (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_online, 3)))
+                    print('     Onshore barge berth capacity required    (@ start of year): {} [TEU/yr]'.format(round(barge_berth_capacity_required, 3)))
+                    print('     Onshore barge berth service rate planned (@ start of year): {} [-]'.format(round(service_rate_planned, 3)))
+                    print('')
+
+            # check if a crane is needed
+            onshore_barge_cranes = len(self.find_elements(Onshore_Barge_Crane))
+            print('  >> nr of onshore barge cranes:', onshore_barge_cranes)
+
+            while onshore_barge_berths * onshore_barge_berth.max_cranes > onshore_barge_cranes:
+                self.onshore_barge_crane_invest(year)
+
+                onshore_barge_cranes = len(self.find_elements(Onshore_Barge_Crane))
+                print('  >> nr of onshore barge cranes:', onshore_barge_cranes)
+
+                if self.debug:
+                    print('     Onshore barge crane capacity planned (after adding Crane): {}'.format(round(barge_berth_capacity_planned, -1)), "[TEU/yr]")
+                    print('     Onshore barge crane capacity online  (after adding Crane): {}'.format(round(barge_berth_capacity_online, -1)), "[TEU/yr]")
+                    print('')
+
+        # # checks
+        # print("")
+        # print("Calibration Onshore Barge Berth")
+        # print("nom_crane_productivity", f'{round(nom_crane_productivity, 1):,}', "TEU/hr")
+        # print("net_crane_productivity", f'{round(net_crane_productivity, 1):,}', "TEU/hr")
+        # print("net_berth_productivity", f'{round(net_berth_productivity, 0):,}', "TEU/yr")
+        # print("")
+
+        return nom_crane_productivity, net_crane_productivity, net_berth_productivity
+
+    def onshore_barge_quay_invest(self, year, barge_quay_length, barge_quay_depth):
+
+        """ Current strategy is to add quay as quay_per_berth < 1
+            - adding quay will increase quay_per_berth
+            - quay_wall.quay_length must be long enough to accommodate largest expected vessel
+            - quay_wall.quay_depth must be deep enough to accommodate largest expected vessel
+            - quay_wall.freeboard must be high enough to accommodate largest expected vessel"""
+
+        if self.debug:
+            print('  *** add Onshore Barge Quay to elements')
+
+        # add a Onshore Barge Quay Wall element
+        onshore_barge_quay_wall = Onshore_Barge_Quay_Wall(**container_defaults.barge_quay_wall_data)
+
+        # capex
+        retaining_height = 2 * (barge_quay_depth + onshore_barge_quay_wall.freeboard)  # (de Gijt 2010; de Gijt and Broeken 2014)
+        unit_rate = int(onshore_barge_quay_wall.Gijt_constant * (retaining_height) ** onshore_barge_quay_wall.Gijt_coefficient)
+        mobilisation = int(max((barge_quay_length * unit_rate * onshore_barge_quay_wall.mobilisation_perc), onshore_barge_quay_wall.mobilisation_min))
+        apron_pavement = barge_quay_length * onshore_barge_quay_wall.apron_width * onshore_barge_quay_wall.apron_pavement
+        cost_of_land = barge_quay_length * onshore_barge_quay_wall.apron_width * self.land_price
+        onshore_barge_quay_wall.onshore_capex = int(barge_quay_length * unit_rate + mobilisation + apron_pavement + cost_of_land)
+
+        # opex
+        onshore_barge_quay_wall.onshore_insurance = unit_rate * barge_quay_length * onshore_barge_quay_wall.insurance_perc
+        onshore_barge_quay_wall.onshore_maintenance = unit_rate * barge_quay_length * onshore_barge_quay_wall.maintenance_perc
+        onshore_barge_quay_wall.year_online = year + onshore_barge_quay_wall.delivery_time
+
+        # land use
+        onshore_barge_quay_wall.onshore_land_use = barge_quay_length * onshore_barge_quay_wall.apron_width
+
+        # add cash flow information to quay_wall object in a DataFrame
+        onshore_barge_quay_wall = self.add_cashflow_data_to_element(onshore_barge_quay_wall)
+
+        self.elements.append(onshore_barge_quay_wall)
+
+    def onshore_barge_crane_invest(self, year):
+        if self.debug:
+            print('  *** add Onshore Barge Crane to elements')
+
+        # add barge crane object
+        onshore_barge_crane = Onshore_Barge_Crane(**container_defaults.barge_crane_data)
+
+        # capex
+        unit_rate = onshore_barge_crane.unit_rate
+        mobilisation = unit_rate * onshore_barge_crane.mobilisation_perc
+        onshore_barge_crane.onshore_capex = int(unit_rate + mobilisation)
+
+        # opex
+        onshore_barge_crane.onshore_insurance = unit_rate * onshore_barge_crane.insurance_perc
+        onshore_barge_crane.onshore_maintenance = unit_rate * onshore_barge_crane.maintenance_perc
+
+        # labour
+        labour = Labour(**container_defaults.labour_data)
+        onshore_barge_crane_shift = onshore_barge_crane.crew * labour.daily_shifts
+        onshore_barge_crane.onshore_labour = onshore_barge_crane_shift * labour.blue_collar_salary
+
+        # apply proper timing for the crane to come online
+        if year == self.startyear:
+            onshore_barge_crane.year_online = year + onshore_barge_crane.delivery_time + 1
+        else:
+            onshore_barge_crane.year_online = year + onshore_barge_crane.delivery_time
+
+        # add cash flow information to offshore_barge_crane object in a DataFrame
+        onshore_barge_crane = self.add_cashflow_data_to_element(onshore_barge_crane)
+
+        # add object to elements
+        self.elements.append(onshore_barge_crane)
 
     def hinterland_gate_invest(self, year):
 
@@ -1856,7 +2176,7 @@ class System:
                 "The quay length that needs to be built"
                 if hinterland_barge_quay_walls == 0:  # length when next quay is n = 1
                     barge_quay_length = length_barge + 2 * berthing_gap
-                elif hinterland_barge_quay_walls == 1:  # length when next quay is n > 1
+                elif hinterland_barge_quay_walls == 1:   # length when next quay is n > 1
                     barge_quay_length = 1.1 * hinterland_barge_berths * (length_barge + berthing_gap) + berthing_gap - (length_barge + 2 * berthing_gap)
                 else:
                     barge_quay_length = 1.1 * hinterland_barge_berths * (length_barge + berthing_gap) - \
@@ -1884,7 +2204,7 @@ class System:
             hinterland_barge_cranes = len(self.find_elements(Hinterland_Barge_Crane))
             print('  >> nr of hinterland barge cranes:', hinterland_barge_cranes)
 
-            while hinterland_barge_berths * hinterland_barge_berth.max_cranes  > hinterland_barge_cranes:
+            while hinterland_barge_berths * hinterland_barge_berth.max_cranes > hinterland_barge_cranes:
                 self.hinterland_barge_crane_invest(year)
 
                 hinterland_barge_cranes = len(self.find_elements(Hinterland_Barge_Crane))
@@ -1965,109 +2285,167 @@ class System:
 
     """ Terminal connection investment functions """
 
-    def truck_invest(self, year):
+    def barge_invest(self, year):
 
-        """ Current strategy is to ...."""  # todo add truck invest
+        """ Current strategy is to ...."""  # todo add barge invest
 
-        truck_capacity_planned, truck_capacity_online, truck_capacity_required = self.calculate_truck_capacity(year)
+        barge_capacity_planned, barge_capacity_online, barge_capacity_required, ratio_sailing, ratio_port = self.calculate_barge_capacity(year)
 
         if self.debug:
-            print('     Truck Capacity planned  (@ start of year): {}'.format(round(truck_capacity_planned)))
-            print('     Truck Capacity online   (@ start of year): {}'.format(round(truck_capacity_online)))
-            print('     Truck Capacity required (@ start of year): {}'.format(round(truck_capacity_required)))
+            print('     Barge Capacity planned  (@ start of year): {}'.format(round(barge_capacity_planned)))
+            print('     Barge Capacity online   (@ start of year): {}'.format(round(barge_capacity_online)))
+            print('     Barge Capacity required (@ start of year): {}'.format(round(barge_capacity_required)))
             print('')
 
-        while truck_capacity_required > truck_capacity_planned:
-            if self.debug:
-                print('  *** add Truck to elements')
+        nr_barges = len(self.find_elements(Barge))
 
-            # add a Truck object
-            truck = Truck(**container_defaults.truck_data)
-            nr_trucks = len(self.find_elements(Truck))
+        while barge_capacity_required > barge_capacity_planned:
+            if self.debug:
+                print('  *** add Barge to elements')
+
+            # add a Barge object
+            if self.barge_type == 'small':
+                barge = Barge(**container_defaults.small_barge_data)
+            elif self.barge_type == 'medium':
+                barge = Barge(**container_defaults.medium_barge_data)
+            elif self.barge_type == 'large':
+                barge = Barge(**container_defaults.large_barge_data)
+
+            nr_barges = len(self.find_elements(Barge))
 
             # capex
-            unit_rate = truck.unit_rate
-            truck.truck_capex = int(nr_trucks * unit_rate)
+            unit_rate = barge.unit_rate
+            barge.barge_capex = int(unit_rate)
 
             # labour
             labour = Labour(**container_defaults.labour_data)
-            shifts = truck.crew * truck.daily_shifts
-            truck.truck_labour = shifts * labour.blue_collar_salary
+            shifts = barge.crew * barge.daily_shifts
+            barge.barge_labour = shifts * labour.blue_collar_salary
 
             # opex
-            truck.truck_operations = truck.truck_capex * 0.10  # todo edit
-            print("truck operations",int(truck.truck_operations),'USD')
+            operational_days = self.operational_hours / 24 * self.barge_utilisation
+            barge.barge_operations = (barge.bunker_sail * ratio_sailing + barge.bunker_port * ratio_port) * operational_days  # USD/day * days
+            # print("bunker_costs",int(barge.barge_operations),'USD')
 
-            truck.truck_maintenance = truck.truck_capex * truck.maintenance_perc
-            print("truck opex",int(truck.truck_operations + truck.truck_labour + truck.truck_maintenance),'USD')
+            barge.barge_maintenance = barge.barge_capex * barge.maintenance_perc
+            print("barge opex", int(barge.barge_operations + barge.barge_labour + barge.barge_maintenance), 'USD')
 
             if year == self.startyear:
-                truck.year_online = year + truck.delivery_time + 1
+                barge.year_online = year + barge.delivery_time + 1
             else:
-                truck.year_online = year + truck.delivery_time
+                barge.year_online = year + barge.delivery_time
 
-            # add cash flow information to truck object in a DataFrame
-            truck = self.add_cashflow_data_to_element(truck)
+            # add cash flow information to barge object in a DataFrame
+            barge = self.add_cashflow_data_to_element(barge)
 
-            self.elements.append(truck)
+            self.elements.append(barge)
 
-            truck_capacity_planned, truck_capacity_online, truck_capacity_required = self.calculate_truck_capacity(year)
+            barge_capacity_planned, barge_capacity_online, barge_capacity_required, ratio_sailing, ratio_port = self.calculate_barge_capacity(year)
 
-    def bridge_invest(self, year):
+    def barge_channel_invest(self, year):
 
-        """ Current strategy is to ...."""  # todo add bridge invest
+        """ Current strategy is to ...."""  # todo add access channel invest
 
-        bridges_planned, bridges_online, bridges_required, bridge_length = self.calculate_bridge_capacity(year)
+        barges = self.find_elements(Barge)
 
-        if self.debug:
-            print('     Nr of Bridges planned     (@ start of year): {}'.format(round(bridges_planned)))
-            print('     Nr of Bridges online      (@ start of year): {}'.format(round(bridges_online)))
-            print('     Nr of Bridges required    (@ start of year): {}'.format(round(bridges_required)))
-            print('')
+        for barge in barges:
+            if barge.type == 'small':
+                length = barge.LOA
+                draught = barge.draught
+                beam = barge.beam
+            elif barge.type == 'medium':
+                length = barge.LOA
+                draught = barge.draught
+                beam = barge.beam
+            elif barge.type == 'large':
+                length = barge.LOA
+                draught = barge.draught
+                beam = barge.beam
 
-        while bridges_required > bridges_planned:
+        # checks
+        # print("length", length)
+        # print("draught", draught)
+        # print("beam", beam)
+
+        barge_channels = len(self.find_elements(Barge_Channel))
+
+        if barge_channels == 0:
+
             if self.debug:
-                print('  *** add Bridge to elements')
+                print('  *** add Barge Channel to elements')
 
-            # add an Bridge object
-            bridge = Bridge(**container_defaults.bridge_data)
+            # add an Access_Channel object
+            barge_channel = Barge_Channel(**container_defaults.channel_data)
+            barge_quay_wall = Offshore_Barge_Quay_Wall(**container_defaults.barge_quay_wall_data)
+
+            # dimensions barge channel (According to PIANC 2014 for moderate conditions)
+            width_standard = beam * 1.5
+            width_cross_wind = beam * 0.4
+            width_cross_current = beam * 0.7
+            width_long_current = beam * 0.1
+            width_wave_height = beam * 0.5
+            width_aids_navigation = beam * 0.2
+            width_bottom_surface = beam * 0.1
+            width_depth_waterway = beam * 0.1
+            width_bank_clearance = beam * 0.5
+            width_passing = beam * 1.6
+            barge_channel_width = 2 * (width_standard + width_cross_wind + width_cross_current + width_long_current + width_wave_height +
+                                       width_aids_navigation + width_bottom_surface + width_depth_waterway + width_bank_clearance) + width_passing
+
+            wave_height = self.wave_height
+            max_sinkage = barge_quay_wall.max_sinkage
+            wave_response = wave_height / 2
+            net_underkeel_clearance = barge_quay_wall.safety_margin
+            barge_channel_depth = draught + max_sinkage + wave_response + net_underkeel_clearance
+
+            barge_channel_length = self.foreshore_slope * 10 ** 3 * barge_channel_depth
+
+            barge_channel_volume = 1 / 2 * barge_channel_width * barge_channel_depth * barge_channel_length
+
+            # dimensions turning circle
+            barge_turning_circle_diameter = length * 1.8  # Source: RHDHV
+            barge_turning_circle_depth = barge_channel_depth
+            barge_turning_circle_volume = 1 / 4 * np.pi * barge_turning_circle_diameter ** 2 * barge_turning_circle_depth
+
+            # dimensions berth pocket
+            offshore_barge_quay_length = 774.0  # todo check quay length
+            onshore_barge_quay_length = 647.0  # todo check quay length
+            barge_berth_pocket_width = beam * 2.0  # Source: RHDHV
+            barge_berth_pocket_depth = barge_channel_depth
+            barge_berth_pocket_volume = barge_berth_pocket_width * barge_berth_pocket_depth * (offshore_barge_quay_length + onshore_barge_quay_length)
+
+            # total
+            barge_dredging_volume = barge_channel_volume + barge_turning_circle_volume + barge_berth_pocket_volume
 
             # capex
-            construction_rate_20 = bridge.construction_rate_20
-            construction_rate_30 = bridge.construction_rate_30
-            construction_rate_40 = bridge.construction_rate_40
-            construction_rate_50 = bridge.construction_rate_50
-            construction_rate_60 = bridge.construction_rate_60
-
-            if self.offshore_distance == 20:
-                bridge.bridge_capex = int(construction_rate_20 * bridge_length)
-            if self.offshore_distance == 30:
-                bridge.bridge_capex = int(construction_rate_30 * bridge_length)
-            if self.offshore_distance == 40:
-                bridge.bridge_capex = int(construction_rate_40 * bridge_length)
-            if self.offshore_distance == 50:
-                bridge.bridge_capex = int(construction_rate_50 * bridge_length)
-            if self.offshore_distance == 60:
-                bridge.bridge_capex = int(construction_rate_60 * bridge_length)
-
-            print("bridge capex:", bridge.bridge_capex)
+            capital_dredging_rate = barge_channel.capital_dredging_rate
+            infill_dredging_rate = barge_channel.infill_dredging_rate
+            barge_channel.capital_dredging = int((capital_dredging_rate + infill_dredging_rate) * barge_dredging_volume)
 
             # opex
-            bridge.bridge_opex = int(bridge.bridge_capex * bridge.maintenance_perc)
-            bridge.year_online = year + bridge.delivery_time
+            maintenance_dredging_rate = barge_channel.maintenance_dredging_rate
+            barge_channel.maintenance_dredging = maintenance_dredging_rate * barge_dredging_volume * barge_channel.maintenance_perc
+            barge_channel.year_online = year + barge_channel.delivery_time
 
-            # add cash flow information to bridge object in a DataFrame
-            bridge = self.add_cashflow_data_to_element(bridge)
+            # calibration
+            print("")
+            print("Calibration Barge Channel")
+            print("barge_channel_width", f'{int(barge_channel_width):,}', "m")
+            print("barge_channel_depth", f'{int(barge_channel_depth):,}', "m")
+            print("barge_channel_length", f'{int(barge_channel_length):,}', "m")
+            print("barge_channel_volume", f'{int(round(barge_channel_volume, -1)):,}', "m3")
+            print("barge_turning_circle_diameter", f'{int(barge_turning_circle_diameter):,}', "m")
+            print("barge_turning_circle_volume", f'{int(barge_turning_circle_volume):,}', "m3")
+            print("barge_berth_pocket_width", f'{int(barge_berth_pocket_width):,}', "m")
+            print("barge_berth_pocket_volume", f'{int(barge_berth_pocket_volume):,}', "m3")
+            print("barge_dredging_volume", f'{int(barge_dredging_volume):,}', "m3")
 
-            self.elements.append(bridge)
+            # add cash flow information to quay_wall object in a DataFrame
+            barge_channel = self.add_cashflow_data_to_element(barge_channel)
 
-            bridges_planned, bridges_online, bridges_required, bridge_length = self.calculate_bridge_capacity(year)
+            self.elements.append(barge_channel)
 
-    def causeway_invest(self, year):
-
-        """ Current strategy is to ...."""  # todo add bridge invest
-
-        pass
+            return barge_channel_width, barge_channel_depth, barge_channel_length, barge_channel_volume, barge_turning_circle_volume, barge_berth_pocket_volume, barge_dredging_volume
 
     """ General functions """
 
@@ -2138,51 +2516,75 @@ class System:
         return fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
                new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol
 
-    def calculate_truck_capacity(self, year):
+    def calculate_barge_capacity(self, year):
 
-        """ Define the truck capacity """
+        """ Define the barge capacity """
 
-        truck = Truck(**container_defaults.truck_data)
-        print('truck capacity', truck.call_size)
+        # add a Barge Berth object
+        barge_berth = Offshore_Barge_Berth(**container_defaults.barge_berth_data)
+        nom_crane_productivity, net_crane_productivity, net_berth_productivity = self.offshore_barge_berth_invest(year)
+        handling_rate = round(barge_berth.max_cranes * net_crane_productivity, 1)  # TEU/hr
+        print('handling rate:', handling_rate, 'TEU/hr')
+
+        # add a Barge Crane object
+        barge_crane = Offshore_Barge_Crane(**container_defaults.barge_crane_data)
+        handling_to_berthing_ratio = barge_crane.handling_time_ratio
+
+        # add a Barge object
+        if self.barge_type == 'small':
+            barge = Barge(**container_defaults.small_barge_data)
+        elif self.barge_type == 'medium':
+            barge = Barge(**container_defaults.medium_barge_data)
+        elif self.barge_type == 'large':
+            barge = Barge(**container_defaults.large_barge_data)
+        # print('barge capacity', barge.call_size)
 
         offshore_distance = self.offshore_distance * 1000  # meters
-        driving_time = offshore_distance / truck.driving_speed / 3600
-        print('driving distance:', int(offshore_distance), 'km; driving time:', round(driving_time,2), 'hrs')
+        loading_time = 2 * barge.call_size / handling_rate / handling_to_berthing_ratio
+        sailing_time = offshore_distance / barge.sailing_speed / 3600
+        print('sum of loading and unloading time:', round(loading_time, 0), 'hrs')
+        print('sailing time:', round(sailing_time, 0), 'hrs')
 
-        cycle_time = driving_time * 2
-        annual_cycles = self.operational_hours / cycle_time * self.truck_utilisation
-        annual_truck_capacity = 2 * truck.call_size * annual_cycles
-        print('annual cycles per truck:', int(annual_cycles))
-        print('annual truck capacity:', int(annual_truck_capacity), "TEU")
+        cycle_time = (2 * loading_time + 2 * sailing_time) * 3600
+        cycle_time = cycle_time / 3600
+        print('total cycle time:', round(cycle_time, 0), 'hrs or', round(cycle_time / 24, 1), 'days')
 
-        # nr trucks online
-        list_of_elements = self.find_elements(Truck)
-        nr_trucks = len(list_of_elements)
-        print('nr trucks online:', nr_trucks)
+        ratio_sailing = 2 * sailing_time / cycle_time
+        ratio_port = 2 * loading_time / cycle_time
+
+        annual_cycles = self.barge_utilisation * self.operational_hours / cycle_time
+        annual_barge_capacity = 2 * barge.call_size * annual_cycles
+        print('annual cycles per barge:', int(annual_cycles))
+        print('annual barge capacity:', int(annual_barge_capacity), "TEU")
+
+        # nr barges online
+        list_of_elements = self.find_elements(Barge)
+        nr_barges = len(list_of_elements)
+        print('nr barges online:', nr_barges)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        truck_capacity_planned = 0
-        truck_capacity_online = 0
-        truck_capacity_required = 0
+        barge_capacity_planned = 0
+        barge_capacity_online = 0
+        barge_capacity_required = 0
 
-        truck_capacity_planned = annual_truck_capacity * nr_trucks
-        truck_capacity_online = annual_truck_capacity * nr_trucks
+        barge_capacity_planned = annual_barge_capacity * nr_barges
+        barge_capacity_online = annual_barge_capacity * nr_barges
 
         laden_teu, reefer_teu, empty_teu, oog_teu, throughput_teu = self.throughput_characteristics(year)
 
         transhipment_ratio = self.transhipment_ratio
         onshore_perc = self.onshore_perc
 
-        onshore_truck_throughput = (throughput_teu * transhipment_ratio * 0.5) + (throughput_teu * (1 - transhipment_ratio)) * onshore_perc
-        offshore_truck_throughput = (throughput_teu * transhipment_ratio * 0.5) + (throughput_teu * (1 - transhipment_ratio))
+        onshore_barge_throughput = (throughput_teu * transhipment_ratio * 0.5) + (throughput_teu * (1 - transhipment_ratio)) * onshore_perc
+        offshore_barge_throughput = (throughput_teu * transhipment_ratio * 0.5) + (throughput_teu * (1 - transhipment_ratio))
 
-        truck_capacity_required = onshore_truck_throughput
+        barge_capacity_required = onshore_barge_throughput
 
-        # nr trucks required
-        nr_trucks_required = truck_capacity_required / annual_truck_capacity
-        print('nr trucks required:', int(nr_trucks_required+1))
+        # nr barges required
+        nr_barges_required = barge_capacity_required / annual_barge_capacity
+        print('nr barges required:', int(nr_barges_required + 1))
 
-        return truck_capacity_planned, truck_capacity_online, truck_capacity_required
+        return barge_capacity_planned, barge_capacity_online, barge_capacity_required, ratio_sailing, ratio_port
 
     def throughput_characteristics(self, year):
 
@@ -2240,6 +2642,8 @@ class System:
         therefore the total number of boxes is the total number of box moves for STS cranes """
 
         sts_moves = throughput_box
+        offshore_barge_crane_moves = sts_moves
+        onshore_barge_crane_moves = sts_moves * self.onshore_perc
         hinterland_barge_crane_moves = sts_moves * (self.onshore_perc - self.modal_split)
 
         # calculate the number of tractor moves
@@ -2274,7 +2678,7 @@ class System:
 
         stack_moves = laden_reefer_moves_i_e + laden_reefer_moves_ts
 
-        return sts_moves, hinterland_barge_crane_moves, stack_moves, empty_moves, tractor_moves
+        return sts_moves, offshore_barge_crane_moves, onshore_barge_crane_moves, hinterland_barge_crane_moves, stack_moves, empty_moves, tractor_moves
 
     def calculate_offshore_land_use(self, year):
 
@@ -2285,7 +2689,7 @@ class System:
         offshore_empty_land_use = []
         offshore_oog_land_use = []
         offshore_general_land_use = []
-        offshore_gate_land_use = []
+        offshore_barge_land_use = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -2294,7 +2698,7 @@ class System:
             offshore_empty_land_use.append(0)
             offshore_oog_land_use.append(0)
             offshore_general_land_use.append(0)
-            offshore_gate_land_use.append(0)
+            offshore_barge_land_use.append(0)
 
             for element in self.elements:
                 if isinstance(element, Quay_Wall):
@@ -2312,18 +2716,25 @@ class System:
                 if isinstance(element, General_Services):
                     if year >= element.year_online:
                         offshore_general_land_use[-1] += element.offshore_land_use
-                if isinstance(element, Offshore_Gate):
+                if isinstance(element, Offshore_Barge_Quay_Wall):
                     if year >= element.year_online:
-                        offshore_gate_land_use[-1] += element.offshore_land_use
+                        offshore_barge_land_use[-1] += element.offshore_land_use
 
-        offshore_land_use = [OGV_quay_land_use, offshore_stack_land_use, offshore_empty_land_use, offshore_oog_land_use, offshore_general_land_use, offshore_gate_land_use]
+        # print(">>> OGV_quay_land_use", OGV_quay_land_use, 'm2')
+        # print(">>> offshore_stack_land_use", offshore_stack_land_use + offshore_empty_land_use + offshore_oog_land_use, 'm2')
+        # print(">>> offshore_general_land_use", offshore_general_land_use, 'm2')
+        # print(">>> offshore_barge_land_use", offshore_barge_land_use, 'm2')
+
+        offshore_land_use = [OGV_quay_land_use, offshore_stack_land_use, offshore_empty_land_use, offshore_oog_land_use,
+                             offshore_general_land_use, offshore_barge_land_use]
         offshore_land_use = sum(map(np.array, offshore_land_use))
         offshore_land_use = max(offshore_land_use)
 
         convert_ha = 10_000  # 10,000 m2 is equal to 1 ha
         offshore_land_use_ha = offshore_land_use / convert_ha
-
-        print(">>> Total offshore land use", round(offshore_land_use_ha,1), 'ha')
+        print("")
+        # print(">>> Total offshore land use", offshore_land_use, 'm2')
+        print(">>> Total offshore land use", round(offshore_land_use_ha, 1), 'ha')
 
         return offshore_land_use, offshore_land_use_ha
 
@@ -2331,7 +2742,7 @@ class System:
 
         "get land use"
         years = []
-        onshore_gate_land_use = []
+        onshore_barge_land_use = []
         onshore_stack_land_use = []
         onshore_empty_land_use = []
         onshore_oog_land_use = []
@@ -2341,7 +2752,7 @@ class System:
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
-            onshore_gate_land_use.append(0)
+            onshore_barge_land_use.append(0)
             onshore_stack_land_use.append(0)
             onshore_empty_land_use.append(0)
             onshore_oog_land_use.append(0)
@@ -2350,9 +2761,9 @@ class System:
             hinterland_gate_land_use.append(0)
 
             for element in self.elements:
-                if isinstance(element, Onshore_Gate):
+                if isinstance(element, Onshore_Barge_Quay_Wall):
                     if year >= element.year_online:
-                        onshore_gate_land_use[-1] += element.onshore_land_use
+                        onshore_barge_land_use[-1] += element.onshore_land_use
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
                         onshore_stack_land_use[-1] += element.onshore_land_use
@@ -2361,25 +2772,25 @@ class System:
                         onshore_empty_land_use[-1] += element.onshore_land_use
                 if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
-                        onshore_general_land_use[-1] += element.onshore_land_use
+                        onshore_oog_land_use[-1] += element.onshore_land_use
                 if isinstance(element, General_Services):
                     if year >= element.year_online:
-                        onshore_oog_land_use[-1] += element.onshore_land_use
+                        onshore_general_land_use[-1] += element.onshore_land_use
                 if isinstance(element, Hinterland_Barge_Quay_Wall):
                     if year >= element.year_online:
-                        hinterland_barge_land_use[-1] + element.onshore_land_use
+                        hinterland_barge_land_use[-1] += element.onshore_land_use
                 if isinstance(element, Hinterland_Gate):
                     if year >= element.year_online:
                         hinterland_gate_land_use[-1] += element.onshore_land_use
 
-        onshore_land_use = [onshore_gate_land_use, onshore_stack_land_use, onshore_empty_land_use, onshore_oog_land_use, onshore_general_land_use, hinterland_barge_land_use, hinterland_gate_land_use]
+        onshore_land_use = [onshore_barge_land_use, onshore_stack_land_use, onshore_empty_land_use, onshore_oog_land_use, onshore_general_land_use, hinterland_barge_land_use, hinterland_gate_land_use]
         onshore_land_use = sum(map(np.array, onshore_land_use))
         onshore_land_use = max(onshore_land_use)
 
         convert_ha = 10_000  # 10,000 m2 is equal to 1 ha
         onshore_land_use_ha = onshore_land_use / convert_ha
 
-        print(">>> Total onshore land use", round(onshore_land_use_ha,1), 'ha')
+        print(">>> Total onshore land use", round(onshore_land_use_ha, 1), 'ha')
 
         return onshore_land_use, onshore_land_use_ha
 
@@ -2409,7 +2820,7 @@ class System:
         stack = Laden_Stack(**container_defaults.rtg_stack_data)
 
         # edit dwell time for offshore terminal
-        laden.dwell_time = self.offshore_dwell_time # days
+        laden.dwell_time = self.offshore_dwell_time  # days
         reefer.dwell_time = self.offshore_dwell_time  # days
 
         # define stack equipment
@@ -2931,169 +3342,101 @@ class System:
 
         return throughput_online
 
-    def calculate_offshore_gate_minutes(self, year):
+    def calculate_offshore_barge_productivity(self, year):
 
         """
-        - Find all gates and sum their effective_capacity to get service_capacity
+        - Find all berths and sum their effective_capacity to get service_capacity
         - Calculate average entry and exit time to get total time at gate
         - Occupancy is total_minutes_at_gate per hour divided by 1 hour
         """
 
-        # list all gate objects in system
-        list_of_elements = self.find_elements(Offshore_Gate)
+        # load teu factor
+        laden = Container(**container_defaults.laden_container_data)
+        teu_factor = laden.teu_factor
 
-        # find the total service rate
+        # determine the barge crane productivity
+        offshore_barge_crane = Offshore_Barge_Crane(**container_defaults.barge_crane_data)
+        offshore_barge_berth = Offshore_Barge_Berth(**container_defaults.barge_berth_data)
+
+        nom_crane_productivity = offshore_barge_crane.nom_crane_productivity  # moves per hour
+        nom_crane_productivity = nom_crane_productivity * teu_factor  # TEU per hour
+        net_crane_productivity = nom_crane_productivity * offshore_barge_crane.utilisation * offshore_barge_crane.efficiency  # TEU per hour
+
+        net_berth_productivity = net_crane_productivity * offshore_barge_berth.max_cranes  # TEU per hour
+        net_berth_productivity = net_berth_productivity * self.operational_hours * offshore_barge_crane.handling_time_ratio * self.allowable_berth_occupancy  # TEU per year
+
+        # list all gate objects in system
+        list_of_elements = self.find_elements(Offshore_Barge_Berth)
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
         capacity_planned = 0
         capacity_online = 0
         capacity_required = 0
-
         if list_of_elements != []:
             for element in list_of_elements:
-                capacity_planned += element.capacity
+                capacity_planned += net_berth_productivity
                 if year >= element.year_online:
-                    capacity_online += element.capacity
-
-            # estimate time at gate lanes
-            """ Get input: import box moves and export box moves, translate to design gate lanes per hour.
-            The gate capacity is per (60) "minutes", in line with the inspection time in minutes."""
+                    capacity_online += net_berth_productivity
 
             """ Calculate the total throughput in TEU per year """
-            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
+            laden_teu, reefer_teu, empty_teu, oog_teu, throughput_teu = self.throughput_characteristics(year)
 
-            import_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.50   # assume import / export is constantly 50/50
-            export_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.50   # assume import / export is constantly 50/50
+            capacity_required = throughput_teu * offshore_barge_crane.peak_factor
 
-            gate = Offshore_Gate(**container_defaults.gate_data)
-            weeks_year = 52
+            service_rate_planned = round(capacity_required / capacity_planned, 3)
 
-            exit_capacity_required = import_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.exit_inspection_time * gate.design_capacity
-            entry_capacity_required = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.entry_inspection_time * gate.design_capacity
+        else:
+            service_rate_planned = float("inf")
 
-            capacity_required = entry_capacity_required + exit_capacity_required
+        return capacity_planned, capacity_online, capacity_required, service_rate_planned, nom_crane_productivity, net_crane_productivity, net_berth_productivity
+
+    def calculate_onshore_barge_productivity(self, year):
+
+        """
+        - Find all berths and sum their effective_capacity to get service_capacity
+        - Calculate average entry and exit time to get total time at gate
+        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
+        """
+
+        # load teu factor
+        laden = Container(**container_defaults.laden_container_data)
+        teu_factor = laden.teu_factor
+
+        # determine the barge crane productivity
+        onshore_barge_crane = Onshore_Barge_Crane(**container_defaults.barge_crane_data)
+        onshore_barge_berth = Onshore_Barge_Berth(**container_defaults.barge_berth_data)
+
+        nom_crane_productivity = onshore_barge_crane.nom_crane_productivity  # moves per hour
+        nom_crane_productivity = nom_crane_productivity * teu_factor  # TEU per hour
+        net_crane_productivity = nom_crane_productivity * onshore_barge_crane.utilisation * onshore_barge_crane.efficiency  # TEU per hour
+
+        net_berth_productivity = net_crane_productivity * onshore_barge_berth.max_cranes  # TEU per hour
+        net_berth_productivity = net_berth_productivity * self.operational_hours * onshore_barge_crane.handling_time_ratio * self.allowable_berth_occupancy  # TEU per year
+
+        # list all gate objects in system
+        list_of_elements = self.find_elements(Onshore_Barge_Berth)
+
+        # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        capacity_planned = 0
+        capacity_online = 0
+        capacity_required = 0
+        if list_of_elements != []:
+            for element in list_of_elements:
+                capacity_planned += net_berth_productivity
+                if year >= element.year_online:
+                    capacity_online += net_berth_productivity
+
+            """ Calculate the total throughput in TEU per year """
+            laden_teu, reefer_teu, empty_teu, oog_teu, throughput_teu = self.throughput_characteristics(year)
+
+            capacity_required = throughput_teu * self.onshore_perc * onshore_barge_crane.peak_factor
 
             service_rate_planned = capacity_required / capacity_planned
 
         else:
             service_rate_planned = float("inf")
 
-        return capacity_planned, capacity_online, capacity_required, service_rate_planned
-
-    def calculate_bridge_capacity(self, year):
-
-        """ Define the bridge """
-        list_of_elements = self.find_elements(Bridge)
-
-        # dimensions bridge
-        bridge_length = self.offshore_distance
-        print("")
-        print("     >> bridge_length:", int(bridge_length), "km")
-
-        # find the reclamation area
-        bridges_planned = 0
-        bridges_online = 0
-
-        for element in list_of_elements:
-            bridges_planned += 1
-            if year >= element.year_online:
-                bridges_online += 1
-
-        bridges_required = 1
-
-        return bridges_planned, bridges_online, bridges_required, bridge_length
-
-    def calculate_onshore_gate_minutes(self, year):
-
-        """
-        - Find all gates and sum their effective_capacity to get service_capacity
-        - Calculate average entry and exit time to get total time at gate
-        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
-        """
-
-        # list all gate objects in system
-        list_of_elements = self.find_elements(Onshore_Gate)
-
-        # find the total service rate
-        capacity_planned = 0
-        capacity_online = 0
-        capacity_required = 0
-
-        if list_of_elements != []:
-            for element in list_of_elements:
-                capacity_planned += element.capacity
-                if year >= element.year_online:
-                    capacity_online += element.capacity
-
-            # estimate time at gate lanes
-            """ Get input: import box moves and export box moves, translate to design gate lanes per hour.
-            The gate capacity is per (60) "minutes", in line with the inspection time in minutes."""
-
-            """ Calculate the total throughput in TEU per year """
-            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
-
-            import_box_moves = self.onshore_perc * (throughput_box * (1 - self.transhipment_ratio)) * 0.50   # assume import / export is constantly 50/50
-            export_box_moves = self.onshore_perc * (throughput_box * (1 - self.transhipment_ratio)) * 0.50   # assume import / export is constantly 50/50
-
-            gate = Onshore_Gate(**container_defaults.gate_data)
-            weeks_year = 52
-
-            exit_capacity_required = import_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.exit_inspection_time * gate.design_capacity
-            entry_capacity_required = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.entry_inspection_time * gate.design_capacity
-
-            capacity_required = entry_capacity_required + exit_capacity_required
-
-            service_rate_planned = capacity_required / capacity_planned
-
-        else:
-            service_rate_planned = float("inf")
-
-        return capacity_planned, capacity_online, capacity_required, service_rate_planned
-
-    def calculate_hinterland_gate_minutes(self, year):
-
-        """
-        - Find all gates and sum their effective_capacity to get service_capacity
-        - Calculate average entry and exit time to get total time at gate
-        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
-        """
-
-        # list all gate objects in system
-        list_of_elements = self.find_elements(Hinterland_Gate)
-
-        # find the total service rate
-        capacity_planned = 0
-        capacity_online = 0
-        capacity_required = 0
-
-        if list_of_elements != []:
-            for element in list_of_elements:
-                capacity_planned += element.capacity
-                if year >= element.year_online:
-                    capacity_online += element.capacity
-
-            # estimate time at gate lanes
-            """ Get input: import box moves and export box moves, translate to design gate lanes per hour.
-            The gate capacity is per (60) "minutes", in line with the inspection time in minutes."""
-
-            """ Calculate the total throughput in TEU per year """
-            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
-
-            import_box_moves = self.modal_split * (throughput_box * (1 - self.transhipment_ratio)) * 0.50   # assume import / export is constantly 50/50
-            export_box_moves = self.modal_split * (throughput_box * (1 - self.transhipment_ratio)) * 0.50   # assume import / export is constantly 50/50
-
-            gate = Hinterland_Gate(**container_defaults.gate_data)
-            weeks_year = 52
-
-            exit_capacity_required = import_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.exit_inspection_time * gate.design_capacity
-            entry_capacity_required = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.entry_inspection_time * gate.design_capacity
-
-            capacity_required = entry_capacity_required + exit_capacity_required
-
-            service_rate_planned = capacity_required / capacity_planned
-
-        else:
-            service_rate_planned = float("inf")
-
-        return capacity_planned, capacity_online, capacity_required, service_rate_planned
+        return capacity_planned, capacity_online, capacity_required, service_rate_planned, nom_crane_productivity, net_crane_productivity, net_berth_productivity
 
     def calculate_hinterland_barge_productivity(self, year):
 
@@ -3143,6 +3486,53 @@ class System:
             service_rate_planned = float("inf")
 
         return capacity_planned, capacity_online, capacity_required, service_rate_planned, nom_crane_productivity, net_crane_productivity, net_berth_productivity
+
+    def calculate_hinterland_gate_minutes(self, year):
+
+        """
+        - Find all gates and sum their effective_capacity to get service_capacity
+        - Calculate average entry and exit time to get total time at gate
+        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
+        """
+
+        # list all gate objects in system
+        list_of_elements = self.find_elements(Hinterland_Gate)
+
+        # find the total service rate
+        capacity_planned = 0
+        capacity_online = 0
+        capacity_required = 0
+
+        if list_of_elements != []:
+            for element in list_of_elements:
+                capacity_planned += element.capacity
+                if year >= element.year_online:
+                    capacity_online += element.capacity
+
+            # estimate time at gate lanes
+            """ Get input: import box moves and export box moves, translate to design gate lanes per hour.
+            The gate capacity is per (60) "minutes", in line with the inspection time in minutes."""
+
+            """ Calculate the total throughput in TEU per year """
+            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
+
+            import_box_moves = self.modal_split * (throughput_box * (1 - self.transhipment_ratio)) * 0.50  # assume import / export is constantly 50/50
+            export_box_moves = self.modal_split * (throughput_box * (1 - self.transhipment_ratio)) * 0.50  # assume import / export is constantly 50/50
+
+            gate = Hinterland_Gate(**container_defaults.gate_data)
+            weeks_year = 52
+
+            exit_capacity_required = import_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.exit_inspection_time * gate.design_capacity
+            entry_capacity_required = export_box_moves * gate.truck_moves / weeks_year * gate.peak_factor * gate.peak_day * gate.peak_hour * gate.entry_inspection_time * gate.design_capacity
+
+            capacity_required = entry_capacity_required + exit_capacity_required
+
+            service_rate_planned = capacity_required / capacity_planned
+
+        else:
+            service_rate_planned = float("inf")
+
+        return capacity_planned, capacity_online, capacity_required, service_rate_planned
 
     def waiting_time(self, year):
 
@@ -3321,18 +3711,14 @@ class System:
         # transport
         cash_flows_df['Ocean Transport'] = 0
         cash_flows_df['Demurrage'] = 0
-        cash_flows_df['Truck Capex'] = 0
-        cash_flows_df['Truck Operations'] = 0
-        cash_flows_df['Truck Maintenance'] = 0
-        cash_flows_df['Truck Labour'] = 0
-
-        # dredging (OGV and barge channel dredging)
-        cash_flows_df['Capital Dredging'] = 0
-        cash_flows_df['Maintenance Dredging'] = 0
+        cash_flows_df['Barge Capex'] = 0
+        cash_flows_df['Barge Operations'] = 0
+        cash_flows_df['Barge Maintenance'] = 0
+        cash_flows_df['Barge Labour'] = 0
 
         # offshore connection
-        cash_flows_df['Bridge Capex'] = 0
-        cash_flows_df['Bridge Opex'] = 0
+        cash_flows_df['Capital Dredging'] = 0
+        cash_flows_df['Maintenance Dredging'] = 0
 
         # revenues
         # try:
@@ -3394,21 +3780,17 @@ class System:
         onshore_fuel = element.onshore_fuel
         onshore_labour = element.onshore_labour
 
-        # dredging
+        # offshore connection
         capital_dredging = element.capital_dredging
         maintenance_dredging = element.maintenance_dredging
-
-        # offshore connection
-        bridge_capex = element.bridge_capex
-        bridge_opex = element.bridge_opex
 
         # transport
         demurrage = element.demurrage
         ocean_transport = element.ocean_transport
-        truck_capex = element.truck_capex
-        truck_operations = element.truck_operations
-        truck_maintenance = element.truck_maintenance
-        truck_labour = element.truck_labour
+        barge_capex = element.barge_capex
+        barge_operations = element.barge_operations
+        barge_maintenance = element.barge_maintenance
+        barge_labour = element.barge_labour
 
         # year online
         year_online = element.year_online
@@ -3476,7 +3858,7 @@ class System:
         if onshore_labour:
             df.loc[df["Year"] >= year_online, "Onshore Labour"] = onshore_labour
 
-        # OGV access channel
+        # channel
         if capital_dredging:
             if year_delivery > 1:
                 df.loc[df["Year"] == year_online - 2, "Capital Dredging"] = capital_dredging * 0.5
@@ -3487,32 +3869,21 @@ class System:
         if maintenance_dredging:
             df.loc[df["Year"] >= year_online, "Maintenance Dredging"] = maintenance_dredging
 
-        # bridge
-        if bridge_capex:
-            if year_delivery > 1:
-                df.loc[df["Year"] == year_online - 2, "Bridge Capex"] = bridge_capex * 0.6
-                df.loc[df["Year"] == year_online - 1, "Bridge Capex"] = bridge_capex * 0.4
-            else:
-                df.loc[df["Year"] == year_online - 1, "Bridge Capex"] = bridge_capex
-
-        if bridge_opex:
-            df.loc[df["Year"] >= year_online, "Bridge Opex"] = bridge_opex
-
         # container ships
         if ocean_transport:
             df.loc[df["Year"] == year_online + 2, "Ocean Transport"] = ocean_transport
         if demurrage:
             df.loc[df["Year"] >= year_online, "Demurrage"] = demurrage
 
-        # trucks
-        if truck_capex:
-            df.loc[df["Year"] == year_online - 1, "Truck Capex"] = truck_capex
-        if truck_operations:
-            df.loc[df["Year"] >= year_online, "Truck Operations"] = truck_operations
-        if truck_maintenance:
-            df.loc[df["Year"] >= year_online, "Truck Maintenance"] = truck_maintenance
-        if truck_labour:
-            df.loc[df["Year"] >= year_online, "Truck Labour"] = truck_labour
+        # barges
+        if barge_capex:
+            df.loc[df["Year"] == year_online - 1, "Barge Capex"] = barge_capex
+        if barge_operations:
+            df.loc[df["Year"] >= year_online, "Barge Operations"] = barge_operations
+        if barge_maintenance:
+            df.loc[df["Year"] >= year_online, "Barge Maintenance"] = barge_maintenance
+        if barge_labour:
+            df.loc[df["Year"] >= year_online, "Barge Labour"] = barge_labour
 
         df.fillna(0, inplace=True)
 
@@ -3592,20 +3963,16 @@ class System:
         capital_dredging = cash_flows_real_df['Capital Dredging'].values
         maintenance_dredging = cash_flows_real_df['Maintenance Dredging'].values
 
-        # bridge
-        bridge_capex = cash_flows_real_df['Bridge Capex'].values
-        bridge_opex = cash_flows_real_df['Bridge Opex'].values
-
         # container ships
         ocean_transport = cash_flows_real_df['Ocean Transport'].values
         demurrage = cash_flows_real_df['Demurrage'].values
 
-        # trucks
-        truck_capex = cash_flows_real_df['Truck Capex'].values
-        truck_opex = (cash_flows_real_df['Truck Operations'].values
-                      + cash_flows_real_df['Truck Maintenance'].values
-                      + cash_flows_real_df['Truck Labour'].values)
-        truck_opex = np.nan_to_num(truck_opex)
+        # barges
+        barge_capex = cash_flows_real_df['Barge Capex'].values
+        barge_opex = (cash_flows_real_df['Barge Operations'].values
+                      + cash_flows_real_df['Barge Maintenance'].values
+                      + cash_flows_real_df['Barge Labour'].values)
+        barge_opex = np.nan_to_num(barge_opex)
 
         # collect all cost categories in a pandas dataframe
         costs_df = pd.DataFrame()
@@ -3615,12 +3982,10 @@ class System:
         costs_df['Offshore Opex'] = offshore_opex
         costs_df['Onshore Capex'] = onshore_capex
         costs_df['Onshore Opex'] = onshore_opex
-        costs_df['Truck Capex'] = truck_capex
-        costs_df['Truck Opex'] = truck_opex
+        costs_df['Barge Capex'] = barge_capex
+        costs_df['Barge Opex'] = barge_opex
         costs_df['Capital Dredging'] = capital_dredging
         costs_df['Maintenance Dredging'] = maintenance_dredging
-        costs_df['Bridge Capex'] = bridge_capex
-        costs_df['Bridge Opex'] = bridge_opex
         costs_df['Ocean Transport'] = ocean_transport
 
         costs_df_sum = ['Total',
@@ -3629,12 +3994,10 @@ class System:
                         sum(costs_df['Offshore Opex']),
                         sum(costs_df['Onshore Capex']),
                         sum(costs_df['Onshore Opex']),
-                        sum(costs_df['Truck Capex']),
-                        sum(costs_df['Truck Opex']),
+                        sum(costs_df['Barge Capex']),
+                        sum(costs_df['Barge Opex']),
                         sum(costs_df['Capital Dredging']),
                         sum(costs_df['Maintenance Dredging']),
-                        sum(costs_df['Bridge Capex']),
-                        sum(costs_df['Bridge Opex']),
                         sum(costs_df['Ocean Transport'])]
         costs_df_sum = costs_df.append(pd.Series(costs_df_sum, index=costs_df.columns), ignore_index=True)
         costs_df_sum.set_index('Years', inplace=True)
@@ -3642,8 +4005,8 @@ class System:
             display(costs_df_sum)
 
         # sum
-        capex = island_construction + coastal_protection_construction + offshore_capex + onshore_capex + capital_dredging + bridge_capex + truck_capex
-        opex = structure_maintenance + offshore_opex + onshore_opex + maintenance_dredging + ocean_transport + demurrage + bridge_opex + truck_opex
+        capex = island_construction + coastal_protection_construction + offshore_capex + onshore_capex + capital_dredging + barge_capex
+        opex = structure_maintenance + offshore_opex + onshore_opex + maintenance_dredging + ocean_transport + demurrage + barge_opex
         revenues = 0
         total = capex + opex
 
@@ -3655,10 +4018,9 @@ class System:
         NPV_df['Capex'] = capex
         NPV_df['Opex'] = opex
         NPV_df['PV'] = capex + opex  # PV of the costs
-        # NPV_df['PV'] = - capex - opex + revenues
         NPV_df['cum-PV'] = np.cumsum(capex + opex)
 
-        return NPV, NPV_df, costs_df, costs_df_sum
+        return NPV, NPV_df, costs_df
 
     """ Plotting functions """
 
@@ -3685,24 +4047,26 @@ class System:
         OGV_berths = []
         OGV_cranes = []
         off_tractor = []
-        off_stack_equipment = []
-        off_empty_handler = []
         off_laden_stack = []
         off_empty_stack = []
         off_oog_stack = []
-        off_gates = []
+        off_stack_equipment = []
+        off_empty_handler = []
+        off_barge_berths = []
+        off_barge_cranes = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
             OGV_berths.append(0)
             OGV_cranes.append(0)
             off_tractor.append(0)
-            off_stack_equipment.append(0)
-            off_empty_handler.append(0)
             off_laden_stack.append(0)
             off_empty_stack.append(0)
             off_oog_stack.append(0)
-            off_gates.append(0)
+            off_stack_equipment.append(0)
+            off_empty_handler.append(0)
+            off_barge_berths.append(0)
+            off_barge_cranes.append(0)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -3714,12 +4078,6 @@ class System:
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
                         off_tractor[-1] += 1
-                if isinstance(element, Stack_Equipment):
-                    if year >= element.year_online:
-                        off_stack_equipment[-1] += 1
-                if isinstance(element, Empty_Handler):
-                    if year >= element.year_online:
-                        off_empty_handler[-1] += 1
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
                         off_laden_stack[-1] += 1
@@ -3729,49 +4087,60 @@ class System:
                 if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
                         off_oog_stack[-1] += 1
-                if isinstance(element, Offshore_Gate):
+                if isinstance(element, Stack_Equipment):
                     if year >= element.year_online:
-                        off_gates[-1] += 1
+                        off_stack_equipment[-1] += 1
+                if isinstance(element, Empty_Handler):
+                    if year >= element.year_online:
+                        off_empty_handler[-1] += 1
+                if isinstance(element, Offshore_Barge_Berth):
+                    if year >= element.year_online:
+                        off_barge_berths[-1] += 1
+                if isinstance(element, Offshore_Barge_Crane):
+                    if year >= element.year_online:
+                        off_barge_cranes[-1] += 1
 
         "collect elements to add to onshore plot"
         years = []
-        on_gates = []
+        on_barge_berths = []
+        on_barge_cranes = []
         on_tractor = []
-        on_stack_equipment = []
-        on_empty_handler = []
         on_laden_stack = []
         on_empty_stack = []
         on_oog_stack = []
+        on_stack_equipment = []
+        on_empty_handler = []
         on_hinterland_berths = []
         on_hinterland_cranes = []
-        on_hinterland_gates = []
+        on_gates = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
-            on_gates.append(0)
+            on_barge_berths.append(0)
+            on_barge_cranes.append(0)
             on_tractor.append(0)
             on_stack_equipment.append(0)
-            on_empty_handler.append(0)
             on_laden_stack.append(0)
             on_empty_stack.append(0)
             on_oog_stack.append(0)
+            on_empty_handler.append(0)
             on_hinterland_berths.append(0)
             on_hinterland_cranes.append(0)
-            on_hinterland_gates.append(0)
+            on_gates.append(0)
 
             for element in self.elements:
-                if isinstance(element, Onshore_Gate):
+                if isinstance(element, Onshore_Barge_Berth):
                     if year >= element.year_online:
-                        on_gates[-1] += 1
+                        on_barge_berths[-1] += 1
+                if isinstance(element, Onshore_Barge_Crane):
+                    if year >= element.year_online:
+                        on_barge_cranes[-1] += 1
                 if isinstance(element, Horizontal_Transport):
                     if year >= element.year_online:
                         on_tractor[-1] += 1
                 if isinstance(element, Stack_Equipment):
                     if year >= element.year_online:
                         on_stack_equipment[-1] += 1
-                if isinstance(element, Empty_Handler):
-                    if year >= element.year_online:
-                        on_empty_handler[-1] += 1
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
                         on_laden_stack[-1] += 1
@@ -3781,6 +4150,9 @@ class System:
                 if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
                         on_oog_stack[-1] += 1
+                if isinstance(element, Empty_Handler):
+                    if year >= element.year_online:
+                        on_empty_handler[-1] += 1
                 if isinstance(element, Hinterland_Barge_Berth):
                     if year >= element.year_online:
                         on_hinterland_berths[-1] += 1
@@ -3789,30 +4161,33 @@ class System:
                         on_hinterland_cranes[-1] += 1
                 if isinstance(element, Hinterland_Gate):
                     if year >= element.year_online:
-                        on_hinterland_gates[-1] += 1
+                        on_gates[-1] += 1
 
         "scale elements"
         off_tractor = [x / 5 for x in off_tractor]
         off_stack_equipment = [x / 5 for x in off_stack_equipment]
         off_empty_handler = [x / 5 for x in off_empty_handler]
+        # off_barge_cranes = [x / 2 for x in off_barge_cranes]
 
         on_tractor = [x / 5 for x in on_tractor]
         on_stack_equipment = [x / 5 for x in on_stack_equipment]
         on_empty_handler = [x / 5 for x in on_empty_handler]
+        # on_barge_cranes = [x / 2 for x in on_barge_cranes]
 
         "generate plot"
         fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
 
         "offshore plot"
-        ax1.bar([x - 4.0 * width for x in years], OGV_berths, width=width, alpha=alpha, label="OGV berths")
-        ax1.bar([x - 3.0 * width for x in years], OGV_cranes, width=width, alpha=alpha, label="STS cranes")
-        ax1.bar([x - 2.0 * width for x in years], off_tractor, width=width, alpha=alpha, label="Tractors (x 5)")
-        ax1.bar([x - 1.0 * width for x in years], off_stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
-        ax1.bar([x + 0.0 * width for x in years], off_empty_handler, width=width, alpha=alpha, label="Empty handlers (x 5)")
-        ax1.bar([x + 1.0 * width for x in years], off_laden_stack, width=width, alpha=alpha, label="Laden stacks (1200 TEU)")
-        ax1.bar([x + 2.0 * width for x in years], off_empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
-        ax1.bar([x + 3.0 * width for x in years], off_oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
-        ax1.bar([x + 4.0 * width for x in years], off_gates, width=width, alpha=alpha, label="Offshore lanes")
+        ax1.bar([x - 4.5 * width for x in years], OGV_berths, width=width, alpha=alpha, label="OGV berths")
+        ax1.bar([x - 3.5 * width for x in years], OGV_cranes, width=width, alpha=alpha, label="STS cranes")
+        ax1.bar([x - 2.5 * width for x in years], off_tractor, width=width, alpha=alpha, label="Tractors (x 5)")
+        ax1.bar([x - 1.5 * width for x in years], off_stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
+        ax1.bar([x - 0.5 * width for x in years], off_empty_handler, width=width, alpha=alpha, label="Empty handlers (x 5)")
+        ax1.bar([x + 0.5 * width for x in years], off_laden_stack, width=width, alpha=alpha, label="Laden stacks (900 TEU)")
+        ax1.bar([x + 1.5 * width for x in years], off_empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
+        ax1.bar([x + 2.5 * width for x in years], off_oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
+        ax1.bar([x + 3.5 * width for x in years], off_barge_berths, width=width, alpha=alpha, label="Barge berths")
+        ax1.bar([x + 4.5 * width for x in years], off_barge_cranes, width=width, alpha=alpha, label="Barge cranes")
 
         ax1.set_title('Offshore Terminal (equipment: RTG)', fontsize='x-large')
         ax1.set_xlabel('Years', fontsize='large')
@@ -3827,34 +4202,26 @@ class System:
         ax3.step(years, demand['offshore'].values, where='mid', color='tab:gray', label='Demand')
         ax3.grid(False, which='major')
 
-        if self.lifecycle == 10:
-            ax1.legend(loc='lower left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large', title="Offshore terminal elements", title_fontsize='large')
-            # ax1.set_yticks([0, 2, 4, 6, 8, 10, 12, 14, 16, 18])
-            ax3.set_yticks([0,250_000,500_000,750_000,1_000_000,1_250_000])
-            ax3.set_yticklabels(["","250,000","500,000","750,000","1,000,000","1,250,000"], fontsize='large')
-            ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large')
-        if self.lifecycle == 20:
-            ax1.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large', title="Offshore terminal elements", title_fontsize='large')
-            ax3.set_ylim(0, max(demand['offshore'].values) * 1.05)
-            ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large', bbox_to_anchor=(0.2, 1.0))
+        ax1.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
+                   fontsize='large', title="Offshore terminal elements", title_fontsize='large')
+        # ax3.set_ylim(0, max(demand['offshore'].values) * 1.05)
+        ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
+                   fontsize='large', bbox_to_anchor=(0.2, 1.0))
 
         fig.tight_layout()
 
         "onshore plot"
-        ax2.bar([x - 5.0 * width for x in years], on_gates, width=width, alpha=alpha, label="Onshore lanes")
+        ax2.bar([x - 5.0 * width for x in years], on_barge_berths, width=width, alpha=alpha, label="Barge berths")
+        ax2.bar([x - 4.0 * width for x in years], on_barge_cranes, width=width, alpha=alpha, label="Barge cranes")
         ax2.bar([x - 3.0 * width for x in years], on_tractor, width=width, alpha=alpha, label="Tractors (x 5)")
         ax2.bar([x - 2.0 * width for x in years], on_stack_equipment, width=width, alpha=alpha, label="Stack equipment (x 5)")
         ax2.bar([x - 1.0 * width for x in years], on_empty_handler, width=width, alpha=alpha, label="Empty handlers (x 5)")
-        ax2.bar([x + 0.0 * width for x in years], on_laden_stack, width=width, alpha=alpha, label="Laden stacks (1200 TEU)")
+        ax2.bar([x + 0.0 * width for x in years], on_laden_stack, width=width, alpha=alpha, label="Laden stacks (900 TEU)")
         ax2.bar([x + 1.0 * width for x in years], on_empty_stack, width=width, alpha=alpha, label="Empty stacks (480 TEU)")
         ax2.bar([x + 2.0 * width for x in years], on_oog_stack, width=width, alpha=alpha, label="OOG stacks (100 TEU)")
         ax2.bar([x + 3.0 * width for x in years], on_hinterland_berths, width=width, alpha=alpha, label="Hinterland barge berths")
         ax2.bar([x + 4.0 * width for x in years], on_hinterland_cranes, width=width, alpha=alpha, label="Hinterland barge cranes")
-        ax2.bar([x + 5.0 * width for x in years], on_hinterland_gates, width=width, alpha=alpha, label="Hinterland lanes")
+        ax2.bar([x + 5.0 * width for x in years], on_gates, width=width, alpha=alpha, label="Lanes")
 
         # ax2.set_xlabel('Years', fontsize='large')
         ax2.set_ylabel('Elements [nr]', fontsize='large')
@@ -3871,20 +4238,11 @@ class System:
         ax3.step(years, demand['onshore'].values, where='mid', color='tab:gray', label='Demand')
         ax3.grid(False, which='major')
 
-        if self.lifecycle == 10:
-            ax2.legend(loc='lower left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large', title="Onshore terminal elements", title_fontsize='large')
-            # ax2.set_yticks([0, 2, 4, 6, 8, 10, 12, 14, 16, 18])
-            ax3.set_yticks([0,250_000,500_000,750_000,1_000_000])
-            ax3.set_yticklabels(["","250,000","500,000","750,000","1,000,000"], fontsize='large')
-            ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large')
-        if self.lifecycle == 20:
-            ax2.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large', title="Onshore terminal elements", title_fontsize='large')
-            ax3.set_ylim(0, max(demand['onshore'].values) * 1.05)
-            ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
-                       fontsize='large', bbox_to_anchor=(0.2, 1.0))
+        ax2.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
+                   fontsize='large', title="Onshore terminal elements", title_fontsize='large')
+        ax3.set_ylim(0, max(demand['onshore'].values) * 1.05)
+        ax3.legend(loc='upper left', fancybox=True, shadow=False, framealpha=1.0,
+                   fontsize='large', bbox_to_anchor=(0.2, 1.0))
         fig.tight_layout()
 
         plt.setp(ax1.patches, linewidth=0)
@@ -3946,18 +4304,18 @@ class System:
         def generate_terminal_capacity_plot():
             fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 10))
 
-            ax1.bar(years, STS_cranes_capacity, width=width, alpha=alpha, label="Offshore Terminal Capacity")
+            ax1.bar(years, STS_cranes_capacity, width=width, alpha=alpha, label="OGV Berth Capacity")
             ax1.step(years, demand['offshore'].values, where='mid', label='Demand', color='tab:gray')
 
             ax1.set_title('Offshore Terminal', fontsize='large')
             ax1.set_ylabel('Throughput capacity [TEU/year]', fontsize='large')
             ax1.set_xticks([x for x in years])
             ax1.set_xticklabels(years, fontsize='large')
-            ax1.set_yticks([0,250_000,500_000,750_000,1_000_000,1_250_000])
-            ax1.set_yticklabels(["","250,000","500,000","750,000","1,000,000","1,250,000"], fontsize='large')
+            # ax1.set_yticks([0, 250_000, 500_000, 750_000, 1_000_000, 1_250_000])
+            # ax1.set_yticklabels(["", "250,000", "500,000", "750,000", "1,000,000", "1,250,000"], fontsize='large')
             ax1.legend(fontsize='large')
 
-            ax2.bar(years, barge_cranes_capacity, width=width, alpha=alpha, label="Onshore Terminal Capacity")
+            ax2.bar(years, barge_cranes_capacity, width=width, alpha=alpha, label="Barge Berth Capacity")
             ax2.step(years, demand['onshore'].values, where='mid', label='Demand', color='tab:grey')
 
             ax2.set_title('Onshore Terminal', fontsize='large')
@@ -3965,8 +4323,8 @@ class System:
             ax2.set_ylabel('Throughput capacity [TEU/year]', fontsize='large')
             ax2.set_xticks([x for x in years])
             ax2.set_xticklabels(years, fontsize='large')
-            ax2.set_yticks([0,250_000,500_000,750_000,1_000_000])
-            ax2.set_yticklabels(["","250,000","500,000","750,000","1,000,000"], fontsize='large')
+            # ax2.set_yticks([0, 250_000, 500_000, 750_000, 1_000_000])
+            # ax2.set_yticklabels(["", "250,000", "500,000", "750,000", "1,000,000"], fontsize='large')
             ax2.legend(fontsize='large')
 
             plt.setp(ax1.patches, linewidth=0)
@@ -3980,22 +4338,14 @@ class System:
     def terminal_land_use_plot(self, display_df=True, width=0.25, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
-        "get land use"
+        "get offshore land use"
         years = []
         OGV_quay_land_use = []
         offshore_stack_land_use = []
         offshore_empty_land_use = []
         offshore_oog_land_use = []
-        offshore_gate_land_use = []
         offshore_general_land_use = []
-
-        onshore_gate_land_use = []
-        onshore_stack_land_use = []
-        onshore_empty_land_use = []
-        onshore_oog_land_use = []
-        onshore_general_land_use = []
-        hinterland_gate_land_use = []
-        hinterland_barge_land_use = []
+        offshore_barge_land_use = []
 
         for year in range(self.startyear, self.startyear + self.lifecycle):
             years.append(year)
@@ -4003,16 +4353,8 @@ class System:
             offshore_stack_land_use.append(0)
             offshore_empty_land_use.append(0)
             offshore_oog_land_use.append(0)
-            offshore_gate_land_use.append(0)
             offshore_general_land_use.append(0)
-
-            onshore_gate_land_use.append(0)
-            onshore_stack_land_use.append(0)
-            onshore_empty_land_use.append(0)
-            onshore_oog_land_use.append(0)
-            onshore_general_land_use.append(0)
-            hinterland_gate_land_use.append(0)
-            hinterland_barge_land_use.append(0)
+            offshore_barge_land_use.append(0)
 
             for element in self.elements:
                 if isinstance(element, Quay_Wall):
@@ -4027,16 +4369,37 @@ class System:
                 if isinstance(element, OOG_Stack):
                     if year >= element.year_online:
                         offshore_oog_land_use[-1] += element.offshore_land_use
-                if isinstance(element, Offshore_Gate):
-                    if year >= element.year_online:
-                        offshore_gate_land_use[-1] += element.offshore_land_use
                 if isinstance(element, General_Services):
                     if year >= element.year_online:
                         offshore_general_land_use[-1] += element.offshore_land_use
-
-                if isinstance(element, Onshore_Gate):
+                if isinstance(element, Offshore_Barge_Quay_Wall):
                     if year >= element.year_online:
-                        onshore_gate_land_use[-1] += element.onshore_land_use
+                        offshore_barge_land_use[-1] += element.offshore_land_use
+
+        "get onshore land use"
+        years = []
+        onshore_barge_land_use = []
+        onshore_stack_land_use = []
+        onshore_empty_land_use = []
+        onshore_oog_land_use = []
+        onshore_general_land_use = []
+        hinterland_barge_land_use = []
+        hinterland_gate_land_use = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+            onshore_barge_land_use.append(0)
+            onshore_stack_land_use.append(0)
+            onshore_empty_land_use.append(0)
+            onshore_oog_land_use.append(0)
+            onshore_general_land_use.append(0)
+            hinterland_barge_land_use.append(0)
+            hinterland_gate_land_use.append(0)
+
+            for element in self.elements:
+                if isinstance(element, Onshore_Barge_Quay_Wall):
+                    if year >= element.year_online:
+                        onshore_barge_land_use[-1] += element.onshore_land_use
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
                         onshore_stack_land_use[-1] += element.onshore_land_use
@@ -4049,36 +4412,74 @@ class System:
                 if isinstance(element, General_Services):
                     if year >= element.year_online:
                         onshore_general_land_use[-1] += element.onshore_land_use
-                if isinstance(element, Hinterland_Gate):
-                    if year >= element.year_online:
-                        hinterland_gate_land_use[-1] += element.onshore_land_use
                 if isinstance(element, Hinterland_Barge_Quay_Wall):
                     if year >= element.year_online:
                         hinterland_barge_land_use[-1] += element.onshore_land_use
+                if isinstance(element, Hinterland_Gate):
+                    if year >= element.year_online:
+                        hinterland_gate_land_use[-1] += element.onshore_land_use
 
-        def land_use_df():
-            total_land_use = [OGV_quay_land_use, offshore_stack_land_use, offshore_empty_land_use, offshore_oog_land_use, offshore_gate_land_use, offshore_general_land_use]
-            total_land_use = sum(map(np.array, total_land_use)) / 10000
+        def offshore_land_use_df():
+            offshore_total_land_use = [OGV_quay_land_use, offshore_stack_land_use, offshore_empty_land_use,
+                                       offshore_oog_land_use, offshore_general_land_use, offshore_barge_land_use]
+            offshore_total_land_use = sum(map(np.array, offshore_total_land_use)) / 10000
             convert_ha = 10_000
+
+            apron_land_use_ha = np.divide(OGV_quay_land_use, convert_ha)
             stack_land_use_ha = np.divide(offshore_stack_land_use, convert_ha)
             oog_land_use_ha = np.divide(offshore_oog_land_use, convert_ha)
             empty_land_use_ha = np.divide(offshore_empty_land_use, convert_ha)
+            general_land_use_ha = np.divide(offshore_general_land_use, convert_ha)
+            barge_land_use_ha = np.divide(offshore_barge_land_use, convert_ha)
+
             storage_land_use_ha = sum(map(np.array, [stack_land_use_ha, oog_land_use_ha, empty_land_use_ha]))
-            land_use_df = pd.DataFrame(list(zip(years, stack_land_use_ha, oog_land_use_ha, empty_land_use_ha, storage_land_use_ha, total_land_use)),
-                                       columns=['Year', 'Laden stack (ha)', 'OOG stack (ha)', 'Empty stack (ha)', 'Total storage (ha)', 'Total land use (ha)'])
+            land_use_df = pd.DataFrame(list(zip(years, apron_land_use_ha, stack_land_use_ha, oog_land_use_ha, empty_land_use_ha,
+                                                general_land_use_ha, barge_land_use_ha,
+                                                storage_land_use_ha, offshore_total_land_use)),
+                                       columns=['Year', 'OGV apron (ha)', 'Laden stack (ha)', 'OOG stack (ha)', 'Empty stack (ha)',
+                                                'General services (ha)', 'Barge area (ha)',
+                                                'Total storage (ha)', 'Total land use (ha)'])
             land_use_df.set_index('Year', inplace=True)
             if display_df == True:
                 display(land_use_df)
-        land_use_df()
+
+        offshore_land_use_df()
+
+        def onshore_land_use_df():
+            onshore_total_land_use = [onshore_barge_land_use, onshore_stack_land_use, onshore_empty_land_use,
+                                      onshore_oog_land_use, onshore_general_land_use, hinterland_barge_land_use, hinterland_gate_land_use]
+            onshore_total_land_use = sum(map(np.array, onshore_total_land_use)) / 10000
+            convert_ha = 10_000
+
+            barge_land_use_ha = np.divide(onshore_barge_land_use, convert_ha)
+            stack_land_use_ha = np.divide(onshore_stack_land_use, convert_ha)
+            oog_land_use_ha = np.divide(onshore_oog_land_use, convert_ha)
+            empty_land_use_ha = np.divide(onshore_empty_land_use, convert_ha)
+            general_land_use_ha = np.divide(onshore_general_land_use, convert_ha)
+            hinterland_barge_land_use_ha = np.divide(hinterland_barge_land_use, convert_ha)
+            hinterland_gate_land_use_ha = np.divide(hinterland_gate_land_use, convert_ha)
+
+            storage_land_use_ha = sum(map(np.array, [stack_land_use_ha, oog_land_use_ha, empty_land_use_ha]))
+            land_use_df = pd.DataFrame(list(zip(years, barge_land_use_ha, stack_land_use_ha, oog_land_use_ha, empty_land_use_ha,
+                                                general_land_use_ha, hinterland_barge_land_use_ha, hinterland_gate_land_use_ha,
+                                                storage_land_use_ha, onshore_total_land_use)),
+                                       columns=['Year', 'Barge apron (ha)', 'Laden stack (ha)', 'OOG stack (ha)', 'Empty stack (ha)',
+                                                'General services (ha)', 'Hinterland barge area (ha)', 'Gate area (ha)',
+                                                'Total storage (ha)', 'Total land use (ha)'])
+            land_use_df.set_index('Year', inplace=True)
+            if display_df == True:
+                display(land_use_df)
+
+        onshore_land_use_df()
 
         OGV_quay_land_use = [x * 0.0001 for x in OGV_quay_land_use]
         offshore_stack_land_use = [x * 0.0001 for x in offshore_stack_land_use]
         offshore_empty_land_use = [x * 0.0001 for x in offshore_empty_land_use]
         offshore_oog_land_use = [x * 0.0001 for x in offshore_oog_land_use]
-        offshore_gate_land_use = [x * 0.0001 for x in offshore_gate_land_use]
+        offshore_barge_land_use = [x * 0.0001 for x in offshore_barge_land_use]
         offshore_general_land_use = [x * 0.0001 for x in offshore_general_land_use]
 
-        onshore_gate_land_use = [x * 0.0001 for x in onshore_gate_land_use]
+        onshore_barge_land_use = [x * 0.0001 for x in onshore_barge_land_use]
         onshore_stack_land_use = [x * 0.0001 for x in onshore_stack_land_use]
         onshore_empty_land_use = [x * 0.0001 for x in onshore_empty_land_use]
         onshore_oog_land_use = [x * 0.0001 for x in onshore_oog_land_use]
@@ -4090,14 +4491,14 @@ class System:
         off_quay_stack = np.add(OGV_quay_land_use, offshore_stack_land_use).tolist()
         off_quay_empty = np.add(off_quay_stack, offshore_empty_land_use).tolist()
         off_quay_oog = np.add(off_quay_empty, offshore_oog_land_use).tolist()
-        off_quay_gate = np.add(off_quay_oog, offshore_gate_land_use).tolist()
+        off_quay_barge = np.add(off_quay_oog, offshore_barge_land_use).tolist()
 
         # onshore
-        on_quay_stack = np.add(onshore_gate_land_use, onshore_stack_land_use).tolist()
+        on_quay_stack = np.add(onshore_barge_land_use, onshore_stack_land_use).tolist()
         on_quay_empty = np.add(on_quay_stack, onshore_empty_land_use).tolist()
         on_quay_oog = np.add(on_quay_empty, onshore_oog_land_use).tolist()
-        on_quay_gate = np.add(on_quay_oog, hinterland_gate_land_use).tolist()
-        on_quay_barge = np.add(on_quay_gate, hinterland_barge_land_use).tolist()
+        on_quay_barge = np.add(on_quay_oog, hinterland_barge_land_use).tolist()
+        on_quay_gate = np.add(on_quay_barge, hinterland_gate_land_use).tolist()
 
         def generate_land_use_plot():
             fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
@@ -4107,31 +4508,31 @@ class System:
             ax1.bar(years, offshore_stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=OGV_quay_land_use)
             ax1.bar(years, offshore_empty_land_use, width=width, alpha=alpha, label="Empty Stack", bottom=off_quay_stack)
             ax1.bar(years, offshore_oog_land_use, width=width, alpha=alpha, label="OOG Stack", bottom=off_quay_empty)
-            ax1.bar(years, offshore_gate_land_use, width=width, alpha=alpha, label="Offshore Gate", bottom=off_quay_oog)
-            ax1.bar(years, offshore_general_land_use, width=width, alpha=alpha, label="General Services", bottom=off_quay_gate)
+            ax1.bar(years, offshore_barge_land_use, width=width, alpha=alpha, label="Barge Area", bottom=off_quay_oog)
+            ax1.bar(years, offshore_general_land_use, width=width, alpha=alpha, label="General Services", bottom=off_quay_barge)
 
             # ax1.set_xlabel('Years', fontsize='large')
             ax1.set_ylabel('Land use [ha]', fontsize='large')
             ax1.set_title('Offshore Terminal', fontsize='large')
             ax1.set_xticks([x for x in years])
             ax1.set_xticklabels(years, fontsize='large')
-            ax1.legend(loc='lower left', fontsize='large')
+            ax1.legend(loc='upper left', fontsize='large')
 
             'onshore'
-            ax2.bar(years, onshore_gate_land_use, width=width, alpha=alpha, label="Onshore Gate")
-            ax2.bar(years, onshore_stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=onshore_gate_land_use)
+            ax2.bar(years, onshore_barge_land_use, width=width, alpha=alpha, label="Barge Apron")
+            ax2.bar(years, onshore_stack_land_use, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=onshore_barge_land_use)
             ax2.bar(years, onshore_empty_land_use, width=width, alpha=alpha, label="Empty Stack", bottom=on_quay_stack)
             ax2.bar(years, onshore_oog_land_use, width=width, alpha=alpha, label="OOG Stack", bottom=on_quay_empty)
-            ax2.bar(years, hinterland_gate_land_use, width=width, alpha=alpha, label="Hinterland Gate", bottom=on_quay_oog)
-            ax2.bar(years, hinterland_barge_land_use, width=width, alpha=alpha, label="Hinterland Barge Area", bottom=on_quay_gate)
-            ax2.bar(years, onshore_general_land_use, width=width, alpha=alpha, label="General Services", bottom=on_quay_barge)
+            ax2.bar(years, hinterland_barge_land_use, width=width, alpha=alpha, label="Hinterland Barge Area", bottom=on_quay_oog)
+            ax2.bar(years, hinterland_gate_land_use, width=width, alpha=alpha, label="Hinterland Gate", bottom=on_quay_barge)
+            ax2.bar(years, onshore_general_land_use, width=width, alpha=alpha, label="General Service Area", bottom=on_quay_gate)
 
             ax2.set_xlabel('Years', fontsize='large')
             ax2.set_ylabel('Land use [ha]', fontsize='large')
             ax2.set_title('Onshore Terminal', fontsize='large')
             ax2.set_xticks([x for x in years])
             ax2.set_xticklabels(years, fontsize='large')
-            ax2.legend(loc='lower left', fontsize='large')
+            ax2.legend(loc='upper left', fontsize='large')
 
             fig.tight_layout()
 
@@ -4140,6 +4541,7 @@ class System:
 
             ax1.grid(False, which='major')
             ax2.grid(False, which='major')
+
         generate_land_use_plot()
 
     def storage_capacity_plot(self, display_df=True, width=0.25, alpha=0.6):
@@ -4150,6 +4552,7 @@ class System:
         off_stack_storage_capacity = []
         off_empty_storage_capacity = []
         off_oog_storage_capacity = []
+
         on_stack_storage_capacity = []
         on_empty_storage_capacity = []
         on_oog_storage_capacity = []
@@ -4159,6 +4562,7 @@ class System:
             off_stack_storage_capacity.append(0)
             off_empty_storage_capacity.append(0)
             off_oog_storage_capacity.append(0)
+
             on_stack_storage_capacity.append(0)
             on_empty_storage_capacity.append(0)
             on_oog_storage_capacity.append(0)
@@ -4186,6 +4590,7 @@ class System:
             if display_df == True:
                 display(storage_capacity_df)
             return storage_capacity
+
         off_storage_capacity = storage_capacity_df(off_stack_storage_capacity, off_empty_storage_capacity, off_oog_storage_capacity)
         on_storage_capacity = storage_capacity_df(on_stack_storage_capacity, on_empty_storage_capacity, on_oog_storage_capacity)
 
@@ -4199,26 +4604,26 @@ class System:
             ax1.bar(years, off_stack_storage_capacity, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
             ax1.bar(years, off_empty_storage_capacity, width=width, alpha=alpha, label="Empty Stack", bottom=off_stack_storage_capacity)
             ax1.bar(years, off_oog_storage_capacity, width=width, alpha=alpha, label="OOG Stack", bottom=off_stack_empty)
-            # ax1.step(years, off_storage_capacity, where='mid', color='tab:gray', label="Total storage capacity")
+            ax1.step(years, off_storage_capacity, where='mid', color='tab:gray', label="Total storage capacity")
 
             # ax1.set_xlabel('Years')
             ax1.set_ylabel('Storage Capacity [TEU]', fontsize='large')
             ax1.set_title('Offshore Storage Capacity', fontsize='large')
             ax1.set_xticks([x for x in years])
             ax1.set_xticklabels(years, fontsize='large')
-            ax1.legend(fontsize='large')
+            ax1.legend(loc='upper left', fontsize='large')
 
             ax2.bar(years, on_stack_storage_capacity, width=width, alpha=alpha, label="Laden and Reefer Stack", bottom=None)
             ax2.bar(years, on_empty_storage_capacity, width=width, alpha=alpha, label="Empty Stack", bottom=on_stack_storage_capacity)
             ax2.bar(years, on_oog_storage_capacity, width=width, alpha=alpha, label="OOG Stack", bottom=on_stack_empty)
-            # ax2.step(years, on_storage_capacity, where='mid', color='tab:gray', label="Total storage capacity")
+            ax2.step(years, on_storage_capacity, where='mid', color='tab:gray', label="Total storage capacity")
 
             ax2.set_xlabel('Years', fontsize='large')
             ax2.set_ylabel('Storage Capacity [TEU]', fontsize='large')
             ax2.set_title('Onshore Storage Capacity', fontsize='large')
             ax2.set_xticks([x for x in years])
             ax2.set_xticklabels(years, fontsize='large')
-            ax2.legend(fontsize='large')
+            ax2.legend(loc='upper left', fontsize='large')
 
             plt.setp(ax1.patches, linewidth=0)
             plt.setp(ax2.patches, linewidth=0)
@@ -4249,19 +4654,19 @@ class System:
         on_fuel = cash_flows_df['Onshore Fuel'].values
         on_labour = cash_flows_df['Onshore Labour'].values
         data_onshore = {'Maintenance': on_maintenance,
-                         'Insurance': on_insurance,
-                         'Energy': on_energy,
-                         'Fuel': on_fuel,
-                         'Labour': on_labour}
+                        'Insurance': on_insurance,
+                        'Energy': on_energy,
+                        'Fuel': on_fuel,
+                        'Labour': on_labour}
         onshore_opex_df = pd.DataFrame(data_onshore, years)
 
-        truck_operations = cash_flows_df['Truck Operations'].values
-        truck_maintenance = cash_flows_df['Truck Maintenance'].values
-        truck_labour = cash_flows_df['Truck Labour'].values
-        data_truck = {'Operations': truck_operations,
-                      'Maintenance': truck_maintenance,
-                      'Labour': truck_labour}
-        truck_opex_df = pd.DataFrame(data_truck, years)
+        barge_operations = cash_flows_df['Barge Operations'].values
+        barge_maintenance = cash_flows_df['Barge Maintenance'].values
+        barge_labour = cash_flows_df['Barge Labour'].values
+        data_barge = {'Operations': barge_operations,
+                      'Maintenance': barge_maintenance,
+                      'Labour': barge_labour}
+        barge_opex_df = pd.DataFrame(data_barge, years)
 
         ocean_transport = cash_flows_df['Ocean Transport'].values
         data_ocean_transport = {'Ocean Transport': ocean_transport}
@@ -4270,7 +4675,7 @@ class System:
         if display_df == True:
             print("Offshore"), display(offshore_opex_df)
             print("Onshore"), display(onshore_opex_df)
-            print("Trucks"), display(truck_opex_df)
+            print("Barges"), display(barge_opex_df)
             print("Ocean Transport"), display(ocean_transport_df)
 
         "generate plot"
@@ -4284,7 +4689,7 @@ class System:
         on_bottom_2 = on_bottom_1 + on_energy
         on_bottom_3 = on_bottom_2 + on_fuel
 
-        truck_bottom = truck_operations + truck_maintenance
+        barge_bottom = barge_operations + barge_maintenance
 
         bar1 = ax.bar([x - 1.5 * width for x in years], ocean_transport, width=width, color='tab:blue', alpha=0.8, bottom=None, label="Ocean Transport")
 
@@ -4294,15 +4699,15 @@ class System:
         bar5 = ax.bar([x - 0.5 * width for x in years], off_fuel, width=width, color='darkcyan', alpha=0.7, bottom=off_bottom_2, label="Fuel")
         bar6 = ax.bar([x - 0.5 * width for x in years], off_labour, width=width, color='darkcyan', alpha=0.6, bottom=off_bottom_3, label="Labour")
 
-        bar7 = ax.bar([x + 0.5 * width for x in years],  on_maintenance, width=width, color='mediumseagreen', alpha=1.0, bottom=None, label="Maintenance")
-        bar8 = ax.bar([x + 0.5 * width for x in years],  on_insurance, width=width, color='mediumseagreen', alpha=0.9, bottom=on_maintenance, label="Insurance")
-        bar9 = ax.bar([x + 0.5 * width for x in years],  on_energy, width=width, color='mediumseagreen', alpha=0.8, bottom=on_bottom_1, label="Energy")
+        bar7 = ax.bar([x + 0.5 * width for x in years], on_maintenance, width=width, color='mediumseagreen', alpha=1.0, bottom=None, label="Maintenance")
+        bar8 = ax.bar([x + 0.5 * width for x in years], on_insurance, width=width, color='mediumseagreen', alpha=0.9, bottom=on_maintenance, label="Insurance")
+        bar9 = ax.bar([x + 0.5 * width for x in years], on_energy, width=width, color='mediumseagreen', alpha=0.8, bottom=on_bottom_1, label="Energy")
         bar10 = ax.bar([x + 0.5 * width for x in years], on_fuel, width=width, color='mediumseagreen', alpha=0.7, bottom=on_bottom_2, label="Fuel")
         bar11 = ax.bar([x + 0.5 * width for x in years], on_labour, width=width, color='mediumseagreen', alpha=0.6, bottom=on_bottom_3, label="Labour")
 
-        bar12 = ax.bar([x + 1.5 * width for x in years], truck_operations, width=width, color='darkgreen', alpha=1.0, bottom=None, label="Energy")
-        bar13 = ax.bar([x + 1.5 * width for x in years], truck_maintenance, width=width, color='darkgreen', alpha=0.8, bottom=truck_operations, label="Fuel")
-        bar14 = ax.bar([x + 1.5 * width for x in years], truck_labour, width=width, color='darkgreen', alpha=0.6, bottom=truck_bottom, label="Labour")
+        bar12 = ax.bar([x + 1.5 * width for x in years], barge_operations, width=width, color='darkgreen', alpha=1.0, bottom=None, label="Energy")
+        bar13 = ax.bar([x + 1.5 * width for x in years], barge_maintenance, width=width, color='darkgreen', alpha=0.8, bottom=barge_operations, label="Fuel")
+        bar14 = ax.bar([x + 1.5 * width for x in years], barge_labour, width=width, color='darkgreen', alpha=0.6, bottom=barge_bottom, label="Labour")
 
         ax.set_xlabel('Years', fontsize='large')
         ax.set_ylabel('Opex [M US$]', fontsize='large')
@@ -4310,8 +4715,7 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years, fontsize='large')
         ax.set_xlim([self.startyear, self.startyear + self.lifecycle])
-        ax.set_yticks([0, 10_000_000, 20_000_000, 30_000_000, 40_000_000, 50_000_000, 60_000_000, 70_000_000, 80_000_000])
-        ax.set_yticklabels(["", "$ 10.0M", "$ 20.0M", "$ 30.0M", "$ 40.0M", "$ 50.0M", "$ 60.0M", "$ 70.0M", "$ 80.0M", "$ 90.0M"])
+        # ax.set_yticklabels(["", "$ 10.0M", "$ 20.0M", "$ 30.0M", "$ 40.0M", "$ 50.0M", "$ 60.0M", "$ 70.0M", "$ 80.0M", "$ 90.0M"])
 
         first_leg = ax.legend(handles=[bar2, bar3, bar4, bar5, bar6],
                               loc='upper left', bbox_to_anchor=(0, 0.90), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
@@ -4325,7 +4729,7 @@ class System:
 
         third_leg = ax.legend(handles=[bar12, bar13, bar14],
                               loc='upper left', bbox_to_anchor=(0, 0.40), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
-                              title="Truck", title_fontsize='large')
+                              title="Barge", title_fontsize='large')
         add_third_leg = plt.gca().add_artist(third_leg)
 
         ax.legend(handles=[bar1],
@@ -4335,50 +4739,16 @@ class System:
         plt.setp(ax.patches, linewidth=0)
         ax.grid(False, which='major')
 
-        # def old_opex_plot():
-            # "generate plot"
-            # fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 12))
-            # ax1.step(years, off_maintenance, label='Maintenance', where='mid')
-            # ax1.step(years, off_insurance, label='Insurance', where='mid')
-            # ax1.step(years, off_energy, label='Energy', where='mid')
-            # ax1.step(years, off_fuel, label='Fuel', where='mid')
-            # ax1.step(years, off_labour, label='Labour', where='mid')
-            # ax1.set_xlabel('Years')
-            # ax1.set_ylabel('Opex [M US$]')
-            # ax1.set_title('Opex Onshore Terminal')
-            # ax1.set_xticks([x for x in years])
-            # ax1.set_xticklabels(years)
-            # # ax1.set_yticks(np.arange(0, 1000 * 10^6, 100 * 10^6))
-            # ax1.legend()
 
-            # ax2.step(years, on_maintenance, label='Maintenance', where='mid')
-            # ax2.step(years, on_insurance, label='Insurance', where='mid')
-            # ax2.step(years, on_energy, label='Energy', where='mid')
-            # ax2.step(years, on_fuel, label='Fuel', where='mid')
-            # ax2.step(years, on_labour, label='Labour', where='mid')
-            # ax2.set_xlabel('Years')
-            # ax2.set_ylabel('Opex [M US$]')
-            # ax2.set_title('Opex Offshore Terminal')
-            # ax2.set_xticks([x for x in years])
-            # ax2.set_xticklabels(years)
-            # ax2.legend()
-
-            # plt.setp(ax1.patches, linewidth=0)
-            # plt.setp(ax2.patches, linewidth=0)
-
-    def element_cashflow_plot(self,  fig_x = 16, fig_y = 8, include_dredging = True):
-        NPV, PV_df, costs_df, costs_df_sum = self.net_present_value(False)
+    def element_cashflow_plot(self, fig_x=16, fig_y=8):
+        NPV, PV_df, costs_df = self.net_present_value(False)
 
         """Gather data from Terminal elements and combine into a barplot"""
 
-        if include_dredging == True:
-            element = ["Reclamation", "Offshore Capex", "Offshore Opex", "Onshore Capex", "Onshore Opex",
-                       "Capital Dredging", "Main. Dredging", "Bridge Construction", "Bridge Main.",
-                       "Truck Investment", "Truck Operations", "Ocean Transport"]
-        else:
-            element = ["Reclamation", "Offshore Capex", "Offshore Opex", "Onshore Capex", "Onshore Opex",
-                       "Bridge Construction", "Bridge Main.",
-                       "Truck Investment", "Truck Operations", "Ocean Transport"]
+        element = ["Reclamation", "Offshore Capex", "Offshore Opex", "Onshore Capex", "Onshore Opex",
+                   "Capital Dredging", "Main. Dredging",
+                   "Barge Investment", "Barge Operations",
+                   "Ocean Transport"]
 
         costs = []
         costs.append(sum(costs_df['Reclamation']))
@@ -4386,13 +4756,10 @@ class System:
         costs.append(sum(costs_df['Offshore Opex']))
         costs.append(sum(costs_df['Onshore Capex']))
         costs.append(sum(costs_df['Onshore Opex']))
-        if include_dredging == True:
-            costs.append(sum(costs_df['Capital Dredging']))
-            costs.append(sum(costs_df['Maintenance Dredging']))
-        costs.append(sum(costs_df['Bridge Capex']))
-        costs.append(sum(costs_df['Bridge Opex']))
-        costs.append(sum(costs_df['Truck Capex']))
-        costs.append(sum(costs_df['Truck Opex']))
+        costs.append(sum(costs_df['Capital Dredging']))
+        costs.append(sum(costs_df['Maintenance Dredging']))
+        costs.append(sum(costs_df['Barge Capex']))
+        costs.append(sum(costs_df['Barge Opex']))
         costs.append(sum(costs_df['Ocean Transport']))
 
         df = pd.DataFrame()
@@ -4409,8 +4776,8 @@ class System:
         ax.set_ylabel('PV of the costs [US$]', fontsize='large')
         ax.set_title('Cost estimates', fontsize='large')
 
-        ax.set_yticks([0, 250_000_000, 500_000_000, 750_000_000, 1_000_000_000, 1_250_000_000, 1_500_000_000, 1_750_000_000, 2_000_000_000])
-        ax.set_yticklabels(["", "$ 250M", "$ 500M", "$ 750M", "$ 1,000M", "$ 1,250M", "$ 1,500M", "$ 1,750M", "$ 2,000M"], fontsize='large')
+        # ax.set_yticks([0, 250_000_000, 500_000_000, 750_000_000, 1_000_000_000, 1_250_000_000, 1_500_000_000])
+        # ax.set_yticklabels(["", "$ 250M", "$ 500M", "$ 750M", "$ 1,000M", "$ 1,250M", "$ 1,500M"], fontsize='large')
 
     def cashflow_plot(self, cash_flows_df, width=0.3, alpha=0.6):
         """Gather data from Terminal elements and combine into a cash flow plot"""
@@ -4439,27 +4806,21 @@ class System:
                         + cash_flows_df['Onshore Fuel'].values
                         + cash_flows_df['Onshore Labour'].values)
 
-        # dredging
+        # channel
         capital_dredging = cash_flows_df['Capital Dredging'].values
         maintenance_dredging = cash_flows_df['Maintenance Dredging'].values
 
-        # connection
-        bridge_capex = cash_flows_df['Bridge Capex'].values
-        bridge_opex = cash_flows_df['Bridge Opex'].values
-
-        # trucks
-        truck_capex = cash_flows_df['Truck Capex'].values
-        truck_opex = (cash_flows_df['Truck Operations'].values
-                      + cash_flows_df['Truck Maintenance'].values
-                      + cash_flows_df['Truck Labour'].values)
+        # barges
+        barge_capex = cash_flows_df['Barge Capex'].values
+        barge_opex = (cash_flows_df['Barge Operations'].values
+                      + cash_flows_df['Barge Maintenance'].values
+                      + cash_flows_df['Barge Labour'].values)
         ocean_transport = cash_flows_df['Ocean Transport'].values
 
         "sum cash flows to get costs as a function of year"
         costs = (island_construction + coastal_protection_construction + structure_maintenance
                  + offshore_capex + offshore_opex + onshore_capex + onshore_opex
-                 + capital_dredging + maintenance_dredging
-                 + bridge_capex + bridge_opex
-                 + truck_capex + truck_opex + ocean_transport)
+                 + capital_dredging + maintenance_dredging + barge_capex + barge_opex + ocean_transport)
         costs_cum = np.cumsum(costs)
 
         "generate plot"
@@ -4467,31 +4828,27 @@ class System:
 
         capex_terminals = offshore_capex + onshore_capex
         capex_dredging = capex_terminals + capital_dredging
-        capex_bridge = capex_dredging + bridge_capex
-        capex_trucks = capex_bridge + truck_capex
-        capex_island = capex_trucks + island_construction
+        capex_barges = capex_dredging + barge_capex
+        capex_island = capex_barges + island_construction
 
         opex_terminals = offshore_opex + onshore_opex
         opex_dredging = opex_terminals + maintenance_dredging
-        opex_bridge = opex_dredging + bridge_opex
-        opex_trucks = opex_bridge + truck_opex
-        opex_structure = opex_trucks + structure_maintenance
+        opex_barges = opex_dredging + barge_opex
+        opex_OGV = opex_barges + structure_maintenance
 
         bar1 = ax.bar([x + 0.5 * width for x in years], offshore_capex, width=width, color='tab:blue', alpha=1.0, bottom=None, label="Offshore Terminal")
         bar2 = ax.bar([x + 0.5 * width for x in years], onshore_capex, width=width, color='tab:blue', alpha=0.9, bottom=offshore_capex, label="Onshore Terminal")
         bar3 = ax.bar([x + 0.5 * width for x in years], capital_dredging, width=width, color='tab:blue', alpha=0.8, bottom=capex_terminals, label="Capital Dredging")
-        bar3 = ax.bar([x + 0.5 * width for x in years], bridge_capex, width=width, color='tab:blue', alpha=0.675, bottom=capex_dredging, label="Bridge")
-        bar4 = ax.bar([x + 0.5 * width for x in years], truck_capex, width=width, color='tab:blue', alpha=0.55, bottom=capex_bridge, label="Trucks")
-        bar5 = ax.bar([x + 0.5 * width for x in years], island_construction, width=width, color='tab:blue', alpha=0.4, bottom=capex_trucks, label="Reclamation")
+        bar4 = ax.bar([x + 0.5 * width for x in years], barge_capex, width=width, color='tab:blue', alpha=0.6, bottom=capex_dredging, label="Barges")
+        bar5 = ax.bar([x + 0.5 * width for x in years], island_construction, width=width, color='tab:blue', alpha=0.4, bottom=capex_barges, label="Reclamation")
         bar6 = ax.bar([x + 0.5 * width for x in years], coastal_protection_construction, width=width, color='tab:blue', alpha=0.3, bottom=capex_island, label="Coastal Protection")
 
         bar7 = ax.bar([x - 0.5 * width for x in years], offshore_opex, width=width, color='darkcyan', alpha=1.0, bottom=None, label="Offshore Terminal")
-        bar8 = ax.bar([x - 0.5 * width for x in years], onshore_opex, width=width, color='darkcyan', alpha=0.85, bottom=offshore_opex, label="Onshore Terminal")
-        bar9 = ax.bar([x - 0.5 * width for x in years], maintenance_dredging, width=width, color='darkcyan', alpha=0.65, bottom=opex_terminals, label="Maintenance Dredging")
-        bar9 = ax.bar([x - 0.5 * width for x in years], bridge_opex, width=width, color='darkcyan', alpha=0.55, bottom=opex_dredging, label="Bridge Maintenance")
-        bar10 = ax.bar([x - 0.5 * width for x in years], truck_opex, width=width, color='darkcyan', alpha=0.4, bottom=opex_bridge, label="Truck Operations")
-        bar11 = ax.bar([x - 0.5 * width for x in years], structure_maintenance, width=width, color='darkcyan', alpha=0.2, bottom=opex_trucks, label="Coastal Structure Maintenance")
-        bar12 = ax.bar([x - 0.5 * width for x in years], ocean_transport, width=width, color='darkcyan', alpha=0.15, bottom=opex_structure, label="Ocean Transport")
+        bar8 = ax.bar([x - 0.5 * width for x in years], onshore_opex, width=width, color='darkcyan', alpha=0.8, bottom=offshore_opex, label="Onshore Terminal")
+        bar9 = ax.bar([x - 0.5 * width for x in years], maintenance_dredging, width=width, color='darkcyan', alpha=0.6, bottom=opex_terminals, label="Maintenance Dredging")
+        bar10 = ax.bar([x - 0.5 * width for x in years], barge_opex, width=width, color='darkcyan', alpha=0.4, bottom=opex_dredging, label="Barge Operations")
+        bar11 = ax.bar([x - 0.5 * width for x in years], structure_maintenance, width=width, color='darkcyan', alpha=0.2, bottom=opex_barges, label="Coastal Structure Maintenance")
+        bar12 = ax.bar([x - 0.5 * width for x in years], ocean_transport, width=width, color='darkcyan', alpha=0.15, bottom=opex_OGV, label="Ocean Transport")
 
         plot1, = ax.step(years, costs, label="Annual Costs", where='mid', linestyle='-', color='tab:gray', alpha=0.6, zorder=2)
         # plot2, = ax.step(years, costs_cum, label="Cumulative Costs", where='mid', linestyle='-.', color='tab:red', alpha=0.8, zorder=3)
@@ -4499,11 +4856,12 @@ class System:
 
         ax.set_xlabel('Years', fontsize='large')
         ax.set_ylabel('PV of the costs [US$]', fontsize='large')
-        ax.set_title('Time series of capex and opex', fontsize='large')
+        ax.set_title('Cost estimation plot', fontsize='large')
 
-        ax.set_yticks([0, 500_000_000, 1_000_000_000, 1_500_000_000])
-        ax.set_yticklabels(["", "$ 500M", "$ 1,000M", "$ 1,500M"], fontsize='large')
+        # ax.set_yticks([0, 250_000_000, 500_000_000, 750_000_000, 1_000_000_000, 1_250_000_000])
+        # ax.set_yticklabels(["", "$ 250M", "$ 500M", "$ 750M", "$ 1,000M", "$ 1,250M"], fontsize='large')
 
+        # ax.xaxis.tick_top()
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years, fontsize='large')
 
@@ -4511,20 +4869,21 @@ class System:
         #                       loc='upper right', bbox_to_anchor=(1.0, 0.30), fancybox=True, shadow=False, framealpha = 1.0, fontsize='large',
         #                       title="Cost-estimation",title_fontsize='large')
         first_leg = ax.legend(handles=[plot1, ],
-                              loc='upper right', bbox_to_anchor=(1.0, 1.0), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
-                              title="Cost estimation", title_fontsize='large')
+                              loc='upper right', bbox_to_anchor=(0.0, 1.0), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
+                              title="Cost-estimation", title_fontsize='large')
         add_first_leg = plt.gca().add_artist(first_leg)
 
         second_leg = ax.legend(handles=[bar1, bar2, bar3, bar4, bar5, bar6],
-                               loc='upper right', bbox_to_anchor=(1.0, 0.90), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
+                               loc='upper right', bbox_to_anchor=(0.0, 0.90), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
                                title="Capex", title_fontsize='large')
         add_second_leg = plt.gca().add_artist(second_leg)
 
         ax.legend(handles=[bar7, bar8, bar9, bar10, bar11, bar12],
-                  loc='upper right', bbox_to_anchor=(1.0, 0.6), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
+                  loc='upper right', bbox_to_anchor=(0.0, 0.6), fancybox=True, shadow=False, framealpha=1.0, fontsize='large',
                   title="Opex", title_fontsize='large')
 
         # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=False, framealpha = 1.0, ncol=5, fontsize='large')
 
         plt.setp(ax.patches, linewidth=0)
         ax.grid(False, which='major')
+

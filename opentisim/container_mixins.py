@@ -69,7 +69,7 @@ class hascapex_properties_mixin(object):
     capex: list with cost to be applied from investment year"""
 
     def __init__(self, offshore_capex=[], onshore_capex=[],
-                 capital_dredging=[], bridge_construction=[],
+                 capital_dredging=[], bridge_capex=[],
                  island_construction=[], coastal_protection_construction=[],
                  barge_capex=[], truck_capex=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -77,7 +77,7 @@ class hascapex_properties_mixin(object):
         self.offshore_capex = offshore_capex
         self.onshore_capex = onshore_capex
         self.capital_dredging = capital_dredging
-        self.bridge_construction = bridge_construction
+        self.bridge_capex = bridge_capex
         self.island_construction = island_construction
         self.coastal_protection_construction = coastal_protection_construction
         self.barge_capex = barge_capex
@@ -94,8 +94,9 @@ class hasopex_properties_mixin(object):
                  offshore_labour=[], offshore_maintenance=[], offshore_energy=[], offshore_insurance=[], offshore_fuel=[],
                  onshore_labour=[], onshore_maintenance=[], onshore_energy=[], onshore_insurance=[], onshore_fuel=[],
                  demurrage=[], ocean_transport=[],
-                 maintenance_dredging=[], bridge_maintenance=[], structure_maintenance=[],
-                 barge_maintenance=[], barge_operations=[],barge_labour=[], truck_opex=[], truck_maintenance=[],
+                 maintenance_dredging=[], bridge_opex=[], structure_maintenance=[],
+                 barge_maintenance=[], barge_operations=[], barge_labour=[],
+                 truck_maintenance=[], truck_operations=[], truck_labour=[],
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
@@ -120,14 +121,15 @@ class hasopex_properties_mixin(object):
         self.demurrage = demurrage
         self.ocean_transport = ocean_transport
         self.maintenance_dredging = maintenance_dredging
-        self.bridge_maintenance = bridge_maintenance
+        self.bridge_opex = bridge_opex
         self.structure_maintenance = structure_maintenance
 
         self.barge_maintenance = barge_maintenance
         self.barge_operations = barge_operations
         self.barge_labour = barge_labour
-        self.truck_opex = truck_opex
-        self.truck_maintenace = truck_maintenance
+        self.truck_maintenance = truck_maintenance
+        self.truck_operations = truck_operations
+        self.truck_labour = truck_labour
 
 
 class hasrevenue_properties_mixin(object):
@@ -146,10 +148,11 @@ class hasland_properties_mixin(object):
 
     land_use: list with land use to be applied from investment year"""
 
-    def __init__(self, land_use=[], *args, **kwargs):
+    def __init__(self, offshore_land_use=[], onshore_land_use=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         """Initialization"""
-        self.land_use = land_use
+        self.offshore_land_use = offshore_land_use
+        self.onshore_land_use = onshore_land_use
 
 
 class hastriggers_properties_mixin(object):
@@ -214,13 +217,19 @@ class channel_properties_mixin(object):
 
 
 class bridge_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, maintenance_perc, insurance_perc,*args, **kwargs):
+    def __init__(self, ownership, delivery_time, lifespan,
+                 construction_rate_20, construction_rate_30, construction_rate_40, construction_rate_50, construction_rate_60,
+                 maintenance_perc, insurance_perc,*args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
         self.delivery_time = delivery_time
         self.lifespan = lifespan
-        self.unit_rate = unit_rate
+        self.construction_rate_20 = construction_rate_20
+        self.construction_rate_30 = construction_rate_30
+        self.construction_rate_40 = construction_rate_40
+        self.construction_rate_50 = construction_rate_50
+        self.construction_rate_60 = construction_rate_60
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
 
@@ -267,16 +276,21 @@ class breakwater_properties_mixin(object):
 
 
 class truck_properties_mixin(object):
-    def __init__(self, ownership, delivery_time, lifespan, unit_rate, operations_perc, maintenance_perc, insurance_perc, *args, **kwargs):
+    def __init__(self, ownership, delivery_time, lifespan, call_size, unit_rate, operations_perc, maintenance_perc, insurance_perc,
+                 driving_speed, crew, daily_shifts,*args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
         self.delivery_time = delivery_time
         self.lifespan = lifespan
+        self.call_size = call_size
         self.unit_rate = unit_rate
         self.operations_perc = operations_perc
         self.maintenance_perc = maintenance_perc
         self.insurance_perc = insurance_perc
+        self.driving_speed = driving_speed
+        self.crew = crew
+        self.daily_shifts = daily_shifts
 
 
 class cyclic_properties_mixin(object):
