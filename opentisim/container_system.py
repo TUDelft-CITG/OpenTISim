@@ -72,7 +72,7 @@ class System:
 
         # modal split
         self.import_perc = import_perc
-        self.axport_perc = export_perc
+        self.export_perc = export_perc
         self.transhipment_ratio = transhipment_ratio
         self.teu_factor = teu_factor
         self.peak_factor = peak_factor
@@ -200,25 +200,25 @@ class System:
                 print('$$$ Check gate investments (coupled with quay crane presence) ---------------')
             self.gate_invest(year)
 
-            if self.debug:
-                print('')
-                print('$$$ Check general services --------------------------------------------------')
-            self.general_services_invest(year)
-
-        # 3. for each year calculate the general labour, fuel and energy costs (requires insight in realized demands)
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_energy_cost(year)
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_general_labour_cost(year)
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_fuel_cost(year)
-
-        # 4. for each year calculate the demurrage costs (requires insight in realized demands)
-        self.demurrage = []
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_demurrage_cost(year)
+        #     if self.debug:
+        #         print('')
+        #         print('$$$ Check general services --------------------------------------------------')
+        #     self.general_services_invest(year)
+        #
+        # # 3. for each year calculate the general labour, fuel and energy costs (requires insight in realized demands)
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_energy_cost(year)
+        #
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_general_labour_cost(year)
+        #
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_fuel_cost(year)
+        #
+        # # 4. for each year calculate the demurrage costs (requires insight in realized demands)
+        # self.demurrage = []
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_demurrage_cost(year)
 
         # Todo: see if here a method can be implemented to estimate the revenue that is needed to get NPV = 0
         # 5.  for each year calculate terminal revenues
@@ -1099,20 +1099,45 @@ class System:
               - add gate capacity until service_trigger is no longer exceeded
               """
 
-        gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = \
-            self.calculate_gate_minutes(year)
+        # Calculate the cargo split over the quay
+        commodities = core.find_elements(self, Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
 
-        if self.debug:
-            print('     Gate capacity online (@ start of year): {:.2f}'.format(gate_capacity_online))
-            print('     Gate capacity planned (@ start of year): {:.2f}'.format(gate_capacity_planned))
-            print('     Service rate planned (@ start of year): {:.2f}'.format(service_rate_planned))
-            print('     Gate lane minutes  (@ start of year): {:.2f}'.format(total_design_gate_minutes))
+        import_teu = volume * self.import_perc
+        export_teu = volume * self.export_perc
 
-        while service_rate_planned > 1:
+        import_box_moves = import_teu / self.teu_factor
+        export_box_moves = export_teu / self.teu_factor
+
+        gate = Gate(**container_defaults.gate_data)
+
+        # operational weeks per year
+        weeks_year = self.operational_hours/(gate.operating_days*24)
+
+        # find installed gates
+        exit_gate_minutes_planned = 0
+        entry_gate_minutes_planned = 0
+        gates = core.find_elements(self, Gate)
+        for gate in gates:
+            if gate.type == 'exit':
+                exit_gate_minutes_planned += gate.capacity
+            elif gate.type == 'entry':
+                entry_gate_minutes_planned += gate.capacity
+
+        # calculate exit gate minutes
+        exit_gate_minutes_required = import_box_moves * (gate.truck_moves / weeks_year) *\
+            gate.peak_factor * gate.peak_day * gate.peak_hour * gate.exit_inspection_time * gate.design_capacity
+        print('exit_gate_minutes_required {:.2f}'.format(exit_gate_minutes_required))
+        while exit_gate_minutes_required > exit_gate_minutes_planned:
             if self.debug:
-                print('  *** add gate to elements')
+                print('  *** add exit gate to elements')
 
             gate = Gate(**container_defaults.gate_data)
+            gate.type = 'exit'
 
             # - land use
             gate.land_use = gate.area
@@ -1121,8 +1146,7 @@ class System:
             unit_rate = gate.unit_rate
             mobilisation = gate.mobilisation
             canopy = gate.canopy_costs * gate.area
-            cost_of_land = self.land_price
-            gate.capex = int(unit_rate + mobilisation + canopy + (cost_of_land * gate.area))
+            gate.capex = int(unit_rate + mobilisation + canopy + (gate.area * self.land_price))
 
             # - opex
             gate.maintenance = unit_rate * gate.maintenance_perc
@@ -1142,66 +1166,56 @@ class System:
 
             self.elements.append(gate)
 
-            gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes = \
-                self.calculate_gate_minutes(year)
+            exit_gate_minutes_planned += gate.capacity
+        print('exit_gate_minutes_planned {:.2f}'.format(exit_gate_minutes_planned))
+        print('')
 
-    def calculate_gate_minutes(self, year):
-        """
-        - Find all gates and sum their effective_capacity to get service_capacity
-        - Calculate average entry and exit time to get total time at gate
-        - Occupancy is total_minutes_at_gate per hour divided by 1 hour
-        """
+        # calculate entry gate minutes
+        entry_gate_minutes_required = export_box_moves * (gate.truck_moves / weeks_year) *  \
+            gate.peak_factor * gate.peak_day * gate.peak_hour * gate.entry_inspection_time * gate.design_capacity
+        print('entry_gate_minutes_required {:.2f}'.format(entry_gate_minutes_required))
+        while entry_gate_minutes_required > entry_gate_minutes_planned:
+            if self.debug:
+                print('  *** add entry gate to elements')
 
-        # find the online and planned Gate capacity
-        list_of_elements = core.find_elements(self, Gate)
-        gate_capacity_planned = 0
-        gate_capacity_online = 0
-        total_design_gate_minutes = 0
-        if list_of_elements != []:
-            for element in list_of_elements:
-                gate_capacity_planned += element.capacity
-                if year >= element.year_online:
-                    gate_capacity_online += element.capacity
-
-            # estimate time at gate lanes
-            '''Get input: import box moves en export box moves, translate to design gate lanes per hour.
-            Every gate is 60 minutes, which is the capacity. 
-            Dan is het gewoon while totaal is meer dan totale capacity gate toevoegen'''
-
-            ''' Calculate the total throughput in TEU per year'''
-            laden_box, reefer_box, empty_box, oog_box, throughput_box = self.throughput_box(year)
-
-            # half of the transhipment moves is import and half is export
-            import_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
-            export_box_moves = (throughput_box * (1 - self.transhipment_ratio)) * 0.5  # assume import / export is always 50/50
-            weeks_year = 52
-
-            # instantiate a Gate object
             gate = Gate(**container_defaults.gate_data)
+            gate.type = 'entry'
 
-            # Todo: this really needs to be checked
-            design_exit_gate_minutes = import_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
-                gate.peak_day * gate.peak_hour * \
-                gate.exit_inspection_time * gate.design_capacity
+            # - land use
+            gate.land_use = gate.area
 
-            # Todo: this really needs to be checked
-            design_entry_gate_minutes = export_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
-                gate.peak_day * gate.peak_hour * \
-                gate.entry_inspection_time * gate.design_capacity
+            # - capex
+            unit_rate = gate.unit_rate
+            mobilisation = gate.mobilisation
+            canopy = gate.canopy_costs * gate.area
+            gate.capex = int(unit_rate + mobilisation + canopy + (gate.area * self.land_price))
 
-            total_design_gate_minutes = design_entry_gate_minutes + design_exit_gate_minutes
+            # - opex
+            gate.maintenance = unit_rate * gate.maintenance_perc
 
-            service_rate_planned = total_design_gate_minutes / gate_capacity_planned
+            #   labour
+            labour = Labour(**container_defaults.labour_data)
+            gate.shift = gate.crew * labour.daily_shifts
+            gate.labour = gate.shift * labour.blue_collar_salary
 
-        else:
-            service_rate_planned = float("inf")
+            if year == self.startyear:
+                gate.year_online = year + gate.delivery_time + 1
+            else:
+                gate.year_online = year + gate.delivery_time
 
-        return gate_capacity_planned, gate_capacity_online, service_rate_planned, total_design_gate_minutes
+            # add cash flow information to tractor object in a dataframe
+            gate = core.add_cashflow_data_to_element(self, gate)
+
+            self.elements.append(gate)
+
+            entry_gate_minutes_planned += gate.capacity
+        print('entry_gate_minutes_planned {:.2f}'.format(entry_gate_minutes_planned))
 
     def general_services_invest(self, year):
 
-        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
-        throughput = laden_teu + reefer_teu + oog_teu + empty_teu
+        laden_teu, reefer_teu, empty_teu, oog_teu, \
+        laden_box, reefer_box, empty_box, oog_box = self.cargo_split_quay_throughput(year)
+
         cranes = 0
         general = 0
         for element in self.elements:
@@ -1211,7 +1225,6 @@ class System:
             if isinstance(element, General_Services):
                 if year >= element.year_online:
                     general += 1
-        sts_cranes = cranes
 
         general = General_Services(**container_defaults.general_services_data)
 

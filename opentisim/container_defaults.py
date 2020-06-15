@@ -435,13 +435,13 @@ gate_data = {"name": 'Gate',
              "staff_gates": 1,  #
              "service_gates": 1,  #
              "design_capacity": 0.98,  #
-             "exit_inspection_time": 2,  # min #dummy
+             "exit_inspection_time": 3,  # min #dummy
              "entry_inspection_time": 2,  # min #dummy
-             "peak_hour": 0.25,  # dummy
-             "peak_day": 0.1,  # dummy
+             "peak_hour": 0.125,  # dummy
+             "peak_day": 0.25,  # dummy
              "peak_factor": 1.2,
              "truck_moves": 0.75,
-             "operating_days": 6,
+             "operating_days": 7,
              "capacity": 60}
 
 # *** Default inputs: ECH class***
