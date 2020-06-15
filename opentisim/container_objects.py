@@ -92,12 +92,22 @@ Container = type('Container', (container_mixins.identifiable_properties_mixin,  
                                 container_mixins.container_properties_mixin),
                {})
 
-# The generic laden and reefer stack class
+# The generic laden stack class
 # - RTG stack
 # - RMG stack
 # - SC stack
 # - RS stack
 Laden_Stack = type('Laden_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
+                               container_mixins.history_properties_mixin,
+                               container_mixins.laden_stack_properties_mixin,
+                               container_mixins.hasopex_properties_mixin,
+                               container_mixins.hascapex_properties_mixin,  # Give it capex info
+                               container_mixins.hastriggers_properties_mixin,  # Give it investment triggers
+                               container_mixins.hasland_properties_mixin),
+                 {})
+
+# The generic reefer stack class
+Reefer_Stack = type('Reefer_Stack', (container_mixins.identifiable_properties_mixin,  # Give it a name
                                container_mixins.history_properties_mixin,
                                container_mixins.laden_stack_properties_mixin,
                                container_mixins.hasopex_properties_mixin,

@@ -175,9 +175,9 @@ class cyclic_properties_mixin(object):
         self.lifting_capacity = lifting_capacity
         self.hourly_cycles = hourly_cycles
         self.eff_fact = eff_fact
-        self.payload = self.lifting_capacity * 1.0 # for lashing
+        self.payload = self.lifting_capacity * 1.0  # for lashing
         self.peak_capacity = self.payload * self.hourly_cycles
-        self.effective_capacity = int(eff_fact * self.peak_capacity)
+        self.effective_capacity = eff_fact * self.peak_capacity
 
 
 class transport_properties_mixin(object):
@@ -204,19 +204,24 @@ class transport_properties_mixin(object):
 
 
 class container_properties_mixin (object):
-    def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_occupancy,  *args, **kwargs):
+    def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_ratio, stack_occupancy,
+                 width, height, length, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
         self.teu_factor = teu_factor
         self.dwell_time = dwell_time
         self.peak_factor = peak_factor
+        self.stack_ratio = stack_ratio
         self.stack_occupancy = stack_occupancy
+        self.width = width
+        self.height = height
+        self.length = length
 
 
 class laden_stack_properties_mixin (object):
-    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc, width, height,
-                 length, capacity, gross_tgs, area_factor, pavement, drainage, household, digout_margin,
+    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc,
+                 gross_tgs, area_factor, pavement, drainage, household, digout_margin,
                  reefer_factor, consumption, reefer_rack, reefers_present, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
@@ -225,10 +230,6 @@ class laden_stack_properties_mixin (object):
         self.lifespan = lifespan
         self.mobilisation = mobilisation
         self.maintenance_perc = maintenance_perc
-        self.width = width
-        self.height = height
-        self.length = length
-        self.capacity = capacity
         self.gross_tgs = gross_tgs
         self.area_factor = area_factor
         self.pavement = pavement
@@ -240,6 +241,28 @@ class laden_stack_properties_mixin (object):
         self.reefer_rack = reefer_rack
         self.reefers_present = reefers_present
 
+
+class reefer_stack_properties_mixin (object):
+    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc,
+                 gross_tgs, area_factor, pavement, drainage, household, digout_margin,
+                 reefer_factor, consumption, reefer_rack, reefers_present, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.mobilisation = mobilisation
+        self.maintenance_perc = maintenance_perc
+        self.gross_tgs = gross_tgs
+        self.area_factor = area_factor
+        self.pavement = pavement
+        self.drainage = drainage
+        self.household = household
+        self.digout_margin = digout_margin
+        self.reefer_factor = reefer_factor
+        self.consumption = consumption
+        self.reefer_rack = reefer_rack
+        self.reefers_present = reefers_present
 
 
 class empty_stack_properties_mixin (object):

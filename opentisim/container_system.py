@@ -26,13 +26,15 @@ class System:
     - the transhipment ratio
     """
 
-    def __init__(self, terminal_name='Terminal', startyear=2019, lifecycle=20, operational_hours=7500, debug=False,
+    def __init__(self, terminal_name='Terminal', startyear=2019, lifecycle=20, operational_hours=(365-7)*24, debug=False,
                  elements=[],
                  crane_type_defaults=container_defaults.sts_crane_data,
                  stack_equipment='rs', laden_stack='rs',
-                 allowable_waiting_service_time_ratio_berth=0.1, allowable_berth_occupancy=0.6,
+                 allowable_waiting_service_time_ratio_berth=0.1, allowable_berth_occupancy=0.6, kendall='E2/E2/n',
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05,
-                 transhipment_ratio=0.69,
+                 laden_teu_factor=1.6, reefer_teu_factor=1.75, empty_teu_factor=1.55, oog_teu_factor=1.55,
+                 import_perc=0.15, export_perc=0.16, transhipment_ratio=0.69,
+                 teu_factor=1.6, peak_factor=1.3,
                  energy_price=0.17, fuel_price=1, land_price=0):
         # identity
         self.terminal_name = terminal_name
@@ -56,15 +58,24 @@ class System:
         # triggers for the various elements (berth, storage and station)
         self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
+        self.kendall = kendall
 
         # container split
         self.laden_perc = laden_perc
         self.reefer_perc = reefer_perc
         self.empty_perc = empty_perc
         self.oog_perc = oog_perc
+        self.laden_teu_factor = laden_teu_factor
+        self.reefer_teu_factor = reefer_teu_factor
+        self.empty_teu_factor = empty_teu_factor
+        self.oog_teu_factor = oog_teu_factor
 
         # modal split
+        self.import_perc = import_perc
+        self.axport_perc = export_perc
         self.transhipment_ratio = transhipment_ratio
+        self.teu_factor = teu_factor
+        self.peak_factor = peak_factor
 
         # fuel and electrical power price
         self.energy_price = energy_price
@@ -156,8 +167,13 @@ class System:
 
             if self.debug:
                 print('')
-                print('$$$ Check laden and reefer stack investments (coupled with demand) ----------')
-            self.laden_reefer_stack_invest(year)
+                print('$$$ Check laden stack investments (coupled with demand) ----------')
+            self.laden_stack_invest(year)
+
+            if self.debug:
+                print('')
+                print('$$$ Check reefer stack investments (coupled with demand) ----------')
+            self.reefer_stack_invest(year)
 
             if self.debug:
                 print('')
@@ -250,7 +266,7 @@ class System:
                      VLCS, ULCS):
         """
         Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
-        Mulder, 2004) for the berth investments.
+        Mulder, 2004; Van Koningsveld et al., 2020) for the berth investments.
 
         Decision recipe Berth:
            QSC: berth_occupancy & allowable_waiting_service_time_ratio
@@ -278,7 +294,6 @@ class System:
         core.report_element(self, Berth, year)
         core.report_element(self, Quay_wall, year)
         core.report_element(self, Cyclic_Unloader, year)
-        # Todo: check if more elements should be reported here
 
         # calculate planned berth occupancy and planned nr of berths
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
@@ -289,7 +304,7 @@ class System:
         # get the waiting time as a factor of service time
         if berths != 0:
             planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
+                utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths, kendall=self.kendall)
         else:
             planned_waiting_service_time_ratio_berth = np.inf
 
@@ -318,24 +333,12 @@ class System:
             # while planned waiting service time ratio is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
                 if self.debug:
+                    print(' ')
                     print('  *** add Berth to elements')
 
                 berth = Berth(**container_defaults.berth_data)
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
-                berths = len(core.find_elements(self, Berth))
-
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
-                                                   post_panamax_II, new_panamax, VLCS, ULCS)
-                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
-
-                if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
-                        berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             # while planned waiting service time ratio is too large add a berth if a quay is needed
             berths = len(core.find_elements(self, Berth))
@@ -351,7 +354,7 @@ class System:
                     int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"],
                     int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"],
                     int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
-                    ])  # max size
+                    ])  # max length
                 draught = max([
                     int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
                     int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draught"],
@@ -371,34 +374,30 @@ class System:
                           new_panamax * container_defaults.new_panamax_data["LOA"] +
                           VLCS * container_defaults.VLCS_data["LOA"] +
                           ULCS * container_defaults.ULCS_data["LOA"]) / \
-                          (fully_cellular + panamax + panamax_max + post_panamax_I + post_panamax_II + new_panamax +
-                          VLCS + ULCS)
+                         (fully_cellular + panamax + panamax_max + post_panamax_I + post_panamax_II + new_panamax +
+                          VLCS + ULCS)  # average length
 
-                # apply PIANC 2014:
+                # NB: the implementation below takes the first quay to follow the n=1 rule from PIANC (2014), and the
+                # next quays to follow the n>1 rule. Hence for each quay >1 we add 1.1 * (Ls_avg + berthing_gap)
+                # This ensures that in the iteration 1 quay is still always large enough, and when we add another, it
+                # follows the 1.1 * Lav rule. This might give a slight overestimation (!).
+
+                # - length (apply PIANC 2014)
                 berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
                 if quay_walls == 0:  # - length when next quay is n = 1
                     # Lq = Ls,max + (2 x 15) ref: PIANC 2014, p 98
                     length = Ls_max + 2 * berthing_gap
                 else:  # - length when next quay is n > 1
                     # Lq = 1.1 x n x (Ls,avg+15) + 15 ref: PIANC 2014, p 98
-                    length = 1.1 * berths * (Ls_avg + berthing_gap) + berthing_gap
+                    # after the first quay, we add 1.1 * (Ls_avg + berthing_gap).
+                    length = 1.1 * (Ls_avg + berthing_gap)
 
                 # - depth
                 quay_wall = Quay_wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
+
+                # add a quay to self.elements
                 self.quay_invest(year, length, depth)
-
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
-                                                   post_panamax_II, new_panamax, VLCS, ULCS)
-                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
-
-                if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
-                        berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
@@ -411,7 +410,7 @@ class System:
                     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
 
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                    print('     Berth occupancy planned (after adding crane): {:.2f} (trigger level: {:.2f})'.format(
                         berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
                         planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
@@ -419,7 +418,7 @@ class System:
     def quay_invest(self, year, length, depth):
         """
         Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
-        Mulder, 2004) for the quay investments.
+        Mulder, 2004; Van Koningsveld et al, 2020) for the quay investments.
 
         Decision recipe Quay:
            QSC: quay_per_berth
@@ -448,9 +447,9 @@ class System:
         # Todo: check this unit rate estimate
         quay_wall.unit_rate = int(quay_wall.Gijt_constant * quay_wall.retaining_height ** quay_wall.Gijt_coefficient)
         mobilisation = int(max((length * quay_wall.unit_rate * quay_wall.mobilisation_perc), quay_wall.mobilisation_min))
-        apron_pavement = length * quay_wall.apron_width * quay_wall.apron_pavement
-        cost_of_land = length * quay_wall.apron_width * self.land_price
-        quay_wall.capex = int(length * quay_wall.unit_rate + mobilisation + apron_pavement + cost_of_land)
+
+        quay_wall.capex = int(length * quay_wall.unit_rate + mobilisation +  # costs related to the quay wall
+                              length * quay_wall.apron_width * self.land_price)  # costs related to the apron area
 
         # - opex
         quay_wall.insurance = quay_wall.unit_rate * length * quay_wall.insurance_perc
@@ -573,10 +572,6 @@ class System:
             tractor.labour = tractor.shift * labour.blue_collar_salary
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-            # [element.year_online for element in core.find_elements(self, Quay_wall)]
-            # years_online = []
-            # for element in core.find_elements(self, Quay_wall):
-            #     years_online.append(element.year_online)
             years_online = [element.year_online for element in core.find_elements(self, Cyclic_Unloader)]
             tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
 
@@ -591,7 +586,7 @@ class System:
                 print('     a total of {} tractor trailers is online; {} tractor trailers still pending'.format(
                     hor_transport_online, hor_transport_planned - hor_transport_online))
 
-    def laden_reefer_stack_invest(self, year):
+    def laden_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
               - find out how much stack capacity is planned
               - find out how much stack capacity is required
@@ -599,43 +594,43 @@ class System:
         The laden stack has a number of positions for laden containers and a number of positions for reefer containers
         """
 
-        # calculate the required stack capacity once
-        stack_capacity_planned, total_capacity_required, reefer_ground_slots = self.laden_reefer_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_required = self.laden_stack_capacity(year)
 
         if self.debug:
-            print('     Stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
-            print('     Stack capacity required (@ start of year): {:.2f}'.format(total_capacity_required))
+            print('     Laden stack capacity planned (@ start of year): {:.2f} teu'.format(stack_capacity_planned))
+            print('     Laden stack capacity required (@ start of year): {:.2f} teu'.format(stack_capacity_required))
 
         # Required capacity should be ≤ Stack capacity planned.
         # While this is not the case, add stacks (PIANC (2014b), p63)
-        while total_capacity_required > stack_capacity_planned:
+        while stack_capacity_required > stack_capacity_planned:
             if self.debug:
-                print('  *** add laden / reefer stack to elements')
+                print('  *** add laden stack to elements')
 
-            if self.laden_stack == 'rtg':  # Rubber Tired Gantry Crane
+            laden = Container(**container_defaults.laden_container_data)
+            if self.stack_equipment == 'rtg':  # Rubber Tired Gantry Crane
                 stack = Laden_Stack(**container_defaults.rtg_stack_data)
-            elif self.laden_stack == 'rmg':  # Rail Mounted Gantry Crane
+            elif self.stack_equipment == 'rmg':  # Rail Mounted Gantry Crane
                 stack = Laden_Stack(**container_defaults.rmg_stack_data)
-            elif self.laden_stack == 'sc':  # Straddle Carrier
+            elif self.stack_equipment == 'sc':  # Straddle Carrier
                 stack = Laden_Stack(**container_defaults.sc_stack_data)
-            elif self.laden_stack == 'rs':  # Reach Stacker
+            elif self.stack_equipment == 'rs':  # Reach Stacker
                 stack = Laden_Stack(**container_defaults.rs_stack_data)
+            else:  # Rubber Tired Gantry
+                stack = Laden_Stack(**container_defaults.rtg_stack_data)
+            stack.capacity = laden.width * laden.length * laden.height
 
             # - per stack that is added determine the land use
             # alternative calculation method (same result):
             #                 stack.length * stack.width * stack.gross_tgs * stack.area_factor
-            #                     TEU      *     TEU     *  area per ground slot * equipment related area factor
-            stack.land_use = (stack.capacity / stack.height) * stack.gross_tgs * stack.area_factor
+            #                     TEU      *     TEU     *  area per teu ground slot
+            stack.land_use = (laden.width * laden.length) * stack.gross_tgs
+
             pavement = stack.pavement
             drainage = stack.drainage
 
-            # - per stack that is added determine the number of reefer slots (needed for reefer_rack capex)
-            reefer_slots = (self.reefer_perc / (self.laden_perc + self.reefer_perc)) * stack.capacity
-            reefer_racks = reefer_slots * stack.reefer_rack
-
             # - capex
             stack.capex = int(
-                (stack.land_use + pavement + drainage) * self.land_price + stack.mobilisation + reefer_racks)
+                (stack.land_use + pavement + drainage) * self.land_price + stack.mobilisation)
 
             # - opex
             stack.maintenance = int((stack.land_use + pavement + drainage) * stack.maintenance_perc)
@@ -650,65 +645,128 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, total_capacity_required, reefer_ground_slots = self.laden_reefer_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_required = self.laden_stack_capacity(year)
 
-    def laden_reefer_stack_capacity(self, year):
-        """Calculate the stack capacity for laden and reefer containers"""
+        if self.debug:
+            print('     Laden stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
+            print('     Laden stack capacity required (@ start of year): {:.2f}'.format(stack_capacity_required))
 
-        # find the total planned and online laden stack capacity
+    def laden_stack_capacity(self, year):
+
+        # find the total planned laden stack capacity
         list_of_elements = core.find_elements(self, Laden_Stack)
         stack_capacity_planned = 0
-        stack_capacity_online = 0
         for element in list_of_elements:
             stack_capacity_planned += element.capacity
-            if year >= element.year_online:
-                stack_capacity_online += element.capacity
 
-        # determine the on-terminal total TEU/year for every throughput type (types: ladens, reefers, empties, oogs)
-        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
-
-        # Transhipment containers are counted twice in berth throughput calculations – once off the ship and once on the
-        # ship – but are counted only once in the yard capacity calculations. PIANC (2014b), p 63
-        # total positions = half of the amount that it transhipped + the full amount of what is not transhipped
-        ts = self.transhipment_ratio
-        laden_teu = (laden_teu * ts * 0.5) + (laden_teu * (1 - ts))
-        reefer_teu = (reefer_teu * ts * 0.5) + (reefer_teu * (1 - ts))
+        laden_teu_ts, reefer_teu_ts, empty_teu_ts, oog_teu_ts,\
+        laden_box_ts, reefer_box_ts, empty_box_ts, oog_box_ts = self.cargo_split_terminal_throughput(year)
 
         # instantiate laden, reefer and stack objects (needed to get properties)
         laden = Container(**container_defaults.laden_container_data)
-        reefer = Container(**container_defaults.reefer_container_data)
-        if self.laden_stack == 'rtg':  # Rubber Tired Gantry crane
-            stack = Laden_Stack(**container_defaults.rtg_stack_data)
-        elif self.laden_stack == 'rmg':  # Rail Mounted Gantry crane
-            stack = Laden_Stack(**container_defaults.rmg_stack_data)
-        elif self.laden_stack == 'sc':  # Straddle Carrier
-            stack = Laden_Stack(**container_defaults.sc_stack_data)
-        elif self.laden_stack == 'rs':  # Reach Stacker
-            stack = Laden_Stack(**container_defaults.rs_stack_data)
-        else:
-            stack = Laden_Stack(**container_defaults.rtg_stack_data)
 
         # calculate operational days
         operational_days = self.operational_hours / 24
 
-        # determine laden and reefer ground slots (see Quist and Wijdeven (2014) p. 49)
-        #  throughput demand (corrected for ts) x peak factor x dwell times = total nr of containers to be stacked
-        #  total nr of containers to be stacked divided by stack height times nr of operational days times stack
-        #  occupancy increases nr of containers to be stacked and leads to the number of ground slots you need
+        # determine the number of ground slots needed
+        laden_ground_slots = np.ceil(((laden_teu_ts * laden.peak_factor * laden.dwell_time) /
+                                      (laden.height * laden.stack_ratio * laden.stack_occupancy * operational_days)))
 
-        laden_ground_slots = ((laden_teu * laden.peak_factor * laden.dwell_time) /\
-                              (stack.height * laden.stack_occupancy * operational_days))
-        # for the nr of reefer ground slots you need to multiply by a reefer factor (stack sorting factor)
-        reefer_ground_slots = (reefer_teu * reefer.peak_factor * reefer.dwell_time) /\
-                              (stack.height * reefer.stack_occupancy * stack.reefer_factor * operational_days)
+        # determine capacity needed (nr ground slots x height)
+        stack_capacity_required = laden_ground_slots * laden.height
 
-        # total nr of ground slots
-        total_ground_slots = laden_ground_slots + reefer_ground_slots
+        return stack_capacity_planned, stack_capacity_required
 
-        # determine capacity (nr ground slots x height)
-        total_capacity_required = total_ground_slots * stack.height
+    def reefer_stack_invest(self, year):
+        """current strategy is to add stacks as soon as trigger is achieved
+              - find out how much stack capacity is planned
+              - find out how much stack capacity is required
+              - add stack capacity until service_trigger is no longer exceeded
+        The laden stack has a number of positions for laden containers and a number of positions for reefer containers
+        """
 
-        return stack_capacity_planned, total_capacity_required, reefer_ground_slots
+        stack_capacity_planned, stack_capacity_required = self.reefer_stack_capacity(year)
+
+        if self.debug:
+            print('     Reefer stack capacity planned (@ start of year): {:.2f} teu'.format(stack_capacity_planned))
+            print('     Reefer stack capacity required (@ start of year): {:.2f} teu'.format(stack_capacity_required))
+
+        # Required capacity should be ≤ Stack capacity planned.
+        # While this is not the case, add stacks (PIANC (2014b), p63)
+        while stack_capacity_required > stack_capacity_planned:
+            if self.debug:
+                print('  *** add reefer stack to elements')
+
+            reefer = Container(**container_defaults.reefer_container_data)
+            if self.stack_equipment == 'rtg':  # Rubber Tired Gantry Crane
+                stack = Reefer_Stack(**container_defaults.rtg_stack_data)
+            elif self.stack_equipment == 'rmg':  # Rail Mounted Gantry Crane
+                stack = Reefer_Stack(**container_defaults.rmg_stack_data)
+            elif self.stack_equipment == 'sc':  # Straddle Carrier
+                stack = Reefer_Stack(**container_defaults.sc_stack_data)
+            elif self.stack_equipment == 'rs':  # Reach Stacker
+                stack = Reefer_Stack(**container_defaults.rs_stack_data)
+            else:  # Rubber Tired Gantry
+                stack = Reefer_Stack(**container_defaults.rtg_stack_data)
+            stack.capacity = reefer.width * reefer.length * reefer.height
+
+            # - per stack that is added determine the land use
+            # alternative calculation method (same result):
+            #                 stack.length * stack.width * stack.gross_tgs * stack.area_factor
+            #                     TEU      *     TEU     *  area per teu ground slot
+            stack.land_use = (reefer.width * reefer.length) * stack.gross_tgs
+
+            pavement = stack.pavement
+            drainage = stack.drainage
+
+            # - capex
+            stack.capex = int(
+                (stack.land_use + pavement + drainage) * self.land_price + stack.mobilisation)
+
+            # - opex
+            stack.maintenance = int((stack.land_use + pavement + drainage) * stack.maintenance_perc)
+
+            # apply proper timing for the crane to come online
+            # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
+            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+            stack.year_online = max([year + stack.delivery_time, max(years_online)])
+
+            # add cash flow information to quay_wall object in a dataframe
+            stack = core.add_cashflow_data_to_element(self, stack)
+
+            self.elements.append(stack)
+
+            stack_capacity_planned, stack_capacity_required = self.reefer_stack_capacity(year)
+
+        if self.debug:
+            print('     Reefer stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
+            print('     Reefer stack capacity required (@ start of year): {:.2f}'.format(stack_capacity_required))
+
+    def reefer_stack_capacity(self, year):
+
+        # find the total planned laden stack capacity
+        list_of_elements = core.find_elements(self, Reefer_Stack)
+        stack_capacity_planned = 0
+        for element in list_of_elements:
+            stack_capacity_planned += element.capacity
+
+        laden_teu_ts, reefer_teu_ts, empty_teu_ts, oog_teu_ts, \
+        laden_box_ts, reefer_box_ts, empty_box_ts, oog_box_ts = self.cargo_split_terminal_throughput(year)
+
+        # instantiate laden, reefer and stack objects (needed to get properties)
+        reefer = Container(**container_defaults.reefer_container_data)
+
+        # calculate operational days
+        operational_days = self.operational_hours / 24
+
+        # determine the number of ground slots needed
+        reefer_ground_slots = np.ceil(((reefer_teu_ts * reefer.peak_factor * reefer.dwell_time) /
+                                      (reefer.height * reefer.stack_ratio * reefer.stack_occupancy * operational_days)))
+
+        # determine capacity needed (nr ground slots x height)
+        stack_capacity_required = reefer_ground_slots * reefer.height
+
+        return stack_capacity_planned, stack_capacity_required
 
     def empty_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
@@ -718,48 +776,54 @@ class System:
              - add stack capacity until service_trigger is no longer exceeded
         """
 
-        empty_capacity_planned, empty_capacity_required = self.empty_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_required = self.empty_stack_capacity(year)
 
         if self.debug:
-            print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(empty_capacity_planned))
-            print('     Empty stack capacity required (@ start of year): {:.2f}'.format(empty_capacity_required))
+            print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
+            print('     Empty stack capacity required (@ start of year): {:.2f}'.format(stack_capacity_required))
 
-        while empty_capacity_required > empty_capacity_planned:
+        while stack_capacity_required > stack_capacity_planned:
             if self.debug:
                 print('  *** add empty stack to elements')
 
-            empty_stack = Empty_Stack(**container_defaults.empty_stack_data)
+            empty = Container(**container_defaults.empty_container_data)
+            stack = Empty_Stack(**container_defaults.empty_stack_data)
+            stack.capacity = empty.width * empty.length * empty.height
 
             # - land use
-            stack_ground_slots = empty_stack.capacity / empty_stack.height
-            empty_stack.land_use = stack_ground_slots * empty_stack.gross_tgs * empty_stack.area_factor
+            stack_ground_slots = empty.width * empty.length
+            stack.land_use = stack_ground_slots * stack.gross_tgs * stack.area_factor
 
             # - capex
-            area = empty_stack.length * empty_stack.width
-            gross_tgs = empty_stack.gross_tgs
-            pavement = empty_stack.pavement
-            drainage = empty_stack.drainage
-            area_factor = empty_stack.area_factor
-            mobilisation = empty_stack.mobilisation
+            area = stack.length * stack.width
+            gross_tgs = stack.gross_tgs
+            pavement = stack.pavement
+            drainage = stack.drainage
+            area_factor = stack.area_factor
+            mobilisation = stack.mobilisation
             cost_of_land = self.land_price
-            empty_stack.capex = int(
+            stack.capex = int(
                 (pavement + drainage + cost_of_land) * gross_tgs * area * area_factor + mobilisation)
 
             # - opex
-            empty_stack.maintenance = int(
-                (pavement + drainage) * gross_tgs * area * area_factor * empty_stack.maintenance_perc)
+            stack.maintenance = int(
+                (pavement + drainage) * gross_tgs * area * area_factor * stack.maintenance_perc)
 
             # apply proper timing for the crane to come online
             # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
             years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
-            empty_stack.year_online = max([year + empty_stack.delivery_time, max(years_online)])
+            stack.year_online = max([year + stack.delivery_time, max(years_online)])
 
             # add cash flow information to quay_wall object in a dataframe
-            empty_stack = core.add_cashflow_data_to_element(self, empty_stack)
+            stack = core.add_cashflow_data_to_element(self, stack)
 
-            self.elements.append(empty_stack)
+            self.elements.append(stack)
 
-            empty_capacity_planned, empty_capacity_required = self.empty_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_required = self.empty_stack_capacity(year)
+
+        if self.debug:
+            print('     Empty stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
+            print('     Empty stack capacity required (@ start of year): {:.2f}'.format(stack_capacity_required))
 
     def empty_stack_capacity(self, year):
         """Calculate the stack capacity for empty containers"""
@@ -767,24 +831,19 @@ class System:
         # find the total stack capacity
         list_of_elements = core.find_elements(self, Empty_Stack)
         empty_capacity_planned = 0
-        empty_capacity_online = 0
         for element in list_of_elements:
             empty_capacity_planned += element.capacity
-            if year >= element.year_online:
-                empty_capacity_online += element.capacity
 
         # determine the on-terminal total TEU/year for every throughput type (types: ladens, reefers, empties, oogs)
-        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+        laden_teu_ts, reefer_teu_ts, empty_teu_ts, oog_teu_ts, \
+        laden_box_ts, reefer_box_ts, empty_box_ts, oog_box_ts = self.cargo_split_terminal_throughput(year)
 
         # Transhipment containers are counted twice in berth throughput calculations – once off the ship and once on the
         # ship – but are counted only once in the yard capacity calculations. PIANC (2014b), p 63
         # total positions = half of the amount that it transhipped + the full amount of what is not transhipped
-        ts = self.transhipment_ratio
-        empty_teu = (empty_teu * ts * 0.5) + (empty_teu * (1 - ts))
 
         # instantiate laden, reefer and stack objects
         empty = Container(**container_defaults.empty_container_data)
-        stack = Empty_Stack(**container_defaults.empty_stack_data)
 
         # calculate operational days
         operational_days = self.operational_hours / 24
@@ -793,10 +852,10 @@ class System:
         #  throughput demand (corrected for ts) x peak factor x dwell times = total nr of containers to be stacked
         #  total nr of containers to be stacked divided by stack height times nr of operational days times stack
         #  occupancy increases nr of containers to be stacked and leads to the number of ground slots you need
-        empty_ground_slots = ((empty_teu * empty.peak_factor * empty.dwell_time) /\
-                              (stack.height * empty.stack_occupancy * operational_days))
+        empty_ground_slots = np.ceil(((empty_teu_ts * empty.peak_factor * empty.dwell_time) /
+                                     (empty.height * empty.stack_occupancy * operational_days)))
 
-        empty_capacity_required = empty_ground_slots * stack.height
+        empty_capacity_required = empty_ground_slots * empty.height
 
         return empty_capacity_planned, empty_capacity_required
 
@@ -817,37 +876,43 @@ class System:
             if self.debug:
                 print('  *** add OOG stack to elements')
 
-            oog_stack = OOG_Stack(**container_defaults.oog_stack_data)
+            oog = Container(**container_defaults.oog_container_data)
+            stack = OOG_Stack(**container_defaults.oog_stack_data)
+            stack.capacity = oog.width * oog.length * oog.height
 
             # - capex
-            area = oog_stack.length * oog_stack.width
-            gross_tgs = oog_stack.gross_tgs
-            pavement = oog_stack.pavement
-            drainage = oog_stack.drainage
-            area_factor = oog_stack.area_factor
-            mobilisation = oog_stack.mobilisation
+            area = stack.length * stack.width
+            gross_tgs = stack.gross_tgs
+            pavement = stack.pavement
+            drainage = stack.drainage
+            area_factor = stack.area_factor
+            mobilisation = stack.mobilisation
             cost_of_land = self.land_price
-            oog_stack.capex = int((pavement + drainage + cost_of_land) * gross_tgs * area * area_factor + mobilisation)
+            stack.capex = int((pavement + drainage + cost_of_land) * gross_tgs * area * area_factor + mobilisation)
 
             # - opex
-            oog_stack.maintenance = int(
-                (pavement + drainage) * gross_tgs * area * area_factor * oog_stack.maintenance_perc)
+            stack.maintenance = int(
+                (pavement + drainage) * gross_tgs * area * area_factor * stack.maintenance_perc)
 
             # - land use
-            stack_ground_slots = oog_stack.capacity / oog_stack.height
-            oog_stack.land_use = stack_ground_slots * oog_stack.gross_tgs
+            stack_ground_slots = oog.width * oog.length
+            stack.land_use = stack_ground_slots * stack.gross_tgs
 
             # apply proper timing for the crane to come online
             # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
             years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
-            oog_stack.year_online = max([year + oog_stack.delivery_time, max(years_online)])
+            stack.year_online = max([year + stack.delivery_time, max(years_online)])
 
             # add cash flow information to quay_wall object in a dataframe
-            oog_stack = core.add_cashflow_data_to_element(self, oog_stack)
+            stack = core.add_cashflow_data_to_element(self, stack)
 
-            self.elements.append(oog_stack)
+            self.elements.append(stack)
 
             oog_capacity_planned, oog_capacity_required = self.oog_stack_capacity(year)
+
+        if self.debug:
+            print('     OOG slots planned (@ start of year): {:.2f}'.format(oog_capacity_planned))
+            print('     OOG slots required (@ start of year): {:.2f}'.format(oog_capacity_required))
 
     def oog_stack_capacity(self, year):
         """Calculate the stack capacity for OOG containers"""
@@ -855,24 +920,15 @@ class System:
         # find the total stack capacity
         list_of_elements = core.find_elements(self, OOG_Stack)
         oog_capacity_planned = 0
-        oog_capacity_online = 0
         for element in list_of_elements:
             oog_capacity_planned += element.capacity
-            if year >= element.year_online:
-                oog_capacity_online += element.capacity
 
         # determine the on-terminal total TEU/year for every throughput type (types: ladens, reefers, empties, oogs)
-        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
-
-        # Transhipment containers are counted twice in berth throughput calculations – once off the ship and once on the
-        # ship – but are counted only once in the yard capacity calculations. PIANC (2014b), p 63
-        # total positions = half of the amount that it transhipped + the full amount of what is not transhipped
-        ts = self.transhipment_ratio
-        oog_teu = (oog_teu * ts * 0.5) + (oog_teu * (1 - ts))
+        laden_teu_ts, reefer_teu_ts, empty_teu_ts, oog_teu_ts, \
+        laden_box_ts, reefer_box_ts, empty_box_ts, oog_box_ts = self.cargo_split_terminal_throughput(year)
 
         # instantiate laden, reefer and stack objects
         oog = Container(**container_defaults.oog_container_data)
-        stack = OOG_Stack(**container_defaults.oog_stack_data)
 
         # calculate operational days
         operational_days = self.operational_hours / 24
@@ -881,8 +937,8 @@ class System:
         #  throughput demand (corrected for ts) x peak factor x dwell times = total nr of containers to be stacked
         #  total nr of containers to be stacked divided by stack height times nr of operational days times stack
         #  occupancy increases nr of containers to be stacked and leads to the number of ground slots you need
-        oog_ground_spots = ((oog_teu * oog.peak_factor * oog.dwell_time) /
-                            (stack.height * oog.stack_occupancy * operational_days * oog.teu_factor))
+        oog_ground_spots = np.ceil(((oog_teu_ts * oog.peak_factor * oog.dwell_time) /
+                                   (oog.height * oog.stack_occupancy * operational_days)))
 
         oog_capacity_required = oog_ground_spots
 
@@ -1034,7 +1090,6 @@ class System:
             if self.debug:
                 print('     a total of {} empty handlers is online; {} empty handlers still pending'.format(
                     empty_handlers_online, empty_handlers_planned - empty_handlers_online))
-
 
     def gate_invest(self, year):
         """current strategy is to add gates as soon as trigger is achieved
@@ -1646,84 +1701,65 @@ class System:
         # list all crane objects in the system
         list_of_elements_cranes = core.find_elements(self, Cyclic_Unloader)
         list_of_elements_berths = core.find_elements(self, Berth)
-        # Todo: check if nr_berths is important to include or nor
+        # Todo: check if nr_berths is important to include or not
         nr_berths = len(list_of_elements_berths)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        # Todo: calculation of effective capacity is done in container_mixins (not very trivial to see here)
         service_rate_planned = 0
         service_rate_online = 0
         if list_of_elements_cranes != []:
             for element in list_of_elements_cranes:
-                service_rate_planned += element.effective_capacity
+                service_rate_planned += element.hourly_cycles
                 if year >= element.year_online:
-                    service_rate_online += element.effective_capacity
+                    service_rate_online += element.hourly_cycles
 
+            # time at berth per vessel type
             time_mooring_unmooring_fully_cellular = fully_cellular_calls * \
                 container_defaults.fully_cellular_data["mooring_time"]
-            time_at_cranes_planned_fully_cellular = fully_cellular_calls * \
-                (container_defaults.fully_cellular_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_panamax = panamax_calls * \
                 container_defaults.panamax_data["mooring_time"]
-            time_at_cranes_planned_panamax = panamax_calls * \
-                (container_defaults.panamax_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_panamax_max = panamax_max_calls * \
                 container_defaults.panamax_max_data["mooring_time"]
-            time_at_cranes_planned_panamax_max = panamax_max_calls * \
-                (container_defaults.panamax_max_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_post_panamax_I = post_panamax_I_calls * \
                 container_defaults.post_panamax_I_data["mooring_time"]
-            time_at_cranes_planned_post_panamax_I = post_panamax_I_calls * \
-                (container_defaults.post_panamax_I_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_post_panamax_II = post_panamax_II_calls * \
                 container_defaults.post_panamax_II_data["mooring_time"]
-            time_at_cranes_planned_post_panamax_II = post_panamax_II_calls * \
-                (container_defaults.post_panamax_II_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_new_panamax = new_panamax_calls * \
                 container_defaults.new_panamax_data["mooring_time"]
-            time_at_cranes_planned_new_panamax = new_panamax_calls * \
-                (container_defaults.new_panamax_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_VLCS = VLCS_calls * \
                 container_defaults.VLCS_data["mooring_time"]
-            time_at_cranes_planned_VLCS = VLCS_calls * \
-                (container_defaults.VLCS_data["call_size"] / service_rate_planned)
-
             time_mooring_unmooring_ULCS = ULCS_calls * \
                 container_defaults.ULCS_data["mooring_time"]
-            time_at_cranes_planned_ULCS = ULCS_calls * \
-                (container_defaults.ULCS_data["call_size"] / service_rate_planned)
 
             # total time at berth
-            total_time_at_berth_planned = np.sum(
-                [time_mooring_unmooring_fully_cellular + time_at_cranes_planned_fully_cellular,
-                 time_mooring_unmooring_panamax + time_at_cranes_planned_panamax,
-                 time_mooring_unmooring_panamax_max + time_at_cranes_planned_panamax_max,
-                 time_mooring_unmooring_post_panamax_I + time_at_cranes_planned_post_panamax_I,
-                 time_mooring_unmooring_post_panamax_II + time_at_cranes_planned_post_panamax_II,
-                 time_mooring_unmooring_new_panamax + time_at_cranes_planned_new_panamax,
-                 time_mooring_unmooring_VLCS + time_at_cranes_planned_VLCS,
-                 time_mooring_unmooring_ULCS + time_at_cranes_planned_ULCS])
+            total_time_mooring_unmooring_planned = np.sum(
+                [time_mooring_unmooring_fully_cellular,
+                 time_mooring_unmooring_panamax,
+                 time_mooring_unmooring_panamax_max,
+                 time_mooring_unmooring_post_panamax_I,
+                 time_mooring_unmooring_post_panamax_II,
+                 time_mooring_unmooring_new_panamax,
+                 time_mooring_unmooring_VLCS,
+                 time_mooring_unmooring_ULCS])
+
+            # total boxes to move over the quay
+            total_boxes = np.ceil(total_vol * self.laden_perc / self.laden_teu_factor +\
+                          total_vol * self.reefer_perc / self.reefer_teu_factor +\
+                          total_vol * self.empty_perc / self.empty_teu_factor +\
+                          total_vol * self.oog_perc / self.oog_teu_factor)
 
             # total time at cranes
-            total_time_at_cranes_planned = np.sum(
-                [time_at_cranes_planned_fully_cellular,
-                 time_at_cranes_planned_panamax,
-                 time_at_cranes_planned_panamax_max,
-                 time_at_cranes_planned_post_panamax_I,
-                 time_at_cranes_planned_post_panamax_II,
-                 time_at_cranes_planned_new_panamax,
-                 time_at_cranes_planned_VLCS,
-                 time_at_cranes_planned_ULCS])
+            total_time_at_cranes_planned = (total_boxes * self.peak_factor) / service_rate_planned
+
+            # total time at berth
+            total_time_at_berth_planned = total_time_mooring_unmooring_planned + total_time_at_cranes_planned
 
             # occupancy is the total time at berth divided by the operational hours
-            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
             crane_occupancy_planned = total_time_at_cranes_planned / self.operational_hours
+            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
 
+            # Todo: update this (now only updated for planned)
             if service_rate_online != 0:  # when some cranes are actually online
 
                 time_at_cranes_online_fully_cellular = fully_cellular_calls * \
@@ -1829,14 +1865,8 @@ class System:
 
         return throughput_online
 
-    def throughput_characteristics(self, year):
-        """
-        - Find commodity volume
-        - Find the on terminal modal split (types: ladens, empties, reefers, oogs)
-        - Return the total TEU/year for every throughput type
-        """
-
-        # Calculate the total throughput in TEU per year
+    def cargo_split_quay_throughput(self, year):
+        # Calculate the cargo split over the quay
         commodities = core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
@@ -1846,35 +1876,94 @@ class System:
 
         # divide throughput over different categories based on indicated split
         laden_teu = volume * self.laden_perc
-        empty_teu = volume * self.empty_perc
         reefer_teu = volume * self.reefer_perc
+        empty_teu = volume * self.empty_perc
         oog_teu = volume * self.oog_perc
 
-        return laden_teu, reefer_teu, empty_teu, oog_teu
+        # divide throughput per category by teu factor to arrive at boxes
+        laden_box = laden_teu / self.laden_teu_factor
+        reefer_box = reefer_teu / self.reefer_teu_factor
+        empty_box = empty_teu / self.empty_teu_factor
+        oog_box = oog_teu / self.oog_teu_factor
 
-    def throughput_box(self, year):
-        """
-        - Find the total TEU/year for every throughput type (types: ladens, empties, reefers, oogs)
-        - Translate the total TEU/year to number of boxes for every throughput type
-        """
+        return laden_teu, reefer_teu, empty_teu, oog_teu,\
+               laden_box, reefer_box, empty_box, oog_box
 
-        # import container throughput
-        laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+    def cargo_split_terminal_throughput(self, year):
+        # Calculate the cargo split over the terminal (excludes transhipment)
+        commodities = core.find_elements(self, Commodity)
+        for commodity in commodities:
+            try:
+                volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+            except:
+                pass
 
-        # instantiate terminal objexts
-        laden = Container(**container_defaults.laden_container_data)
-        reefer = Container(**container_defaults.reefer_container_data)
-        empty = Container(**container_defaults.empty_container_data)
-        oog = Container(**container_defaults.oog_container_data)
+        # divide throughput over different categories based on indicated split
+        laden_teu = volume * self.laden_perc
+        reefer_teu = volume * self.reefer_perc
+        empty_teu = volume * self.empty_perc
+        oog_teu = volume * self.oog_perc
 
-        laden_box = laden_teu / laden.teu_factor
-        reefer_box = reefer_teu / reefer.teu_factor
-        empty_box = empty_teu / empty.teu_factor
-        oog_box = oog_teu / oog.teu_factor
+        laden_teu_ts = laden_teu * self.transhipment_ratio *0.5 + laden_teu*(1 - self.transhipment_ratio)
+        reefer_teu_ts = reefer_teu * self.transhipment_ratio *0.5 + reefer_teu*(1 - self.transhipment_ratio)
+        empty_teu_ts = empty_teu * self.transhipment_ratio *0.5 + empty_teu*(1 - self.transhipment_ratio)
+        oog_teu_ts = oog_teu * self.transhipment_ratio *0.5 + oog_teu*(1 - self.transhipment_ratio)
 
-        throughput_box = laden_box + reefer_box + empty_box + oog_box
+        # divide throughput per category by teu factor to arrive at boxes
+        laden_box_ts = laden_teu_ts / self.laden_teu_factor
+        reefer_box_ts = reefer_teu_ts / self.reefer_teu_factor
+        empty_box_ts = empty_teu_ts / self.empty_teu_factor
+        oog_box_ts = oog_teu_ts / self.oog_teu_factor
 
-        return laden_box, reefer_box, empty_box, oog_box, throughput_box
+        return laden_teu_ts, reefer_teu_ts, empty_teu_ts, oog_teu_ts,\
+               laden_box_ts, reefer_box_ts, empty_box_ts, oog_box_ts
+
+    # def throughput_characteristics(self, year):
+    #     """
+    #     - Find commodity volume
+    #     - Find the on terminal modal split (types: ladens, empties, reefers, oogs)
+    #     - Return the total TEU/year for every throughput type
+    #     """
+    #
+    #     # Calculate the total throughput in TEU per year
+    #     commodities = core.find_elements(self, Commodity)
+    #     for commodity in commodities:
+    #         try:
+    #             volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+    #         except:
+    #             pass
+    #
+    #     # divide throughput over different categories based on indicated split
+    #     laden_teu = volume * self.laden_perc
+    #     reefer_teu = volume * self.reefer_perc
+    #     empty_teu = volume * self.empty_perc
+    #     oog_teu = volume * self.oog_perc
+    #
+    #     return laden_teu, reefer_teu, empty_teu, oog_teu
+
+    # def throughput_box(self, year):
+    #     """
+    #     - Find the total TEU/year for every throughput type (types: ladens, empties, reefers, oogs)
+    #     - Translate the total TEU/year to number of boxes for every throughput type
+    #     """
+    #
+    #     # import container throughput
+    #     laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
+    #
+    #     # instantiate terminal objexts
+    #     laden = Container(**container_defaults.laden_container_data)
+    #     reefer = Container(**container_defaults.reefer_container_data)
+    #     empty = Container(**container_defaults.empty_container_data)
+    #     oog = Container(**container_defaults.oog_container_data)
+    #
+    #     laden_box = laden_teu / laden.teu_factor
+    #     reefer_box = reefer_teu / reefer.teu_factor
+    #     empty_box = empty_teu / empty.teu_factor
+    #     oog_box = oog_teu / oog.teu_factor
+    #
+    #     throughput_box = laden_box + reefer_box + empty_box + oog_box
+    #
+    #     return laden_box, reefer_box, empty_box, oog_box, throughput_box
 
     def box_moves(self, year):
         """Calculate the box moves as input for the power and fuel consumption"""
