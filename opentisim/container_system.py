@@ -88,6 +88,8 @@ class System:
         # input testing: throughput type percentages should add up to 1
         np.testing.assert_equal(self.laden_perc + self.reefer_perc + self.empty_perc + self.oog_perc, 1,
                                 'error: throughput type fractions should add up to 1')
+        np.testing.assert_equal(self.import_perc + self.export_perc + self.transhipment_ratio, 1,
+                                'error: import, export and transhipment should add up to 1')
 
     # *** Overall terminal investment strategy for terminal class.
     def simulate(self):
@@ -137,12 +139,22 @@ class System:
                 print('')
                 print('### Simulate year: {} ############################'.format(year))
 
-            # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
+            # Step 1: Estimate annual throughput
+            commodities = core.find_elements(self, Commodity)
+            for commodity in commodities:
+                # The total amount of annualy transported TEU
+                total_vol = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+
+            if self.debug:
+                print('--- Cargo volume for {} ------------------------'.format(year))
+                print('  Total cargo volume: {}'.format(total_vol))
+                print('----------------------------------------------------')
+
+            # Step 2: Estimate fleet composition and number of trips
             fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
                 new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
             if self.debug:
-                print('--- Cargo volume and vessel calls for {} ---------'.format(year))
-                print('  Total cargo volume: {}'.format(total_vol))
+                print('--- Vessel calls for {} ------------------------'.format(year))
                 print('  Total vessel calls: {}'.format(total_calls))
                 print('     Fully cellular calls: {}'.format(fully_cellular_calls))
                 print('     Panamax calls: {}'.format(panamax_calls))
@@ -154,12 +166,13 @@ class System:
                 print('     ULCS calls: {}'.format(ULCS_calls))
                 print('----------------------------------------------------')
 
-            # self.access_channel_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
+            # Step 3: Make cargo specification (integrated into the next steps
 
-            # 2. for each year evaluate which investment are needed given the strategic and operational objectives
+            # Step 4: Unloading equipment specification and berth configuration estimation
             self.berth_invest(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
                               post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
 
+            # Step 5: Quay to storage (specification of apron & stack equipment)
             if self.debug:
                 print('')
                 print('$$$ Check horizontal transport (coupled with quay crane presence) -----------')
@@ -195,6 +208,13 @@ class System:
                 print('$$$ Check empty handlers (coupled with quay crane presence) -----------------')
             self.empty_handler_invest(year)
 
+            # Step 6: Calculate storage area (nr of elements needed + surface area + roads)
+            if self.debug:
+                print('')
+                print('$$$ Check laden stack investments (coupled with demand) ----------')
+            self.laden_stack_invest(year)
+
+            # Step 7: Storage to hinterland
             if self.debug:
                 print('')
                 print('$$$ Check gate investments (coupled with quay crane presence) ---------------')
@@ -309,8 +329,6 @@ class System:
             planned_waiting_service_time_ratio_berth = np.inf
 
         if self.debug:
-            print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
-                berth_occupancy_online, self.allowable_berth_occupancy))
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
                 berth_occupancy_planned, self.allowable_berth_occupancy))
             print(
@@ -541,9 +559,7 @@ class System:
                     hor_transport_online += 1
 
         if self.debug:
-            print('     Number of STS cranes online (@start of year): {}'.format(cranes_online))
-            print('     Number of STS cranes planned (@start of year): {}'.format(cranes_planned))
-            print('     Horizontal transport online (@ start of year): {}'.format(hor_transport_online))
+            print('     Number of STS cranes planned (@ start of year): {}'.format(cranes_planned))
             print('     Horizontal transport planned (@ start of year): {}'.format(hor_transport_planned))
 
         # object needs to be instantiated here so that tractor.required may be determined
@@ -672,6 +688,15 @@ class System:
         laden_ground_slots = np.ceil(((laden_teu_ts * laden.peak_factor * laden.dwell_time) /
                                       (laden.height * laden.stack_ratio * laden.stack_occupancy * operational_days)))
 
+        print('laden_teu_ts: {}'.format(laden_teu_ts))
+        print('laden.peak_factor: {}'.format(laden.peak_factor))
+        print('laden.dwell_time: {}'.format(laden.dwell_time))
+        print('laden.height: {}'.format(laden.height))
+        print('laden.stack_ratio: {}'.format(laden.stack_ratio))
+        print('laden.stack_occupancy: {}'.format(laden.stack_occupancy))
+        print('operational_days: {}'.format(operational_days))
+
+        print('laden_ground_slots: {}'.format(laden_ground_slots))
         # determine capacity needed (nr ground slots x height)
         stack_capacity_required = laden_ground_slots * laden.height
 
@@ -1718,14 +1743,15 @@ class System:
         nr_berths = len(list_of_elements_berths)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
-        # Todo: calculation of effective capacity is done in container_mixins (not very trivial to see here)
+        # Todo: calculation of effective capacity is done in container_mixins (now changed here to cycles*capacity)
         service_rate_planned = 0
         service_rate_online = 0
         if list_of_elements_cranes != []:
             for element in list_of_elements_cranes:
-                service_rate_planned += element.hourly_cycles
+                service_rate_planned += element.hourly_cycles * element.lifting_capacity
                 if year >= element.year_online:
-                    service_rate_online += element.hourly_cycles
+                    service_rate_online += element.hourly_cycles * element.lifting_capacity
+
 
             # time at berth per vessel type
             time_mooring_unmooring_fully_cellular = fully_cellular_calls * \
@@ -1755,18 +1781,26 @@ class System:
                  time_mooring_unmooring_new_panamax,
                  time_mooring_unmooring_VLCS,
                  time_mooring_unmooring_ULCS])
+            # print('total_time_mooring_unmooring_planned: {}'.format(total_time_mooring_unmooring_planned))
 
             # total boxes to move over the quay
-            total_boxes = np.ceil(total_vol * self.laden_perc / self.laden_teu_factor +\
-                          total_vol * self.reefer_perc / self.reefer_teu_factor +\
-                          total_vol * self.empty_perc / self.empty_teu_factor +\
-                          total_vol * self.oog_perc / self.oog_teu_factor)
+            # total_boxes = np.ceil(total_vol * self.laden_perc / self.laden_teu_factor +\
+            #               total_vol * self.reefer_perc / self.reefer_teu_factor +\
+            #               total_vol * self.empty_perc / self.empty_teu_factor +\
+            #               total_vol * self.oog_perc / self.oog_teu_factor)
+
+            total_boxes = np.ceil(total_vol / self.teu_factor)
 
             # total time at cranes
             total_time_at_cranes_planned = (total_boxes * self.peak_factor) / service_rate_planned
+            # print('total_boxes: {}'.format(total_boxes))
+            # print('peak_factor: {}'.format(self.peak_factor))
+            # print('service_rate_planned: {}'.format(service_rate_planned))
+            # print('total_time_at_cranes_planned: {}'.format(total_time_at_cranes_planned))
 
             # total time at berth
             total_time_at_berth_planned = total_time_mooring_unmooring_planned + total_time_at_cranes_planned
+            # print('total_time_at_berth_planned: {}'.format(total_time_at_berth_planned))
 
             # occupancy is the total time at berth divided by the operational hours
             crane_occupancy_planned = total_time_at_cranes_planned / self.operational_hours

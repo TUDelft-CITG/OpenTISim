@@ -573,7 +573,7 @@ VLCS_data = {"name": 'VLCS_1',
              "beam": 56.0,  # m
              "max_cranes": 4,  # STS cranes
              "all_turn_time": 31,  # todo source [hr]
-             "mooring_time": 6,  # berthing + deberthing time [hr]
+             "mooring_time": 4,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "transport_costs": 80,  # USD per TEU, RHDHV
              "all_in_transport_costs": 2128  # USD per TEU, Ports and Terminals p.158
@@ -588,7 +588,7 @@ ULCS_data = {"name": 'ULCS_1',
              "beam": 59.0,  # m
              "max_cranes": 4,  # STS cranes
              "all_turn_time": 31,  # todo source [hr]
-             "mooring_time": 6,  # berthing + deberthing time [hr]
+             "mooring_time": 4,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "transport_costs": 60,  # USD per TEU, RHDHV
              "all_in_transport_costs": 908  # USD per TEU, Ports and Terminals p.158
