@@ -35,7 +35,8 @@ class System:
                  laden_teu_factor=1.6, reefer_teu_factor=1.75, empty_teu_factor=1.55, oog_teu_factor=1.55,
                  import_perc=0.15, export_perc=0.16, transhipment_ratio=0.69,
                  teu_factor=1.6, peak_factor=1.3,
-                 energy_price=0.17, fuel_price=1, land_price=0):
+                 energy_price=0.17, fuel_price=1, land_price=0,
+                 space_boundary = False, coords = []):
         # identity
         self.terminal_name = terminal_name
 
@@ -81,6 +82,10 @@ class System:
         self.energy_price = energy_price
         self.fuel_price = fuel_price
         self.land_price = land_price
+
+        # terminal space boundary and coordinates
+        self.space_boundary = space_boundary
+        self.coords = coords
 
         # storage variables for revenue
         # self.revenues = []
@@ -179,14 +184,20 @@ class System:
             self.horizontal_transport_invest(year)
 
             if self.debug:
-                print('')
-                print('$$$ Check laden stack investments (coupled with demand) ----------')
-            self.laden_stack_invest(year)
+                if self.space_boundary:
+                    print('')
+                    print('$$$ Check terminal layout, including laden and reefer stack investments (coupled with demand and coords) ------------------')
 
-            if self.debug:
-                print('')
-                print('$$$ Check reefer stack investments (coupled with demand) ----------')
-            self.reefer_stack_invest(year)
+                    self.layout_generator(year)
+
+                else:
+                    print('')
+                    print('$$$ Check laden stack investments (coupled with demand) ----------')
+                    self.laden_stack_invest(year)
+
+                    print('')
+                    print('$$$ Check reefer stack investments (coupled with demand) ----------')
+                    self.reefer_stack_invest(year)
 
             if self.debug:
                 print('')
@@ -404,18 +415,30 @@ class System:
                 berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
                 if quay_walls == 0:  # - length when next quay is n = 1
                     # Lq = Ls,max + (2 x 15) ref: PIANC 2014, p 98
-                    length = Ls_max + 2 * berthing_gap
+                    length_calculated = Ls_max + 2 * berthing_gap
                 else:  # - length when next quay is n > 1
                     # Lq = 1.1 x n x (Ls,avg+15) + 15 ref: PIANC 2014, p 98
                     # after the first quay, we add 1.1 * (Ls_avg + berthing_gap).
-                    length = 1.1 * (Ls_avg + berthing_gap)
+                    length_calculated = 1.1 * (Ls_avg + berthing_gap)
+
+                if self.space_boundary:
+                    # while planned quay wall length is smaller than available quay wall length
+                    coords = self.coords
+                    length_available = coords[(len(coords)) - 2][0] - coords[0][0]
+
+                    if length_calculated * berths <= length_available:
+                        length = length_available
+                    else:
+                        length = length_calculated
+                else:
+                    length = length_calculated
 
                 # - depth
                 quay_wall = Quay_wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
 
                 # add a quay to self.elements
-                self.quay_invest(year, length, depth)
+                self.quay_invest(year, length, depth, length_calculated)
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
@@ -433,7 +456,7 @@ class System:
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
                         planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
-    def quay_invest(self, year, length, depth):
+    def quay_invest(self, year, length, depth, length_calculated):
         """
         Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
         Mulder, 2004; Van Koningsveld et al, 2020) for the quay investments.
@@ -480,7 +503,13 @@ class System:
         # add cash flow information to quay_wall object in a dataframe
         quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
 
-        self.elements.append(quay_wall)
+        if self.space_boundary:
+            length_berth = length_calculated
+            while length >= length_berth:
+                length_berth = length_berth + length_calculated
+                self.elements.append(quay_wall)
+        else:
+            self.elements.append(quay_wall)
 
     def crane_invest(self, year):
         """
@@ -700,7 +729,7 @@ class System:
         # determine capacity needed (nr ground slots x height)
         stack_capacity_required = laden_ground_slots * laden.height
 
-        return stack_capacity_planned, stack_capacity_required
+        return stack_capacity_planned, stack_capacity_required, laden_ground_slots
 
     def reefer_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
@@ -791,7 +820,132 @@ class System:
         # determine capacity needed (nr ground slots x height)
         stack_capacity_required = reefer_ground_slots * reefer.height
 
-        return stack_capacity_planned, stack_capacity_required
+        return stack_capacity_planned, stack_capacity_required, reefer_ground_slots
+
+    # *** Generating terminal layout
+    def layout_generator(self, year):
+
+        # specify the element to the terminal layout for each equipment
+        if self.stack_equipment == 'rtg':  # Rubber Tired Gantry Crane
+            terminal_layout = Terminal_Layout(**container_defaults.rtg_design_rules_data)
+            terminal_layout.name = (container_defaults.terminal_layout_data["name"])
+            terminal_layout.apron_width = (container_defaults.quay_wall_data["apron_width"])
+
+            stack = Laden_Stack(**container_defaults.rtg_stack_data)
+            terminal_layout.stack = stack
+        elif self.stack_equipment == 'rmg':  # Rail Mounted Gantry Crane
+            terminal_layout = Terminal_Layout(**container_defaults.rmg_design_rules_data)
+            terminal_layout.name = (container_defaults.terminal_layout_data["name"])
+            terminal_layout.apron_width = (container_defaults.quay_wall_data["apron_width"])
+
+            stack = Laden_Stack(**container_defaults.rmg_stack_data)
+            terminal_layout.stack = stack
+        elif self.stack_equipment == 'sc':  # Straddle Carrier
+            terminal_layout = Terminal_Layout(**container_defaults.sc_design_rules_data)
+            terminal_layout.name = (container_defaults.terminal_layout_data["name"])
+            terminal_layout.apron_width = (container_defaults.quay_wall_data["apron_width"])
+
+            stack = Laden_Stack(**container_defaults.sc_stack_data)
+            terminal_layout.stack = stack
+        elif self.stack_equipment == 'rs':  # Reach Stacker
+            terminal_layout = Terminal_Layout(**container_defaults.rs_design_rules_data)
+            terminal_layout.name = (container_defaults.terminal_layout_data["name"])
+            terminal_layout.apron_width = (container_defaults.quay_wall_data["apron_width"])
+
+            stack = Laden_Stack(**container_defaults.rs_stack_data)
+            terminal_layout.stack = stack
+
+        # specify the laden containers properties
+        laden = Container(**container_defaults.laden_container_data)
+
+        # specify the year
+        terminal_layout.year_online = year
+        # specify the terminal shape and dimensions
+        terminal_layout.coords = self.coords
+        # specify the stack_equipment
+        terminal_layout.stack_equipment = self.stack_equipment
+        # specify the land price
+        terminal_layout.land_price = self.land_price
+        # specify the laden percentage
+        terminal_layout.laden_perc = self.laden_perc
+        # specify the reefer percentage
+        terminal_layout.reefer_perc = self.reefer_perc
+
+        # determine (and reset) the block_list and block_location_list
+        list_of_terminal_layout = core.find_elements(self, Terminal_Layout)
+        if list_of_terminal_layout != []:
+            terminal_layout_ref = list_of_terminal_layout[len(list_of_terminal_layout) - 1]
+
+            block_list = []
+            terminal_layout.block_list = []
+            for element in terminal_layout_ref.block_list:
+                block_list.append(element)
+            terminal_layout.block_list = block_list
+
+            block_location_list = []
+            terminal_layout.block_location_list = []
+            for element in terminal_layout_ref.block_location_list:
+                block_location_list.append(element)
+            terminal_layout.block_location_list = block_location_list
+
+        # specify the terminal TEU ground slots (TGS) demand and capacity planned
+        laden_capacity_planned, laden_capacity_required, laden_ground_slots = self.laden_stack_capacity(year)
+        reefer_capacity_planned, reefer_capacity_required, reefer_ground_slots = self.reefer_stack_capacity(year)
+
+        total_ground_slots = laden_ground_slots + reefer_ground_slots
+        total_capacity_planned = laden_capacity_planned + reefer_capacity_planned
+
+        if self.debug:
+            print('     Stack capacity planned (@ start of year): {:.2f}'.format(laden_capacity_planned))
+            print('     Stack capacity required (@ start of year): {:.2f}'.format(laden_capacity_required))
+
+        # add the tgs_demand to the yard layout element
+        terminal_layout.tgs_demand = total_ground_slots
+        # add the tgs_capacity to the yard layout element
+        terminal_layout.tgs_capacity = total_capacity_planned / terminal_layout.stack.height
+
+        if self.debug:
+            # Creating the terminal area
+            if self.stack_equipment == 'rtg':
+                terminal_layout = rtg_layout(laden, terminal_layout)
+            if self.stack_equipment == 'rmg':
+                terminal_layout = rmg_layout(laden, terminal_layout)
+            if self.stack_equipment == 'sc':
+                terminal_layout = sc_layout(laden, terminal_layout)
+            if self.stack_equipment == 'rs':
+                terminal_layout = rs_layout(laden, terminal_layout)
+
+        # add the new generated stack layout
+        stack_layout_required = []
+        stack_layout_planned = []
+
+        for element in terminal_layout.block_list:
+            if isinstance(element, Laden_Stack):
+                stack_layout_required.append(element)
+
+        stack_layout_planned = core.find_elements(self, Laden_Stack)
+
+        stack_list = []
+        stack_list = list(set(stack_layout_required) - set(stack_layout_planned))
+
+        for element in stack_list:
+            if isinstance(element, Laden_Stack):
+                'Apply proper timing for the crane to come online'
+                'stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)'
+                years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+                element.year_online = max([year + stack.delivery_time, max(years_online)])
+
+                # add cash flow information to quay_wall object in a dataframe
+                element = core.add_cashflow_data_to_element(self, element)
+
+                'Add the stack to the Terminal elements'
+                self.elements.append(element)
+
+        if terminal_layout.available_space == False:
+            print('     Container layout has reached its maximum capacity')
+            print('     Container layout TGS capacity: {:.2f}'.format(terminal_layout.tgs_capacity))
+
+        self.elements.append(terminal_layout)
 
     def empty_stack_invest(self, year):
         """current strategy is to add stacks as soon as trigger is achieved
@@ -2460,3 +2614,63 @@ class System:
         ax.set_xticks([x for x in years])
         ax.set_xticklabels(years)
         ax.legend()
+
+    def terminal_layout_plot(self, fontsize=20):
+
+        years = []
+        terminal = []
+        prim_yard = []
+
+        for year in range(self.startyear, self.startyear + self.lifecycle):
+            years.append(year)
+
+            for element in self.elements:
+                if isinstance(element, Terminal_Layout):
+                    if year == element.year_online:
+                        terminal = element.terminal
+                        prim_yard = element.prim_yard
+                        apron = element.apron
+                        block_location_list = element.block_location_list
+
+            terminal_x, terminal_y = terminal.exterior.xy
+            prim_yard_x, prim_yard_y = prim_yard.exterior.xy
+            apron_x, apron_y = apron.exterior.xy
+
+            fig, ax = plt.subplots(figsize=(20, 12))
+            ax.grid(zorder=0, which='major', axis='both')
+
+            # Plotting Container Terminal
+            ax.plot(terminal_x, terminal_y)
+
+            # Plotting Primary Yard
+            ax.plot(prim_yard_x, prim_yard_y)
+
+            # Plotting Apron
+            apron_fig = mpatches.Rectangle([apron_x[0],apron_y[0]], (max(apron_x) - min(apron_x)), (max(apron_y) - min(apron_y)), fc='red', ec="red", label='Apron area')
+            ax.add_patch(apron_fig)
+
+            for element in self.elements:
+                if isinstance(element, Laden_Stack):
+                    if year >= element.year_online:
+                        stack_online = True
+                        break
+                    if year < element.year_online:
+                        stack_online = False
+
+            if stack_online:
+                # Plotting Container Stack
+                for stack in block_location_list:
+                    stack_fig = mpatches.Rectangle(stack[0], stack[3][0] - stack[0][0], stack[1][1] - stack[0][1], fc = "white", ec = "black")
+                    ax.add_patch(stack_fig)
+
+            ax.axis('equal')
+            ax.set_title('Container terminal layout at year = ' + str(year), fontsize=fontsize)
+            ax.set_xlabel('x-direction (m)', fontsize=fontsize)
+            ax.set_ylabel('y-direction (m)', fontsize=fontsize)
+
+            'Give legend information'
+            terminal_legend = mlines.Line2D([], [], color='#1f77b4', markersize=15, label='Terminal area')
+            prim_yard_legend = mlines.Line2D([], [], color='#ff7f0e', markersize=15, label='Primary yard area')
+
+            ax.legend(handles=[terminal_legend, prim_yard_legend, apron_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
+                      fancybox=True, shadow=True, ncol=4, fontsize=10)
