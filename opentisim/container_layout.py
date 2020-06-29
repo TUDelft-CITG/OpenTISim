@@ -6,10 +6,10 @@ import copy
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon, LineString
 
-from container_system import *
-from container_objects import *
-import container_defaults
-import core
+from opentisim.container_system import *
+from opentisim.container_objects import *
+from opentisim import container_defaults
+from opentisim import core
 
 'Function for determining the terminal configuration'
 

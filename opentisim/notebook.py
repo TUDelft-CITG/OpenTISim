@@ -51,7 +51,6 @@ from opentisim import container_system
 from opentisim import core
 from opentisim import plot
 from opentisim.container_objects import *
-from opentisim.container_layout import *
 
 # In[72]:
 
@@ -77,7 +76,7 @@ years = list(range(startyear, startyear + lifecycle))
 
 
 throughput_1 = 2_460_000
-throughput_2 = 2_460_000
+throughput_2 = 3_460_000
 
 # In[75]:
 
@@ -338,8 +337,8 @@ Terminal = container_system.System(
     debug=True,  # toggle: intermediate print statements
     elements=demand + vessels,  # terminal elements at T=0
     crane_type_defaults=container_defaults.sts_crane_data,  # specify defaults: crane type to use
-    stack_equipment='sc',  # specify defaults: stack equipment to use
-    laden_stack='sc',  # specify defaults: crane type to use
+    stack_equipment='rtg',  # specify defaults: stack equipment to use
+    laden_stack='rtg',  # specify defaults: crane type to use
     allowable_waiting_service_time_ratio_berth=0.1,
     allowable_berth_occupancy=0.6,
     teu_factor=1.6,
@@ -351,7 +350,7 @@ Terminal = container_system.System(
     import_perc=0.15,
     export_perc=0.16,
     transhipment_ratio=0.69,
-    space_boundary=True,
+    space_boundary=False,
     coords=coords)
 
 # ## 3. Start simulation
@@ -447,10 +446,13 @@ Terminal.terminal_elements_plot(demand_step=100000)
 
 Terminal.land_use_plot()
 
+
+Terminal.terminal_layout_plot()
+
 # ## SandBox
 
 # In[ ]:
 
-
+plt.show()
 
 

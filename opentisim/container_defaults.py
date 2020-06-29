@@ -223,7 +223,10 @@ empty_container_data = {"name": 'Empty container',
                         "stack_occupancy": 0.7,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
                         "width": 48,  # TEU
                         "height": 4,  # TEU
-                        "length": 20  # TEU
+                        "length": 20,  # TEU
+                        "width_m": 6.06,  # Meters per TEU
+                        "height_m": 2.44,  # Meters per TEU
+                        "length_m": 2.59  # Meters per TEU
                         }
 
 oog_container_data = {"name": 'OOG container',
@@ -235,7 +238,10 @@ oog_container_data = {"name": 'OOG container',
                       "stack_occupancy": 0.9,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
                       "width": 48,  # TEU
                       "height": 4,  # TEU
-                      "length": 20  # TEU
+                      "length": 20,  # TEU
+                      "width_m": 6.06,  # Meters per TEU
+                      "height_m": 2.44,  # Meters per TEU
+                      "length_m": 2.59  # Meters per TEU
                       }
 
 # *** Default inputs: Laden_Stack class within the stacks

@@ -2,13 +2,16 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 
 
 # opentisim package
 from opentisim.container_objects import *
+from opentisim import container_layout
+
 from opentisim import container_defaults
 from opentisim import core
-
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for container terminals.
@@ -220,10 +223,10 @@ class System:
             self.empty_handler_invest(year)
 
             # Step 6: Calculate storage area (nr of elements needed + surface area + roads)
-            if self.debug:
-                print('')
-                print('$$$ Check laden stack investments (coupled with demand) ----------')
-            self.laden_stack_invest(year)
+            # if self.debug:
+                # print('')
+                # print('$$$ Check laden stack investments (coupled with demand) ----------')
+            # self.laden_stack_invest(year)
 
             # Step 7: Storage to hinterland
             if self.debug:
@@ -639,7 +642,7 @@ class System:
         The laden stack has a number of positions for laden containers and a number of positions for reefer containers
         """
 
-        stack_capacity_planned, stack_capacity_required = self.laden_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_required, laden_ground_slots = self.laden_stack_capacity(year)
 
         if self.debug:
             print('     Laden stack capacity planned (@ start of year): {:.2f} teu'.format(stack_capacity_planned))
@@ -690,7 +693,7 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_required = self.laden_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_required, laden_ground_slots = self.laden_stack_capacity(year)
 
         if self.debug:
             print('     Laden stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
@@ -739,7 +742,7 @@ class System:
         The laden stack has a number of positions for laden containers and a number of positions for reefer containers
         """
 
-        stack_capacity_planned, stack_capacity_required = self.reefer_stack_capacity(year)
+        stack_capacity_planned, stack_capacity_required, reefer_ground_slots = self.reefer_stack_capacity(year)
 
         if self.debug:
             print('     Reefer stack capacity planned (@ start of year): {:.2f} teu'.format(stack_capacity_planned))
@@ -790,7 +793,7 @@ class System:
 
             self.elements.append(stack)
 
-            stack_capacity_planned, stack_capacity_required = self.reefer_stack_capacity(year)
+            stack_capacity_planned, stack_capacity_required, reefer_ground_slots = self.reefer_stack_capacity(year)
 
         if self.debug:
             print('     Reefer stack capacity planned (@ start of year): {:.2f}'.format(stack_capacity_planned))
@@ -907,13 +910,13 @@ class System:
         if self.debug:
             # Creating the terminal area
             if self.stack_equipment == 'rtg':
-                terminal_layout = rtg_layout(laden, terminal_layout)
+                terminal_layout = container_layout.rtg_layout(laden, terminal_layout)
             if self.stack_equipment == 'rmg':
-                terminal_layout = rmg_layout(laden, terminal_layout)
+                terminal_layout = container_layout.rmg_layout(laden, terminal_layout)
             if self.stack_equipment == 'sc':
-                terminal_layout = sc_layout(laden, terminal_layout)
+                terminal_layout = container_layout.sc_layout(laden, terminal_layout)
             if self.stack_equipment == 'rs':
-                terminal_layout = rs_layout(laden, terminal_layout)
+                terminal_layout = container_layout.rs_layout(laden, terminal_layout)
 
         # add the new generated stack layout
         stack_layout_required = []
