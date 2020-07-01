@@ -194,9 +194,9 @@ laden_container_data = {"name": 'Laden container',
                         "width": 48,  # TEU
                         "height": 4,  # TEU
                         "length": 20,  # TEU
-                        "width_m": 6.06,  # Meters per TEU
-                        "height_m": 2.44,  # Meters per TEU
-                        "length_m": 2.59  # Meters per TEU
+                        "width_m": 2.44,  # Meters per TEU
+                        "height_m": 2.59,  # Meters per TEU
+                        "length_m": 6.06  # Meters per TEU
                         }
 
 reefer_container_data = {"name": 'Reefer container',
@@ -209,9 +209,9 @@ reefer_container_data = {"name": 'Reefer container',
                          "width": 21,  # TEU
                          "height": 4,  # TEU
                          "length": 4,  # TEU
-                         "width_m": 6.06,  # Meters per TEU
-                         "height_m": 2.44,  # Meters per TEU
-                         "length_m": 2.59  # Meters per TEU
+                         "width_m": 2.44,  # Meters per TEU
+                         "height_m": 2.59,  # Meters per TEU
+                         "length_m": 6.06  # Meters per TEU
                          }
 
 empty_container_data = {"name": 'Empty container',
@@ -224,9 +224,9 @@ empty_container_data = {"name": 'Empty container',
                         "width": 48,  # TEU
                         "height": 4,  # TEU
                         "length": 20,  # TEU
-                        "width_m": 6.06,  # Meters per TEU
-                        "height_m": 2.44,  # Meters per TEU
-                        "length_m": 2.59  # Meters per TEU
+                        "width_m": 2.44,  # Meters per TEU
+                        "height_m": 2.59,  # Meters per TEU
+                        "length_m": 6.06  # Meters per TEU
                         }
 
 oog_container_data = {"name": 'OOG container',
@@ -239,9 +239,9 @@ oog_container_data = {"name": 'OOG container',
                       "width": 48,  # TEU
                       "height": 4,  # TEU
                       "length": 20,  # TEU
-                      "width_m": 6.06,  # Meters per TEU
-                      "height_m": 2.44,  # Meters per TEU
-                      "length_m": 2.59  # Meters per TEU
+                      "width_m": 2.44,  # Meters per TEU
+                      "height_m": 2.59,  # Meters per TEU
+                      "length_m": 6.06  # Meters per TEU
                       }
 
 # *** Default inputs: Laden_Stack class within the stacks

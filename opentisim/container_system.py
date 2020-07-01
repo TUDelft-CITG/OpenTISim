@@ -1,6 +1,7 @@
 # package(s) for data handling
 import pandas as pd
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
@@ -39,7 +40,7 @@ class System:
                  import_perc=0.15, export_perc=0.16, transhipment_ratio=0.69,
                  teu_factor=1.6, peak_factor=1.3,
                  energy_price=0.17, fuel_price=1, land_price=0,
-                 space_boundary = False, coords = []):
+                 space_boundary = False, prim_yard_only = False, block_configuration = False, coords = []):
         # identity
         self.terminal_name = terminal_name
 
@@ -88,6 +89,8 @@ class System:
 
         # terminal space boundary and coordinates
         self.space_boundary = space_boundary
+        self.prim_yard_only = prim_yard_only
+        self.block_configuration = block_configuration
         self.coords = coords
 
         # storage variables for revenue
@@ -429,19 +432,27 @@ class System:
                     coords = self.coords
                     length_available = coords[(len(coords)) - 2][0] - coords[0][0]
 
-                    if length_calculated * berths <= length_available:
-                        length = length_available
-                    else:
+                    length_berth = 0
+                    for element in self.elements:
+                        if isinstance(element, Quay_wall):
+                            length_berth = length_berth + element.length
+
+                    if length_berth + length_calculated <= length_available:
                         length = length_calculated
+                    else:
+                        print('*** The available quay length has reached the maximum ---------------')
+                        length = 0
                 else:
                     length = length_calculated
+                    length_berth = None
+                    length_available = None
 
                 # - depth
                 quay_wall = Quay_wall(**container_defaults.quay_wall_data)
                 depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
 
                 # add a quay to self.elements
-                self.quay_invest(year, length, depth, length_calculated)
+                self.quay_invest(year, length, depth, length_berth, length_available)
 
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
@@ -459,7 +470,7 @@ class System:
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
                         planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
-    def quay_invest(self, year, length, depth, length_calculated):
+    def quay_invest(self, year, length, depth, length_berth, length_available):
         """
         Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
         Mulder, 2004; Van Koningsveld et al, 2020) for the quay investments.
@@ -507,9 +518,7 @@ class System:
         quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
 
         if self.space_boundary:
-            length_berth = length_calculated
-            while length >= length_berth:
-                length_berth = length_berth + length_calculated
+            if length_berth <= length_available:
                 self.elements.append(quay_wall)
         else:
             self.elements.append(quay_wall)
@@ -873,6 +882,12 @@ class System:
         terminal_layout.laden_perc = self.laden_perc
         # specify the reefer percentage
         terminal_layout.reefer_perc = self.reefer_perc
+
+        # specify toggle
+        # specify whether the tool will incluide primary yard only or not
+        terminal_layout.prim_yard_only = self.prim_yard_only
+        # specify whether the block configuration is determined (True) or it will determined by the boundary of the terminal
+        terminal_layout.block_configuration = self.block_configuration
 
         # determine (and reset) the block_list and block_location_list
         list_of_terminal_layout = core.find_elements(self, Terminal_Layout)
@@ -2634,6 +2649,9 @@ class System:
                         prim_yard = element.prim_yard
                         apron = element.apron
                         block_location_list = element.block_location_list
+                        tgs_capacity = element.tgs_capacity
+                        tgs_demand = element.tgs_demand
+                        stack_height = element.stack.height
 
             terminal_x, terminal_y = terminal.exterior.xy
             prim_yard_x, prim_yard_y = prim_yard.exterior.xy
@@ -2665,6 +2683,11 @@ class System:
                 for stack in block_location_list:
                     stack_fig = mpatches.Rectangle(stack[0], stack[3][0] - stack[0][0], stack[1][1] - stack[0][1], fc = "white", ec = "black")
                     ax.add_patch(stack_fig)
+            else:
+                tgs_capacity = 0
+
+            terminal_capacity = tgs_capacity * stack_height
+            terminal_demand = tgs_demand * stack_height
 
             ax.axis('equal')
             ax.set_title('Container terminal layout at year = ' + str(year), fontsize=fontsize)
@@ -2675,5 +2698,10 @@ class System:
             terminal_legend = mlines.Line2D([], [], color='#1f77b4', markersize=15, label='Terminal area')
             prim_yard_legend = mlines.Line2D([], [], color='#ff7f0e', markersize=15, label='Primary yard area')
 
+            ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(1600, 650), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
+            ax.annotate('Yard TGS demand = ' + str(math.floor(tgs_demand)) + ' TGS', xy=(1600, 600), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
+
             ax.legend(handles=[terminal_legend, prim_yard_legend, apron_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
                       fancybox=True, shadow=True, ncol=4, fontsize=10)
+
+            plt.savefig('Container Terminal Layout at year ' + str(year) + ' .png')

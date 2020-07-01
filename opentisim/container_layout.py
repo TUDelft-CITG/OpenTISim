@@ -13,7 +13,6 @@ from opentisim import core
 
 'Function for determining the terminal configuration'
 
-
 def terminal_configuration(terminal_layout):
     'Define the terminal area based on the coordinates'
 
@@ -28,9 +27,14 @@ def terminal_configuration(terminal_layout):
 
     terminal_line = LineString(coords)
 
+    'Creating terminal area that is already decreased by the traffic lane, because it is assumed that traffic lane is available in all side of the container terminal'
+    terminal_wotl_line = terminal_line.parallel_offset(terminal_layout.traffic_lane, 'right', join_style=2, mitre_limit=terminal_layout.traffic_lane)
+
     'Converting TERMINAL to Polygon'
     terminal = Polygon(terminal_line)
     terminal_x, terminal_y = terminal.exterior.xy
+
+    terminal_wotl = Polygon(terminal_wotl_line)
 
     '(2) Define the APRON area'
     'Determine the quay length'
@@ -102,6 +106,7 @@ def terminal_configuration(terminal_layout):
 
     'Determine the area of the total terminal area'
     terminal_area = terminal.area
+    terminal_wotl_area = terminal_wotl.area
 
     'Determine the primary yard area'
     prim_yard = Polygon(prim_yard_coords)
@@ -185,10 +190,15 @@ def terminal_configuration(terminal_layout):
     'Converting TERMINAL to Polygon'
     prim_yard = Polygon(prim_yard_wotl_line)
 
+    if terminal_layout.prim_yard_only:
+        # modifying for only considering prim_yard
+        prim_yard = terminal_wotl
+        prim_yard_area = terminal_wotl_area
+        prim_full_ratio = 1
+
     return terminal, quay_length, prim_yard, apron, terminal_area, prim_yard_area, apron_area, prim_full_ratio
 
-
-def block_configuration(terminal_layout):
+def block_configuration(terminal_layout, laden):
     coords = []
     coords = terminal_layout.coords
 
@@ -199,57 +209,61 @@ def block_configuration(terminal_layout):
     prim_yard_x, prim_yard_y = terminal_layout.prim_yard.exterior.xy
 
     if terminal_layout.stack_equipment == 'rtg':
-        'Determine block length'
-        'Determine number of blocks in x direction'
-        max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
+        if terminal_layout.block_configuration:
+            'Determine block_length'
 
-        'Determine block length"'
-        block_length = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+        else:
+            'Determine block length'
+            'Determine number of blocks in x direction'
+            max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
+
+            'Determine block length"'
+            block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
-        if block_length < terminal_layout.min_block_length:
-            while block_length < terminal_layout.min_block_length:
+        if block_length_m < terminal_layout.min_block_length:
+            while block_length_m < terminal_layout.min_block_length:
                 max_blocks_x = max_blocks_x - 1
-                block_length = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+                block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
-        if block_length > terminal_layout.max_block_length:
-            block_length = terminal_layout.max_block_length
+        if block_length_m > terminal_layout.max_block_length:
+            block_length_m = terminal_layout.max_block_length
 
         'Determine block width'
-        block_width = 2 * terminal_layout.equipment_track + terminal_layout.vehicle_track + terminal_layout.stack.width * terminal_layout.tgs_y
+        block_width_m = 2 * terminal_layout.equipment_track + terminal_layout.vehicle_track + terminal_layout.stack.width * terminal_layout.tgs_y
 
         'Determine number of blocks in row direction'
-        max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width + terminal_layout.bypass_lane - terminal_layout.traffic_lane) / (block_width + terminal_layout.bypass_lane))
+        max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width + terminal_layout.bypass_lane - terminal_layout.traffic_lane) / (block_width_m + terminal_layout.bypass_lane))
 
     elif terminal_layout.stack_equipment == 'rmg':
         'Determine number of blocks in y direction'
         max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
 
         'Determine block length'
-        block_length = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
+        block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
                                                                                                        terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
-        if block_length < terminal_layout.min_block_length:
-            while block_length < terminal_layout.min_block_length:
+        if block_length_m < terminal_layout.min_block_length:
+            while block_length_m < terminal_layout.min_block_length:
                 max_blocks_y = max_blocks_y - 1
 
-                block_length = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
+                block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
                                                                                                                terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
-        if block_length > terminal_layout.max_block_length:
-            block_length = terminal_layout.max_block_length
+        if block_length_m > terminal_layout.max_block_length:
+            block_length_m = terminal_layout.max_block_length
 
         'Determine block width'
-        block_width = math.floor((terminal_layout.tgs_x * terminal_layout.stack.width + 2 * terminal_layout.equipment_track) * 100) / 100
+        block_width_m = math.floor((terminal_layout.tgs_x * terminal_layout.stack.width + 2 * terminal_layout.equipment_track) * 100) / 100
 
         'Determine number of blocks in x direction'
-        max_blocks_x = math.floor((quay_length - 2 * terminal_layout.traffic_lane + terminal_layout.margin_parallel) / (block_width + terminal_layout.margin_parallel))
+        max_blocks_x = math.floor((quay_length - 2 * terminal_layout.traffic_lane + terminal_layout.margin_parallel) / (block_width_m + terminal_layout.margin_parallel))
 
         'Determine the modified traffic lane width'
-        margin_parallel = math.floor(((quay_length - 2 * terminal_layout.traffic_lane - max_blocks_x * block_width) / (max_blocks_x - 1)) * 100) / 100
+        margin_parallel = math.floor(((quay_length - 2 * terminal_layout.traffic_lane - max_blocks_x * block_width_m) / (max_blocks_x - 1)) * 100) / 100
         terminal_layout.margin_parallel = margin_parallel
 
     elif terminal_layout.stack_equipment == 'sc':
@@ -257,65 +271,66 @@ def block_configuration(terminal_layout):
         max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / (terminal_layout.max_block_length + terminal_layout.traffic_lane))
 
         'Determine block length"'
-        block_length = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) *
+        block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) *
                                   100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
-        if block_length < terminal_layout.min_block_length:
-            while block_length < terminal_layout.min_block_length:
+        if block_length_m < terminal_layout.min_block_length:
+            while block_length_m < terminal_layout.min_block_length:
                 max_blocks_y = max_blocks_y - 1
-                block_length = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) -
+                block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) -
                                            terminal_layout.traffic_lane) * 100) / 100
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
-        if block_length > terminal_layout.max_block_length:
-            block_length = terminal_layout.max_block_length
+        if block_length_m > terminal_layout.max_block_length:
+            block_length_m = terminal_layout.max_block_length
 
         'Determine number of blocks in row direction'
         max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_width + terminal_layout.traffic_lane))
 
         'Determine block length"'
-        block_width = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
+        block_width_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
-        if block_width < terminal_layout.min_block_width:
-            while block_width < terminal_layout.min_block_width:
+        if block_width_m < terminal_layout.min_block_width:
+            while block_width_m < terminal_layout.min_block_width:
                 max_blocks_x = max_blocks_x - 1
-                block_width = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
+                block_width_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
-        if block_width > terminal_layout.max_block_width:
-            block_width = terminal_layout.max_block_width
+        if block_width_m > terminal_layout.max_block_width:
+            block_width_m = terminal_layout.max_block_width
 
     elif terminal_layout.stack_equipment == 'rs':
         'Determine number of blocks in x direction'
         max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
 
         'Determine block length"'
-        block_length = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+        block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
-        if block_length < terminal_layout.min_block_length:
-            while block_length < terminal_layout.min_block_length:
+        if block_length_m < terminal_layout.min_block_length:
+            while block_length_m < terminal_layout.min_block_length:
                 max_blocks_x = max_blocks_x - 1
-                block_length = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+                block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
-        if block_length > terminal_layout.max_block_length:
-            block_length = terminal_layout.max_block_length
+        if block_length_m > terminal_layout.max_block_length:
+            block_length_m = terminal_layout.max_block_length
 
         'Determine block width'
-        block_width = terminal_layout.stack.width * terminal_layout.tgs_y
+        block_width_m = terminal_layout.stack.width * terminal_layout.tgs_y
 
         'Determine number of blocks in row direction'
-        max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.traffic_lane) / (block_width + terminal_layout.operating_space))
+        max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.traffic_lane) / (block_width_m + terminal_layout.operating_space))
 
-    return block_length, block_width, max_blocks_x, max_blocks_y
+    if terminal_layout.block_configuration:
+        block_length_m = laden.length * (terminal_layout.tgs_y)
+        block_width_m = laden.width * (terminal_layout.tgs_x)
 
+    return block_length_m, block_width_m, max_blocks_x, max_blocks_y
 
 'Function for checking whether the container block are inside or outside the terminal'
-
-
 def check_block_inside(block_location, terminal_layout):
     'Check whether point 0 is inside the location'
     if Point(block_location[0]).within(terminal_layout.prim_yard) is True or Point(block_location[0]).touches(terminal_layout.prim_yard) is True:
@@ -343,10 +358,7 @@ def check_block_inside(block_location, terminal_layout):
 
     return block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location
 
-
 'Function for checking whether the points are inside or outside the terminal'
-
-
 def check_points_inside(check_points, terminal_layout):
     'Check whether check_points 0 is inside the location'
     if Point(check_points[0]).within(terminal_layout.prim_yard) is True or Point(check_points[0]).touches(terminal_layout.prim_yard) is True:
@@ -368,11 +380,8 @@ def check_points_inside(check_points, terminal_layout):
 
     return points_inside
 
-
 'Function for generating the container terminal for RTG'
-
-
-def rtg_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden):
+def rtg_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden):
     'Define all parameters in the terminal_layout'
 
     'Check whether all points of the container block is inside the terminal'
@@ -394,8 +403,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
             first_placement = False
 
             'Define the points that needs to be checked'
-            check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                            [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+            check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                            [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
             'Check whether the check points is inside the terminal'
             points_inside = check_points_inside(check_points, terminal_layout)
@@ -408,9 +417,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [current_origin[0] + block_length, current_origin[1] + block_width]
-                    block_location[3] = [current_origin[0] + block_length, current_origin[1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [current_origin[0] + block_length_m, current_origin[1] + block_width_m]
+                    block_location[3] = [current_origin[0] + block_length_m, current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -424,15 +433,15 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
                     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                     'Define the points that needs to be checked'
-                    check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                    check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                    [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
 
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -444,7 +453,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
                         'Determine new all points of the container block'
@@ -462,9 +471,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                    block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -485,7 +494,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
             else:
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -501,7 +510,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
                         'Determine new all points of the container block'
@@ -519,9 +528,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                    block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -628,6 +637,15 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
             # Add new stack location to the stack location list
             terminal_layout.block_location_list.append(block_location)
 
+            print('  *** add Laden Stack to elements')
+            print('  *** Block configuration: Block number ' + str(len(terminal_layout.block_location_list)))
+            print('  *** Block length (TEU) = ' + str(stack.length) + ' TEU')
+            print('  *** Block width (TEU) = ' + str(stack.width) + ' TEU')
+            print('  *** Block height (TEU) = ' + str(stack.height) + ' TEU')
+
+            print('  *** Block length (m) = ' + str(stack.length_m) + ' m')
+            print('  *** Block width (m) = ' + str(stack.width_m) + ' m')
+
             # Reset the stack data
             stack = Laden_Stack(**container_defaults.rtg_stack_data)
             terminal_layout.stack = stack
@@ -638,9 +656,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
         'Determine all new points of the container block'
         block_location = [[current_origin[0], current_origin[1]],
-                          [current_origin[0], current_origin[1] + block_width],
-                          [current_origin[0] + block_length, current_origin[1] + block_width],
-                          [current_origin[0] + block_length, current_origin[1]],
+                          [current_origin[0], current_origin[1] + block_width_m],
+                          [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                          [current_origin[0] + block_length_m, current_origin[1]],
                           [current_origin[0], current_origin[1]]]
 
     else:
@@ -656,12 +674,12 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
             possible_placement = False
 
             'Define new current_origin point to the next container block in row direction'
-            current_origin = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1] + block_width + terminal_layout.bypass_lane]
+            current_origin = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1] + block_width_m + terminal_layout.bypass_lane]
 
             'Determine the new block location on the new row direction'
             block_location[0] = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1]]
-            block_location[1] = [terminal_layout.block_location_list[block_reference][1][0], current_origin[1] + block_width]
-            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+            block_location[1] = [terminal_layout.block_location_list[block_reference][1][0], current_origin[1] + block_width_m]
+            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
             block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
             block_location[4] = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1]]
 
@@ -691,9 +709,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the container block is inside the terminal'
@@ -713,8 +731,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Check for possibility of (a)'
                 'Define the points that needs to be checked'
-                check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                 'Check whether it is actually possible to place a full container block on the further row ahead'
                 'A new container block might be possible to be placed in the space on x- direction'
@@ -723,8 +741,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
                 prim_yard_x, prim_yard_y = terminal_layout.prim_yard.exterior.xy
                 if min(prim_yard_x) <= check_points[0][0]:
                     'Define the points that needs to be checked'
-                    check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                    check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                    [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
@@ -737,9 +755,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                            block_location[2] = [current_origin[0] + block_length, current_origin[1] + block_width]
-                            block_location[3] = [current_origin[0] + block_length, current_origin[1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                            block_location[2] = [current_origin[0] + block_length_m, current_origin[1] + block_width_m]
+                            block_location[3] = [current_origin[0] + block_length_m, current_origin[1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -753,15 +771,15 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
                             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                             'Define the points that needs to be checked'
-                            check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                            [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                            check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                            [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                             'Check whether the check points is inside the terminal'
                             points_inside = check_points_inside(check_points, terminal_layout)
 
                         'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                         check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -773,7 +791,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                                 'Determine the new block location'
                                 block_location[0] = [current_origin[0], current_origin[1]]
-                                block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                                block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                                 block_location[4] = [current_origin[0], current_origin[1]]
 
                                 'Determine new all points of the container block'
@@ -791,9 +809,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                            block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                            block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                            block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -814,7 +832,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
                     else:
                         'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                         check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -828,7 +846,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                                 'Determine the new block location'
                                 block_location[0] = [current_origin[0], current_origin[1]]
-                                block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                                block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                                 block_location[4] = [current_origin[0], current_origin[1]]
 
                                 'Determine new all points of the container block'
@@ -846,9 +864,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                            block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                            block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                            block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -870,7 +888,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Check whether the right side already fulfill the requirments for rtg_safety_clearance'
                     check_points = [[block_location[0][0] - terminal_layout.margin_head, block_location[0][1]],
-                                    [block_location[0][0] - terminal_layout.margin_head, block_location[0][1] + block_width]]
+                                    [block_location[0][0] - terminal_layout.margin_head, block_location[0][1] + block_width_m]]
 
                     points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -879,8 +897,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
                         block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -896,7 +914,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                         'Check whether the right side already fulfill the requirments for rtg_safety_clearance'
                         check_points = [[block_location[0][0] - terminal_layout.margin_head, block_location[0][0]],
-                                        [block_location[0][0] - terminal_layout.margin_head, block_location[0][0] + block_width]]
+                                        [block_location[0][0] - terminal_layout.margin_head, block_location[0][0] + block_width_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -905,8 +923,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
                     block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -939,8 +957,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
                     block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -964,9 +982,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
             current_origin[0] = block_location[3][0] + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head
 
             block_location = [[current_origin[0], current_origin[1]],
-                              [current_origin[0], current_origin[1] + block_width],
-                              [current_origin[0] + block_length, current_origin[1] + block_width],
-                              [current_origin[0] + block_length, current_origin[1]],
+                              [current_origin[0], current_origin[1] + block_width_m],
+                              [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                              [current_origin[0] + block_length_m, current_origin[1]],
                               [current_origin[0], current_origin[1]]]
 
             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
@@ -978,8 +996,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
                     current_origin = [current_origin[0] + terminal_layout.tgs_x, current_origin[1]]
 
                     block_location = [[current_origin[0], current_origin[1]],
-                                      [current_origin[0], current_origin[1] + block_width],
-                                      [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width],
+                                      [current_origin[0], current_origin[1] + block_width_m],
+                                      [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m],
                                       [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]],
                                       [current_origin[0], current_origin[1]]]
 
@@ -1001,7 +1019,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine the new block location'
                 block_location[0] = [current_origin[0], current_origin[1]]
-                block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                 block_location[2] = block_location[2]
                 block_location[3] = block_location[3]
                 block_location[4] = [current_origin[0], current_origin[1]]
@@ -1039,7 +1057,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Check whether the right side already fulfill the requirments for rtg_safety_clearance'
                 check_points = [[block_location[3][0] + terminal_layout.margin_head, block_location[3][1]],
-                                [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width]]
+                                [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -1047,8 +1065,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
                 while (block_2_inside is False or block_3_inside is False) and points_inside is False:
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [block_location[2][0] - terminal_layout.tgs_x, current_origin[1] + block_width]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [block_location[2][0] - terminal_layout.tgs_x, current_origin[1] + block_width_m]
                     block_location[3] = [block_location[3][0] - terminal_layout.tgs_x, current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -1064,7 +1082,7 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                     'Check whether the right side already fulfill the requirments for rtg_safety_clearance'
                     check_points = [[block_location[3][0] + terminal_layout.margin_head, block_location[3][1]],
-                                    [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width]]
+                                    [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width_m]]
 
                     points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -1078,9 +1096,9 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine the new block location'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the container block is inside the terminal'
@@ -1096,11 +1114,8 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length, block
 
     return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
-
 'Function for generating the container terminal for RMG'
-
-
-def rmg_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden):
+def rmg_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden):
     'Check whether the point in block is inside the terminal'
     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
@@ -1131,13 +1146,13 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
         if (points_inside_top is True and block_0_inside is True and block_3_inside is True) or (points_inside_bot is True and block_1_inside is True and block_2_inside is True):
             while (points_inside_top is True and block_0_inside is True and block_3_inside is True) or (points_inside_bot is True and block_1_inside is True and block_2_inside is True):
                 'Move the current origin to the previous block in the bay direction'
-                current_origin[0] = block_location[0][0] - block_width - terminal_layout.margin_parallel
+                current_origin[0] = block_location[0][0] - block_width_m - terminal_layout.margin_parallel
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
@@ -1157,13 +1172,13 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                 block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
             'Determine the location after the while loop: Move the current origin by 1 block'
-            current_origin[0] = block_location[0][0] + block_width + terminal_layout.margin_parallel
+            current_origin[0] = block_location[0][0] + block_width_m + terminal_layout.margin_parallel
 
             'Determine all new points of the container block'
             block_location = [[current_origin[0], current_origin[1]],
-                              [current_origin[0], current_origin[1] + block_length],
-                              [current_origin[0] + block_width, current_origin[1] + block_length],
-                              [current_origin[0] + block_width, current_origin[1]],
+                              [current_origin[0], current_origin[1] + block_length_m],
+                              [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                              [current_origin[0] + block_width_m, current_origin[1]],
                               [current_origin[0], current_origin[1]]]
 
             'Check whether all points of the point in block is inside the terminal'
@@ -1194,7 +1209,7 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
             stack.width = number_of_container_bay
 
             'Define the number of container in the container block on row direction'
-            number_of_container_row = math.floor(stack.length_m / terminal_layout.tgs_y)
+            number_of_container_row = math.floor((stack.length_m - 2 * terminal_layout.length_buffer) / terminal_layout.tgs_y)
             stack.length = number_of_container_row
 
             'Define the capacity for each container block'
@@ -1265,6 +1280,15 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
             # Add new stack location to the stack location list
             terminal_layout.block_location_list.append(block_location)
 
+            print('  *** add Laden Stack to elements')
+            print('  *** Block configuration: Block number ' + str(len(terminal_layout.block_location_list)))
+            print('  *** Block length (TEU) = ' + str(stack.length) + ' TEU')
+            print('  *** Block width (TEU) = ' + str(stack.width) + ' TEU')
+            print('  *** Block height (TEU) = ' + str(stack.height) + ' TEU')
+
+            print('  *** Block length (m) = ' + str(stack.length_m) + ' m')
+            print('  *** Block width (m) = ' + str(stack.width_m) + ' m')
+
             # Reset the stack data
             stack = Laden_Stack(**container_defaults.rmg_stack_data)
             terminal_layout.stack = stack
@@ -1274,9 +1298,9 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
         'Determine all new points of the container block'
         block_location = [[current_origin[0], current_origin[1]],
-                          [current_origin[0], current_origin[1] + block_length],
-                          [current_origin[0] + block_width, current_origin[1] + block_length],
-                          [current_origin[0] + block_width, current_origin[1]],
+                          [current_origin[0], current_origin[1] + block_length_m],
+                          [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                          [current_origin[0] + block_width_m, current_origin[1]],
                           [current_origin[0], current_origin[1]]]
 
         return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
@@ -1329,12 +1353,12 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                     drainage = stack.drainage
 
                     'Calculates number of container in the container block on bay direction'
-                    number_of_container_bay = math.floor(stack.width_m / terminal_layout.tgs_x)
-                    stack.width = number_of_container_bay
+                    number_of_container_row = math.floor(stack.width_m / terminal_layout.tgs_x)
+                    stack.width = number_of_container_row
 
                     'Define the number of container in the container block on row direction'
-                    number_of_container_row = math.floor(stack.length_m / terminal_layout.tgs_y)
-                    stack.length = number_of_container_row
+                    number_of_container_bay = math.floor((stack.length_m - 2 * terminal_layout.length_buffer) / terminal_layout.tgs_y)
+                    stack.length = number_of_container_bay
 
                     'Define the capacity for each container block'
                     stack.capacity = stack.length * stack.width * stack.height
@@ -1404,6 +1428,15 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                     # Add new stack location to the stack location list
                     terminal_layout.block_location_list.append(block_location)
 
+                    print('  *** add Laden Stack to elements')
+                    print('  *** Block configuration: Block number ' + str(len(terminal_layout.block_location_list)))
+                    print('  *** Block length (TEU) = ' + str(stack.length) + ' TEU')
+                    print('  *** Block width (TEU) = ' + str(stack.width) + ' TEU')
+                    print('  *** Block height (TEU) = ' + str(stack.height) + ' TEU')
+
+                    print('  *** Block length (m) = ' + str(stack.length_m) + ' m')
+                    print('  *** Block width (m) = ' + str(stack.width_m) + ' m')
+
                     # Reset the stack data
                     stack = Laden_Stack(**container_defaults.rmg_stack_data)
                     terminal_layout.stack = stack
@@ -1413,9 +1446,9 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
             return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
@@ -1432,15 +1465,15 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 'Check point on the top of the container block'
                 check_points_top = [[block_location[0][0], block_location[0][1] + terminal_layout.min_block_length],
-                                    [block_location[3][0] + block_width, block_location[3][1] + terminal_layout.min_block_length]]
+                                    [block_location[3][0] + block_width_m, block_location[3][1] + terminal_layout.min_block_length]]
 
                 points_inside_top = check_points_inside(check_points_top, terminal_layout)
 
@@ -1452,11 +1485,11 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                 possible_placement = False
 
                 'Define new current_origin point to the next container block in row direction'
-                current_origin = [terminal_layout.block_location_list[0][0][0], current_origin[1] + block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head]
+                current_origin = [terminal_layout.block_location_list[0][0][0], current_origin[1] + block_length_m + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head]
 
                 block_location[0] = [terminal_layout.block_location_list[0][0][0], current_origin[1]]
-                block_location[1] = [terminal_layout.block_location_list[0][1][0], current_origin[1] + block_length]
-                block_location[2] = [terminal_layout.block_location_list[0][2][0], current_origin[1] + block_length]
+                block_location[1] = [terminal_layout.block_location_list[0][1][0], current_origin[1] + block_length_m]
+                block_location[2] = [terminal_layout.block_location_list[0][2][0], current_origin[1] + block_length_m]
                 block_location[3] = [terminal_layout.block_location_list[0][3][0], current_origin[1]]
                 block_location[4] = [terminal_layout.block_location_list[0][0][0], current_origin[1]]
 
@@ -1481,13 +1514,13 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 while (points_inside_top is True and block_0_inside is True and block_3_inside is True) or (points_inside_bot is True and block_1_inside is True and block_2_inside is True):
                     'Move the current origin to the previous block in the bay direction'
-                    current_origin[0] = block_location[0][0] - block_width - terminal_layout.margin_parallel
+                    current_origin[0] = block_location[0][0] - block_width_m - terminal_layout.margin_parallel
 
                     'Determine all new points of the container block'
                     block_location = [[current_origin[0], current_origin[1]],
-                                      [current_origin[0], current_origin[1] + block_length],
-                                      [current_origin[0] + block_width, current_origin[1] + block_length],
-                                      [current_origin[0] + block_width, current_origin[1]],
+                                      [current_origin[0], current_origin[1] + block_length_m],
+                                      [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                      [current_origin[0] + block_width_m, current_origin[1]],
                                       [current_origin[0], current_origin[1]]]
 
                     'Check whether it is possible to place a container block that fulfill minimum block length requirement'
@@ -1507,13 +1540,13 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                 'Determine the location after the while loop: Move the current origin by 1 block'
-                current_origin[0] = block_location[0][0] + block_width + terminal_layout.margin_parallel
+                current_origin[0] = block_location[0][0] + block_width_m + terminal_layout.margin_parallel
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the point in block is inside the terminal'
@@ -1573,12 +1606,12 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                     drainage = stack.drainage
 
                     'Calculates number of container in the container block on bay direction'
-                    number_of_container_bay = math.floor(stack.width_m / terminal_layout.tgs_x)
-                    stack.width = number_of_container_bay
+                    number_of_container_row = math.floor(stack.width_m / terminal_layout.tgs_x)
+                    stack.width = number_of_container_row
 
                     'Define the number of container in the container block on row direction'
-                    number_of_container_row = math.floor(stack.length_m / terminal_layout.tgs_y)
-                    stack.length = number_of_container_row
+                    number_of_container_bay = math.floor((stack.length_m - 2 * terminal_layout.length_buffer) / terminal_layout.tgs_y)
+                    stack.length = number_of_container_bay
 
                     'Define the capacity for each container block'
                     stack.capacity = stack.length * stack.width * stack.height
@@ -1648,6 +1681,15 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                     # Add new stack location to the stack location list
                     terminal_layout.block_location_list.append(block_location)
 
+                    print('  *** add Laden Stack to elements')
+                    print('  *** Block configuration: Block number ' + str(len(terminal_layout.block_location_list)))
+                    print('  *** Block length (TEU) = ' + str(stack.length) + ' TEU')
+                    print('  *** Block width (TEU) = ' + str(stack.width) + ' TEU')
+                    print('  *** Block height (TEU) = ' + str(stack.height) + ' TEU')
+
+                    print('  *** Block length (m) = ' + str(stack.length_m) + ' m')
+                    print('  *** Block width (m) = ' + str(stack.width_m) + ' m')
+
                     # Reset the stack data
                     stack = Laden_Stack(**container_defaults.rmg_stack_data)
                     terminal_layout.stack = stack
@@ -1657,9 +1699,9 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
             return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
@@ -1676,9 +1718,9 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
@@ -1696,11 +1738,11 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                 possible_placement = False
 
                 'Define new current_origin point to the next container block in row direction'
-                current_origin = [terminal_layout.block_location_list[0][0][0], current_origin[1] + block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head]
+                current_origin = [terminal_layout.block_location_list[0][0][0], current_origin[1] + block_length_m + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head]
 
                 block_location[0] = [terminal_layout.block_location_list[0][0][0], current_origin[1]]
-                block_location[1] = [terminal_layout.block_location_list[0][1][0], current_origin[1] + block_length]
-                block_location[2] = [terminal_layout.block_location_list[0][2][0], current_origin[1] + block_length]
+                block_location[1] = [terminal_layout.block_location_list[0][1][0], current_origin[1] + block_length_m]
+                block_location[2] = [terminal_layout.block_location_list[0][2][0], current_origin[1] + block_length_m]
                 block_location[3] = [terminal_layout.block_location_list[0][3][0], current_origin[1]]
                 block_location[4] = [terminal_layout.block_location_list[0][0][0], current_origin[1]]
 
@@ -1725,13 +1767,13 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
                 while (points_inside_top is True and block_0_inside is True and block_3_inside is True) or (points_inside_bot is True and block_1_inside is True and block_2_inside is True):
                     'Move the current origin to the previous block in the bay direction'
-                    current_origin[0] = block_location[0][0] - block_width - terminal_layout.margin_parallel
+                    current_origin[0] = block_location[0][0] - block_width_m - terminal_layout.margin_parallel
 
                     'Determine all new points of the container block'
                     block_location = [[current_origin[0], current_origin[1]],
-                                      [current_origin[0], current_origin[1] + block_length],
-                                      [current_origin[0] + block_width, current_origin[1] + block_length],
-                                      [current_origin[0] + block_width, current_origin[1]],
+                                      [current_origin[0], current_origin[1] + block_length_m],
+                                      [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                      [current_origin[0] + block_width_m, current_origin[1]],
                                       [current_origin[0], current_origin[1]]]
 
                     'Check whether it is possible to place a container block that fulfill minimum block length requirement'
@@ -1751,13 +1793,13 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
                     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                 'Determine the location after the while loop: Move the current origin by 1 block'
-                current_origin[0] = block_location[0][0] + block_width + terminal_layout.margin_parallel
+                current_origin[0] = block_location[0][0] + block_width_m + terminal_layout.margin_parallel
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the point in block is inside the terminal'
@@ -1769,11 +1811,8 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length, block
 
             return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
-
 'Function for generating the container terminal for SC'
-
-
-def sc_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden):
+def sc_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden):
     'Check whether all points of the container block is inside the terminal'
     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
@@ -1793,8 +1832,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             first_placement = False
 
             'Define the points that needs to be checked'
-            check_points = [[block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1]],
-                            [block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1] + block_length]]
+            check_points = [[block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1]],
+                            [block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1] + block_length_m]]
 
             'Check whether the check points is inside the terminal'
             points_inside = check_points_inside(check_points, terminal_layout)
@@ -1807,9 +1846,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                    block_location[2] = [current_origin[0] + block_width, current_origin[1] + block_length]
-                    block_location[3] = [current_origin[0] + block_width, current_origin[1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                    block_location[2] = [current_origin[0] + block_width_m, current_origin[1] + block_length_m]
+                    block_location[3] = [current_origin[0] + block_width_m, current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -1823,15 +1862,15 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                     'Define the points that needs to be checked'
-                    check_points = [[block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1] + block_length]]
+                    check_points = [[block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1]],
+                                    [block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1] + block_length_m]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
 
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length]]
+                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -1843,7 +1882,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_length]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
                         'Determine new all points of the container block'
@@ -1861,9 +1900,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                    block_location[2] = [block_location[2][0] - block_width - terminal_layout.traffic_lane, block_location[2][1]]
-                    block_location[3] = [block_location[3][0] - block_width - terminal_layout.traffic_lane, block_location[3][1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                    block_location[2] = [block_location[2][0] - block_width_m - terminal_layout.traffic_lane, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] - block_width_m - terminal_layout.traffic_lane, block_location[3][1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -1884,7 +1923,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             else:
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length]]
+                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -1900,7 +1939,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_length]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
                         'Determine new all points of the container block'
@@ -1918,9 +1957,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                    block_location[2] = [block_location[2][0] - block_width - terminal_layout.traffic_lane, block_location[2][1]]
-                    block_location[3] = [block_location[3][0] - block_width - terminal_layout.traffic_lane, block_location[3][1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                    block_location[2] = [block_location[2][0] - block_width_m - terminal_layout.traffic_lane, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] - block_width_m - terminal_layout.traffic_lane, block_location[3][1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -1941,8 +1980,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
             # Add the block location, length, and width to the stack
             stack.location = block_location
-            stack.length_m = math.floor(block_location[3][0] - block_location[0][0])
-            stack.width_m = math.floor(block_location[1][1] - block_location[0][1])
+            stack.length_m = math.floor(block_location[1][1] - block_location[0][1])
+            stack.width_m = math.floor(block_location[3][0] - block_location[0][0])
 
             'Define the land use of the block'
             stack.land_use = stack.length_m * stack.width_m
@@ -1950,12 +1989,12 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             drainage = stack.drainage
 
             'Calculates number of container in the container block on bay direction'
-            number_of_container_bay = math.floor(stack.width_m / terminal_layout.tgs_x)
-            stack.width = number_of_container_bay
+            number_of_container_row = math.ceil(stack.width_m / terminal_layout.tgs_x)
+            stack.width = number_of_container_row
 
             'Define the number of container in the container block on row direction'
-            number_of_container_row = math.floor(stack.length_m / terminal_layout.tgs_y)
-            stack.length = number_of_container_row
+            number_of_container_bay = math.ceil(stack.length_m / terminal_layout.tgs_y)
+            stack.length = number_of_container_bay
 
             'Define the capacity for each container block'
             stack.capacity = stack.length * stack.width * stack.height
@@ -1978,10 +2017,10 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
             """'Define clearance space for each container'
             container_clearance_x = ((block_location[3][0] - block_location[0][0]) - number_of_container_bay * laden.length) / (number_of_container_bay - 1)
-            container_clearance_y = terminal_layout.tgs_y - laden.width
+            container_clearance_y = terminal_layout.tgs_y - laden.width_m
 
             'Define new current origin for the algorithm in drawing the TGS'
-            container_current_origin = block_location[0][0], block_location[0][1] + terminal_layout.equipment_track + terminal_layout.vehicle_track + container_clearance_y / 2
+            container_current_origin = block_location[0][0], block_location[0][1]
 
             p = 1
             q = 1
@@ -2027,6 +2066,15 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             # Add new stack location to the stack location list
             terminal_layout.block_location_list.append(block_location)
 
+            print('  *** add Laden Stack to elements')
+            print('  *** Block configuration: Block number ' + str(len(terminal_layout.block_location_list)))
+            print('         *** Block length (TEU) = ' + str(stack.length) + ' TEU')
+            print('         *** Block width (TEU) = ' + str(stack.width) + ' TEU')
+            print('         *** Block height (TEU) = ' + str(stack.height) + ' TEU')
+            print('        ')
+            print('         *** Block length (m) = ' + str(stack.length_m) + ' m')
+            print('         *** Block width (m) = ' + str(stack.width_m) + ' m')
+
             # Reset the stack data
             stack = Laden_Stack(**container_defaults.sc_stack_data)
             terminal_layout.stack = stack
@@ -2035,11 +2083,11 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
         current_origin[0] = block_location[3][0] + terminal_layout.traffic_lane
 
         'Determine all new points of the container block'
-        block_location = [[current_origin[0], current_origin[1]],
-                          [current_origin[0], current_origin[1] + block_length],
-                          [current_origin[0] + block_width, current_origin[1] + block_length],
-                          [current_origin[0] + block_width, current_origin[1]],
-                          [current_origin[0], current_origin[1]]]
+        block_location = [[current_origin[0], block_location[0][1]],
+                          [current_origin[0], block_location[1][1]],
+                          [current_origin[0] + block_width_m, block_location[2][1]],
+                          [current_origin[0] + block_width_m, block_location[3][1]],
+                          [current_origin[0], block_location[4][1]]]
 
     else:
         """        
@@ -2056,12 +2104,12 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             possible_placement = False
 
             'Define new current_origin point to the next container block in row direction'
-            current_origin = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1] + block_length + terminal_layout.traffic_lane]
+            current_origin = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1] + block_length_m + terminal_layout.traffic_lane]
 
             'Determine the new block location on the new row direction'
             block_location[0] = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1]]
-            block_location[1] = [terminal_layout.block_location_list[block_reference][1][0], current_origin[1] + block_length]
-            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length]
+            block_location[1] = [terminal_layout.block_location_list[block_reference][1][0], current_origin[1] + block_length_m]
+            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length_m]
             block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
             block_location[4] = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1]]
 
@@ -2082,8 +2130,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             Therefore, it needs to be checked wether a container block can be placed in this location"""
 
             'If the container block cannot be placed at all at this location (block_location[0] and block_location[1] and block_location[2] is outside the terminal'
-            if block_1_inside is False and block_2_inside is False:
-                if block_0_inside is True or block_3_inside is True:
+            if block_0_inside is False and block_1_inside is False and block_2_inside is False:
+                if block_1_inside is True or block_3_inside is True:
                     while block_1_inside is False and block_2_inside is False:
                         'Define new current_origin on the next container block in bay direction'
                         current_origin[0] = block_location[3][0] + terminal_layout.traffic_lane
@@ -2093,9 +2141,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine all new points of the container block'
                         block_location = [[current_origin[0], current_origin[1]],
-                                          [current_origin[0], current_origin[1] + block_length],
-                                          [current_origin[0] + block_width, current_origin[1] + block_length],
-                                          [current_origin[0] + block_width, current_origin[1]],
+                                          [current_origin[0], current_origin[1] + block_length_m],
+                                          [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                          [current_origin[0] + block_width_m, current_origin[1]],
                                           [current_origin[0], current_origin[1]]]
 
                         'Check whether all points of the container block is inside the terminal'
@@ -2115,8 +2163,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Check for possibility of (a)'
                 'Define the points that needs to be checked'
-                check_points = [[block_location[0][0] - terminal_layout.traffic_lane - block_width, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - block_width, block_location[0][1] + block_length]]
+                check_points = [[block_location[0][0] - terminal_layout.traffic_lane - block_width_m, block_location[0][1]],
+                                [block_location[0][0] - terminal_layout.traffic_lane - block_width_m, block_location[0][1] + block_length_m]]
 
                 'Check whether it is actually possible to place a full container block on the further row ahead'
                 'A new container block might be possible to be placed in the space on x- direction'
@@ -2125,8 +2173,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                 prim_yard_x, prim_yard_y = terminal_layout.prim_yard.exterior.xy
                 if min(prim_yard_x) <= check_points[0][0]:
                     'Define the points that needs to be checked'
-                    check_points = [[block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1] + block_length]]
+                    check_points = [[block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1]],
+                                    [block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1] + block_length_m]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
@@ -2139,9 +2187,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                            block_location[2] = [current_origin[0] + block_width, current_origin[1] + block_length]
-                            block_location[3] = [current_origin[0] + block_width, current_origin[1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                            block_location[2] = [current_origin[0] + block_width_m, current_origin[1] + block_length_m]
+                            block_location[3] = [current_origin[0] + block_width_m, current_origin[1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -2155,15 +2203,15 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                             'Define the points that needs to be checked'
-                            check_points = [[block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1]],
-                                            [block_location[0][0] - block_width - terminal_layout.traffic_lane, block_location[0][1] + block_length]]
+                            check_points = [[block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1]],
+                                            [block_location[0][0] - block_width_m - terminal_layout.traffic_lane, block_location[0][1] + block_length_m]]
 
                             'Check whether the check points is inside the terminal'
                             points_inside = check_points_inside(check_points, terminal_layout)
 
                         'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                         check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length]]
+                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2175,7 +2223,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                                 'Determine the new block location'
                                 block_location[0] = [current_origin[0], current_origin[1]]
-                                block_location[1] = [current_origin[0], current_origin[1] + block_length]
+                                block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
                                 block_location[4] = [current_origin[0], current_origin[1]]
 
                                 'Determine new all points of the container block'
@@ -2193,9 +2241,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                            block_location[2] = [block_location[2][0] - block_width - terminal_layout.traffic_lane, block_location[2][1]]
-                            block_location[3] = [block_location[3][0] - block_width - terminal_layout.traffic_lane, block_location[3][1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                            block_location[2] = [block_location[2][0] - block_width_m - terminal_layout.traffic_lane, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - block_width_m - terminal_layout.traffic_lane, block_location[3][1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -2216,7 +2264,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                     else:
                         'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                         check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length]]
+                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_length_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2230,7 +2278,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                                 'Determine the new block location'
                                 block_location[0] = [current_origin[0], current_origin[1]]
-                                block_location[1] = [current_origin[0], current_origin[1] + block_length]
+                                block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
                                 block_location[4] = [current_origin[0], current_origin[1]]
 
                                 'Determine new all points of the container block'
@@ -2248,9 +2296,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                            block_location[2] = [block_location[2][0] - block_width - terminal_layout.traffic_lane, block_location[2][1]]
-                            block_location[3] = [block_location[3][0] - block_width - terminal_layout.traffic_lane, block_location[3][1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                            block_location[2] = [block_location[2][0] - block_width_m - terminal_layout.traffic_lane, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - block_width_m - terminal_layout.traffic_lane, block_location[3][1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -2272,7 +2320,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Check whether the right side already fulfill the requirments for terminal_layout.traffic_lane'
                     check_points = [[block_location[0][0] - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - terminal_layout.traffic_lane, block_location[0][1] + block_length]]
+                                    [block_location[0][0] - terminal_layout.traffic_lane, block_location[0][1] + block_length_m]]
 
                     points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2282,8 +2330,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length_m]
                             block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -2299,7 +2347,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Check whether the right side already fulfill the requirments for terminal_layout.traffic_lane'
                             check_points = [[block_location[0][0] - terminal_layout.traffic_lane, block_location[0][0]],
-                                            [block_location[0][0] - terminal_layout.traffic_lane, block_location[0][0] + block_width]]
+                                            [block_location[0][0] - terminal_layout.traffic_lane, block_location[0][0] + block_width_m]]
 
                             points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2308,8 +2356,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length_m]
                         block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -2326,8 +2374,38 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                     return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
             'Algorithm for the case : Cannot place a new container block, because it already reaches outside of the terminal'
-            if block_1_inside is False and block_2_inside is False:
-                return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
+            if block_1_inside is False or block_2_inside is False:
+                'Check whether it is fulfilling minimum block length'
+                'Define the points that needs to be checked'
+                check_points = [[block_location[0][0], block_location[0][1] + terminal_layout.min_block_length],
+                                [block_location[0][0] + block_width_m, block_location[0][1] + terminal_layout.min_block_length]]
+
+                'Check whether the check points is inside the terminal'
+                points_inside = check_points_inside(check_points, terminal_layout)
+
+                if points_inside is True:
+                    possible_placement = True
+
+                    while block_0_inside is False or block_1_inside is False:
+                        'Determine the new block location'
+                        block_location[0] = [current_origin[0], current_origin[1]]
+                        block_location[1] = [block_location[1][0], block_location[1][1] - terminal_layout.tgs_y]
+                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], block_location[2][1] - terminal_layout.tgs_y]
+                        block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
+                        block_location[4] = [current_origin[0], current_origin[1]]
+
+                        'Determine new all points of the container block'
+                        block_location = [block_location[0],
+                                          block_location[1],
+                                          block_location[2],
+                                          block_location[3],
+                                          block_location[4]]
+
+                        'Check whether all points of the container block is inside the terminal'
+                        block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
+
+                else:
+                    return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
             """Algorithm for the case : There is possibility for : 
             (a) The container block length should be DECREASED to the x+ direction in order to place the container block
@@ -2339,7 +2417,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                 'Check whether it is fulfilling minimum block width'
                 'Define the points that needs to be checked'
                 check_points = [[block_location[3][0] - terminal_layout.min_block_width, block_location[3][1]],
-                                [block_location[3][0] - terminal_layout.min_block_width, block_location[3][1] + block_length]]
+                                [block_location[3][0] - terminal_layout.min_block_width, block_location[3][1] + block_length_m]]
 
                 'Check whether the check points is inside the terminal'
                 points_inside = check_points_inside(check_points, terminal_layout)
@@ -2349,17 +2427,19 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                     'Check whether it is fulfilling minimum block length'
                     'Define the points that needs to be checked'
                     check_points = [[block_location[0][0], block_location[0][1] + terminal_layout.min_block_length],
-                                    [block_location[0][0] + block_width, block_location[0][1] + terminal_layout.min_block_length]]
+                                    [block_location[0][0] + block_width_m, block_location[0][1] + terminal_layout.min_block_length]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
 
                     if points_inside is True:
+                        possible_placement = True
+
                         while block_0_inside is False or block_1_inside is False:
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
                             block_location[1] = [block_location[1][0], block_location[1][1] - terminal_layout.tgs_y]
-                            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], block_location[1][1] - terminal_layout.tgs_y]
+                            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], block_location[2][1] - terminal_layout.tgs_y]
                             block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -2379,8 +2459,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
+                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length_m]
                     block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -2404,9 +2484,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
             current_origin[0] = block_location[3][0] + terminal_layout.traffic_lane
 
             block_location = [[current_origin[0], current_origin[1]],
-                              [current_origin[0], current_origin[1] + block_length],
-                              [current_origin[0] + block_width, current_origin[1] + block_length],
-                              [current_origin[0] + block_width, current_origin[1]],
+                              [current_origin[0], current_origin[1] + block_length_m],
+                              [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                              [current_origin[0] + block_width_m, current_origin[1]],
                               [current_origin[0], current_origin[1]]]
 
             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
@@ -2418,8 +2498,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                     current_origin = [current_origin[0] + terminal_layout.tgs_x, current_origin[1]]
 
                     block_location = [[current_origin[0], current_origin[1]],
-                                      [current_origin[0], current_origin[1] + block_length],
-                                      [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length],
+                                      [current_origin[0], current_origin[1] + block_length_m],
+                                      [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_length_m],
                                       [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]],
                                       [current_origin[0], current_origin[1]]]
 
@@ -2441,7 +2521,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Determine the new block location'
                 block_location[0] = [current_origin[0], current_origin[1]]
-                block_location[1] = [current_origin[0], current_origin[1] + block_length]
+                block_location[1] = [current_origin[0], current_origin[1] + block_length_m]
                 block_location[2] = block_location[2]
                 block_location[3] = block_location[3]
                 block_location[4] = [current_origin[0], current_origin[1]]
@@ -2482,7 +2562,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Check whether the right side already fulfill the requirments for sc_safety_clearance'
                 check_points = [[block_location[3][0] + terminal_layout.traffic_lane, block_location[3][1]],
-                                [block_location[3][0] + terminal_layout.traffic_lane, block_location[3][1] + block_length]]
+                                [block_location[3][0] + terminal_layout.traffic_lane, block_location[3][1] + block_length_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2491,7 +2571,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                     'Check whether it is fulfilling minimum block width'
                     'Define the points that needs to be checked'
                     check_points = [[block_location[0][0] + terminal_layout.min_block_width, block_location[0][1]],
-                                    [block_location[0][0] + terminal_layout.min_block_width, block_location[0][1] + block_length]]
+                                    [block_location[0][0] + terminal_layout.min_block_width, block_location[3][1]]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
@@ -2501,7 +2581,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                         'Check whether it is fulfilling minimum block length'
                         'Define the points that needs to be checked'
                         check_points = [[block_location[0][0], block_location[0][1] + terminal_layout.min_block_length],
-                                        [block_location[0][0] + block_width, block_location[0][1] + terminal_layout.min_block_length]]
+                                        [block_location[0][0] + block_width_m, block_location[0][1] + terminal_layout.min_block_length]]
 
                         'Check whether the check points is inside the terminal'
                         points_inside = check_points_inside(check_points, terminal_layout)
@@ -2528,11 +2608,11 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
                         'Algorithm for : Decreasing the block length until it reaches the edge of the terminal in x- direction'
                         while (block_2_inside is False or block_3_inside is False):
                             'Determine the new block location'
-                            block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_length]
-                            block_location[2] = [block_location[2][0] - terminal_layout.tgs_x, current_origin[1] + block_length]
-                            block_location[3] = [block_location[3][0] - terminal_layout.tgs_x, current_origin[1]]
-                            block_location[4] = [current_origin[0], current_origin[1]]
+                            block_location[0] = [current_origin[0], block_location[0][1]]
+                            block_location[1] = [current_origin[0], block_location[1][1]]
+                            block_location[2] = [block_location[2][0] - terminal_layout.tgs_x, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - terminal_layout.tgs_x, block_location[3][1]]
+                            block_location[4] = [current_origin[0], block_location[4][1]]
 
                             'Determine new all points of the container block'
                             block_location = [block_location[0],
@@ -2552,9 +2632,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location = [[current_origin[0], current_origin[1]],
-                                          [current_origin[0], current_origin[1] + block_length],
-                                          [current_origin[0] + block_width, current_origin[1] + block_length],
-                                          [current_origin[0] + block_width, current_origin[1]],
+                                          [current_origin[0], current_origin[1] + block_length_m],
+                                          [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                          [current_origin[0] + block_width_m, current_origin[1]],
                                           [current_origin[0], current_origin[1]]]
 
                         'Check whether all points of the container block is inside the terminal'
@@ -2570,9 +2650,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location = [[current_origin[0], current_origin[1]],
-                                      [current_origin[0], current_origin[1] + block_length],
-                                      [current_origin[0] + block_width, current_origin[1] + block_length],
-                                      [current_origin[0] + block_width, current_origin[1]],
+                                      [current_origin[0], current_origin[1] + block_length_m],
+                                      [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                      [current_origin[0] + block_width_m, current_origin[1]],
                                       [current_origin[0], current_origin[1]]]
 
                     'Check whether all points of the container block is inside the terminal'
@@ -2588,9 +2668,9 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Determine the new block location'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1] + block_length],
-                                  [current_origin[0] + block_width, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                                  [current_origin[0] + block_width_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the container block is inside the terminal'
@@ -2600,11 +2680,8 @@ def sc_terminal_generation(starting_origin, current_origin, block_length, block_
 
     return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
-
 'Function for generating the container terminal for RS'
-
-
-def rs_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden):
+def rs_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden):
     'Check whether all points of the container block is inside the terminal'
     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
@@ -2624,8 +2701,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
             first_placement = False
 
             'Define the points that needs to be checked'
-            check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                            [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+            check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                            [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
             'Check whether the check points is inside the terminal'
             points_inside = check_points_inside(check_points, terminal_layout)
@@ -2638,9 +2715,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [current_origin[0] + block_length, current_origin[1] + block_width]
-                    block_location[3] = [current_origin[0] + block_length, current_origin[1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [current_origin[0] + block_length_m, current_origin[1] + block_width_m]
+                    block_location[3] = [current_origin[0] + block_length_m, current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -2654,15 +2731,15 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
                     block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                     'Define the points that needs to be checked'
-                    check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                    check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                    [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
 
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2674,7 +2751,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
                         'Determine new all points of the container block'
@@ -2692,9 +2769,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                    block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -2715,7 +2792,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
             else:
                 'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                 check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -2731,7 +2808,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
                         'Determine new all points of the container block'
@@ -2749,9 +2826,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                    block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
                     'Determine new all points of the container block'
@@ -2858,6 +2935,15 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
             # Add new stack location to the stack location list
             terminal_layout.block_location_list.append(block_location)
 
+            print('  *** add Laden Stack to elements')
+            print('  *** Block configuration: Block number ' + str(len(terminal_layout.block_location_list)))
+            print('  *** Block length (TEU) = ' + str(stack.length) + ' TEU')
+            print('  *** Block width (TEU) = ' + str(stack.width) + ' TEU')
+            print('  *** Block height (TEU) = ' + str(stack.height) + ' TEU')
+
+            print('  *** Block length (m) = ' + str(stack.length_m) + ' m')
+            print('  *** Block width (m) = ' + str(stack.width_m) + ' m')
+
             # Reset the stack data
             stack = Laden_Stack(**container_defaults.rs_stack_data)
             terminal_layout.stack = stack
@@ -2867,9 +2953,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
         'Determine all new points of the container block'
         block_location = [[current_origin[0], current_origin[1]],
-                          [current_origin[0], current_origin[1] + block_width],
-                          [current_origin[0] + block_length, current_origin[1] + block_width],
-                          [current_origin[0] + block_length, current_origin[1]],
+                          [current_origin[0], current_origin[1] + block_width_m],
+                          [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                          [current_origin[0] + block_length_m, current_origin[1]],
                           [current_origin[0], current_origin[1]]]
 
     else:
@@ -2886,12 +2972,12 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
             possible_placement = False
 
             'Define new current_origin point to the next container block in row direction'
-            current_origin = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1] + block_width + terminal_layout.operating_space]
+            current_origin = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1] + block_width_m + terminal_layout.operating_space]
 
             'Determine the new block location on the new row direction'
             block_location[0] = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1]]
-            block_location[1] = [terminal_layout.block_location_list[block_reference][1][0], current_origin[1] + block_width]
-            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+            block_location[1] = [terminal_layout.block_location_list[block_reference][1][0], current_origin[1] + block_width_m]
+            block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
             block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
             block_location[4] = [terminal_layout.block_location_list[block_reference][0][0], current_origin[1]]
 
@@ -2921,9 +3007,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Determine all new points of the container block'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the container block is inside the terminal'
@@ -2943,8 +3029,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Check for possibility of (a)'
                 'Define the points that needs to be checked'
-                check_points = [[block_location[0][0] - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head - block_length, block_location[0][1]],
-                                [block_location[0][0] - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head - block_length, block_location[0][1] + block_width]]
+                check_points = [[block_location[0][0] - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head - block_length_m, block_location[0][1]],
+                                [block_location[0][0] - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head - block_length_m, block_location[0][1] + block_width_m]]
 
                 'Check whether it is actually possible to place a full container block on the further row ahead'
                 'A new container block might be possible to be placed in the space on x- direction'
@@ -2953,8 +3039,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
                 prim_yard_x, prim_yard_y = terminal_layout.prim_yard.exterior.xy
                 if min(prim_yard_x) <= check_points[0][0]:
                     'Define the points that needs to be checked'
-                    check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                    [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                    check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                    [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                     'Check whether the check points is inside the terminal'
                     points_inside = check_points_inside(check_points, terminal_layout)
@@ -2967,9 +3053,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                            block_location[2] = [current_origin[0] + block_length, current_origin[1] + block_width]
-                            block_location[3] = [current_origin[0] + block_length, current_origin[1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                            block_location[2] = [current_origin[0] + block_length_m, current_origin[1] + block_width_m]
+                            block_location[3] = [current_origin[0] + block_length_m, current_origin[1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -2983,15 +3069,15 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
                             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                             'Define the points that needs to be checked'
-                            check_points = [[block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
-                                            [block_location[0][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width]]
+                            check_points = [[block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1]],
+                                            [block_location[0][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[0][1] + block_width_m]]
 
                             'Check whether the check points is inside the terminal'
                             points_inside = check_points_inside(check_points, terminal_layout)
 
                         'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                         check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -3003,7 +3089,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                                 'Determine the new block location'
                                 block_location[0] = [current_origin[0], current_origin[1]]
-                                block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                                block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                                 block_location[4] = [current_origin[0], current_origin[1]]
 
                                 'Determine new all points of the container block'
@@ -3021,9 +3107,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                            block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                            block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                            block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -3044,7 +3130,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
                     else:
                         'Check whether it is possible to place a container block that fulfill minimum block length requirement'
                         check_points = [[block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1]],
-                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width]]
+                                        [block_location[0][0] - terminal_layout.traffic_lane - terminal_layout.min_block_length, block_location[0][1] + block_width_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -3058,7 +3144,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                                 'Determine the new block location'
                                 block_location[0] = [current_origin[0], current_origin[1]]
-                                block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                                block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                                 block_location[4] = [current_origin[0], current_origin[1]]
 
                                 'Determine new all points of the container block'
@@ -3076,9 +3162,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
-                            block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                            block_location[2] = [block_location[2][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
-                            block_location[3] = [block_location[3][0] - block_length - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
+                            block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                            block_location[2] = [block_location[2][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[2][1]]
+                            block_location[3] = [block_location[3][0] - block_length_m - 2 * terminal_layout.margin_head - terminal_layout.traffic_lane, block_location[3][1]]
                             block_location[4] = [current_origin[0], current_origin[1]]
 
                             'Determine new all points of the container block'
@@ -3100,7 +3186,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Check whether the right side already fulfill the requirments for terminal_layout.margin_head'
                     check_points = [[block_location[0][0] - terminal_layout.margin_head, block_location[0][1]],
-                                    [block_location[0][0] - terminal_layout.margin_head, block_location[0][1] + block_width]]
+                                    [block_location[0][0] - terminal_layout.margin_head, block_location[0][1] + block_width_m]]
 
                     points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -3109,8 +3195,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Determine the new block location'
                         block_location[0] = [current_origin[0], current_origin[1]]
-                        block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+                        block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                        block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
                         block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                         block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -3126,7 +3212,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                         'Check whether the right side already fulfill the requirments for terminal_layout.margin_head'
                         check_points = [[block_location[0][0] - terminal_layout.margin_head, block_location[0][0]],
-                                        [block_location[0][0] - terminal_layout.margin_head, block_location[0][0] + block_width]]
+                                        [block_location[0][0] - terminal_layout.margin_head, block_location[0][0] + block_width_m]]
 
                         points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -3135,8 +3221,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
                     block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -3169,8 +3255,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m]
                     block_location[3] = [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -3194,9 +3280,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
             current_origin[0] = block_location[3][0] + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head
 
             block_location = [[current_origin[0], current_origin[1]],
-                              [current_origin[0], current_origin[1] + block_width],
-                              [current_origin[0] + block_length, current_origin[1] + block_width],
-                              [current_origin[0] + block_length, current_origin[1]],
+                              [current_origin[0], current_origin[1] + block_width_m],
+                              [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                              [current_origin[0] + block_length_m, current_origin[1]],
                               [current_origin[0], current_origin[1]]]
 
             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
@@ -3208,8 +3294,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
                     current_origin = [current_origin[0] + terminal_layout.tgs_x, current_origin[1]]
 
                     block_location = [[current_origin[0], current_origin[1]],
-                                      [current_origin[0], current_origin[1] + block_width],
-                                      [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width],
+                                      [current_origin[0], current_origin[1] + block_width_m],
+                                      [terminal_layout.block_location_list[block_reference][2][0], current_origin[1] + block_width_m],
                                       [terminal_layout.block_location_list[block_reference][3][0], current_origin[1]],
                                       [current_origin[0], current_origin[1]]]
 
@@ -3231,7 +3317,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Determine the new block location'
                 block_location[0] = [current_origin[0], current_origin[1]]
-                block_location[1] = [current_origin[0], current_origin[1] + block_width]
+                block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
                 block_location[2] = block_location[2]
                 block_location[3] = block_location[3]
                 block_location[4] = [current_origin[0], current_origin[1]]
@@ -3269,7 +3355,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Check whether the right side already fulfill the requirments for terminal_layout.margin_head'
                 check_points = [[block_location[3][0] + terminal_layout.margin_head, block_location[3][1]],
-                                [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width]]
+                                [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width_m]]
 
                 points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -3277,8 +3363,8 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
                 while (block_2_inside is False or block_3_inside is False) and points_inside is False:
                     'Determine the new block location'
                     block_location[0] = [current_origin[0], current_origin[1]]
-                    block_location[1] = [current_origin[0], current_origin[1] + block_width]
-                    block_location[2] = [block_location[2][0] - terminal_layout.tgs_x, current_origin[1] + block_width]
+                    block_location[1] = [current_origin[0], current_origin[1] + block_width_m]
+                    block_location[2] = [block_location[2][0] - terminal_layout.tgs_x, current_origin[1] + block_width_m]
                     block_location[3] = [block_location[3][0] - terminal_layout.tgs_x, current_origin[1]]
                     block_location[4] = [current_origin[0], current_origin[1]]
 
@@ -3294,7 +3380,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                     'Check whether the right side already fulfill the requirments for terminal_layout.margin_head'
                     check_points = [[block_location[3][0] + terminal_layout.margin_head, block_location[3][1]],
-                                    [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width]]
+                                    [block_location[3][0] + terminal_layout.margin_head, block_location[3][1] + block_width_m]]
 
                     points_inside = check_points_inside(check_points, terminal_layout)
 
@@ -3308,9 +3394,9 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
                 'Determine the new block location'
                 block_location = [[current_origin[0], current_origin[1]],
-                                  [current_origin[0], current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1] + block_width],
-                                  [current_origin[0] + block_length, current_origin[1]],
+                                  [current_origin[0], current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                                  [current_origin[0] + block_length_m, current_origin[1]],
                                   [current_origin[0], current_origin[1]]]
 
                 'Check whether all points of the container block is inside the terminal'
@@ -3326,10 +3412,7 @@ def rs_terminal_generation(starting_origin, current_origin, block_length, block_
 
     return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
-
 'Function for determining the container terminal layout for RTG'
-
-
 def rtg_layout(laden, terminal_layout):
     terminal, quay_length, prim_yard, apron, terminal_area, prim_yard_area, apron_area, prim_full_ratio = terminal_configuration(terminal_layout)
 
@@ -3343,7 +3426,7 @@ def rtg_layout(laden, terminal_layout):
     terminal_layout.apron_area = apron_area
     terminal_layout.prim_full_ratio = prim_full_ratio
 
-    block_length, block_width, max_blocks_x, max_blocks_y = block_configuration(terminal_layout)
+    block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
     # add elements to the terminal layout
     terminal_layout.max_blocks_x = max_blocks_x
     terminal_layout.max_blocks_y = max_blocks_y
@@ -3362,9 +3445,9 @@ def rtg_layout(laden, terminal_layout):
 
     'Define the first container block location'
     block_location = [[current_origin[0], current_origin[1]],
-                      [current_origin[0], current_origin[1] + block_width],
-                      [current_origin[0] + block_length, current_origin[1] + block_width],
-                      [current_origin[0] + block_length, current_origin[1]],
+                      [current_origin[0], current_origin[1] + block_width_m],
+                      [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                      [current_origin[0] + block_length_m, current_origin[1]],
                       [current_origin[0], current_origin[1]]]
 
     'Define parameters value'
@@ -3374,7 +3457,7 @@ def rtg_layout(laden, terminal_layout):
     first_placement = True
 
     'Define the top of the block parameter for while loop, so it stops if it reaches the top edge of the primary yard'
-    block_top = starting_origin[1] + block_width
+    block_top = starting_origin[1] + block_width_m
 
     'Define the top of the primary yard terminal boundary for while loop, so it stops if it reaches the top edge of the primary yard'
     prim_yard_x, prim_yard_y = prim_yard.exterior.xy
@@ -3382,17 +3465,14 @@ def rtg_layout(laden, terminal_layout):
 
     while block_top <= prim_yard_top and terminal_layout.tgs_demand >= terminal_layout.tgs_capacity:
 
-        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = rtg_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden)
+        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = rtg_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden)
 
         if possible_placement is False:
-            block_top = block_top + block_width + terminal_layout.bypass_lane
+            block_top = block_top + block_width_m + terminal_layout.bypass_lane
 
     return terminal_layout
 
-
 'Function for determining the container terminal layout for RMG'
-
-
 def rmg_layout(laden, terminal_layout):
     terminal, quay_length, prim_yard, apron, terminal_area, prim_yard_area, apron_area, prim_full_ratio = terminal_configuration(terminal_layout)
 
@@ -3406,7 +3486,7 @@ def rmg_layout(laden, terminal_layout):
     terminal_layout.apron_area = apron_area
     terminal_layout.prim_full_ratio = prim_full_ratio
 
-    block_length, block_width, max_blocks_x, max_blocks_y = block_configuration(terminal_layout)
+    block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
 
     # add elements to the terminal layout
     terminal_layout.max_blocks_x = max_blocks_x
@@ -3426,9 +3506,9 @@ def rmg_layout(laden, terminal_layout):
 
     'Define the first container block location'
     block_location = [[current_origin[0], current_origin[1]],
-                      [current_origin[0], current_origin[1] + block_length],
-                      [current_origin[0] + block_width, current_origin[1] + block_length],
-                      [current_origin[0] + block_width, current_origin[1]],
+                      [current_origin[0], current_origin[1] + block_length_m],
+                      [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                      [current_origin[0] + block_width_m, current_origin[1]],
                       [current_origin[0], current_origin[1]]]
 
     'Define parameters value'
@@ -3438,7 +3518,7 @@ def rmg_layout(laden, terminal_layout):
     first_placement = True
 
     'Define the top of the block parameter for while loop, so it stops if it reaches the top edge of the primary yard'
-    block_top = starting_origin[1] + block_length
+    block_top = starting_origin[1] + block_length_m
 
     'Define the top of the primary yard terminal boundary for while loop, so it stops if it reaches the top edge of the primary yard'
     prim_yard_x, prim_yard_y = prim_yard.exterior.xy
@@ -3446,17 +3526,14 @@ def rmg_layout(laden, terminal_layout):
 
     while block_top <= prim_yard_top and terminal_layout.tgs_demand >= terminal_layout.tgs_capacity:
 
-        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = rmg_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden)
+        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = rmg_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden)
 
         if possible_placement is False:
-            block_top = block_top + block_length + 2 * terminal_layout.margin_head + terminal_layout.traffic_lane
+            block_top = block_top + block_length_m + 2 * terminal_layout.margin_head + terminal_layout.traffic_lane
 
     return terminal_layout
 
-
 'Function for determining the container terminal layout for SC'
-
-
 def sc_layout(laden, terminal_layout):
     terminal, quay_length, prim_yard, apron, terminal_area, prim_yard_area, apron_area, prim_full_ratio = terminal_configuration(terminal_layout)
 
@@ -3470,29 +3547,38 @@ def sc_layout(laden, terminal_layout):
     terminal_layout.apron_area = apron_area
     terminal_layout.prim_full_ratio = prim_full_ratio
 
-    # add elements to the terminal_layout
-    block_length, block_width, max_blocks_x, max_blocks_y = block_configuration(terminal_layout)
+    block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
+    # Add the element to the terminal layout
+    terminal_layout.block_length_m = block_length_m
+    terminal_layout.block_width_m = block_width_m
     terminal_layout.max_blocks_x = max_blocks_x
     terminal_layout.max_blocks_y = max_blocks_y
 
     'BLOCK GENERATION PARAMETER'
     'The starting origin for the container block is : x = terminal_layout.traffic_lane; y = apron_width'
-    starting_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.traffic_lane + terminal_layout.margin_head]
+    starting_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head]
 
     if terminal_layout.block_location_list != []:
         last_block_location = terminal_layout.block_location_list[(len(terminal_layout.block_location_list)) - 1]
         current_origin = [last_block_location[3][0] + terminal_layout.traffic_lane, last_block_location[3][1]]
 
+        'Define the first container block location'
+        block_location = [[current_origin[0], last_block_location[0][1]],
+                          [current_origin[0], last_block_location[1][1]],
+                          [current_origin[0] + block_width_m, last_block_location[2][1]],
+                          [current_origin[0] + block_width_m, last_block_location[3][1]],
+                          [current_origin[0], last_block_location[4][1]]]
+
     else:
         'Moving current_origin to starting origin for the container block'
-        current_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.traffic_lane + terminal_layout.margin_head]
+        current_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head]
 
-    'Define the first container block location'
-    block_location = [[current_origin[0], current_origin[1]],
-                      [current_origin[0], current_origin[1] + block_length],
-                      [current_origin[0] + block_width, current_origin[1] + block_length],
-                      [current_origin[0] + block_width, current_origin[1]],
-                      [current_origin[0], current_origin[1]]]
+        'Define the first container block location'
+        block_location = [[current_origin[0], current_origin[1]],
+                          [current_origin[0], current_origin[1] + block_length_m],
+                          [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
+                          [current_origin[0] + block_width_m, current_origin[1]],
+                          [current_origin[0], current_origin[1]]]
 
     'Define parameters value'
     block_reference = 0
@@ -3501,7 +3587,12 @@ def sc_layout(laden, terminal_layout):
     first_placement = True
 
     'Define the top of the block parameter for while loop, so it stops if it reaches the top edge of the primary yard'
-    block_top = starting_origin[1] + block_length
+    if terminal_layout.block_location_list != []:
+        last_block_location = terminal_layout.block_location_list[(len(terminal_layout.block_location_list)) - 1]
+        block_top = last_block_location[1][1]
+
+    else:
+        block_top = starting_origin[1] + block_length_m
 
     'Define the top of the primary yard terminal boundary for while loop, so it stops if it reaches the top edge of the primary yard'
     prim_yard_x, prim_yard_y = prim_yard.exterior.xy
@@ -3509,17 +3600,14 @@ def sc_layout(laden, terminal_layout):
 
     while block_top <= prim_yard_top and terminal_layout.tgs_demand >= terminal_layout.tgs_capacity:
 
-        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = sc_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden)
+        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = sc_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden)
 
         if possible_placement is False:
-            block_top = block_top + block_length + terminal_layout.traffic_lane
+            block_top = block_top + block_length_m + terminal_layout.traffic_lane
 
     return terminal_layout
 
-
 'Function for determining the container terminal layout for RS'
-
-
 def rs_layout(laden, terminal_layout):
     terminal, quay_length, prim_yard, apron, terminal_area, prim_yard_area, apron_area, prim_full_ratio = terminal_configuration(terminal_layout)
 
@@ -3533,10 +3621,18 @@ def rs_layout(laden, terminal_layout):
     terminal_layout.apron_area = apron_area
     terminal_layout.prim_full_ratio = prim_full_ratio
 
-    # add elements to the terminal_layout
-    block_length, block_width, max_blocks_x, max_blocks_y = block_configuration(terminal_layout)
-    terminal_layout.max_blocks_x = max_blocks_x
-    terminal_layout.max_blocks_y = max_blocks_y
+    if terminal_layout.block_configuration:
+        block_length_m = terminal_layout.block_length_m
+        block_width_m = terminal_layout.block_width_m
+
+    else:
+        # add elements to the terminal_layout
+        block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
+        terminal_layout.max_blocks_x = max_blocks_x
+        terminal_layout.max_blocks_y = max_blocks_y
+
+    terminal_layout.block_length_m = block_length_m
+    terminal_layout.block_width_m = block_width_m
 
     'BLOCK GENERATION PARAMETER'
     'The starting origin for the container block is : x = terminal_layout.traffic_lane + terminal_layout.margin_head ; y = apron_width'
@@ -3552,9 +3648,9 @@ def rs_layout(laden, terminal_layout):
 
     'Define the first container block location'
     block_location = [[current_origin[0], current_origin[1]],
-                      [current_origin[0], current_origin[1] + block_width],
-                      [current_origin[0] + block_length, current_origin[1] + block_width],
-                      [current_origin[0] + block_length, current_origin[1]],
+                      [current_origin[0], current_origin[1] + block_width_m],
+                      [current_origin[0] + block_length_m, current_origin[1] + block_width_m],
+                      [current_origin[0] + block_length_m, current_origin[1]],
                       [current_origin[0], current_origin[1]]]
 
     'Define which block reference in BAY DIRECTION in generating container terminals, 0 means its the first block which the starting origins located'
@@ -3564,7 +3660,7 @@ def rs_layout(laden, terminal_layout):
     first_placement = True
 
     'Define the top of the block parameter for while loop, so it stops if it reaches the top edge of the primary yard'
-    block_top = starting_origin[1] + block_width
+    block_top = starting_origin[1] + block_width_m
 
     'Define the top of the primary yard terminal boundary for while loop, so it stops if it reaches the top edge of the primary yard'
     prim_yard_x, prim_yard_y = prim_yard.exterior.xy
@@ -3572,10 +3668,10 @@ def rs_layout(laden, terminal_layout):
 
     while block_top <= prim_yard_top and terminal_layout.tgs_demand >= terminal_layout.tgs_capacity:
 
-        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = rs_terminal_generation(starting_origin, current_origin, block_length, block_width, block_location, block_reference, first_placement, terminal_layout, laden)
+        current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout = rs_terminal_generation(starting_origin, current_origin, block_length_m, block_width_m, block_location, block_reference, first_placement, terminal_layout, laden)
 
         if possible_placement is False:
-            block_top = block_top + block_width + terminal_layout.operating_space
+            block_top = block_top + block_width_m + terminal_layout.operating_space
 
         if block_top > prim_yard_top:
             terminal_layout.available_space = False
