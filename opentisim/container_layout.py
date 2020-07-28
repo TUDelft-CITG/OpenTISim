@@ -179,22 +179,28 @@ def terminal_configuration(terminal_layout):
     'Creating terminal area that is already decreased by the traffic lane, because it is assumed that traffic lane is available in all side of the container terminal'
     prim_yard_wotl_line = prim_yard_line.parallel_offset(terminal_layout.traffic_lane, 'right', join_style=2, mitre_limit=terminal_layout.traffic_lane)
 
-    """# The length of the primary yard coordinates
-    len_prim = len(prim_yard_coords)
-
-    # Moving the primary yard bottom line upwards to the apron line
-    prim_yard_coords[0][1] = terminal_layout.apron_width
-    prim_yard_coords[len_prim - 2][1] = terminal_layout.apron_width
-    prim_yard_coords[len_prim - 1][1] = terminal_layout.apron_width"""
-
     'Converting TERMINAL to Polygon'
     prim_yard = Polygon(prim_yard_wotl_line)
 
     if terminal_layout.prim_yard_only:
         # modifying for only considering prim_yard
-        prim_yard = terminal_wotl
-        prim_yard_area = terminal_wotl_area
-        prim_full_ratio = 1
+        prim_yard_coords = coords
+
+        'Determine the prim_yard coords to exclude the apron'
+        prim_yard_coords[0][1] = terminal_layout.apron_width
+        prim_yard_coords[len(prim_yard_coords) - 2][1] = terminal_layout.apron_width
+        prim_yard_coords[len(prim_yard_coords) - 1][1] = terminal_layout.apron_width
+
+        'Creating area for the primary yard using line string, to use parallel offset function (because it is not working for polygon)'
+        prim_yard_line = LineString(prim_yard_coords)
+
+        'Creating terminal area that is already decreased by the traffic lane, because it is assumed that traffic lane is available in all side of the container terminal'
+        prim_yard_wotl_line = prim_yard_line.parallel_offset(terminal_layout.traffic_lane, 'right', join_style=2, mitre_limit=terminal_layout.traffic_lane)
+
+        prim_yard = Polygon(prim_yard_wotl_line)
+        prim_yard_area = prim_yard.area
+
+        prim_full_ratio = 0.8 # need to have some validation here
 
     return terminal, quay_length, prim_yard, apron, terminal_area, prim_yard_area, apron_area, prim_full_ratio
 
@@ -325,8 +331,17 @@ def block_configuration(terminal_layout, laden):
         max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.traffic_lane) / (block_width_m + terminal_layout.operating_space))
 
     if terminal_layout.block_configuration:
-        block_length_m = laden.length * (terminal_layout.tgs_y)
-        block_width_m = laden.width * (terminal_layout.tgs_x)
+        if terminal_layout.stack_equipment == 'rmg':
+            block_length_m = laden.length * (terminal_layout.tgs_y) + terminal_layout.length_buffer
+            block_width_m = laden.width * terminal_layout.width_buffer
+
+            'Determine the modified traffic lane width'
+            max_blocks_x = math.floor((quay_length - 2 * terminal_layout.traffic_lane + terminal_layout.margin_parallel) / (block_width_m + terminal_layout.margin_parallel))
+            terminal_layout.margin_parallel = math.floor(((quay_length - 2 * terminal_layout.traffic_lane - max_blocks_x * block_width_m) / (max_blocks_x - 1)) * 100) / 100
+
+        else:
+            block_length_m = laden.length * (terminal_layout.tgs_y)
+            block_width_m = laden.width * (terminal_layout.tgs_x)
 
     return block_length_m, block_width_m, max_blocks_x, max_blocks_y
 
@@ -1175,11 +1190,11 @@ def rmg_terminal_generation(starting_origin, current_origin, block_length_m, blo
             current_origin[0] = block_location[0][0] + block_width_m + terminal_layout.margin_parallel
 
             'Determine all new points of the container block'
-            block_location = [[current_origin[0], current_origin[1]],
-                              [current_origin[0], current_origin[1] + block_length_m],
-                              [current_origin[0] + block_width_m, current_origin[1] + block_length_m],
-                              [current_origin[0] + block_width_m, current_origin[1]],
-                              [current_origin[0], current_origin[1]]]
+            block_location = [[starting_origin[0], starting_origin[1]],
+                              [starting_origin[0], starting_origin[1] + block_length_m],
+                              [starting_origin[0] + block_width_m, starting_origin[1] + block_length_m],
+                              [starting_origin[0] + block_width_m, starting_origin[1]],
+                              [starting_origin[0], starting_origin[1]]]
 
             'Check whether all points of the point in block is inside the terminal'
             block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
@@ -1976,6 +1991,15 @@ def sc_terminal_generation(starting_origin, current_origin, block_length_m, bloc
 
         'Draw the container block'
         if block_location[3][0] - block_location[0][0] > terminal_layout.min_block_width and block_location[1][1] - block_location[0][1] > terminal_layout.min_block_length:
+            'Check whether there is ava'
+
+
+
+
+
+
+
+
             stack = terminal_layout.stack
 
             # Add the block location, length, and width to the stack
@@ -3556,7 +3580,11 @@ def sc_layout(laden, terminal_layout):
 
     'BLOCK GENERATION PARAMETER'
     'The starting origin for the container block is : x = terminal_layout.traffic_lane; y = apron_width'
-    starting_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head]
+    if terminal_layout.prim_yard_only:
+        starting_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head]
+    else:
+        starting_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head + terminal_layout.traffic_lane]
+
 
     if terminal_layout.block_location_list != []:
         last_block_location = terminal_layout.block_location_list[(len(terminal_layout.block_location_list)) - 1]
@@ -3570,8 +3598,12 @@ def sc_layout(laden, terminal_layout):
                           [current_origin[0], last_block_location[4][1]]]
 
     else:
-        'Moving current_origin to starting origin for the container block'
-        current_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head]
+        if terminal_layout.prim_yard_only:
+            'Moving current_origin to starting origin for the container block'
+            current_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head + terminal_layout.traffic_lane]
+        else:
+            'Moving current_origin to starting origin for the container block'
+            current_origin = [terminal_layout.traffic_lane, terminal_layout.apron_width + terminal_layout.margin_head + terminal_layout.traffic_lane]
 
         'Define the first container block location'
         block_location = [[current_origin[0], current_origin[1]],

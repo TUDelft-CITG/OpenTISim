@@ -301,17 +301,17 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "reefer_rack": 3500,  # USD
                   "reefers_present": 0.5}  # per reefer spot
 
-rmg_design_rules_data = {"margin_parallel": 2, # RMG minimum margin at parallel side
+rmg_design_rules_data = {"margin_parallel": 6, # RMG minimum margin at parallel side
                   "margin_head": 5, # RMG margin at stack head
                   "equipment_track": 4, # RMG track width
-                  "length_buffer": 35, # RMG length buffer/parking area
+                  "length_buffer": 40, # RMG length buffer/parking area
                   "traffic_lane": 12.9, # RMG traffic lane width
                   "width_buffer": 2.9, # RMG width buffer/parking area
 
                   "tgs_x": 2.9, # RMG gross TGS dimension x-direction
                   "tgs_y": 6.7, # RMG gross TGS dimension y-direction
 
-                  "max_block_length": 255, # RMG maximum block length
+                  "max_block_length": 400, # RMG maximum block length
                   "min_block_length": 150}  # RMG minimum block length = 2 * length buffer + 20 * RMG Gross TGS x-dimension}\
 
 sc_stack_data = {"name": 'SC Stack',
@@ -321,8 +321,8 @@ sc_stack_data = {"name": 'SC Stack',
                  "mobilisation": 50_000,  # USD
                  "maintenance_perc": 0.1,
                  "width": 45,  # TEU
-                 "height": 3,  # TEU
-                 "length": 22,  # TEU
+                 "height": 4,  # TEU
+                 "length": 20,  # TEU
                  "capacity": 1200,  # TEU
                  "gross_tgs": 27.3,  # TEU Ground Slot [m2/teu]
                  "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)

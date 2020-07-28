@@ -2698,8 +2698,8 @@ class System:
             terminal_legend = mlines.Line2D([], [], color='#1f77b4', markersize=15, label='Terminal area')
             prim_yard_legend = mlines.Line2D([], [], color='#ff7f0e', markersize=15, label='Primary yard area')
 
-            ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(1600, 650), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
-            ax.annotate('Yard TGS demand = ' + str(math.floor(tgs_demand)) + ' TGS', xy=(1600, 600), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
+            ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(1000, 520), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
+            ax.annotate('Yard TGS demand = ' + str(math.floor(tgs_demand)) + ' TGS', xy=(1000, 500), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
 
             ax.legend(handles=[terminal_legend, prim_yard_legend, apron_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
                       fancybox=True, shadow=True, ncol=4, fontsize=10)

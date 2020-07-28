@@ -75,8 +75,8 @@ years = list(range(startyear, startyear + lifecycle))
 # In[74]:
 
 
-throughput_1 = 2_460_000
-throughput_2 = 3_460_000
+throughput_1 = 2_700_000
+throughput_2 = 2_700_000
 
 # In[75]:
 
@@ -164,15 +164,15 @@ container_defaults.sts_crane_data["hourly_cycles"] = 30
 container_defaults.sts_crane_data["lifting_capacity"] = 2
 container_defaults.berth_data["max_cranes"] = 4
 container_defaults.quay_wall_data["berthing_gap"] = 15
-container_defaults.quay_wall_data["apron_width"] = 82
+container_defaults.quay_wall_data["apron_width"] = 110
 
 container_defaults.laden_container_data["peak_factor"] = 1.2
-container_defaults.laden_container_data["dwell_time"] = 7.5
-container_defaults.laden_container_data["stack_ratio"] = 0.8
-container_defaults.laden_container_data["stack_occupancy"] = 0.7
-container_defaults.laden_container_data["width"] = 45
-container_defaults.laden_container_data["height"] = 4
-container_defaults.laden_container_data["length"] = 20
+container_defaults.laden_container_data["dwell_time"] = 7
+container_defaults.laden_container_data["stack_ratio"] = 0.9
+container_defaults.laden_container_data["stack_occupancy"] = 0.8
+container_defaults.laden_container_data["width"] = 9
+container_defaults.laden_container_data["height"] = 5
+container_defaults.laden_container_data["length"] = 42
 
 container_defaults.reefer_container_data["peak_factor"] = 1.2
 container_defaults.reefer_container_data["dwell_time"] = 6.5
@@ -213,9 +213,9 @@ container_defaults.gate_data["design_capacity"] = 0.98
 # add terminal coordinates element
 # Rectangular
 rectangular = [[0, 0],
-               [0, 800],
-               [1200, 800],
-               [1200, 0],
+               [0, 500],
+               [1000, 500],
+               [1000, 0],
                [0, 0]]
 
 # Triangular
@@ -325,6 +325,9 @@ custom = [[]]
 'Define terminal coordinates'
 coords = rectangular
 
+
+
+
 # In[83]:
 
 
@@ -337,8 +340,8 @@ Terminal = container_system.System(
     debug=True,  # toggle: intermediate print statements
     elements=demand + vessels,  # terminal elements at T=0
     crane_type_defaults=container_defaults.sts_crane_data,  # specify defaults: crane type to use
-    stack_equipment='rtg',  # specify defaults: stack equipment to use
-    laden_stack='rtg',  # specify defaults: crane type to use
+    stack_equipment='rmg',  # specify defaults: stack equipment to use
+    laden_stack='rmg',  # specify defaults: crane type to use
     allowable_waiting_service_time_ratio_berth=0.1,
     allowable_berth_occupancy=0.6,
     teu_factor=1.6,
@@ -350,7 +353,7 @@ Terminal = container_system.System(
     import_perc=0.15,
     export_perc=0.16,
     transhipment_ratio=0.69,
-    space_boundary=False,
+    space_boundary=True, prim_yard_only=True, block_configuration=False,
     coords=coords)
 
 # ## 3. Start simulation
