@@ -48,6 +48,25 @@ def terminal_configuration(terminal_layout):
     apron_coords[3] = [coords[0][0] + quay_length, coords[0][1]]
     apron_coords[4] = coords[0]
 
+    # Check whether apron points are outside or inside the terminal
+    if (Point(apron_coords[1]).within(terminal) is True or Point(apron_coords[1]).touches(terminal) is True) and (Point(apron_coords[2]).within(terminal) is True or Point(apron_coords[2]).touches(terminal) is True):
+        apron_points_inside = True
+    else:
+        apron_points_inside = False
+
+    # Move apron points to the intersection with the terminal
+    if apron_points_inside is False:
+        line_apron_y = terminal_layout.apron_width
+        line = LineString([[min(terminal_x) - 1 / 4 * max(terminal_x), line_apron_y], [max(terminal_x) + 1 / 4 * max(terminal_x), line_apron_y]])
+        intersection_apron = line.intersection(terminal_line)
+        if intersection_apron.geom_type == 'MultiPoint':
+            intersection_x, intersection_y = LineString(intersection_apron).xy
+        elif intersection_apron.geom_type == 'Point':
+            intersection_x, intersection_y = intersection.xy
+
+        apron_coords[1] = [intersection_x[0], intersection_y[0]]
+        apron_coords[2] = [intersection_x[1], intersection_y[1]]
+
     apron = Polygon(apron_coords)
 
     apron_area = apron.area
@@ -187,9 +206,9 @@ def terminal_configuration(terminal_layout):
         prim_yard_coords = coords
 
         'Determine the prim_yard coords to exclude the apron'
-        prim_yard_coords[0][1] = terminal_layout.apron_width
-        prim_yard_coords[len(prim_yard_coords) - 2][1] = terminal_layout.apron_width
-        prim_yard_coords[len(prim_yard_coords) - 1][1] = terminal_layout.apron_width
+        prim_yard_coords[0] = apron_coords[1]
+        prim_yard_coords[len(prim_yard_coords) - 2] = apron_coords[2]
+        prim_yard_coords[len(prim_yard_coords) - 1] = apron_coords[1]
 
         'Creating area for the primary yard using line string, to use parallel offset function (because it is not working for polygon)'
         prim_yard_line = LineString(prim_yard_coords)
@@ -217,6 +236,8 @@ def block_configuration(terminal_layout, laden):
     if terminal_layout.stack_equipment == 'rtg':
         if terminal_layout.block_configuration:
             'Determine block_length'
+            block_length_m = (laden.length * terminal_layout.tgs_x)
+            max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (block_length_m + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
 
         else:
             'Determine block length'
@@ -243,12 +264,17 @@ def block_configuration(terminal_layout, laden):
         max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width + terminal_layout.bypass_lane - terminal_layout.traffic_lane) / (block_width_m + terminal_layout.bypass_lane))
 
     elif terminal_layout.stack_equipment == 'rmg':
-        'Determine number of blocks in y direction'
-        max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
+        if terminal_layout.block_configuration:
+            block_length_m = laden.length * (terminal_layout.tgs_y) + 2 * (terminal_layout.length_buffer)
+            max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width) / (block_length_m + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
 
-        'Determine block length'
-        block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
-                                                                                                       terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
+        else:
+            'Determine number of blocks in y direction'
+            max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
+
+            'Determine block length'
+            block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
+                                                                                                           terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
@@ -273,12 +299,18 @@ def block_configuration(terminal_layout, laden):
         terminal_layout.margin_parallel = margin_parallel
 
     elif terminal_layout.stack_equipment == 'sc':
-        'Determine number of blocks in bay direction'
-        max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / (terminal_layout.max_block_length + terminal_layout.traffic_lane))
 
-        'Determine block length"'
-        block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) *
-                                  100) / 100
+        if terminal_layout.block_configuration:
+            block_length_m = laden.length * terminal_layout.tgs_x
+            max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / (terminal_layout.max_block_length + terminal_layout.traffic_lane))
+
+        else:
+            'Determine number of blocks in bay direction'
+            max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / (terminal_layout.max_block_length + terminal_layout.traffic_lane))
+
+            'Determine block length"'
+            block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) *
+                                      100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
@@ -291,11 +323,16 @@ def block_configuration(terminal_layout, laden):
         if block_length_m > terminal_layout.max_block_length:
             block_length_m = terminal_layout.max_block_length
 
-        'Determine number of blocks in row direction'
-        max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_width + terminal_layout.traffic_lane))
+        if terminal_layout.block_configuration:
+            block_width_m = laden.width * (terminal_layout.tgs_y)
+            max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (block_width_m + terminal_layout.traffic_lane))
 
-        'Determine block length"'
-        block_width_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
+        else:
+            'Determine number of blocks in row direction'
+            max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_width + terminal_layout.traffic_lane))
+
+            'Determine block length"'
+            block_width_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_width_m < terminal_layout.min_block_width:
@@ -308,11 +345,17 @@ def block_configuration(terminal_layout, laden):
             block_width_m = terminal_layout.max_block_width
 
     elif terminal_layout.stack_equipment == 'rs':
-        'Determine number of blocks in x direction'
-        max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
 
-        'Determine block length"'
-        block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+        if terminal_layout.block_configuration:
+            block_length_m = laden.length * terminal_layout.tgs_x
+            max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / (terminal_layout.max_block_length + terminal_layout.traffic_lane))
+
+        else:
+            'Determine number of blocks in x direction'
+            max_blocks_x = math.ceil((quay_length - terminal_layout.traffic_lane) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
+
+            'Determine block length"'
+            block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
@@ -329,19 +372,6 @@ def block_configuration(terminal_layout, laden):
 
         'Determine number of blocks in row direction'
         max_blocks_y = math.floor((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.traffic_lane) / (block_width_m + terminal_layout.operating_space))
-
-    if terminal_layout.block_configuration:
-        if terminal_layout.stack_equipment == 'rmg':
-            block_length_m = laden.length * (terminal_layout.tgs_y) + terminal_layout.length_buffer
-            block_width_m = laden.width * terminal_layout.width_buffer
-
-            'Determine the modified traffic lane width'
-            max_blocks_x = math.floor((quay_length - 2 * terminal_layout.traffic_lane + terminal_layout.margin_parallel) / (block_width_m + terminal_layout.margin_parallel))
-            terminal_layout.margin_parallel = math.floor(((quay_length - 2 * terminal_layout.traffic_lane - max_blocks_x * block_width_m) / (max_blocks_x - 1)) * 100) / 100
-
-        else:
-            block_length_m = laden.length * (terminal_layout.tgs_y)
-            block_width_m = laden.width * (terminal_layout.tgs_x)
 
     return block_length_m, block_width_m, max_blocks_x, max_blocks_y
 
@@ -562,6 +592,38 @@ def rtg_terminal_generation(starting_origin, current_origin, block_length_m, blo
 
         'Draw the container block'
         if block_location[3][0] - block_location[0][0] > terminal_layout.min_block_length:
+
+            # Check whether it is better to increase the block length to the edge of the terminal
+            check_points = [[block_location[0][0] + terminal_layout.max_block_length + terminal_layout.traffic_lane, block_location[0][1]],
+                            [block_location[1][0] + terminal_layout.max_block_length + terminal_layout.traffic_lane, block_location[1][1]]]
+
+            points_inside = check_points_inside(check_points, terminal_layout)
+
+            if points_inside is False:
+                while block_2_inside is True and block_3_inside is True:
+                    block_location[2] = [block_location[2][0] + terminal_layout.tgs_x, block_location[2][1]]
+                    block_location[3] = [block_location[3][0] + terminal_layout.tgs_x, block_location[3][1]]
+
+                    'Determine new all points of the container block'
+                    block_location = [block_location[0],
+                                      block_location[1],
+                                      block_location[2],
+                                      block_location[3],
+                                      block_location[4]]
+
+                    'Check whether all points of the container block is inside the terminal'
+                    block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
+
+                block_location[2] = [block_location[2][0] - terminal_layout.tgs_x - terminal_layout.traffic_lane, block_location[2][1]]
+                block_location[3] = [block_location[3][0] - terminal_layout.tgs_x - terminal_layout.traffic_lane, block_location[3][1]]
+
+                'Determine new all points of the container block'
+                block_location = [block_location[0],
+                                  block_location[1],
+                                  block_location[2],
+                                  block_location[3],
+                                  block_location[4]]
+
             stack = terminal_layout.stack
 
             # Add the block location to the
@@ -3451,7 +3513,9 @@ def rtg_layout(laden, terminal_layout):
     terminal_layout.prim_full_ratio = prim_full_ratio
 
     block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
-    # add elements to the terminal layout
+    # Add the element to the terminal layout
+    terminal_layout.block_length_m = block_length_m
+    terminal_layout.block_width_m = block_width_m
     terminal_layout.max_blocks_x = max_blocks_x
     terminal_layout.max_blocks_y = max_blocks_y
 
@@ -3511,8 +3575,9 @@ def rmg_layout(laden, terminal_layout):
     terminal_layout.prim_full_ratio = prim_full_ratio
 
     block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
-
-    # add elements to the terminal layout
+    # Add the element to the terminal layout
+    terminal_layout.block_length_m = block_length_m
+    terminal_layout.block_width_m = block_width_m
     terminal_layout.max_blocks_x = max_blocks_x
     terminal_layout.max_blocks_y = max_blocks_y
 
@@ -3653,18 +3718,12 @@ def rs_layout(laden, terminal_layout):
     terminal_layout.apron_area = apron_area
     terminal_layout.prim_full_ratio = prim_full_ratio
 
-    if terminal_layout.block_configuration:
-        block_length_m = terminal_layout.block_length_m
-        block_width_m = terminal_layout.block_width_m
-
-    else:
-        # add elements to the terminal_layout
-        block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
-        terminal_layout.max_blocks_x = max_blocks_x
-        terminal_layout.max_blocks_y = max_blocks_y
-
+    block_length_m, block_width_m, max_blocks_x, max_blocks_y = block_configuration(terminal_layout, laden)
+    # Add the element to the terminal layout
     terminal_layout.block_length_m = block_length_m
     terminal_layout.block_width_m = block_width_m
+    terminal_layout.max_blocks_x = max_blocks_x
+    terminal_layout.max_blocks_y = max_blocks_y
 
     'BLOCK GENERATION PARAMETER'
     'The starting origin for the container block is : x = terminal_layout.traffic_lane + terminal_layout.margin_head ; y = apron_width'

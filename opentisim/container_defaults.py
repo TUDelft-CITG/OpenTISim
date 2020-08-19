@@ -268,14 +268,14 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "reefers_present": 0.5}  # per reefer spot
 
 rtg_design_rules_data = {"equipment_track": 1.9, # RTG track width
-                  "vehicle_track": 4.35, # RTG vehicle roadway width
-                  "traffic_lane": 12, # RTG traffic lane width
+                  "vehicle_track": 5, # RTG vehicle roadway width
+                  "traffic_lane": 10, # RTG traffic lane width
                   "lightmast_lane": 2.8, # RTG lightmast lane width
-                  "bypass_lane": 4.2, # RTG bypass lane width
+                  "bypass_lane": 6.25, # RTG bypass lane width
                   "margin_head": 9.7, # RTG margin at stack head
 
-                  "tgs_x": 6.45, # RTG gross TGS dimension x-direction
-                  "tgs_y": 2.79, # RTG gross TGS dimension y-direction
+                  "tgs_x": 7.05, # RTG gross TGS dimension x-direction
+                  "tgs_y": 2.95, # RTG gross TGS dimension y-direction
 
                   "max_block_length": 250, # RTG maximum block length
                   "min_block_length": 129} # RTG minimum block length = 20 * RTG gross TGS dimension x-direction

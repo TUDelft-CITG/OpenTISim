@@ -5,7 +5,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
-
+import descartes.patch as patch
 
 # opentisim package
 from opentisim.container_objects import *
@@ -919,8 +919,13 @@ class System:
 
         # add the tgs_demand to the yard layout element
         terminal_layout.tgs_demand = total_ground_slots
+        # add the tgs_demand_laden and tgs_demand_reefer to the yard layout element
+        terminal_layout.tgs_demand_laden = laden_ground_slots
+        terminal_layout.tgs_demand_reefer = reefer_ground_slots
+
         # add the tgs_capacity to the yard layout element
         terminal_layout.tgs_capacity = total_capacity_planned / terminal_layout.stack.height
+
 
         if self.debug:
             # Creating the terminal area
@@ -2649,13 +2654,17 @@ class System:
                         prim_yard = element.prim_yard
                         apron = element.apron
                         block_location_list = element.block_location_list
+                        block_list = element.block_list
                         tgs_capacity = element.tgs_capacity
                         tgs_demand = element.tgs_demand
+                        tgs_demand_laden = element.tgs_demand_laden
+                        tgs_demand_reefer = element.tgs_demand_reefer
                         stack_height = element.stack.height
 
             terminal_x, terminal_y = terminal.exterior.xy
-            prim_yard_x, prim_yard_y = prim_yard.exterior.xy
-            apron_x, apron_y = apron.exterior.xy
+
+            if self.prim_yard_only is False:
+                prim_yard_x, prim_yard_y = prim_yard.exterior.xy
 
             fig, ax = plt.subplots(figsize=(20, 12))
             ax.grid(zorder=0, which='major', axis='both')
@@ -2664,30 +2673,58 @@ class System:
             ax.plot(terminal_x, terminal_y)
 
             # Plotting Primary Yard
-            ax.plot(prim_yard_x, prim_yard_y)
+            if self.prim_yard_only is False:
+                ax.plot(prim_yard_x, prim_yard_y)
 
             # Plotting Apron
-            apron_fig = mpatches.Rectangle([apron_x[0],apron_y[0]], (max(apron_x) - min(apron_x)), (max(apron_y) - min(apron_y)), fc='red', ec="red", label='Apron area')
+            apron_fig = patch.PolygonPatch(apron, fc='r', label='Apron')
             ax.add_patch(apron_fig)
 
             for element in self.elements:
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
-                        stack_online = True
+                        stacking_online = True
                         break
                     if year < element.year_online:
-                        stack_online = False
+                        stacking_online = False
 
-            if stack_online:
+            if stacking_online:
+                stack_generated = 0
+                laden_generated = 0
+                reefer_generated = 0
+
+                if tgs_demand <= tgs_capacity:
+                    ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
+                else:
+                    ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS (Space-Limited)', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='red'))
+
                 # Plotting Container Stack
-                for stack in block_location_list:
-                    stack_fig = mpatches.Rectangle(stack[0], stack[3][0] - stack[0][0], stack[1][1] - stack[0][1], fc = "white", ec = "black")
-                    ax.add_patch(stack_fig)
+                for block in block_list:
+                    if stack_generated <= (tgs_demand_laden/2 - tgs_demand_reefer/2) or reefer_generated >= tgs_demand_reefer:
+                        reefer_block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], block.location[1][1] - block.location[0][1], fc = "white", ec = "black", label='Reefer Block')
+                        ax.add_patch(reefer_block_fig)
+
+                        laden_generated = laden_generated + block.length * block.width
+                        stack_generated = stack_generated + block.length * block.width
+
+                        block_fig = mpatches.Rectangle([0, 0], 5, 5, fc="blue", ec="black", label='Laden Block')
+
+                    else:
+                        block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], block.location[1][1] - block.location[0][1], fc="blue", ec="black")
+                        ax.add_patch(block_fig)
+
+                        reefer_generated = reefer_generated + block.length * block.width
+                        stack_generated = stack_generated + block.length * block.width
+
+                        reefer_block_fig = mpatches.Rectangle([0, 0], 2, 2, fc="white", ec="black", label='Reefer Block')
+
             else:
                 tgs_capacity = 0
 
-            terminal_capacity = tgs_capacity * stack_height
-            terminal_demand = tgs_demand * stack_height
+                block_fig = mpatches.Rectangle([0,0], 5, 5, fc="blue", ec="black", label='Laden Block')
+                reefer_block_fig = mpatches.Rectangle([0,0], 2, 2, fc="white", ec="black", label='Reefer Block')
+
+                ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
 
             ax.axis('equal')
             ax.set_title('Container terminal layout at year = ' + str(year), fontsize=fontsize)
@@ -2696,12 +2733,17 @@ class System:
 
             'Give legend information'
             terminal_legend = mlines.Line2D([], [], color='#1f77b4', markersize=15, label='Terminal area')
-            prim_yard_legend = mlines.Line2D([], [], color='#ff7f0e', markersize=15, label='Primary yard area')
 
-            ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(1000, 520), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
-            ax.annotate('Yard TGS demand = ' + str(math.floor(tgs_demand)) + ' TGS', xy=(1000, 500), size=14, ha='right', va='top', bbox=dict(boxstyle='round', fc='w'))
+            if self.prim_yard_only is False:
+                prim_yard_legend = mlines.Line2D([], [], color='#ff7f0e', markersize=15, label='Primary yard area')
 
-            ax.legend(handles=[terminal_legend, prim_yard_legend, apron_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
-                      fancybox=True, shadow=True, ncol=4, fontsize=10)
+            ax.annotate('Yard TGS demand = ' + str(math.floor(tgs_demand)) + ' TGS', xy=(20, 50), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
+
+            if self.prim_yard_only is True:
+                ax.legend(handles=[terminal_legend, apron_fig, block_fig, reefer_block_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
+                          fancybox=True, shadow=True, ncol=4, fontsize=10)
+            if self.prim_yard_only is False:
+                ax.legend(handles=[terminal_legend, apron_fig, block_fig, reefer_block_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
+                          fancybox=True, shadow=True, ncol=4, fontsize=10)
 
             plt.savefig('Container Terminal Layout at year ' + str(year) + ' .png')
