@@ -257,7 +257,7 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "length": 30,  # TEU
                   "capacity": 900,  # TEU
                   "gross_tgs": 18,  # TEU Ground Slot [m2/teu]
-                  "area_factor": 2.04,  # m2/TEU (based on grasshopper layout P. Koster)
+                  "area_factor": 59.013 / 37.4764,  # primary yard area / total container block area
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
@@ -277,8 +277,8 @@ rtg_design_rules_data = {"equipment_track": 1.9, # RTG track width
                   "tgs_x": 7.05, # RTG gross TGS dimension x-direction
                   "tgs_y": 2.95, # RTG gross TGS dimension y-direction
 
-                  "max_block_length": 250, # RTG maximum block length
-                  "min_block_length": 129} # RTG minimum block length = 20 * RTG gross TGS dimension x-direction
+                  "max_block_length": 290.9, # RTG maximum block length
+                  "min_block_length": 109.7} # RTG minimum block length = 20 * RTG gross TGS dimension x-direction
 
 rmg_stack_data = {"name": 'RMG Stack',
                   "ownership": 'Terminal operator',
@@ -291,7 +291,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
                   "gross_tgs": 18.67,  # TEU Ground Slot [m2/teu]
-                  "area_factor": 2.79,  # m2/TEU (based on grasshopper layout P. Koster)
+                  "area_factor": 59.013 / 39.875,  # primary yard area / total container block area
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
@@ -311,8 +311,8 @@ rmg_design_rules_data = {"margin_parallel": 6, # RMG minimum margin at parallel 
                   "tgs_x": 2.9, # RMG gross TGS dimension x-direction
                   "tgs_y": 6.7, # RMG gross TGS dimension y-direction
 
-                  "max_block_length": 400, # RMG maximum block length
-                  "min_block_length": 150}  # RMG minimum block length = 2 * length buffer + 20 * RMG Gross TGS x-dimension}\
+                  "max_block_length": 290.9 + 2 * 40, # RMG maximum block length = 2 * length buffer + 48 TEU
+                  "min_block_length": 169.7 + 2 * 40}  # RMG minimum block length = 2 * length buffer + 28 TEU
 
 sc_stack_data = {"name": 'SC Stack',
                  "ownership": 'Terminal operator',
@@ -325,7 +325,7 @@ sc_stack_data = {"name": 'SC Stack',
                  "length": 20,  # TEU
                  "capacity": 1200,  # TEU
                  "gross_tgs": 27.3,  # TEU Ground Slot [m2/teu]
-                 "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)
+                 "area_factor": 59.013 / 40.5672,  # primary yard area / total container block area
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
                  "household": 0.1,  # moves
@@ -338,7 +338,7 @@ sc_stack_data = {"name": 'SC Stack',
 sc_design_rules_data = {"traffic_lane": 20, # SC traffic lane
                  "margin_head": 10, # SC margin at stack heads
 
-                 "tgs_x": 3.94, # SC gross TGS dimension x-direction
+                 "tgs_x": 3.93, # SC gross TGS dimension x-direction
                  "tgs_y": 6.4, # SC gross TGS dimension y-direction
 
                  "max_block_length": 126, # SC maximum block length
@@ -359,7 +359,7 @@ rs_stack_data = {"name": 'RS Stack',
                  "length": 20,  # TEU
                  "capacity": 320,  # TEU
                  "gross_tgs": 18,  # TEU Ground Slot [m2/teu]
-                 "area_factor": 3.23,  # m2/TEU (based on grasshopper layout P. Koster)
+                 "area_factor": 59.013 / 19.2863, # primary yard area / total container block area
                  "pavement": 200,  # m2 DUMMY
                  "drainage": 50,  # m2 DUMMY
                  "household": 0.1,  # moves
@@ -420,13 +420,13 @@ rtg_data = {"name": 'RTG',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
-            "unit_rate": 1_400_000,
+            "unit_rate": 1_500_000,
             "mobilisation": 5000,
             "maintenance_perc": 0.1,  # dummy
             "insurance_perc": 0,
             "crew": 1,  # dummy
             "salary": 50_000,  # dummy
-            "required": 3,
+            "required": 4,
             "fuel_consumption": 1,  # dummy
             "power_consumption": 0
             }

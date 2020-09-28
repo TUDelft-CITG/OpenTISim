@@ -365,68 +365,74 @@ class System:
         # see also PIANC (2014b), p. 58/59
         while planned_waiting_service_time_ratio_berth > self.allowable_waiting_service_time_ratio_berth:
 
+            # bug fixed, should only take the value of the vessels that actually come
+            Ls_max = max([
+                int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
+                int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
+                int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["LOA"],
+                int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["LOA"],
+                int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["LOA"],
+                int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"],
+                int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"],
+                int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
+            ])  # max length
+            draught = max([
+                int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
+                int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draught"],
+                int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["draught"],
+                int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["draught"],
+                int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["draught"],
+                int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["draught"],
+                int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draught"],
+                int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draught"]
+            ])  # max draught
+
+            Ls_avg = (fully_cellular * container_defaults.fully_cellular_data["LOA"] +
+                      panamax * container_defaults.panamax_data["LOA"] +
+                      panamax_max * container_defaults.panamax_max_data["LOA"] +
+                      post_panamax_I * container_defaults.post_panamax_I_data["LOA"] +
+                      post_panamax_II * container_defaults.post_panamax_II_data["LOA"] +
+                      new_panamax * container_defaults.new_panamax_data["LOA"] +
+                      VLCS * container_defaults.VLCS_data["LOA"] +
+                      ULCS * container_defaults.ULCS_data["LOA"]) / \
+                     (fully_cellular + panamax + panamax_max + post_panamax_I + post_panamax_II + new_panamax +
+                      VLCS + ULCS)  # average length
+
+            # NB: the implementation below takes the first quay to follow the n=1 rule from PIANC (2014), and the
+            # next quays to follow the n>1 rule. Hence for each quay >1 we add 1.1 * (Ls_avg + berthing_gap)
+            # This ensures that in the iteration 1 quay is still always large enough, and when we add another, it
+            # follows the 1.1 * Lav rule. This might give a slight overestimation (!).
+
+            quay_walls = len(core.find_elements(self, Quay_wall))
+            # - length (apply PIANC 2014)
+            berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
+            if quay_walls == 0:  # - length when next quay is n = 1
+                # Lq = Ls,max + (2 x 15) ref: PIANC 2014, p 98
+                length_calculated = Ls_max + 2 * berthing_gap
+            else:  # - length when next quay is n > 1
+                # Lq = 1.1 x n x (Ls,avg+15) + 15 ref: PIANC 2014, p 98
+                # after the first quay, we add 1.1 * (Ls_avg + berthing_gap).
+                length_calculated = 1.1 * (Ls_avg + berthing_gap)
+
             # while planned waiting service time ratio is too large add a berth when no crane slots are available
             if not (self.check_crane_slot_available()):
-                if self.debug:
-                    print(' ')
-                    print('  *** add Berth to elements')
+                if self.check_quaywall_available(length_calculated, year):
+                    if self.debug:
+                        print(' ')
+                        print('  *** add Berth to elements')
 
-                berth = Berth(**container_defaults.berth_data)
-                berth.year_online = year + berth.delivery_time
-                self.elements.append(berth)
+                    berth = Berth(**container_defaults.berth_data)
+                    berth.year_online = year + berth.delivery_time
+                    self.elements.append(berth)
+                else:
+                    print('*** The available quay length has reached the maximum ---------------')
+                    print('*** The throughput demand could not be handled with this quay length ---------------')
+                    return
 
             # while planned waiting service time ratio is too large add a berth if a quay is needed
             berths = len(core.find_elements(self, Berth))
             quay_walls = len(core.find_elements(self, Quay_wall))
             if berths > quay_walls:
-                # bug fixed, should only take the value of the vessels that actually come
-                Ls_max = max([
-                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
-                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
-                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["LOA"],
-                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["LOA"],
-                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["LOA"],
-                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"],
-                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"],
-                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
-                    ])  # max length
-                draught = max([
-                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
-                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draught"],
-                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["draught"],
-                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["draught"],
-                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["draught"],
-                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["draught"],
-                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draught"],
-                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draught"]
-                    ])  # max draught
-
-                Ls_avg = (fully_cellular * container_defaults.fully_cellular_data["LOA"] +
-                          panamax * container_defaults.panamax_data["LOA"] +
-                          panamax_max * container_defaults.panamax_max_data["LOA"] +
-                          post_panamax_I * container_defaults.post_panamax_I_data["LOA"] +
-                          post_panamax_II * container_defaults.post_panamax_II_data["LOA"] +
-                          new_panamax * container_defaults.new_panamax_data["LOA"] +
-                          VLCS * container_defaults.VLCS_data["LOA"] +
-                          ULCS * container_defaults.ULCS_data["LOA"]) / \
-                         (fully_cellular + panamax + panamax_max + post_panamax_I + post_panamax_II + new_panamax +
-                          VLCS + ULCS)  # average length
-
-                # NB: the implementation below takes the first quay to follow the n=1 rule from PIANC (2014), and the
-                # next quays to follow the n>1 rule. Hence for each quay >1 we add 1.1 * (Ls_avg + berthing_gap)
-                # This ensures that in the iteration 1 quay is still always large enough, and when we add another, it
-                # follows the 1.1 * Lav rule. This might give a slight overestimation (!).
-
-                # - length (apply PIANC 2014)
-                berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
-                if quay_walls == 0:  # - length when next quay is n = 1
-                    # Lq = Ls,max + (2 x 15) ref: PIANC 2014, p 98
-                    length_calculated = Ls_max + 2 * berthing_gap
-                else:  # - length when next quay is n > 1
-                    # Lq = 1.1 x n x (Ls,avg+15) + 15 ref: PIANC 2014, p 98
-                    # after the first quay, we add 1.1 * (Ls_avg + berthing_gap).
-                    length_calculated = 1.1 * (Ls_avg + berthing_gap)
-
                 if self.space_boundary:
                     # while planned quay wall length is smaller than available quay wall length
                     coords = self.coords
@@ -518,7 +524,7 @@ class System:
         quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
 
         if self.space_boundary:
-            if length_berth <= length_available:
+            if length != 0:
                 self.elements.append(quay_wall)
         else:
             self.elements.append(quay_wall)
@@ -1191,6 +1197,7 @@ class System:
                 self.stack_equipment == 'sc' or
                 self.stack_equipment == 'rs'):
             governing_object = sts_cranes_planned
+
         elif self.stack_equipment == 'rmg':
             governing_object = stacks_planned
 
@@ -2056,6 +2063,29 @@ class System:
         else:
             return False
 
+    def check_quaywall_available(self, length_calculated, year):
+        # check whether there is available quay wall length to accomodate the berth
+        length_berth = 0
+        for element in self.elements:
+            if isinstance(element, Quay_wall):
+                length_berth = length_berth + element.length
+
+        coords = self.coords
+        length_available = coords[(len(coords)) - 2][0] - coords[0][0]
+
+        if length_berth + length_calculated <= length_available:
+            for element in self.elements:
+                if isinstance(element, Terminal_Layout):
+                    if (year - 1) == element.year_online:
+                        element.quaywall_available = True
+            return True
+        else:
+            for element in self.elements:
+                if isinstance(element, Terminal_Layout):
+                    if year == element.year_online:
+                        element.quaywall_available = False
+            return False
+
     def calculate_throughput(self, year):
         """Find throughput (minimum of crane capacity and demand)"""
         # intialize values to be returned
@@ -2653,12 +2683,12 @@ class System:
                         terminal = element.terminal
                         prim_yard = element.prim_yard
                         apron = element.apron
-                        block_location_list = element.block_location_list
                         block_list = element.block_list
                         tgs_capacity = element.tgs_capacity
                         tgs_demand = element.tgs_demand
                         tgs_demand_laden = element.tgs_demand_laden
                         tgs_demand_reefer = element.tgs_demand_reefer
+                        prim_yard_area = element.prim_yard_area
                         stack_height = element.stack.height
 
             terminal_x, terminal_y = terminal.exterior.xy
@@ -2670,7 +2700,7 @@ class System:
             ax.grid(zorder=0, which='major', axis='both')
 
             # Plotting Container Terminal
-            ax.plot(terminal_x, terminal_y)
+            ax.plot(terminal_x, terminal_y, color='black')
 
             # Plotting Primary Yard
             if self.prim_yard_only is False:
@@ -2696,33 +2726,46 @@ class System:
                 if tgs_demand <= tgs_capacity:
                     ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
                 else:
-                    ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS (Space-Limited)', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='red'))
+                    ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS (Area-Limited)', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='orange'))
 
-                # Plotting Container Stack
-                for block in block_list:
-                    if stack_generated <= (tgs_demand_laden/2 - tgs_demand_reefer/2) or reefer_generated >= tgs_demand_reefer:
-                        reefer_block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], block.location[1][1] - block.location[0][1], fc = "white", ec = "black", label='Reefer Block')
-                        ax.add_patch(reefer_block_fig)
+                if self.stack_equipment == 'rmg':
+                    # Plotting Container Stack
+                    for block in block_list:
+                        block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], (block.location[1][1] - block.location[0][1]) * (1 - tgs_demand_reefer/tgs_demand_laden), fc="white", ec="black", label='Laden Block')
+                        ax.add_patch(block_fig)
+                        reefer_fig = mpatches.Rectangle([block.location[0][0], block.location[0][1] + ((block.location[1][1] - block.location[0][1]) * (1 - tgs_demand_reefer/tgs_demand_laden))], block.location[3][0] - block.location[0][0], ((block.location[1][1] - block.location[0][1]) * (tgs_demand_reefer/tgs_demand_laden)), fc="white", ec="#ff7f0e", label='Reefer Block')
+                        ax.add_patch(reefer_fig)
 
                         laden_generated = laden_generated + block.length * block.width
                         stack_generated = stack_generated + block.length * block.width
-
-                        block_fig = mpatches.Rectangle([0, 0], 5, 5, fc="blue", ec="black", label='Laden Block')
-
-                    else:
-                        block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], block.location[1][1] - block.location[0][1], fc="blue", ec="black")
-                        ax.add_patch(block_fig)
-
                         reefer_generated = reefer_generated + block.length * block.width
-                        stack_generated = stack_generated + block.length * block.width
 
-                        reefer_block_fig = mpatches.Rectangle([0, 0], 2, 2, fc="white", ec="black", label='Reefer Block')
+                else:
+                    # Plotting Container Stack
+                    for block in block_list:
+                        if stack_generated <= (((tgs_demand_laden+tgs_demand_reefer)/2) - tgs_demand_reefer/2) or reefer_generated >= tgs_demand_reefer:
+                            block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], block.location[1][1] - block.location[0][1], fc = "white", ec = "black", label='Laden Block')
+                            ax.add_patch(block_fig)
+
+                            laden_generated = laden_generated + block.length * block.width
+                            stack_generated = stack_generated + block.length * block.width
+
+                            reefer_block_fig = mpatches.Rectangle([0, 0], 5, 5, fc="white", ec="#ff7f0e", label='Reefer Block')
+
+                        else:
+                            reefer_block_fig = mpatches.Rectangle(block.location[0], block.location[3][0] - block.location[0][0], block.location[1][1] - block.location[0][1], fc="white", ec="#ff7f0e", label='Reefer Block')
+                            ax.add_patch(reefer_block_fig)
+
+                            reefer_generated = reefer_generated + block.length * block.width
+                            stack_generated = stack_generated + block.length * block.width
+
+                            block_fig = mpatches.Rectangle([0, 0], 2, 2, fc="white", ec="black", label='Laden Block')
 
             else:
                 tgs_capacity = 0
 
-                block_fig = mpatches.Rectangle([0,0], 5, 5, fc="blue", ec="black", label='Laden Block')
-                reefer_block_fig = mpatches.Rectangle([0,0], 2, 2, fc="white", ec="black", label='Reefer Block')
+                block_fig = mpatches.Rectangle([0,0], 5, 5, fc="white", ec="black", label='Laden Block')
+                reefer_block_fig = mpatches.Rectangle([0,0], 2, 2, fc="white", ec="#ff7f0e", label='Reefer Block')
 
                 ax.annotate('Yard TGS capacity = ' + str(math.floor(tgs_capacity)) + ' TGS', xy=(20, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
 
@@ -2732,12 +2775,19 @@ class System:
             ax.set_ylabel('y-direction (m)', fontsize=fontsize)
 
             'Give legend information'
-            terminal_legend = mlines.Line2D([], [], color='#1f77b4', markersize=15, label='Terminal area')
+            terminal_legend = mlines.Line2D([], [], color='black', markersize=15, label='Terminal area')
 
             if self.prim_yard_only is False:
                 prim_yard_legend = mlines.Line2D([], [], color='#ff7f0e', markersize=15, label='Primary yard area')
 
+            'Annotate TGS Demand'
             ax.annotate('Yard TGS demand = ' + str(math.floor(tgs_demand)) + ' TGS', xy=(20, 50), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
+
+            'Annotate Stacking density'
+            stacking_density_teu = tgs_capacity * stack_height / (prim_yard_area/10000)
+            stacking_density_tgs = tgs_capacity / (prim_yard_area/10000)
+            #ax.annotate('Stacking density = ' + str(math.floor(stacking_density_teu)) + ' TEU/ha', xy=(275, 20), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
+            #ax.annotate('Stacking density = ' + str(math.floor(stacking_density_tgs)) + ' TGS/ha', xy=(275, 50), xycoords='axes points', size=14, ha='left', va='bottom', bbox=dict(boxstyle='round', fc='w'))
 
             if self.prim_yard_only is True:
                 ax.legend(handles=[terminal_legend, apron_fig, block_fig, reefer_block_fig], loc='lower center', bbox_to_anchor=(0.5, -0.135),
