@@ -18,6 +18,7 @@ class System:
                  commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data,
                  storage_type_defaults=hydrogen_defaults.storage_nh3_data,
                  h2retrieval_type_defaults=hydrogen_defaults.h2retrieval_nh3_data,
+                 allowable_waiting_service_time_ratio_berth=0.5,
                  allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2retrieval_trigger=1):
         # time inputs
         self.startyear = startyear
@@ -194,7 +195,7 @@ class System:
         berths = len(core.find_elements(self, Berth))
         if berths != 0:
             waiting_factor = \
-                core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+                core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
             waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
             waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
         else:
@@ -693,7 +694,7 @@ class System:
         berths = len(core.find_elements(self, Berth))
 
         waiting_factor = \
-            core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+            core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
 
         waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
