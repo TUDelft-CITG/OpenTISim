@@ -1378,8 +1378,10 @@ class System:
                 smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
                 vlcc_calls_planned)
 
+            berths = len(core.find_elements(self, Berth))
+
             factor = \
-                core.occupancy_to_waitingfactor(occupancy=berth_occupancy_online, nr_of_servers_chk=berths, poly_order=6)
+                core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
 
             for element in self.elements:
                 if isinstance(element, Berth):
