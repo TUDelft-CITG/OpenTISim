@@ -94,7 +94,10 @@ def add_cashflow_elements(Terminal, labour):
     cash_flows['energy'] = 0
     cash_flows['labour'] = 0
     cash_flows['fuel'] = 0
-    cash_flows['demurrage'] = Terminal.demurrage
+    try:
+       cash_flows['demurrage'] = Terminal.revenues
+    except:
+       cash_flows['demurrage'] = 0
     try:
        cash_flows['revenues'] = Terminal.revenues
     except:

@@ -286,7 +286,7 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "lifespan": 40,  # years
                   "mobilisation": 50_000,  # USD
                   "maintenance_perc": 0.1,
-                  "width": 6,  # TEU
+                  "width": 10,  # TEU
                   "height": 5,  # TEU
                   "length": 40,  # TEU
                   "capacity": 1200,  # TEU
@@ -325,7 +325,7 @@ sc_stack_data = {"name": 'SC Stack',
                  "length": 20,  # TEU
                  "capacity": 1200,  # TEU
                  "gross_tgs": 27.3,  # TEU Ground Slot [m2/teu]
-                 "area_factor": 59.013 / 40.5672,  # primary yard area / total container block area
+                 "area_factor": 59.013 / 39.701,  # primary yard area / total container block area
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
                  "household": 0.1,  # moves
@@ -341,7 +341,7 @@ sc_design_rules_data = {"traffic_lane": 20, # SC traffic lane
                  "tgs_x": 3.93, # SC gross TGS dimension x-direction
                  "tgs_y": 6.4, # SC gross TGS dimension y-direction
 
-                 "max_block_length": 126, # SC maximum block length
+                 "max_block_length": 128, # SC maximum block length
                  "min_block_length": 64, # SC minimum block length = 10 * SC gross TGS dimension y-direction
 
                  "max_block_width": 210, # SC maximum block width
@@ -426,7 +426,7 @@ rtg_data = {"name": 'RTG',
             "insurance_perc": 0,
             "crew": 1,  # dummy
             "salary": 50_000,  # dummy
-            "required": 4,
+            "required": 3,
             "fuel_consumption": 1,  # dummy
             "power_consumption": 0
             }
@@ -458,7 +458,7 @@ sc_data = {"name": 'Straddle carrier',
            "insurance_perc": 0,
            "crew": 0,  # dummy
            "salary": 50_000,  # dummy
-           "required": 5,
+           "required": 4,
            "fuel_consumption": 0,  # dummy
            "power_consumption": 30
            }
@@ -474,7 +474,7 @@ rs_data = {"name": 'Reach stacker',
            "insurance_perc": 0,
            "crew": 2,  # dummy
            "salary": 50_000,  # dummy
-           "required": 4,
+           "required": 3,
            "fuel_consumption": 1,  # dummy
            "power_consumption": 0
            }

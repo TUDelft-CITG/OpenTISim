@@ -246,16 +246,19 @@ def block_configuration(terminal_layout, laden):
 
             'Determine block length"'
             block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+            terminal_layout.stack.length = math.floor(block_length_m/terminal_layout.tgs_x)
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
             while block_length_m < terminal_layout.min_block_length:
                 max_blocks_x = max_blocks_x - 1
                 block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+                terminal_layout.stack.length = math.floor(block_length_m / terminal_layout.tgs_x)
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
         if block_length_m > terminal_layout.max_block_length:
             block_length_m = terminal_layout.max_block_length
+            terminal_layout.stack.length = math.floor(block_length_m / terminal_layout.tgs_x)
 
         'Determine block width'
         block_width_m = 2 * terminal_layout.equipment_track + terminal_layout.vehicle_track + terminal_layout.stack.width * terminal_layout.tgs_y
@@ -273,20 +276,21 @@ def block_configuration(terminal_layout, laden):
             max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width) / (terminal_layout.max_block_length + terminal_layout.traffic_lane + 2 * terminal_layout.margin_head))
 
             'Determine block length'
-            block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
-                                                                                                           terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
+            block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 * terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
+            terminal_layout.stack.length = math.floor((block_length_m - 2 * terminal_layout.length_buffer) / terminal_layout.tgs_y)
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
             while block_length_m < terminal_layout.min_block_length:
                 max_blocks_y = max_blocks_y - 1
 
-                block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 *
-                                                                                                               terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
+                block_length_m = math.floor((((max(prim_yard_y)) - terminal_layout.apron_width - max_blocks_y * (terminal_layout.traffic_lane + 2 * terminal_layout.margin_head)) / max_blocks_y) * 100) / 100
+                terminal_layout.stack.length = math.floor((block_length_m - 2 * terminal_layout.length_buffer) / terminal_layout.tgs_y)
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
         if block_length_m > terminal_layout.max_block_length:
             block_length_m = terminal_layout.max_block_length
+            terminal_layout.stack.length = math.floor((block_length_m - 2 * terminal_layout.length_buffer) / terminal_layout.tgs_y)
 
         'Determine block width'
         block_width_m = (terminal_layout.tgs_x * terminal_layout.stack.width + 2 * terminal_layout.equipment_track)
@@ -309,19 +313,20 @@ def block_configuration(terminal_layout, laden):
             max_blocks_y = math.ceil((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / (terminal_layout.max_block_length + terminal_layout.traffic_lane))
 
             'Determine block length"'
-            block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) *
-                                      100) / 100
+            block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) * 100) / 100
+            terminal_layout.stack.length = math.floor(block_length_m / terminal_layout.tgs_y)
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
             while block_length_m < terminal_layout.min_block_length:
                 max_blocks_y = max_blocks_y - 1
-                block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) -
-                                           terminal_layout.traffic_lane) * 100) / 100
+                block_length_m = math.floor((((max(prim_yard_y) - terminal_layout.apron_width - terminal_layout.margin_head) / max_blocks_y) - terminal_layout.traffic_lane) * 100) / 100
+                terminal_layout.stack.length = math.floor(block_length_m / terminal_layout.tgs_y)
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
         if block_length_m > terminal_layout.max_block_length:
             block_length_m = terminal_layout.max_block_length
+            terminal_layout.stack.length = math.floor(block_length_m / terminal_layout.tgs_y)
 
         if terminal_layout.block_configuration:
             block_width_m = laden.width * (terminal_layout.tgs_x)
@@ -333,16 +338,19 @@ def block_configuration(terminal_layout, laden):
 
             'Determine block length"'
             block_width_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
+            terminal_layout.stack.width = math.floor(block_width_m / terminal_layout.tgs_x)
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_width_m < terminal_layout.min_block_width:
             while block_width_m < terminal_layout.min_block_width:
                 max_blocks_x = max_blocks_x - 1
                 block_width_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane) * 100) / 100
+                terminal_layout.stack.width = math.floor(block_width_m / terminal_layout.tgs_x)
 
         'If block length is larger than the maximum block length, the block length is equal to maximum block length'
         if block_width_m > terminal_layout.max_block_width:
             block_width_m = terminal_layout.max_block_width
+            terminal_layout.stack.width = math.floor(block_width_m / terminal_layout.tgs_x)
 
     elif terminal_layout.stack_equipment == 'rs':
 
@@ -356,6 +364,7 @@ def block_configuration(terminal_layout, laden):
 
             'Determine block length"'
             block_length_m = math.floor((((quay_length - terminal_layout.traffic_lane) / max_blocks_x) - terminal_layout.traffic_lane - 2 * terminal_layout.margin_head) * 100) / 100
+            terminal_layout.stack.length = math.floor(block_length_m / terminal_layout.tgs_x)
 
         'If block length is shorter than minimum block length, decrease the number of blocks by 1'
         if block_length_m < terminal_layout.min_block_length:
@@ -2563,7 +2572,7 @@ def sc_terminal_generation(starting_origin, current_origin, block_length_m, bloc
                     if points_inside is True:
                         possible_placement = True
 
-                        while block_0_inside is False or block_1_inside is False:
+                        while block_1_inside is False or block_2_inside is False:
                             'Determine the new block location'
                             block_location[0] = [current_origin[0], current_origin[1]]
                             block_location[1] = [block_location[1][0], block_location[1][1] - terminal_layout.tgs_y]
@@ -2717,25 +2726,6 @@ def sc_terminal_generation(starting_origin, current_origin, block_length_m, bloc
                         block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
 
                     return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
-
-        'Algorithm for anomaly condition where the block_location[3][0] is less than block_location[0][0]'
-        if (block_1_inside is False and block_2_inside is False):
-
-            possible_placement = True
-
-            current_origin[0] = block_location[3][0] + terminal_layout.traffic_lane
-
-            block_location = [[current_origin[0], block_location[0][1]],
-                              [current_origin[0], block_location[1][1]],
-                              [current_origin[0] + block_width_m, block_location[2][1]],
-                              [current_origin[0] + block_width_m, block_location[3][1]],
-                              [current_origin[0], block_location[4][1]]]
-
-            block_0_inside, block_1_inside, block_2_inside, block_3_inside, block_location = check_block_inside(block_location, terminal_layout)
-
-            block_reference = block_reference + 1
-
-            return current_origin, possible_placement, block_location, block_reference, first_placement, terminal_layout
 
         """
             Algorithm for the (special) case : Reversed triangular
