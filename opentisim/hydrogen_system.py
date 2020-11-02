@@ -104,7 +104,7 @@ class System:
                 print('     Panamax calls: {}'.format(panamax_calls))
                 print('     VLCC calls: {}'.format(vlcc_calls))
                 print('----------------------------------------------------')
-
+ 
             # 2. for each year evaluate which investment are needed given the strategic and operational objectives
             self.berth_invest(year)
 
