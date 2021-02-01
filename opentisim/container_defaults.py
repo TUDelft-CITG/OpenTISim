@@ -193,10 +193,7 @@ laden_container_data = {"name": 'Laden container',
                         "stack_occupancy": 0.8,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
                         "width": 48,  # TEU
                         "height": 4,  # TEU
-                        "length": 20,  # TEU
-                        "width_m": 2.44,  # Meters per TEU
-                        "height_m": 2.59,  # Meters per TEU
-                        "length_m": 6.06  # Meters per TEU
+                        "length": 20  # TEU
                         }
 
 reefer_container_data = {"name": 'Reefer container',
@@ -208,10 +205,7 @@ reefer_container_data = {"name": 'Reefer container',
                          "stack_occupancy": 0.8,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
                          "width": 21,  # TEU
                          "height": 4,  # TEU
-                         "length": 4,  # TEU
-                         "width_m": 2.44,  # Meters per TEU
-                         "height_m": 2.59,  # Meters per TEU
-                         "length_m": 6.06  # Meters per TEU
+                         "length": 4  # TEU
                          }
 
 empty_container_data = {"name": 'Empty container',
@@ -223,10 +217,7 @@ empty_container_data = {"name": 'Empty container',
                         "stack_occupancy": 0.7,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
                         "width": 48,  # TEU
                         "height": 4,  # TEU
-                        "length": 20,  # TEU
-                        "width_m": 2.44,  # Meters per TEU
-                        "height_m": 2.59,  # Meters per TEU
-                        "length_m": 6.06  # Meters per TEU
+                        "length": 20  # TEU
                         }
 
 oog_container_data = {"name": 'OOG container',
@@ -238,10 +229,7 @@ oog_container_data = {"name": 'OOG container',
                       "stack_occupancy": 0.9,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
                       "width": 48,  # TEU
                       "height": 4,  # TEU
-                      "length": 20,  # TEU
-                      "width_m": 2.44,  # Meters per TEU
-                      "height_m": 2.59,  # Meters per TEU
-                      "length_m": 6.06  # Meters per TEU
+                      "length": 20  # TEU
                       }
 
 # *** Default inputs: Laden_Stack class within the stacks
@@ -252,12 +240,12 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "lifespan": 40,  # years
                   "mobilisation": 25_000,  # USD
                   "maintenance_perc": 0.1,
-                  "width": 6,  # TEU
-                  "height": 5,  # TEU
-                  "length": 30,  # TEU
-                  "capacity": 900,  # TEU
+                  # "width": 6,  # TEU
+                  # "height": 5,  # TEU
+                  # "length": 30,  # TEU
+                  # "capacity": 900,  # TEU
                   "gross_tgs": 18,  # TEU Ground Slot [m2/teu]
-                  "area_factor": 59.013 / 37.4764,  # primary yard area / total container block area
+                  "area_factor": 2.04,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
@@ -266,19 +254,6 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "consumption": 4,  # kWh per active reefer
                   "reefer_rack": 3500,  # USD
                   "reefers_present": 0.5}  # per reefer spot
-
-rtg_design_rules_data = {"equipment_track": 1.9, # RTG track width
-                  "vehicle_track": 5, # RTG vehicle roadway width
-                  "traffic_lane": 10, # RTG traffic lane width
-                  "lightmast_lane": 2.8, # RTG lightmast lane width
-                  "bypass_lane": 6.25, # RTG bypass lane width
-                  "margin_head": 9.7, # RTG margin at stack head
-
-                  "tgs_x": 7.05, # RTG gross TGS dimension x-direction
-                  "tgs_y": 2.95, # RTG gross TGS dimension y-direction
-
-                  "max_block_length": 290.9, # RTG maximum block length
-                  "min_block_length": 109.7} # RTG minimum block length = 20 * RTG gross TGS dimension x-direction
 
 rmg_stack_data = {"name": 'RMG Stack',
                   "ownership": 'Terminal operator',
@@ -286,12 +261,12 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "lifespan": 40,  # years
                   "mobilisation": 50_000,  # USD
                   "maintenance_perc": 0.1,
-                  "width": 10,  # TEU
-                  "height": 5,  # TEU
-                  "length": 40,  # TEU
-                  "capacity": 1200,  # TEU
+                  # "width": 6,  # TEU
+                  # "height": 5,  # TEU
+                  # "length": 40,  # TEU
+                  # "capacity": 1200,  # TEU
                   "gross_tgs": 18.67,  # TEU Ground Slot [m2/teu]
-                  "area_factor": 59.013 / 39.875,  # primary yard area / total container block area
+                  "area_factor": 2.79,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
                   "household": 0.1,  # moves
@@ -301,31 +276,18 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "reefer_rack": 3500,  # USD
                   "reefers_present": 0.5}  # per reefer spot
 
-rmg_design_rules_data = {"margin_parallel": 6, # RMG minimum margin at parallel side
-                  "margin_head": 5, # RMG margin at stack head
-                  "equipment_track": 4, # RMG track width
-                  "length_buffer": 40, # RMG length buffer/parking area
-                  "traffic_lane": 12.9, # RMG traffic lane width
-                  "width_buffer": 2.9, # RMG width buffer/parking area
-
-                  "tgs_x": 2.9, # RMG gross TGS dimension x-direction
-                  "tgs_y": 6.7, # RMG gross TGS dimension y-direction
-
-                  "max_block_length": 290.9 + 2 * 40, # RMG maximum block length = 2 * length buffer + 48 TEU
-                  "min_block_length": 169.7 + 2 * 40}  # RMG minimum block length = 2 * length buffer + 28 TEU
-
 sc_stack_data = {"name": 'SC Stack',
                  "ownership": 'Terminal operator',
                  "delivery_time": 1,  # years
                  "lifespan": 40,  # years
                  "mobilisation": 50_000,  # USD
                  "maintenance_perc": 0.1,
-                 "width": 45,  # TEU
-                 "height": 4,  # TEU
-                 "length": 20,  # TEU
-                 "capacity": 1200,  # TEU
+                 # "width": 45,  # TEU
+                 # "height": 3,  # TEU
+                 # "length": 22,  # TEU
+                 # "capacity": 1200,  # TEU
                  "gross_tgs": 27.3,  # TEU Ground Slot [m2/teu]
-                 "area_factor": 59.013 / 39.701,  # primary yard area / total container block area
+                 "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
                  "household": 0.1,  # moves
@@ -335,31 +297,18 @@ sc_stack_data = {"name": 'SC Stack',
                  "reefer_rack": 3500,  # USD
                  "reefers_present": 0.5}  # per reefer spot
 
-sc_design_rules_data = {"traffic_lane": 20, # SC traffic lane
-                 "margin_head": 10, # SC margin at stack heads
-
-                 "tgs_x": 3.93, # SC gross TGS dimension x-direction
-                 "tgs_y": 6.4, # SC gross TGS dimension y-direction
-
-                 "max_block_length": 128, # SC maximum block length
-                 "min_block_length": 64, # SC minimum block length = 10 * SC gross TGS dimension y-direction
-
-                 "max_block_width": 210, # SC maximum block width
-                 "min_block_width": 78.8
-                 } # SC minimum block width = 20 * SC gross TGS dimension x-direction
-
 rs_stack_data = {"name": 'RS Stack',
                  "ownership": 'Terminal operator',
                  "delivery_time": 1,  # years
                  "lifespan": 40,  # years
                  "mobilisation": 10_000,  # USD
                  "maintenance_perc": 0.1,
-                 "width": 4,  # TEU
-                 "height": 4,  # TEU
-                 "length": 20,  # TEU
-                 "capacity": 320,  # TEU
+                 # "width": 4,  # TEU
+                 # "height": 4,  # TEU
+                 # "length": 20,  # TEU
+                 # "capacity": 320,  # TEU
                  "gross_tgs": 18,  # TEU Ground Slot [m2/teu]
-                 "area_factor": 59.013 / 19.2863, # primary yard area / total container block area
+                 "area_factor": 3.23,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # m2 DUMMY
                  "drainage": 50,  # m2 DUMMY
                  "household": 0.1,  # moves
@@ -368,16 +317,6 @@ rs_stack_data = {"name": 'RS Stack',
                  "consumption": 4,  # kWh per active reefer
                  "reefer_rack": 3500,  # USD
                  "reefers_present": 0.5}  # per reefer spot
-
-rs_design_rules_data = {"margin_head": 6, # RS margin at stack heads
-                 "traffic_lane": 16, # RS traffic lane
-                 "operating_space": 16.3, # RS operating space
-
-                 "tgs_x": 6.45, # RS gross TGS dimension x-direction
-                 "tgs_y": 2.79, # RS gross TGS dimension y-direction
-
-                 "max_block_length": 220, # RS maximum block length
-                 "min_block_length": 129} # RS minimum block length = 20 * RS gross TGS dimension x-direction}
 
 # *** Default inputs: Other_Stack class
 
@@ -420,7 +359,7 @@ rtg_data = {"name": 'RTG',
             "ownership": 'Terminal operator',
             "delivery_time": 0,
             "lifespan": 10,
-            "unit_rate": 1_500_000,
+            "unit_rate": 1_400_000,
             "mobilisation": 5000,
             "maintenance_perc": 0.1,  # dummy
             "insurance_perc": 0,
@@ -458,7 +397,7 @@ sc_data = {"name": 'Straddle carrier',
            "insurance_perc": 0,
            "crew": 0,  # dummy
            "salary": 50_000,  # dummy
-           "required": 4,
+           "required": 5,
            "fuel_consumption": 0,  # dummy
            "power_consumption": 30
            }
@@ -474,7 +413,7 @@ rs_data = {"name": 'Reach stacker',
            "insurance_perc": 0,
            "crew": 2,  # dummy
            "salary": 50_000,  # dummy
-           "required": 3,
+           "required": 4,
            "fuel_consumption": 1,  # dummy
            "power_consumption": 0
            }
@@ -774,6 +713,3 @@ indirect_costs_data = {"name": 'Indirect_Costs',
                        "miscellaneous": 0.15,
                        "electrical_works_fuel_terminal": 0.12,
                        "electrical_works_power_terminal": 0.15}
-
-terminal_layout_data = {"name": 'Terminal_layout',
-                        "ownership": 'Port Authority'}

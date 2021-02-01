@@ -10,7 +10,7 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha
     revenues = cash_flows['revenues'].values
     capex = cash_flows['capex'].values
     opex = cash_flows['insurance'].values + cash_flows['maintenance'].values + cash_flows['energy'].values + \
-           cash_flows['labour'].values + cash_flows['demurrage'].values
+           cash_flows['labour'].values
 
     # sum cash flows to get profits as a function of year
     profits = []
@@ -20,7 +20,6 @@ def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha
                        cash_flows.loc[cash_flows['year'] == year]['maintenance'].item() -
                        cash_flows.loc[cash_flows['year'] == year]['energy'].item() -
                        cash_flows.loc[cash_flows['year'] == year]['labour'].item() -
-                       cash_flows.loc[cash_flows['year'] == year]['demurrage'].item() +
                        cash_flows.loc[cash_flows['year'] == year]['revenues'].item())
 
     # cumulatively sum profits to get profits_cum

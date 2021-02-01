@@ -205,7 +205,7 @@ class transport_properties_mixin(object):
 
 class container_properties_mixin (object):
     def __init__(self, type, teu_factor, dwell_time, peak_factor, stack_ratio, stack_occupancy,
-                 width, height, length, width_m, height_m, length_m, *args, **kwargs):
+                 width, height, length, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -217,15 +217,12 @@ class container_properties_mixin (object):
         self.width = width
         self.height = height
         self.length = length
-        self.width_m = width_m
-        self.height_m = height_m
-        self.length_m = length_m
 
 
 class laden_stack_properties_mixin (object):
-    def __init__(self, ownership=[], delivery_time=[], lifespan=[], mobilisation=[], maintenance_perc=[], width=[], width_m=[], height=[],
-                 length=[], length_m=[], capacity=[], tgs_capacity=[], gross_tgs=[], area_factor=[], pavement=[], drainage=[], household=[], digout_margin=[],
-                 reefer_factor=[], consumption=[], reefer_rack=[], reefers_present=[], location=[], tgs=[], *args, **kwargs):
+    def __init__(self, ownership, delivery_time, lifespan, mobilisation, maintenance_perc,
+                 gross_tgs, area_factor, pavement, drainage, household, digout_margin,
+                 reefer_factor, consumption, reefer_rack, reefers_present, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.ownership = ownership
@@ -233,13 +230,6 @@ class laden_stack_properties_mixin (object):
         self.lifespan = lifespan
         self.mobilisation = mobilisation
         self.maintenance_perc = maintenance_perc
-        self.width = width
-        self.width_m = width_m
-        self.height = height
-        self.length = length
-        self.length_m = length_m
-        self.capacity = capacity
-        self.tgs_capacity = tgs_capacity
         self.gross_tgs = gross_tgs
         self.area_factor = area_factor
         self.pavement = pavement
@@ -250,8 +240,6 @@ class laden_stack_properties_mixin (object):
         self.consumption = consumption
         self.reefer_rack = reefer_rack
         self.reefers_present = reefers_present
-        self.location = location
-        self.tgs = tgs
 
 
 class reefer_stack_properties_mixin (object):
@@ -557,61 +545,4 @@ class land_price_mixin(object):
     def __init__(self, price, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.price = price
-
-class capacity_properties_mixin(object):
-    def __init__(self, capacity_required=[], capacity_planned=[], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "Initialization"
-        self.capacity_required = capacity_required
-        self.capacity_planned = capacity_planned
-
-class yard_properties_mixin(object):
-    def __init__(self, coords=[], terminal=[], prim_yard=[], apron=[], terminal_area=[], prim_yard_area=[], apron_area=[], prim_full_ratio=[], stack_equipment=[], quay_length=[], apron_width=[],
-                 stack=[], current_origin=[], block_list=[], block_location_list=[], max_blocks_x=[], max_blocks_y=[], land_price=[], laden_perc=[], reefer_perc=[], available_space=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "Initialization"
-        self.coords = coords
-        self.terminal = terminal
-        self.prim_yard = prim_yard
-        self.apron = apron
-        self.terminal_area = terminal_area
-        self.prim_yard_area = prim_yard_area
-        self.apron_area = apron_area
-        self.prim_full_ratio = prim_full_ratio
-        self.stack_equipment = stack_equipment
-        self.quay_length = quay_length
-        self.apron_width = apron_width
-        self.stack = stack
-        self.current_origin = current_origin
-        self.block_list = block_list
-        self.block_location_list = block_location_list
-        self.max_blocks_x = max_blocks_x
-        self.max_blocks_y = max_blocks_y
-        self.land_price = land_price
-        self.laden_perc = laden_perc
-        self.reefer_perc = reefer_perc
-        self.available_space = available_space
-
-class design_rules_mixin(object):
-    def __init__(self, max_block_length=[], min_block_length=[], max_block_width=[], min_block_width=[], tgs_x=[], tgs_y=[], equipment_track=[], vehicle_track=[], traffic_lane=[], lightmast_lane=[],
-                 bypass_lane=[], margin_head=[], margin_parallel=[], length_buffer=[], width_buffer=[], operating_space=[], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "Initialization"
-        self.max_block_length = max_block_length
-        self.min_block_length = min_block_length
-        self.max_block_width = max_block_width
-        self.min_block_width = min_block_width
-        self.tgs_x = tgs_x
-        self.tgs_y = tgs_y
-        self.equipment_track = equipment_track
-        self.vehicle_track = vehicle_track
-        self.traffic_lane = traffic_lane
-        self.lightmast_lane = lightmast_lane
-        self.bypass_lane = bypass_lane
-        self.margin_head = margin_head
-        self.margin_parallel = margin_parallel
-        self.length_buffer = length_buffer
-        self.width_buffer = width_buffer
-        self.operating_space = operating_space
-
 

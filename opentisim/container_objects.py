@@ -212,11 +212,3 @@ Land_Price = type('Land Price', (container_mixins.identifiable_properties_mixin,
                          container_mixins.hascapex_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
-# The container terminal layout
-Terminal_Layout = type('Terminal_Layout', (container_mixins.identifiable_properties_mixin,
-                                           container_mixins.history_properties_mixin,
-                                           container_mixins.yard_properties_mixin,
-                                           container_mixins.design_rules_mixin,
-                                           container_mixins.capacity_properties_mixin,
-                                           ),
-                {})  # The dictionary is empty because the site type is generic
