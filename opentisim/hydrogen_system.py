@@ -14,6 +14,7 @@ class System:
     The module allows variation of the commodity type, the storage type and the h2retrieval type. Terminal development
     is governed by three triggers: the allowable berth occupancy, the allowable dwell time and an h2retrieval
     trigger."""
+    # Todo add kendall as terminal input
     def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
                  commodity_type_defaults=hydrogen_defaults.commodity_ammonia_data,
                  storage_type_defaults=hydrogen_defaults.storage_nh3_data,
@@ -90,11 +91,24 @@ class System:
                 print('### Simulate year: {} ############################'.format(year))
 
             # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
-            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned = self.calculate_vessel_calls(year)
+            smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, \
+            handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, \
+            smallhydrogen_calls_planned, largehydrogen_calls_planned, \
+            smallammonia_calls_planned, largeammonia_calls_planned, \
+            handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, \
+            total_calls_planned, total_vol_planned = self.calculate_vessel_calls(year)
+
+            commodities = core.find_elements(self, Commodity)
+            for commodity in commodities:
+                try:
+                    volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
+                except:
+                    pass
 
             if self.debug:
                 print('--- Cargo volume and vessel calls for {} ---------'.format(year))
-                print('  Total cargo volume: {}'.format(total_vol))
+                print('  Total demand volume: {}'.format(volume))
+                print('  Total actual throughput volume: {}'.format(total_vol))
                 print('  Total vessel calls: {}'.format(total_calls))
                 print('     Small Hydrogen  calls: {}'.format(smallhydrogen_calls))
                 print('     Large Hydrogen calls: {}'.format(largehydrogen_calls))
@@ -183,9 +197,10 @@ class System:
         core.report_element(self, H2retrieval, year)
         core.report_element(self, Pipeline_Hinter, year)
 
-        # calculate berth occupancy
+        # calculate vessel calls
         smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
 
+        # calculate berth occupancy
         berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
             year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
             panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
@@ -196,24 +211,24 @@ class System:
         if berths != 0:
             waiting_factor = \
                 core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
-            waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
-            waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
+            # waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
+            # waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
         else:
             waiting_factor = np.inf
-            waiting_time_hours = np.inf
-            waiting_time_occupancy = np.inf
+            # waiting_time_hours = np.inf
+            # waiting_time_occupancy = np.inf
 
         # factor, waiting_time_occupancy = self.waiting_time(year)
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
 
         if self.debug:
-            print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
+            # print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_online, self.allowable_berth_occupancy))
             print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
-            print('     Unloading occupancy online (@ start of year): {:.2f}'.format(unloading_occupancy_online))
+            # print('     Unloading occupancy online (@ start of year): {:.2f}'.format(unloading_occupancy_online))
             print('     Unloading occupancy planned (@ start of year): {:.2f}'.format(unloading_occupancy_planned))
-            print('     waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
-            print('     waiting time factor (@ start of year): {:.2f}'.format(waiting_factor))
-            print('     throughput online {:.2f}'.format(throughput_online))
+            # print('     waiting time occupancy (@ start of year): {:.2f}'.format(waiting_time_occupancy))
+            print('     waiting time as factor of service time (@ start of year): {:.2f}'.format(waiting_factor))
+            # print('     throughput online {:.2f}'.format(throughput_online))
             print('     throughput planned {:.2f}'.format(throughput_planned))
 
             print('')
@@ -237,7 +252,9 @@ class System:
             berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = \
                 self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,  handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,  largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,   handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
             if self.debug:
-                print('     Berth occupancy planned (after adding berth): {:.2f}'.format(berth_occupancy_planned))
+                print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                    berth_occupancy_planned, self.allowable_berth_occupancy))
+                # print('     Berth occupancy planned (after adding berth): {:.2f}'.format(berth_occupancy_planned))
                 # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
             # while planned berth occupancy is too large add a berth if a jetty is needed
@@ -268,7 +285,9 @@ class System:
                     handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
                 if self.debug:
-                    print('     Berth occupancy planned (after adding jetty): {}'.format(berth_occupancy_planned))
+                    print('     Berth occupancy planned (after adding jetty): {:.2f} (trigger level: {:.2f})'.format(
+                        berth_occupancy_planned, self.allowable_berth_occupancy))
+                    # print('     Berth occupancy planned (after adding jetty): {:.2f}'.format(berth_occupancy_planned))
                     # print('     Berth occupancy online (after adding jetty): {}'.format(berth_occupancy_online))
 
     def jetty_invest(self, year, nrofdolphins):
@@ -795,8 +814,9 @@ class System:
         total_vol_planned  = 0
 
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
-            year)
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, \
+        throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = \
+            self.throughput_elements(year)
 
         commodities = core.find_elements(self, Commodity)
         for commodity in commodities:
@@ -1675,8 +1695,9 @@ class System:
             years.append(year)
             throughputs_online.append(0)
 
-            throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
-                year)
+            throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, \
+            throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = \
+                self.throughput_elements(year)
 
             for element in self.elements:
                 if isinstance(element, Berth):
