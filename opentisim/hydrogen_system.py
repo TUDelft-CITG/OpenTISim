@@ -716,7 +716,6 @@ class System:
             core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
 
         waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
-        waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         # Find the demurrage cost per type of vessel
         # if service_rate != 0:
