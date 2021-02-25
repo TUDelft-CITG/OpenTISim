@@ -1,8 +1,8 @@
 """Tests for `opentisim` package."""
 
-def test_liquidbulk_02():
+def test_liquidbulk_02_complete_lifecycle():
 	"""Test to see if for a given demand scenario and vessel mix the expected number of
-	terminal elements are suggested
+	terminal elements are suggested - in this testcase the entire lifecycle is run at once
 	"""
 
 	import pandas as pd
