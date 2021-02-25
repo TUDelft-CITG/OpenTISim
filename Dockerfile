@@ -1,11 +1,9 @@
-# Start with pyramid app image
+# Start with docker image
 FROM continuumio/miniconda3
 
-# Install conda stuff first
+ADD . /OpenTISim
+WORKDIR /OpenTISim
+
 RUN conda install nomkl pyproj
 
-WORKDIR /OpenTISim
-ADD . /OpenTISim
-
-# Install the application
 RUN pip install -e .
