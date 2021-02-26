@@ -20,8 +20,9 @@ class System:
                                         'pipeline_terminal_-_hinterland'},
                  commodity_type_defaults=commodity_ammonia_data,
                  storage_type_defaults=storage_nh3_data,
-                 h2retrieval_type_defaults=h2retrieval_nh3_data,
+                 kendall='E2/E2/n',
                  allowable_waiting_service_time_ratio_berth=0.5,
+                 h2retrieval_type_defaults=h2retrieval_nh3_data,
                  allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2retrieval_trigger=1):
         # time inputs
         self.years = []
@@ -42,6 +43,7 @@ class System:
         self.h2retrieval_type_defaults = h2retrieval_type_defaults
 
         # triggers for the various elements (berth, storage and h2retrieval)
+        self.kendall = kendall
         self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
@@ -114,7 +116,7 @@ class System:
                 print('  Total demand volume: {}'.format(volume))
                 print('  Total actual throughput volume: {}'.format(total_vol))
                 print('  Total vessel calls: {}'.format(total_calls))
-                print('     Small Hydrogen  calls: {}'.format(smallhydrogen_calls))
+                print('     Small Hydrogen calls: {}'.format(smallhydrogen_calls))
                 print('     Large Hydrogen calls: {}'.format(largehydrogen_calls))
                 print('     Small ammonia calls: {}'.format(smallammonia_calls))
                 print('     Large ammonia calls: {}'.format(largeammonia_calls))
@@ -207,26 +209,44 @@ class System:
         opentisim.core.report_element(self, Pipeline_Hinter, year)
 
         # calculate vessel calls
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
+        # todo: store output in a class, rather than all these individual items
+        smallhydrogen_calls, largehydrogen_calls, \
+        smallammonia_calls, largeammonia_calls, \
+        handysize_calls, panamax_calls, vlcc_calls, \
+        total_calls, total_vol, \
+        smallhydrogen_calls_planned, largehydrogen_calls_planned, \
+        smallammonia_calls_planned, largeammonia_calls_planned, \
+        handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, \
+        total_calls_planned, total_vol_planned = self.calculate_vessel_calls(year)
 
         # calculate berth occupancy
-        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
-            year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
-            panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
-            smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
-            vlcc_calls_planned)
+        berth_occupancy_planned, berth_occupancy_online, \
+        unloading_occupancy_planned, unloading_occupancy_online = \
+            self.calculate_berth_occupancy(
+                year,
+                smallhydrogen_calls, largehydrogen_calls,
+                smallammonia_calls, largeammonia_calls,
+                handysize_calls, panamax_calls, vlcc_calls,
+                smallhydrogen_calls_planned, largehydrogen_calls_planned,
+                smallammonia_calls_planned, largeammonia_calls_planned,
+                handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+
+        throughput_online, throughput_planned, \
+        throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, \
+        throughput_planned_h2retrieval, throughput_planned_pipeh = \
+            self.throughput_elements(year)
 
         berths = len(opentisim.core.find_elements(self, Berth))
         if berths != 0:
             waiting_factor = \
-                opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
+                opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+                                                          nr_of_servers_to_chk=berths, kendall=self.kendall)
         else:
             waiting_factor = np.inf
 
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-
         if self.debug:
-            print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(berth_occupancy_planned, self.allowable_berth_occupancy))
+            # print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
+            #     berth_occupancy_planned, self.allowable_berth_occupancy))
             print('     Unloading occupancy planned (@ start of year): {:.2f}'.format(unloading_occupancy_planned))
             print('     waiting time as factor of service time (@ start of year): {:.2f}'.format(waiting_factor))
             print('     throughput planned {:.2f}'.format(throughput_planned))
@@ -242,20 +262,35 @@ class System:
 
         # Todo: check if we need to replace allowable berth occupancy with allowable wait time as factor of serve time
         # Todo: use the variable waiting_factor instead
-        while berth_occupancy_planned > self.allowable_berth_occupancy:
+        while waiting_factor > self.allowable_waiting_service_time_ratio_berth:
 
             # while planned berth occupancy is too large add a berth when no crane slots are available
             if self.debug:
-                    print('  *** add Berth to elements')
+                print('  *** add Berth to elements')
             berth = Berth(**berth_data)
             berth.year_online = year + berth.delivery_time
             self.elements.append(berth)
 
             berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = \
-                self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,  handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,  largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,   handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+                self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+                                               largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls,
+                                               smallhydrogen_calls_planned, largehydrogen_calls_planned,
+                                               smallammonia_calls_planned, largeammonia_calls_planned,
+                                               handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+            #
+            # print(berth_occupancy_planned)
+            # # todo: replace waiting_factor with planned_waiting_service_time_ratio_berth
+            # waiting_factor = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+            #                                               nr_of_servers_to_chk=berths, kendall=self.kendall)
+            # print(berth_occupancy_planned)
+            # print(waiting_factor)
+
             if self.debug:
-                print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
-                    berth_occupancy_planned, self.allowable_berth_occupancy))
+                # print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                #     berth_occupancy_planned, self.allowable_berth_occupancy))
+                print('     Waiting time as factor of service time (after adding berth): {:.2f} (trigger level: {:.2f})'.format(waiting_factor,
+                                                                                                     self.allowable_waiting_service_time_ratio_berth))
+
                 # print('     Berth occupancy planned (after adding berth): {:.2f}'.format(berth_occupancy_planned))
                 # print('     Berth occupancy online (after adding berth): {}'.format(berth_occupancy_online))
 
@@ -264,17 +299,17 @@ class System:
             jettys = len(opentisim.core.find_elements(self, Jetty))
             if berths > jettys:
                 length_max = max(vlcc_data["LOA"], handysize_data["LOA"],
-                               panamax_data["LOA"], smallhydrogen_data["LOA"],
-                               largehydrogen_data["LOA"], smallammonia_data["LOA"],
-                               largeammonia_data["LOA"] )  # maximum of all vessels
+                                 panamax_data["LOA"], smallhydrogen_data["LOA"],
+                                 largehydrogen_data["LOA"], smallammonia_data["LOA"],
+                                 largeammonia_data["LOA"])  # maximum of all vessels
                 length_min = min(vlcc_data["LOA"], handysize_data["LOA"],
-                               panamax_data["LOA"], smallhydrogen_data["LOA"],
-                               largehydrogen_data["LOA"], smallammonia_data["LOA"],
-                               largeammonia_data["LOA"])  # maximum of all vessels
-                if length_max-length_min > 100:
-                    nrofdolphins=8
+                                 panamax_data["LOA"], smallhydrogen_data["LOA"],
+                                 largehydrogen_data["LOA"], smallammonia_data["LOA"],
+                                 largeammonia_data["LOA"])  # maximum of all vessels
+                if length_max - length_min > 100:
+                    nrofdolphins = 8
                 else:
-                    nrofdolphins=6
+                    nrofdolphins = 6
 
                 # - depth
                 self.jetty_invest(year, nrofdolphins)
@@ -285,9 +320,14 @@ class System:
                     largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,
                     handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
+                waiting_factor = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
+                                                              nr_of_servers_to_chk=berths, kendall=self.kendall)
+
                 if self.debug:
-                    print('     Berth occupancy planned (after adding jetty): {:.2f} (trigger level: {:.2f})'.format(
-                        berth_occupancy_planned, self.allowable_berth_occupancy))
+                    # print('     Berth occupancy planned (after adding jetty): {:.2f} (trigger level: {:.2f})'.format(
+                    #     berth_occupancy_planned, self.allowable_berth_occupancy))
+                    print('     Waiting time as factor of service time (after adding jetty): {:.2f} (trigger level: {:.2f})'.format(waiting_factor,
+                                                                                                     self.allowable_waiting_service_time_ratio_berth))
 
     def jetty_invest(self, year, nrofdolphins):
         """
@@ -308,7 +348,7 @@ class System:
 
         # - capex
         unit_rate = int((nrofdolphins * jetty.mooring_dolphins) + (jetty.Gijt_constant_jetty * jetty.jettywidth *
-                                                                   jetty.jettylength) + (jetty.Catwalk_rate*
+                                                                   jetty.jettylength) + (jetty.Catwalk_rate *
                                                                                          jetty.catwalklength * jetty.catwalkwidth))
         mobilisation = int(max((unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
         jetty.capex = int(unit_rate + mobilisation)
@@ -369,7 +409,8 @@ class System:
 
             #   labour
             labour = Labour(**labour_data)
-            pipeline_jetty.shift = (pipeline_jetty.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts)
+            pipeline_jetty.shift = (pipeline_jetty.crew * self.operational_hours) / (
+                        labour.shift_length * labour.annual_shifts)
             pipeline_jetty.labour = pipeline_jetty.shift * labour.operational_salary
 
             # # find the total service rate,
@@ -400,7 +441,8 @@ class System:
 
             # pipeline_jetty.year_online = year
             # residual
-            pipeline_jetty.assetvalue = unit_rate * (1 - (self.lifecycle + self.startyear - pipeline_jetty.year_online) / pipeline_jetty.lifespan)
+            pipeline_jetty.assetvalue = unit_rate * (
+                        1 - (self.lifecycle + self.startyear - pipeline_jetty.year_online) / pipeline_jetty.lifespan)
             pipeline_jetty.residual = max(pipeline_jetty.assetvalue, 0)
 
             # add cash flow information to pipeline_jetty object in a dataframe
@@ -422,9 +464,9 @@ class System:
         list_of_elements = opentisim.core.find_elements(self, Storage)
         if list_of_elements != []:
             for element in list_of_elements:
-#                 storage_capacity += element.capacity
-#                 if year >= element.year_online:
-#                     storage_capacity_online += element.capacity
+                #                 storage_capacity += element.capacity
+                #                 if year >= element.year_online:
+                #                     storage_capacity_online += element.capacity
                 if element.type == hydrogen_defaults_storage_data['type']:
                     storage_capacity += element.capacity
                     if year >= element.year_online:
@@ -447,13 +489,16 @@ class System:
         storage_capacity_dwelltime_demand = (Demand * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # find the total throughput
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-        
-        #print('troughput planned storage',throughput_planned_storage, 'in year', year )
-        storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+            year)
+
+        # print('troughput planned storage',throughput_planned_storage, 'in year', year )
+        storage_capacity_dwelltime_throughput = (
+                                                            throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
         #  or
         # check if sufficient storage capacity is available
-        while storage_capacity < max_vessel_call_size or (storage_capacity < storage_capacity_dwelltime_demand and storage_capacity < storage_capacity_dwelltime_throughput):
+        while storage_capacity < max_vessel_call_size or (
+                storage_capacity < storage_capacity_dwelltime_demand and storage_capacity < storage_capacity_dwelltime_throughput):
             if self.debug:
                 print('  *** add storage to elements')
 
@@ -469,49 +514,52 @@ class System:
 
             #   labour**hydrogen_defaults
             labour = Labour(**labour_data)
-            storage.shift = ((storage.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            storage.shift = (
+                        (storage.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             storage.labour = storage.shift * labour.operational_salary
-            
+
             jetty = Jetty(**jetty_data)
-            
-            if self.lifecycle > 1: 
+
+            if self.lifecycle > 1:
                 if year == self.startyear:
                     storage.year_online = year + jetty.delivery_time
-                #elif year == self.startyear + 1:
-                    #storage.year_online = year + 1
+                # elif year == self.startyear + 1:
+                # storage.year_online = year + 1
                 elif year == self.startyear + jetty.delivery_time:
-                    storage.year_online = year 
+                    storage.year_online = year
                 else:
                     storage.year_online = year + storage.delivery_time
-           
+
             elif self.lifecycle == 1:
                 if self.startyear == self.years[0]:
-                    storage.year_online = year + jetty.delivery_time 
-                #elif self.startyear == self.years[1]:
-                    #storage.year_online = year + 1 
+                    storage.year_online = year + jetty.delivery_time
+                    # elif self.startyear == self.years[1]:
+                    # storage.year_online = year + 1
                 elif self.startyear == self.years[jetty.delivery_time]:
-                    storage.year_online = year 
+                    storage.year_online = year
                 else:
                     storage.year_online = year + storage.delivery_time
-                
+
             # #reinvestment
             # if year == storage.year_online + storage.lifespan:
 
             # residual
-            storage.assetvalue = storage.unit_rate * (1 - ((self.lifecycle + self.startyear - storage.year_online) / storage.lifespan))
+            storage.assetvalue = storage.unit_rate * (
+                        1 - ((self.lifecycle + self.startyear - storage.year_online) / storage.lifespan))
             storage.residual = max(storage.assetvalue, 0)
 
             # add cash flow information to storage object in a dataframe
             storage = opentisim.core.add_cashflow_data_to_element(self, storage)
 
             self.elements.append(storage)
-            
-            throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-            
+
+            throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+                year)
+
             storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1
-            
+
             storage_capacity += storage.capacity
-            
+
             if self.debug:
                 print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                     storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
@@ -524,7 +572,8 @@ class System:
         - add h2 retrieval until target is reached
         """
 
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
+            year, hydrogen_defaults_h2retrieval_data)
 
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {:.2f}'.format(plant_occupancy_planned))
@@ -548,7 +597,8 @@ class System:
 
             #   labour**hydrogen_defaults
             labour = Labour(**labour_data)
-            h2retrieval.shift = ((h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            h2retrieval.shift = (
+                        (h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             h2retrieval.labour = h2retrieval.shift * labour.operational_salary
 
             jetty = Jetty(**jetty_data)
@@ -560,7 +610,7 @@ class System:
 
             # residual
             h2retrieval.assetvalue = h2retrieval.unit_rate * (
-                        1 - (self.lifecycle + self.startyear - h2retrieval.year_online) / h2retrieval.lifespan)
+                    1 - (self.lifecycle + self.startyear - h2retrieval.year_online) / h2retrieval.lifespan)
             h2retrieval.residual = max(h2retrieval.assetvalue, 0)
 
             # add cash flow information to h2retrieval object in a dataframe
@@ -568,7 +618,8 @@ class System:
 
             self.elements.append(h2retrieval)
 
-            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
+                year, hydrogen_defaults_h2retrieval_data)
 
             if self.debug:
                 print(
@@ -633,7 +684,6 @@ class System:
                     1 - (self.lifecycle + self.startyear - pipeline_hinter.year_online) / pipeline_hinter.lifespan)
             pipeline_hinter.residual = max(pipeline_hinter.assetvalue, 0)
 
-
             # add cash flow information to pipeline_hinter object in a dataframe
             pipeline_hinter = opentisim.core.add_cashflow_data_to_element(self, pipeline_hinter)
 
@@ -661,11 +711,11 @@ class System:
         # calculate pipeline jetty energy
         list_of_elements_Pipelinejetty = opentisim.core.find_elements(self, Pipeline_Jetty)
 
-        pipelinesj=0
+        pipelinesj = 0
         for element in list_of_elements_Pipelinejetty:
             if year >= element.year_online:
                 pipelinesj += 1
-                consumption = throughput_online/pipelinesj * element.consumption_coefficient
+                consumption = throughput_online / pipelinesj * element.consumption_coefficient
 
                 if consumption * energy.price != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
@@ -679,7 +729,6 @@ class System:
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
             year)
         storage_capacity_dwelltime_throughput = (throughput_online * self.allowable_dwelltime) * 1.1
-
 
         for element in list_of_elements_Storage:
             if year >= element.year_online:
@@ -699,7 +748,8 @@ class System:
         # find the total throughput,
         # throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
         hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
+            year, hydrogen_defaults_h2retrieval_data)
 
         for element in list_of_elements_H2retrieval:
             if year >= element.year_online:
@@ -707,15 +757,16 @@ class System:
                 capacity = element.capacity * self.operational_hours
 
                 if consumption * throughput_online * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * plant_occupancy_online * capacity * energy.price
+                    element.df.loc[element.df[
+                                       'year'] == year, 'energy'] = consumption * plant_occupancy_online * capacity * energy.price
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate hinterland pipeline energy
         list_of_elements_hinter = opentisim.core.find_elements(self, Pipeline_Hinter)
 
-
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
+            year, hydrogen_defaults_h2retrieval_data)
 
         pipelines = 0
         for element in list_of_elements_hinter:
@@ -723,20 +774,27 @@ class System:
                 pipelines += 1
                 consumption = element.consumption_coefficient
 
-                if consumption  * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * throughput_online/pipelines * energy.price
+                if consumption * energy.price != np.inf:
+                    element.df.loc[element.df[
+                                       'year'] == year, 'energy'] = consumption * throughput_online / pipelines * energy.price
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
     def calculate_demurrage_cost(self, year):
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
 
-        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned,  total_vol_planned = self.calculate_vessel_calls(year)
-        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(year, smallhydrogen_calls,     largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+        smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned = self.calculate_vessel_calls(
+            year)
+        berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
+            year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
+            panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
+            smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
+            vlcc_calls_planned)
 
         berths = len(opentisim.core.find_elements(self, Berth))
 
-        waiting_factor =             opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
+        waiting_factor = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online,
+                                                                   nr_of_servers_to_chk=berths, kendall=self.kendall)
 
         # waiting_time_hours = waiting_factor * unloading_occupancy_online * self.operational_hours / total_calls
 
@@ -787,7 +845,7 @@ class System:
         vlcc = Vessel(**vlcc_data)
         service_time_vlcc = vlcc.call_size / vlcc.pump_capacity
         waiting_time_hours_vlcc = waiting_factor * service_time_vlcc
-        penalty_time_vlcc= max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
+        penalty_time_vlcc = max(0, waiting_time_hours_vlcc - vlcc.all_turn_time)
         demurrage_time_vlcc = penalty_time_vlcc * vlcc_calls
         demurrage_cost_vlcc = demurrage_time_vlcc * vlcc.demurrage_rate
 
@@ -804,9 +862,10 @@ class System:
         commodity = Commodity(**hydrogen_defaults_commodity_data)
         fee = commodity.handling_fee
 
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+            year)
         if self.debug:
-                print('     Revenues: {}'.format(int(throughput_online * fee)))
+            print('     Revenues: {}'.format(int(throughput_online * fee)))
 
         try:
             self.revenues.append(throughput_online * fee)
@@ -827,13 +886,13 @@ class System:
         vlcc_vol = 0
         total_vol = 0
         smallhydrogen_vol_planned = 0
-        largehydrogen_vol_planned  = 0
-        smallammonia_vol_planned  = 0
-        largeammonia_vol_planned  = 0
-        handysize_vol_planned  = 0
-        panamax_vol_planned  = 0
-        vlcc_vol_planned  = 0
-        total_vol_planned  = 0
+        largehydrogen_vol_planned = 0
+        smallammonia_vol_planned = 0
+        largeammonia_vol_planned = 0
+        handysize_vol_planned = 0
+        panamax_vol_planned = 0
+        vlcc_vol_planned = 0
+        total_vol_planned = 0
 
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
         throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
@@ -843,14 +902,14 @@ class System:
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                smallhydrogen_vol += volume/volume * throughput_online  * commodity.smallhydrogen_perc / 100
-                largehydrogen_vol += volume/volume * throughput_online * commodity.largehydrogen_perc / 100
-                smallammonia_vol += volume/volume * throughput_online * commodity.smallammonia_perc / 100
-                largeammonia_vol += volume/volume * throughput_online * commodity.largeammonia_perc / 100
-                handysize_vol += volume/volume * throughput_online * commodity.handysize_perc / 100
-                panamax_vol += volume/volume * throughput_online * commodity.panamax_perc / 100
-                vlcc_vol += volume/volume * throughput_online * commodity.vlcc_perc / 100
-                total_vol += volume/volume * throughput_online
+                smallhydrogen_vol += volume / volume * throughput_online * commodity.smallhydrogen_perc / 100
+                largehydrogen_vol += volume / volume * throughput_online * commodity.largehydrogen_perc / 100
+                smallammonia_vol += volume / volume * throughput_online * commodity.smallammonia_perc / 100
+                largeammonia_vol += volume / volume * throughput_online * commodity.largeammonia_perc / 100
+                handysize_vol += volume / volume * throughput_online * commodity.handysize_perc / 100
+                panamax_vol += volume / volume * throughput_online * commodity.panamax_perc / 100
+                vlcc_vol += volume / volume * throughput_online * commodity.vlcc_perc / 100
+                total_vol += volume / volume * throughput_online
             except:
                 pass
 
@@ -909,9 +968,20 @@ class System:
              smallammonia_calls_planned, largeammonia_calls_planned,
              handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned])
 
-        return smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,                largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol,                smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned,                largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned,                total_calls_planned, total_vol_planned
+        return smallhydrogen_calls, largehydrogen_calls, \
+               smallammonia_calls, largeammonia_calls, \
+               handysize_calls, panamax_calls, vlcc_calls, \
+               total_calls, total_vol, \
+               smallhydrogen_calls_planned, largehydrogen_calls_planned, \
+               smallammonia_calls_planned, largeammonia_calls_planned, \
+               handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, \
+               total_calls_planned, total_vol_planned
 
-    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned):
+    def calculate_berth_occupancy(self, year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+                                  largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls,
+                                  smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned,
+                                  largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
+                                  vlcc_calls_planned):
         """- Find all cranes and sum their effective_capacity to get service_capacity
         - Divide callsize_per_vessel by service_capacity and add mooring time to get total time at berth
         - Occupancy is total_time_at_berth divided by operational hours
@@ -937,7 +1007,7 @@ class System:
                     (largehydrogen_data["call_size"] / largehydrogen_data["pump_capacity"]) +
                     largehydrogen_data["mooring_time"])
             time_at_berth_smallammonia_planned = smallammonia_calls_planned * (
-                    (smallammonia_data["call_size"] / smallammonia_data["pump_capacity"])  +
+                    (smallammonia_data["call_size"] / smallammonia_data["pump_capacity"]) +
                     smallammonia_data["mooring_time"])
             time_at_berth_largeammonia_planned = largeammonia_calls_planned * (
                     (largeammonia_data["call_size"] / largeammonia_data["pump_capacity"]) +
@@ -949,29 +1019,41 @@ class System:
                     (panamax_data["call_size"] / panamax_data["pump_capacity"]) +
                     panamax_data["mooring_time"])
             time_at_berth_vlcc_planned = vlcc_calls_planned * (
-                    (vlcc_data["call_size"] / vlcc_data["pump_capacity"] ) +
+                    (vlcc_data["call_size"] / vlcc_data["pump_capacity"]) +
                     vlcc_data["mooring_time"])
 
             total_time_at_berth_planned = np.sum(
-                [time_at_berth_smallhydrogen_planned, time_at_berth_largehydrogen_planned, time_at_berth_smallammonia_planned, time_at_berth_largeammonia_planned, time_at_berth_handysize_planned, time_at_berth_panamax_planned, time_at_berth_vlcc_planned])
+                [time_at_berth_smallhydrogen_planned, time_at_berth_largehydrogen_planned,
+                 time_at_berth_smallammonia_planned, time_at_berth_largeammonia_planned,
+                 time_at_berth_handysize_planned, time_at_berth_panamax_planned, time_at_berth_vlcc_planned])
 
             # berth_occupancy is the total time at berth divided by the operational hours
             berth_occupancy_planned = total_time_at_berth_planned / (self.operational_hours * nr_of_jetty_planned)
 
             # estimate crane occupancy
-            time_at_unloading_smallhydrogen_planned = smallhydrogen_calls * (smallhydrogen_data["call_size"] / smallhydrogen_data["pump_capacity"])
-            time_at_unloading_largehydrogen_planned = largehydrogen_calls * (largehydrogen_data["call_size"] / largehydrogen_data["pump_capacity"])
-            time_at_unloading_smallammonia_planned = smallammonia_calls * (smallammonia_data["call_size"] / smallammonia_data["pump_capacity"])
-            time_at_unloading_largeammonia_planned = largeammonia_calls * (largeammonia_data["call_size"] / handysize_data["pump_capacity"])
-            time_at_unloading_handysize_planned = handysize_calls * (handysize_data["call_size"] / largeammonia_data["pump_capacity"])
-            time_at_unloading_panamax_planned = panamax_calls * (panamax_data["call_size"] / panamax_data["pump_capacity"])
+            time_at_unloading_smallhydrogen_planned = smallhydrogen_calls * (
+                        smallhydrogen_data["call_size"] / smallhydrogen_data["pump_capacity"])
+            time_at_unloading_largehydrogen_planned = largehydrogen_calls * (
+                        largehydrogen_data["call_size"] / largehydrogen_data["pump_capacity"])
+            time_at_unloading_smallammonia_planned = smallammonia_calls * (
+                        smallammonia_data["call_size"] / smallammonia_data["pump_capacity"])
+            time_at_unloading_largeammonia_planned = largeammonia_calls * (
+                        largeammonia_data["call_size"] / handysize_data["pump_capacity"])
+            time_at_unloading_handysize_planned = handysize_calls * (
+                        handysize_data["call_size"] / largeammonia_data["pump_capacity"])
+            time_at_unloading_panamax_planned = panamax_calls * (
+                        panamax_data["call_size"] / panamax_data["pump_capacity"])
             time_at_unloading_vlcc_planned = vlcc_calls * (vlcc_data["call_size"] / vlcc_data["pump_capacity"])
 
             total_time_at_unloading_planned = np.sum(
-                [time_at_unloading_smallhydrogen_planned, time_at_unloading_largehydrogen_planned, time_at_unloading_smallammonia_planned, time_at_unloading_largeammonia_planned, time_at_unloading_handysize_planned, time_at_unloading_panamax_planned, time_at_unloading_vlcc_planned])
+                [time_at_unloading_smallhydrogen_planned, time_at_unloading_largehydrogen_planned,
+                 time_at_unloading_smallammonia_planned, time_at_unloading_largeammonia_planned,
+                 time_at_unloading_handysize_planned, time_at_unloading_panamax_planned,
+                 time_at_unloading_vlcc_planned])
 
             # berth_occupancy is the total time at berth divided by the operational hours
-            unloading_occupancy_planned = total_time_at_unloading_planned / (self.operational_hours * nr_of_jetty_planned)
+            unloading_occupancy_planned = total_time_at_unloading_planned / (
+                        self.operational_hours * nr_of_jetty_planned)
 
             if nr_of_jetty_online != 0:
                 time_at_berth_smallhydrogen_online = smallhydrogen_calls * (
@@ -997,24 +1079,37 @@ class System:
                         vlcc_data["mooring_time"])
 
                 total_time_at_berth_online = np.sum(
-                    [time_at_berth_smallhydrogen_online,time_at_berth_largehydrogen_online, time_at_berth_smallammonia_online, time_at_berth_largeammonia_online,time_at_berth_handysize_online, time_at_berth_panamax_online, time_at_berth_vlcc_online])
+                    [time_at_berth_smallhydrogen_online, time_at_berth_largehydrogen_online,
+                     time_at_berth_smallammonia_online, time_at_berth_largeammonia_online,
+                     time_at_berth_handysize_online, time_at_berth_panamax_online, time_at_berth_vlcc_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                berth_occupancy_online = min([total_time_at_berth_online / (self.operational_hours * nr_of_jetty_online), 1])
+                berth_occupancy_online = min(
+                    [total_time_at_berth_online / (self.operational_hours * nr_of_jetty_online), 1])
 
-                time_at_unloading_smallhydrogen_online = smallhydrogen_calls * (smallhydrogen_data["call_size"] / smallhydrogen_data["pump_capacity"])
-                time_at_unloading_largehydrogen_online = largehydrogen_calls * (largehydrogen_data["call_size"] / largehydrogen_data["pump_capacity"])
-                time_at_unloading_smallammonia_online = smallammonia_calls * (smallammonia_data["call_size"] / smallammonia_data["pump_capacity"])
-                time_at_unloading_largeammonia_online = largeammonia_calls * (largeammonia_data["call_size"] / largeammonia_data["pump_capacity"])
-                time_at_unloading_handysize_online = handysize_calls * (handysize_data["call_size"] / handysize_data["pump_capacity"])
-                time_at_unloading_panamax_online = panamax_calls * (panamax_data["call_size"] / panamax_data["pump_capacity"])
+                time_at_unloading_smallhydrogen_online = smallhydrogen_calls * (
+                            smallhydrogen_data["call_size"] / smallhydrogen_data["pump_capacity"])
+                time_at_unloading_largehydrogen_online = largehydrogen_calls * (
+                            largehydrogen_data["call_size"] / largehydrogen_data["pump_capacity"])
+                time_at_unloading_smallammonia_online = smallammonia_calls * (
+                            smallammonia_data["call_size"] / smallammonia_data["pump_capacity"])
+                time_at_unloading_largeammonia_online = largeammonia_calls * (
+                            largeammonia_data["call_size"] / largeammonia_data["pump_capacity"])
+                time_at_unloading_handysize_online = handysize_calls * (
+                            handysize_data["call_size"] / handysize_data["pump_capacity"])
+                time_at_unloading_panamax_online = panamax_calls * (
+                            panamax_data["call_size"] / panamax_data["pump_capacity"])
                 time_at_unloading_vlcc_online = vlcc_calls * (vlcc_data["call_size"] / vlcc_data["pump_capacity"])
 
                 total_time_at_unloading_online = np.sum(
-                    [time_at_unloading_smallhydrogen_online, time_at_unloading_largehydrogen_online, time_at_unloading_smallammonia_online, time_at_unloading_largeammonia_online, time_at_unloading_handysize_online, time_at_unloading_panamax_online, time_at_unloading_vlcc_online])
+                    [time_at_unloading_smallhydrogen_online, time_at_unloading_largehydrogen_online,
+                     time_at_unloading_smallammonia_online, time_at_unloading_largeammonia_online,
+                     time_at_unloading_handysize_online, time_at_unloading_panamax_online,
+                     time_at_unloading_vlcc_online])
 
                 # berth_occupancy is the total time at berth devided by the operational hours
-                unloading_occupancy_online = min([total_time_at_unloading_online / (self.operational_hours * nr_of_jetty_online), 1])
+                unloading_occupancy_online = min(
+                    [total_time_at_unloading_online / (self.operational_hours * nr_of_jetty_online), 1])
 
             else:
                 berth_occupancy_online = float("inf")
@@ -1027,7 +1122,8 @@ class System:
             unloading_occupancy_planned = float("inf")
             unloading_occupancy_online = float("inf")
 
-        return berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online
+        return berth_occupancy_planned, berth_occupancy_online, \
+               unloading_occupancy_planned, unloading_occupancy_online
 
     def calculate_h2retrieval_occupancy(self, year, hydrogen_defaults_h2retrieval_data):
         """
@@ -1035,7 +1131,8 @@ class System:
         - Occupancy is total_time_at_h2retrieval divided by operational hours
         """
         # Find throughput
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh= self.throughput_elements(year)
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+            year)
 
         Demand = []
         for commodity in opentisim.core.find_elements(self, Commodity):
@@ -1064,7 +1161,7 @@ class System:
             plant_occupancy_planned = Demand / h2retrieval_capacity_planned
 
             if h2retrieval_capacity_online != 0:
-                time_at_plant_online = throughput_online / h2retrieval_capacity_online# element.capacity
+                time_at_plant_online = throughput_online / h2retrieval_capacity_online  # element.capacity
 
                 # h2retrieval occupancy is the total time at h2retrieval divided by the operational hours
                 plant_occupancy_online = min([time_at_plant_online, 1])
@@ -1085,25 +1182,25 @@ class System:
         - Find where the lowest value is present, in the capacity or in the demand
         """
 
-        #Find jetty capacity
+        # Find jetty capacity
         Jetty_cap_planned = 0
         Jetty_cap = 0
         for element in opentisim.core.find_elements(self, Jetty):
             Jetty_cap_planned += ((smallhydrogen_data["pump_capacity"] +
-                                 largehydrogen_data["pump_capacity"] +
-                                 smallammonia_data["pump_capacity"] +
-                                 largeammonia_data["pump_capacity"] +
-                                 handysize_data["pump_capacity"] +
-                                 panamax_data["pump_capacity"] +
-                                 vlcc_data["pump_capacity"])/7 * self.operational_hours)
+                                   largehydrogen_data["pump_capacity"] +
+                                   smallammonia_data["pump_capacity"] +
+                                   largeammonia_data["pump_capacity"] +
+                                   handysize_data["pump_capacity"] +
+                                   panamax_data["pump_capacity"] +
+                                   vlcc_data["pump_capacity"]) / 7 * self.operational_hours)
             if year >= element.year_online:
                 Jetty_cap += ((smallhydrogen_data["pump_capacity"] +
-                                 largehydrogen_data["pump_capacity"] +
-                                 smallammonia_data["pump_capacity"] +
-                                 largeammonia_data["pump_capacity"] +
-                                 handysize_data["pump_capacity"] +
-                                 panamax_data["pump_capacity"] +
-                                 vlcc_data["pump_capacity"])/7 * self.operational_hours)
+                               largehydrogen_data["pump_capacity"] +
+                               smallammonia_data["pump_capacity"] +
+                               largeammonia_data["pump_capacity"] +
+                               handysize_data["pump_capacity"] +
+                               panamax_data["pump_capacity"] +
+                               vlcc_data["pump_capacity"]) / 7 * self.operational_hours)
 
         # Find pipeline jetty capacity
         pipelineJ_capacity_planned = 0
@@ -1126,9 +1223,9 @@ class System:
                     storage_capacity_online += element.capacity
 
         storage_cap_planned = storage_capacity_planned / self.allowable_dwelltime / 1.1
-        storage_cap_online = storage_capacity_online / self.allowable_dwelltime/ 1.1
+        storage_cap_online = storage_capacity_online / self.allowable_dwelltime / 1.1
 
-        #Find H2retrieval capacity
+        # Find H2retrieval capacity
         h2retrieval_capacity_planned = 0
         h2retrieval_capacity_online = 0
         list_of_elements = opentisim.core.find_elements(self, H2retrieval)
@@ -1148,7 +1245,7 @@ class System:
                 if year >= element.year_online:
                     pipelineh_capacity_online += element.capacity * self.operational_hours
 
-        #Find demand
+        # Find demand
         Demand = []
         for commodity in opentisim.core.find_elements(self, Commodity):
             try:
@@ -1157,15 +1254,22 @@ class System:
                 pass
 
         # Find the possible and online throuhgput including all elements
-        throughput_planned = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned, pipelineh_capacity_planned, Demand)
-        throughput_online = min(h2retrieval_capacity_online, Jetty_cap, pipelineJ_capacity_online, pipelineh_capacity_online, storage_cap_online,  Demand)
+        throughput_planned = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned,
+                                 h2retrieval_capacity_planned, pipelineh_capacity_planned, Demand)
+        throughput_online = min(h2retrieval_capacity_online, Jetty_cap, pipelineJ_capacity_online,
+                                pipelineh_capacity_online, storage_cap_online, Demand)
 
         # Find from all elements the possible throughput if they were not there
-        throughput_planned_jetty = min(pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned, pipelineh_capacity_planned, Demand)
-        throughput_planned_pipej = min(Jetty_cap_planned, storage_cap_planned, h2retrieval_capacity_planned, pipelineh_capacity_planned, Demand)
-        throughput_planned_storage = min(Jetty_cap_planned, pipelineJ_capacity_planned, h2retrieval_capacity_planned, pipelineh_capacity_planned, Demand)
-        throughput_planned_h2retrieval = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned, pipelineh_capacity_planned, Demand)
-        throughput_planned_pipeh = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned, Demand)
+        throughput_planned_jetty = min(pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned,
+                                       pipelineh_capacity_planned, Demand)
+        throughput_planned_pipej = min(Jetty_cap_planned, storage_cap_planned, h2retrieval_capacity_planned,
+                                       pipelineh_capacity_planned, Demand)
+        throughput_planned_storage = min(Jetty_cap_planned, pipelineJ_capacity_planned, h2retrieval_capacity_planned,
+                                         pipelineh_capacity_planned, Demand)
+        throughput_planned_h2retrieval = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned,
+                                             pipelineh_capacity_planned, Demand)
+        throughput_planned_pipeh = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned,
+                                       h2retrieval_capacity_planned, Demand)
 
         return throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh
         self.throughput.append(throughput_online)
@@ -1176,8 +1280,10 @@ class System:
         for element in list_of_elements:
             capacity += element.capacity
 
-        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-        storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+            year)
+        storage_capacity_dwelltime_throughput = (
+                                                            throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
         # when there are more slots than installed cranes ...
         if capacity < storage_capacity_dwelltime_throughput:
@@ -1199,10 +1305,10 @@ class System:
         pipelines_hinterland = []
         throughputs_online = []
 
-        #matplotlib.rcParams.update({'font.size': 18})
+        # matplotlib.rcParams.update({'font.size': 18})
 
         for year in self.years:
-    #         years.append(year)
+            #         years.append(year)
             berths.append(0)
             jettys.append(0)
             pipelines_jetty.append(0)
@@ -1231,16 +1337,21 @@ class System:
                     if year >= element.year_online:
                         pipelines_hinterland[-1] += 1
 
-
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
 
-        ax1.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="Berths", color='#aec7e8', edgecolor='darkgrey')
-        ax1.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="Jettys", color='#c7c7c7', edgecolor='darkgrey')
-        ax1.bar([x + 2 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="Pipelines jetty", color='#ffbb78', edgecolor='darkgrey')
-        ax1.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5', edgecolor='darkgrey')
-        ax1.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrievals", color='#DBDB8D', edgecolor='darkgrey')
-        ax1.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="Pipeline hinter", color='#c49c94', edgecolor='darkgrey')
+        ax1.bar([x + 0 * width for x in years], berths, width=width, alpha=alpha, label="Berths", color='#aec7e8',
+                edgecolor='darkgrey')
+        ax1.bar([x + 1 * width for x in years], jettys, width=width, alpha=alpha, label="Jettys", color='#c7c7c7',
+                edgecolor='darkgrey')
+        ax1.bar([x + 2 * width for x in years], pipelines_jetty, width=width, alpha=alpha, label="Pipelines jetty",
+                color='#ffbb78', edgecolor='darkgrey')
+        ax1.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5',
+                edgecolor='darkgrey')
+        ax1.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrievals",
+                color='#DBDB8D', edgecolor='darkgrey')
+        ax1.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="Pipeline hinter",
+                color='#c49c94', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
         # plt.axvline(x=2025.6, color='k', linestyle='--')
@@ -1251,7 +1362,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1260,11 +1371,11 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
-        #Adding the throughput
-        #years = []
+        # Adding the throughput
+        # years = []
         throughputs_online = []
         for year in self.years:
             # years.append(year)
@@ -1281,17 +1392,16 @@ class System:
                     if year >= element.year_online:
                         throughputs_online[-1] = throughput_online
 
-        #Making a second graph
+        # Making a second graph
         ax2 = ax1.twinx()
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
         values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
+        # print(dem, values)
         ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
 
-        #ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
+        # ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
         ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
-
 
         # title and labels
         ax1.set_title('Terminal elements online', fontsize=fontsize)
@@ -1322,11 +1432,10 @@ class System:
         h2retrievals_capacity = []
 
         for year in self.years:
-            #years.append(year)
+            # years.append(year)
             throughputs_online.append(0)
             storage_capacity_online.append(0)
             h2retrievals_capacity.append(0)
-
 
             # Find storage capacity
             for element in self.elements:
@@ -1349,7 +1458,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1358,15 +1467,15 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         # Adding the throughput
-        #years = []
+        # years = []
         throughputs_online = []
 
         for year in self.years:
-            #years.append(year)
+            # years.append(year)
             throughputs_online.append(0)
 
             throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
@@ -1375,14 +1484,15 @@ class System:
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
-                            throughputs_online[-1] = throughput_online
+                        throughputs_online[-1] = throughput_online
 
-        #Making a second graph
+        # Making a second graph
         # ax2 = ax1.twinx()
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x + 0 * width for x in years], storage_capacity_online, width=width, alpha=alpha, label="Storage capacity", color='#9edae5', edgecolor='darkgrey')
-        ax1.bar([x + 1 * width for x in years], h2retrievals_capacity, width=width, alpha=alpha, label="H2 retrieval capacity", color='#dbdb8d', edgecolor='darkgrey')
-
+        ax1.bar([x + 0 * width for x in years], storage_capacity_online, width=width, alpha=alpha,
+                label="Storage capacity", color='#9edae5', edgecolor='darkgrey')
+        ax1.bar([x + 1 * width for x in years], h2retrievals_capacity, width=width, alpha=alpha,
+                label="H2 retrieval capacity", color='#dbdb8d', edgecolor='darkgrey')
 
         ax1.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
         ax1.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
@@ -1397,23 +1507,23 @@ class System:
     def terminal_occupancy_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
-    #         for year in self.years:
-    #         #years.append(year)
-    #         plants_occupancy.append(0)
-    #         hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
-    #         try:
+        #         for year in self.years:
+        #         #years.append(year)
+        #         plants_occupancy.append(0)
+        #         hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        #         try:
 
-    #             plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
-    #         except:
-    #             plant_occupancy = 0 
+        #             plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
+        #         except:
+        #             plant_occupancy = 0
 
-    #         for element in self.elements:
-    #             if isinstance(element, H2retrieval):
-    #                 if year >= element.year_online:
-    #                     plants_occupancy[-1] = plant_occupancy_online
+        #         for element in self.elements:
+        #             if isinstance(element, H2retrieval):
+        #                 if year >= element.year_online:
+        #                     plants_occupancy[-1] = plant_occupancy_online
 
         # collect elements to add to plot
-        #years = []
+        # years = []
         years = self.years
         berths_occupancy = []
         waiting_factor = []
@@ -1424,21 +1534,22 @@ class System:
             try:
 
                 smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned, total_calls_planned, total_vol_planned = self.calculate_vessel_calls(
-                        year)
+                    year)
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
-                    year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls,
+                    year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
+                    handysize_calls,
                     panamax_calls, vlcc_calls, smallhydrogen_calls_planned, largehydrogen_calls_planned,
-                    smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,
+                    smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned,
+                    panamax_calls_planned,
                     vlcc_calls_planned)
 
-
             except:
-                berth_occupancy_online = 0 
+                berth_occupancy_online = 0
 
             berths = len(opentisim.core.find_elements(self, Berth))
 
-            factor =                 opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall='E2/E2/n')
-
+            factor = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online,
+                                                               nr_of_servers_to_chk=berths, kendall=self.kendall)
 
             for element in self.elements:
                 if isinstance(element, Berth):
@@ -1455,7 +1566,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1464,107 +1575,11 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
-                pass
-
-        #Adding the throughput
-        #years = []
-        throughputs_online = []
-        for year in self.years:
-            # years.append(year)
-            throughputs_online.append(0)
-            try:
-                throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
-                    year)
-            except:
-                throughput_online = 0
-                pass
-
-            for element in self.elements:
-                if isinstance(element, Berth):
-                    if year >= element.year_online:
-                        throughputs_online[-1] = throughput_online
-
-
-          # generate plot
-        fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x + 0 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy [-]", color='#aec7e8', edgecolor='darkgrey')
-        # ax1.bar([x + 1 * width for x in years], waiting_factor, width=width, alpha=alpha, label="Berth occupancy [-]", color='grey', edgecolor='darkgrey')
-
-        # Adding a horizontal line which shows the allowable berth occupancy
-        horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
-        plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy [-]")
-
-        for i, occ in enumerate(berths_occupancy):
-            occ = occ if type(occ) != float else 0
-            ax1.text(x = years[i] - 0.1, y = occ + 0.01, s = "{:04.2f}".format(occ), size=15)
-
-        # for i, occ in enumerate(waiting_factor):
-        #     occ = occ if type(occ) != float else 0
-        #     ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
-
-        ax2 = ax1.twinx()
-
-        dem = demand['year'].values[~np.isnan(demand['year'].values)]
-        values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
-        ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
-
-        #ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
-        ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
-        plt.ylim(0, 6000000)
-
-        ax1.set_xlabel('Years')
-        ax1.set_ylabel('Berth occupancy [-]')
-        ax2.set_ylabel('Demand [t/y]')
-        ax1.set_title('Berth occupancy')
-        ax1.set_xticks([x for x in years])
-        ax1.set_xticklabels(years)
-        fig.legend(loc=1)
-
-    def plant_occupancy_plot(self, width=0.3, alpha=0.6):
-        """Gather data from Terminal and plot which elements come online when"""
-
-        # collect elements to add to plot
-        years = self.years
-        plants_occupancy = []
-
-
-        for year in self.years:
-            #years.append(year)
-            plants_occupancy.append(0)
-            hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
-            try:
-
-                plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(year, hydrogen_defaults_h2retrieval_data)
-            except:
-                plant_occupancy = 0 
-
-            for element in self.elements:
-                if isinstance(element, H2retrieval):
-                    if year >= element.year_online:
-                        plants_occupancy[-1] = plant_occupancy_online
-
-
-    #     # get demand
-        demand = pd.DataFrame()
-        demand['year'] = self.years
-        demand['demand'] = 0
-
-        for commodity in opentisim.core.find_elements(self,Commodity):
-            try:
-                for column in commodity.scenario_data.columns:
-                    if column in commodity.scenario_data.columns and column != "year":
-                        demand['demand'] += commodity.scenario_data[column]
-                    elif column in commodity.scenario_data.columns and column != "volume":
-                        demand['year'] = commodity.scenario_data[column]
-            except:
-                demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         # Adding the throughput
-        #years = []
+        # years = []
         throughputs_online = []
         for year in self.years:
             # years.append(year)
@@ -1583,7 +1598,103 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], plants_occupancy, width=width, alpha=alpha, label="Plant occupancy [-]", color='#aec7e8', edgecolor='darkgrey')
+        ax1.bar([x + 0 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy [-]",
+                color='#aec7e8', edgecolor='darkgrey')
+        # ax1.bar([x + 1 * width for x in years], waiting_factor, width=width, alpha=alpha, label="Berth occupancy [-]", color='grey', edgecolor='darkgrey')
+
+        # Adding a horizontal line which shows the allowable berth occupancy
+        horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
+        plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable berth occupancy [-]")
+
+        for i, occ in enumerate(berths_occupancy):
+            occ = occ if type(occ) != float else 0
+            ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
+
+        # for i, occ in enumerate(waiting_factor):
+        #     occ = occ if type(occ) != float else 0
+        #     ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
+
+        ax2 = ax1.twinx()
+
+        dem = demand['year'].values[~np.isnan(demand['year'].values)]
+        values = demand['demand'].values[~np.isnan(demand['demand'].values)]
+        # print(dem, values)
+        ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
+
+        # ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
+        ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
+        plt.ylim(0, 6000000)
+
+        ax1.set_xlabel('Years')
+        ax1.set_ylabel('Berth occupancy [-]')
+        ax2.set_ylabel('Demand [t/y]')
+        ax1.set_title('Berth occupancy')
+        ax1.set_xticks([x for x in years])
+        ax1.set_xticklabels(years)
+        fig.legend(loc=1)
+
+    def plant_occupancy_plot(self, width=0.3, alpha=0.6):
+        """Gather data from Terminal and plot which elements come online when"""
+
+        # collect elements to add to plot
+        years = self.years
+        plants_occupancy = []
+
+        for year in self.years:
+            # years.append(year)
+            plants_occupancy.append(0)
+            hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+            try:
+
+                plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
+                    year, hydrogen_defaults_h2retrieval_data)
+            except:
+                plant_occupancy = 0
+
+            for element in self.elements:
+                if isinstance(element, H2retrieval):
+                    if year >= element.year_online:
+                        plants_occupancy[-1] = plant_occupancy_online
+
+        #     # get demand
+        demand = pd.DataFrame()
+        demand['year'] = self.years
+        demand['demand'] = 0
+
+        for commodity in opentisim.core.find_elements(self, Commodity):
+            try:
+                for column in commodity.scenario_data.columns:
+                    if column in commodity.scenario_data.columns and column != "year":
+                        demand['demand'] += commodity.scenario_data[column]
+                    elif column in commodity.scenario_data.columns and column != "volume":
+                        demand['year'] = commodity.scenario_data[column]
+            except:
+                demand['demand'] += 0
+                demand['year'] += 0
+                pass
+
+        # Adding the throughput
+        # years = []
+        throughputs_online = []
+        for year in self.years:
+            # years.append(year)
+            throughputs_online.append(0)
+            try:
+                throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+                    year)
+            except:
+                throughput_online = 0
+                pass
+
+            for element in self.elements:
+                if isinstance(element, Berth):
+                    if year >= element.year_online:
+                        throughputs_online[-1] = throughput_online
+
+        # generate plot
+        fig, ax1 = plt.subplots(figsize=(20, 10))
+        ax1.bar([x for x in years], plants_occupancy, width=width, alpha=alpha, label="Plant occupancy [-]",
+                color='#aec7e8', edgecolor='darkgrey')
 
         for i, occ in enumerate(plants_occupancy):
             ax1.text(x=years[i], y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
@@ -1596,12 +1707,11 @@ class System:
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
         values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
+        # print(dem, values)
         ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
 
-        #ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
-        #ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
-
+        # ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
+        # ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Plant occupancy [-]')
@@ -1619,7 +1729,7 @@ class System:
         jettys = []
 
         # list number of jetties per year
-        for year in self.years:#range(years[0], years[-1]+1):
+        for year in self.years:  # range(years[0], years[-1]+1):
             # years.append(year)
             jettys.append(0)
 
@@ -1634,7 +1744,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1643,7 +1753,7 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         # list throughputs_online per year
@@ -1665,7 +1775,8 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], jettys, width=width, alpha=alpha, label="Jettys [nr]", color='#c7c7c7', edgecolor='darkgrey')
+        ax1.bar([x for x in years], jettys, width=width, alpha=alpha, label="Jettys [nr]", color='#c7c7c7',
+                edgecolor='darkgrey')
 
         for i, occ in enumerate(jettys):
             occ = occ if type(occ) != float else 0
@@ -1676,10 +1787,10 @@ class System:
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
         values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
+        # print(dem, values)
         ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
 
-    #     ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
+        #     ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Elements on line [nr]')
@@ -1688,8 +1799,6 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
-
-
 
     def Pipeline1_capacity_plot(self, width=0.2, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
@@ -1702,7 +1811,7 @@ class System:
         jettys_cap = []
 
         for year in self.years:
-            #years.append(year)
+            # years.append(year)
             pipeline_jetty.append(0)
             jettys.append(0)
             pipeline_jetty_cap.append(0)
@@ -1731,7 +1840,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1740,11 +1849,11 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         # Adding the throughput
-        #years = []
+        # years = []
         throughputs_online = []
         for year in self.years:
             # years.append(year)
@@ -1761,10 +1870,10 @@ class System:
                     if year >= element.year_online:
                         throughputs_online[-1] = throughput_online
 
-
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x - 0.5 * width for x in years], jettys_cap, width=width, alpha=alpha, label="Jetty unloading capacity", color='#c7c7c7', edgecolor='darkgrey')
+        ax1.bar([x - 0.5 * width for x in years], jettys_cap, width=width, alpha=alpha,
+                label="Jetty unloading capacity", color='#c7c7c7', edgecolor='darkgrey')
         ax1.bar([x + 0.5 * width for x in years], pipeline_jetty_cap, width=width, alpha=alpha,
                 label="Pipeline Jetty - Storage capacity", color='#ffbb78', edgecolor='darkgrey')
 
@@ -1773,10 +1882,10 @@ class System:
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
         values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
+        # print(dem, values)
         ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
 
-        #ax2.step(years, demand['demand'].values, label="Demand", where='mid', color='#ff9896')
+        # ax2.step(years, demand['demand'].values, label="Demand", where='mid', color='#ff9896')
         ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
         plt.ylim(0, 6000000)
 
@@ -1797,7 +1906,7 @@ class System:
         storages_capacity = []
 
         for year in self.years:
-            #years.append(year)
+            # years.append(year)
             storages.append(0)
             storages_capacity.append(0)
 
@@ -1812,7 +1921,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1821,7 +1930,7 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         # Adding the throughput
@@ -1843,22 +1952,23 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5', edgecolor='darkgrey')
+        ax1.bar([x for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5',
+                edgecolor='darkgrey')
 
         for i, occ in enumerate(storages):
             occ = occ if type(occ) != float else 0
-            ax1.text(x = years[i] - 0.05, y = occ + 0.2, s = "{:01.0f}".format(occ), size=15)
+            ax1.text(x=years[i] - 0.05, y=occ + 0.2, s="{:01.0f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
         values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
+        # print(dem, values)
         ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
 
-        #ax2.step(years, demand['demand'].values, label="Demand", where='mid',color='#ff9896')
+        # ax2.step(years, demand['demand'].values, label="Demand", where='mid',color='#ff9896')
         ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
-        ax2.step(years, storages_capacity, label="Storages capacity", where='mid', linestyle = '--',  color='steelblue')
+        ax2.step(years, storages_capacity, label="Storages capacity", where='mid', linestyle='--', color='steelblue')
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Storages [nr]')
@@ -1867,6 +1977,7 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
+
     def H2_capacity_plot(self, width=0.3, alpha=0.6):
         """Gather data from Terminal and plot which elements come online when"""
 
@@ -1886,13 +1997,11 @@ class System:
                         h2retrievals[-1] += 1
                         h2retrievals_capacity[-1] += element.capacity * self.operational_hours
 
-
-
         demand = pd.DataFrame()
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1901,7 +2010,7 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         throughputs_online = []
@@ -1922,7 +2031,8 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2retrieval [nr]", color='#c7c7c7', edgecolor='darkgrey')
+        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2retrieval [nr]", color='#c7c7c7',
+                edgecolor='darkgrey')
 
         for i, occ in enumerate(h2retrievals):
             occ = occ if type(occ) != float else 0
@@ -1930,13 +2040,14 @@ class System:
 
         ax2 = ax1.twinx()
         ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
-        ax2.step(years, h2retrievals_capacity, label="H2 retrieval capacity", where='mid', linestyle = '--',  color='darkgrey')
+        ax2.step(years, h2retrievals_capacity, label="H2 retrieval capacity", where='mid', linestyle='--',
+                 color='darkgrey')
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
         values = demand['demand'].values[~np.isnan(demand['demand'].values)]
-        #print(dem, values)
+        # print(dem, values)
         ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
-    #     ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
+        #     ax2.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
 
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Elements on line [nr]')
@@ -1986,7 +2097,7 @@ class System:
         demand['year'] = self.years
         demand['demand'] = 0
 
-        for commodity in opentisim.core.find_elements(self,Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -1995,7 +2106,7 @@ class System:
                         demand['year'] = commodity.scenario_data[column]
             except:
                 demand['demand'] += 0
-                demand['year'] += 0 
+                demand['year'] += 0
                 pass
 
         # generate plot
@@ -2018,10 +2129,10 @@ class System:
 
         # Plot second ax
         ax2 = ax1.twinx()
-        ax2.step(years, pipeline_hinterland_cap, label="Pipeline hinterland capacity", where='mid', linestyle = '--', color='#c49c94')
-        ax2.step(years, h2retrieval_cap, label="H2 retrieval capacity", where='mid', linestyle = '--', color='darkgrey')
+        ax2.step(years, pipeline_hinterland_cap, label="Pipeline hinterland capacity", where='mid', linestyle='--',
+                 color='#c49c94')
+        ax2.step(years, h2retrieval_cap, label="H2 retrieval capacity", where='mid', linestyle='--', color='darkgrey')
 
-        
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Nr of elements')
         ax2.set_ylabel('Capacity Pipeline & loading capacity H2 retrieval [t/h]')
@@ -2029,4 +2140,3 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
-
