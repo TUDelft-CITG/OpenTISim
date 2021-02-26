@@ -5,8 +5,8 @@
 import opentisim.core as core
 import opentisim.plot as plot
 import opentisim.liquidbulk as liquidbulk
+import opentisim.containers as containers
 #import opentisim.drybulk as drybulk
-#import opentisim.containers as containers
 
 __author__ = """Mark van Koningsveld"""
 __email__ = 'M.vanKoningsveld@tudelft.nl'

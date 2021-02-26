@@ -3,12 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-# opentisim package
-from opentisim.container_objects import *
-from opentisim import container_defaults
-from opentisim import core
-
+from .container_defaults import *
+from .container_objects import *
+import opentisim
 
 class System:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for container terminals.
@@ -26,18 +23,22 @@ class System:
     - the transhipment ratio
     """
 
-    def __init__(self, terminal_name='Terminal', startyear=2019, lifecycle=20, operational_hours=7500, debug=False,
+    def __init__(self, terminal_name='Terminal', startyear=2020, lifecycle=10, operational_hours=7500, debug=False,
                  elements=[],
-                 crane_type_defaults=container_defaults.sts_crane_data,
+                 crane_type_defaults=sts_crane_data,
                  stack_equipment='rs', laden_stack='rs',
+                 kendall='E2/E2/n',
                  allowable_waiting_service_time_ratio_berth=0.1, allowable_berth_occupancy=0.6,
                  laden_perc=0.80, reefer_perc=0.1, empty_perc=0.05, oog_perc=0.05,
-                 transhipment_ratio=0.69,
+                 laden_teu_factor=1.6, reefer_teu_factor=1.75, empty_teu_factor=1.55, oog_teu_factor=1.55,
+                 import_perc=0.15, export_perc=0.16, transhipment_ratio=0.69,
+                 teu_factor=1.6, peak_factor=1.3,
                  energy_price=0.17, fuel_price=1, land_price=0):
         # identity
         self.terminal_name = terminal_name
 
         # time inputs
+        self.years = []
         self.startyear = startyear
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
@@ -54,6 +55,7 @@ class System:
         self.laden_stack = laden_stack
 
         # triggers for the various elements (berth, storage and station)
+        self.kendall = kendall
         self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
 
@@ -62,9 +64,17 @@ class System:
         self.reefer_perc = reefer_perc
         self.empty_perc = empty_perc
         self.oog_perc = oog_perc
+        self.laden_teu_factor = laden_teu_factor
+        self.reefer_teu_factor = reefer_teu_factor
+        self.empty_teu_factor = empty_teu_factor
+        self.oog_teu_factor = oog_teu_factor
 
         # modal split
+        self.import_perc = import_perc
+        self.export_perc = export_perc
         self.transhipment_ratio = transhipment_ratio
+        self.teu_factor = teu_factor
+        self.peak_factor = peak_factor
 
         # fuel and electrical power price
         self.energy_price = energy_price
@@ -77,6 +87,8 @@ class System:
         # input testing: throughput type percentages should add up to 1
         np.testing.assert_equal(self.laden_perc + self.reefer_perc + self.empty_perc + self.oog_perc, 1,
                                 'error: throughput type fractions should add up to 1')
+        np.testing.assert_equal(self.import_perc + self.export_perc + self.transhipment_ratio, 1,
+                                'error: import, export and transhipment should add up to 1')
 
     # *** Overall terminal investment strategy for terminal class.
     def simulate(self):
@@ -89,7 +101,7 @@ class System:
         - Quist, P. and Wijdeven, B., 2014. Ports & Terminals Hand-out. Chapter 7 Container terminals. CIE4330/CIE5306
         - PIANC. 2014. Master plans for the development of existing ports. MarCom - Report 158, PIANC
         - PIANC. 2014b. Design principles for small and medium marine containter terminals. MarCom - Report 135, PIANC
-        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2020). Ports and Waterways.
+        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2021). Ports and Waterways.
           Navigating the changing world. TU Delft, Delft, The Netherlands.
         - Van Koningsveld, M. and J. P. M. Mulder. 2004. Sustainable Coastal Policy Developments in the
           Netherlands. A Systematic Approach Revealed. Journal of Coastal Research 20(2), pp. 375-385
@@ -100,7 +112,10 @@ class System:
           Netherlands. URL: http://resolver.tudelft.nl/uuid:131133bf-9021-4d67-afcb-233bd8302ce0.
         - Stam, H.W.B., 2020. Offshore-Onshore Port Systems. A framework for the financial evaluation of offshore
           container terminals. Master's thesis. Delft University of Technology, Netherlands.
-
+        - Alvita, R., 2020. A Tool for Container Terminal Design: Developing a tool for container terminal design on a
+          concept design phase while taking into account area limitations. Master's thesis. Delft University of 
+          Technology, Netherlands.
+          
         The simulate method applies frame of reference style decisions while stepping through each year of the terminal
         lifecycle and check if investment is needed (in light of strategic objective, operational objective,
         QSC, decision recipe, intervention method):
@@ -121,7 +136,7 @@ class System:
             - strategic objective: To maintain a profitable enterprise (NPV > 0) over the terminal lifecycle
             - operational objective: Annually invest in infrastructure upgrades when performance criteria are triggered
             """
-
+            self.years.append(year)
             if self.debug:
                 print('')
                 print('### Simulate year: {} ############################'.format(year))
@@ -146,8 +161,7 @@ class System:
             # self.access_channel_invest(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, VLCS, ULCS)
 
             # 2. for each year evaluate which investment are needed given the strategic and operational objectives
-            self.berth_invest(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
-                              post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
+            self.berth_invest(year)
 
             if self.debug:
                 print('')
@@ -184,25 +198,25 @@ class System:
                 print('$$$ Check gate investments (coupled with quay crane presence) ---------------')
             self.gate_invest(year)
 
-            if self.debug:
-                print('')
-                print('$$$ Check general services --------------------------------------------------')
-            self.general_services_invest(year)
-
-        # 3. for each year calculate the general labour, fuel and energy costs (requires insight in realized demands)
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_energy_cost(year)
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_general_labour_cost(year)
-
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_fuel_cost(year)
-
-        # 4. for each year calculate the demurrage costs (requires insight in realized demands)
-        self.demurrage = []
-        for year in range(self.startyear, self.startyear + self.lifecycle):
-            self.calculate_demurrage_cost(year)
+        #     if self.debug:
+        #         print('')
+        #         print('$$$ Check general services --------------------------------------------------')
+        #     self.general_services_invest(year)
+        #
+        # # 3. for each year calculate the general labour, fuel and energy costs (requires insight in realized demands)
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_energy_cost(year)
+        #
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_general_labour_cost(year)
+        #
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_fuel_cost(year)
+        #
+        # # 4. for each year calculate the demurrage costs (requires insight in realized demands)
+        # self.demurrage = []
+        # for year in range(self.startyear, self.startyear + self.lifecycle):
+        #     self.calculate_demurrage_cost(year)
 
         # Todo: see if here a method can be implemented to estimate the revenue that is needed to get NPV = 0
         # 5.  for each year calculate terminal revenues
@@ -215,7 +229,7 @@ class System:
 
         # 7. calculate key numbers
         # Todo: check to see if core method can be used in stead
-        # df = core.NPV(self, Labour(**container_defaults.labour_data))
+        # df = opentisim.core.NPV(self, Labour(**labour_data))
         # print(df)
         # NPV, capex_normal, opex_normal, labour_normal = self.NPV()
 
@@ -246,8 +260,7 @@ class System:
         # return NPV, data
 
     # *** Individual investment methods for terminal elements
-    def berth_invest(self, year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax,
-                     VLCS, ULCS):
+    def berth_invest(self, year):
         """
         Given the overall objectives for the terminal apply the following decision recipe (Van Koningsveld and
         Mulder, 2004) for the berth investments.
@@ -275,29 +288,33 @@ class System:
             print('')
             print('--- Status terminal @ start of year ----------------')
 
-        core.report_element(self, Berth, year)
-        core.report_element(self, Quay_wall, year)
-        core.report_element(self, Cyclic_Unloader, year)
+        opentisim.core.report_element(self, Berth, year)
+        opentisim.core.report_element(self, Quay_wall, year)
+        opentisim.core.report_element(self, Cyclic_Unloader, year)
         # Todo: check if more elements should be reported here
+
+        # calculate vessel calls
+        fully_cellular_calls, panamax_calls, panamax_max_calls, post_panamax_I_calls, post_panamax_II_calls, \
+        new_panamax_calls, VLCS_calls, ULCS_calls, total_calls, total_vol = self.calculate_vessel_calls(year)
 
         # calculate planned berth occupancy and planned nr of berths
         berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-            self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II,
-                                           new_panamax, VLCS, ULCS)
-        berths = len(core.find_elements(self, Berth))
+            self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                           post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls, VLCS_calls, ULCS_calls)
+        berths = len(opentisim.core.find_elements(self, Berth))
 
         # get the waiting time as a factor of service time
         if berths != 0:
-            planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
+            planned_waiting_service_time_ratio_berth = opentisim.core.occupancy_to_waitingfactor(
+                utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths, kendall=self.kendall)
         else:
             planned_waiting_service_time_ratio_berth = np.inf
 
         if self.debug:
-            print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
-                berth_occupancy_online, self.allowable_berth_occupancy))
-            print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
-                berth_occupancy_planned, self.allowable_berth_occupancy))
+            # print('     Berth occupancy online (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
+            #     berth_occupancy_online, self.allowable_berth_occupancy))
+            # print('     Berth occupancy planned (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
+            #     berth_occupancy_planned, self.allowable_berth_occupancy))
             print(
                 '     Planned waiting time service time factor (@ start of year): {:.2f} (trigger level: {:.2f})'.format(
                     planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
@@ -307,9 +324,9 @@ class System:
             print('')
             print('$$$ Check berth elements (coupled with berth occupancy) ---------------')
 
-        core.report_element(self, Berth, year)
-        core.report_element(self, Quay_wall, year)
-        core.report_element(self, Cyclic_Unloader, year)
+        opentisim.core.report_element(self, Berth, year)
+        opentisim.core.report_element(self, Quay_wall, year)
+        opentisim.core.report_element(self, Cyclic_Unloader, year)
 
         # while planned_waiting_service_time_ratio is larger than self.allowable_waiting_service_time_ratio_berth
         # see also PIANC (2014b), p. 58/59
@@ -320,99 +337,103 @@ class System:
                 if self.debug:
                     print('  *** add Berth to elements')
 
-                berth = Berth(**container_defaults.berth_data)
+                berth = Berth(**berth_data)
                 berth.year_online = year + berth.delivery_time
                 self.elements.append(berth)
-                berths = len(core.find_elements(self, Berth))
-
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
-                                                   post_panamax_II, new_panamax, VLCS, ULCS)
-                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
-
-                if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
-                        berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
+                # berths = len(opentisim.core.find_elements(self, Berth))
+                #
+                # berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                #     self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
+                #                                    post_panamax_II, new_panamax, VLCS, ULCS)
+                # planned_waiting_service_time_ratio_berth = opentisim.core.occupancy_to_waitingfactor(
+                #     utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths, kendall=self.kendall)
+                #
+                # if self.debug:
+                #     print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                #         berth_occupancy_planned, self.allowable_berth_occupancy))
+                #     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
+                #         planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
             # while planned waiting service time ratio is too large add a berth if a quay is needed
-            berths = len(core.find_elements(self, Berth))
-            quay_walls = len(core.find_elements(self, Quay_wall))
+            berths = len(opentisim.core.find_elements(self, Berth))
+            quay_walls = len(opentisim.core.find_elements(self, Quay_wall))
             if berths > quay_walls:
                 # bug fixed, should only take the value of the vessels that actually come
                 Ls_max = max([
-                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["LOA"],
-                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["LOA"],
-                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["LOA"],
-                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["LOA"],
-                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["LOA"],
-                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["LOA"],
-                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["LOA"],
-                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["LOA"]
+                    int(not container_data['fully_cellular_perc'] == 0) * fully_cellular_data["LOA"],
+                    int(not container_data['panamax_perc'] == 0) * panamax_data["LOA"],
+                    int(not container_data['panamax_max_perc'] == 0) * panamax_max_data["LOA"],
+                    int(not container_data['post_panamax_I_perc'] == 0) * post_panamax_I_data["LOA"],
+                    int(not container_data['post_panamax_II_perc'] == 0) * post_panamax_II_data["LOA"],
+                    int(not container_data['new_panamax_perc'] == 0) * new_panamax_data["LOA"],
+                    int(not container_data['VLCS_perc'] == 0) * VLCS_data["LOA"],
+                    int(not container_data['ULCS_perc'] == 0) * ULCS_data["LOA"]
                     ])  # max size
                 draught = max([
-                    int(not container_defaults.container_data['fully_cellular_perc'] == 0) * container_defaults.fully_cellular_data["draught"],
-                    int(not container_defaults.container_data['panamax_perc'] == 0) * container_defaults.panamax_data["draught"],
-                    int(not container_defaults.container_data['panamax_max_perc'] == 0) * container_defaults.panamax_max_data["draught"],
-                    int(not container_defaults.container_data['post_panamax_I_perc'] == 0) * container_defaults.post_panamax_I_data["draught"],
-                    int(not container_defaults.container_data['post_panamax_II_perc'] == 0) * container_defaults.post_panamax_II_data["draught"],
-                    int(not container_defaults.container_data['new_panamax_perc'] == 0) * container_defaults.new_panamax_data["draught"],
-                    int(not container_defaults.container_data['VLCS_perc'] == 0) * container_defaults.VLCS_data["draught"],
-                    int(not container_defaults.container_data['ULCS_perc'] == 0) * container_defaults.ULCS_data["draught"]
+                    int(not container_data['fully_cellular_perc'] == 0) * fully_cellular_data["draught"],
+                    int(not container_data['panamax_perc'] == 0) * panamax_data["draught"],
+                    int(not container_data['panamax_max_perc'] == 0) * panamax_max_data["draught"],
+                    int(not container_data['post_panamax_I_perc'] == 0) * post_panamax_I_data["draught"],
+                    int(not container_data['post_panamax_II_perc'] == 0) * post_panamax_II_data["draught"],
+                    int(not container_data['new_panamax_perc'] == 0) * new_panamax_data["draught"],
+                    int(not container_data['VLCS_perc'] == 0) * VLCS_data["draught"],
+                    int(not container_data['ULCS_perc'] == 0) * ULCS_data["draught"]
                     ])  # max draught
 
-                Ls_avg = (fully_cellular * container_defaults.fully_cellular_data["LOA"] +
-                          panamax * container_defaults.panamax_data["LOA"] +
-                          panamax_max * container_defaults.panamax_max_data["LOA"] +
-                          post_panamax_I * container_defaults.post_panamax_I_data["LOA"] +
-                          post_panamax_II * container_defaults.post_panamax_II_data["LOA"] +
-                          new_panamax * container_defaults.new_panamax_data["LOA"] +
-                          VLCS * container_defaults.VLCS_data["LOA"] +
-                          ULCS * container_defaults.ULCS_data["LOA"]) / \
-                          (fully_cellular + panamax + panamax_max + post_panamax_I + post_panamax_II + new_panamax +
-                          VLCS + ULCS)
+                print((fully_cellular_calls + panamax_calls + panamax_max_calls + post_panamax_I_calls + post_panamax_II_calls + new_panamax_calls +
+                          VLCS_calls + ULCS_calls))
 
-                # apply PIANC 2014:
-                berthing_gap = container_defaults.quay_wall_data["berthing_gap"]
+                Ls_avg = (fully_cellular_calls * fully_cellular_data["LOA"] +
+                          panamax_calls * panamax_data["LOA"] +
+                          panamax_max_calls * panamax_max_data["LOA"] +
+                          post_panamax_I_calls * post_panamax_I_data["LOA"] +
+                          post_panamax_II_calls * post_panamax_II_data["LOA"] +
+                          new_panamax_calls * new_panamax_data["LOA"] +
+                          VLCS_calls * VLCS_data["LOA"] +
+                          ULCS_calls * ULCS_data["LOA"]) / \
+                          (fully_cellular_calls + panamax_calls + panamax_max_calls + post_panamax_I_calls + post_panamax_II_calls + new_panamax_calls +
+                          VLCS_calls + ULCS_calls)
+
+
+                # NB: the implementation below takes the first quay to follow the n=1 rule from PIANC (2014), and the
+                # next quays to follow the n>1 rule. Hence for each quay >1 we add 1.1 * (Ls_avg + berthing_gap)
+                # This ensures that in the iteration 1 quay is still always large enough, and when we add another, it
+                # follows the 1.1 * Lav rule. This might give a slight overestimation (!).
+
+                # - length (apply PIANC 2014)
+                berthing_gap = quay_wall_data["berthing_gap"]
                 if quay_walls == 0:  # - length when next quay is n = 1
                     # Lq = Ls,max + (2 x 15) ref: PIANC 2014, p 98
                     length = Ls_max + 2 * berthing_gap
                 else:  # - length when next quay is n > 1
                     # Lq = 1.1 x n x (Ls,avg+15) + 15 ref: PIANC 2014, p 98
-                    length = 1.1 * berths * (Ls_avg + berthing_gap) + berthing_gap
+                    # after the first quay, we add 1.1 * (Ls_avg + berthing_gap).
+                    length = 1.1 * (Ls_avg + berthing_gap)
 
                 # - depth
-                quay_wall = Quay_wall(**container_defaults.quay_wall_data)
+                quay_wall = Quay_wall(**quay_wall_data)
                 depth = np.sum([draught, quay_wall.max_sinkage, quay_wall.wave_motion, quay_wall.safety_margin])
+
+                # add a quay to self.elements
                 self.quay_invest(year, length, depth)
-
-                berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
-                                                   post_panamax_II, new_panamax, VLCS, ULCS)
-                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
-
-                if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
-                        berth_occupancy_planned, self.allowable_berth_occupancy))
-                    print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
-                        planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
-
+                
             # while planned berth occupancy is too large add a crane if a crane is needed
             if self.check_crane_slot_available():
                 self.crane_invest(year)
-
                 berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
-                    self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
-                                                   post_panamax_II, new_panamax, VLCS, ULCS)
-                planned_waiting_service_time_ratio_berth = core.occupancy_to_waitingfactor(
-                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths)
+                    self.calculate_berth_occupancy(year, fully_cellular_calls, panamax_calls, panamax_max_calls,
+                                                   post_panamax_I_calls, post_panamax_II_calls, new_panamax_calls,
+                                                   VLCS_calls, ULCS_calls)
+
+                # berth_occupancy_planned, berth_occupancy_online, crane_occupancy_planned, crane_occupancy_online = \
+                #     self.calculate_berth_occupancy(year, fully_cellular, panamax, panamax_max, post_panamax_I,
+                #                                    post_panamax_II, new_panamax, VLCS, ULCS)
+                planned_waiting_service_time_ratio_berth = opentisim.core.occupancy_to_waitingfactor(
+                    utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths, kendall=self.kendall)
 
                 if self.debug:
-                    print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
-                        berth_occupancy_planned, self.allowable_berth_occupancy))
+                    # print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
+                    #     berth_occupancy_planned, self.allowable_berth_occupancy))
                     print('     Planned waiting time service time factor : {:.2f} (trigger level: {:.2f})'.format(
                         planned_waiting_service_time_ratio_berth, self.allowable_waiting_service_time_ratio_berth))
 
@@ -437,7 +458,7 @@ class System:
         if self.debug:
             print('  *** add Quay to elements')
         # add a Quay_wall element
-        quay_wall = Quay_wall(**container_defaults.quay_wall_data)
+        quay_wall = Quay_wall(**quay_wall_data)
 
         # add length and depth to the elements (useful for later reporting)
         quay_wall.length = length
@@ -461,7 +482,7 @@ class System:
         quay_wall.land_use = length * quay_wall.apron_width
 
         # add cash flow information to quay_wall object in a dataframe
-        quay_wall = core.add_cashflow_data_to_element(self, quay_wall)
+        quay_wall = opentisim.core.add_cashflow_data_to_element(self, quay_wall)
 
         self.elements.append(quay_wall)
 
@@ -497,19 +518,19 @@ class System:
         crane.maintenance = unit_rate * crane.maintenance_perc
 
         #   labour
-        labour = Labour(**container_defaults.labour_data)
+        labour = Labour(**labour_data)
         crane.shift = crane.crew * labour.daily_shifts
         crane.labour = crane.shift * labour.blue_collar_salary
         # Todo: check if the number of shifts (crane.shift) is modelled correctly
 
         # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
         years_online = []
-        for element in core.find_elements(self, Quay_wall):
+        for element in opentisim.core.find_elements(self, Quay_wall):
             years_online.append(element.year_online)
         crane.year_online = max([year + crane.delivery_time, max(years_online)])
 
         # add cash flow information to quay_wall object in a dataframe
-        crane = core.add_cashflow_data_to_element(self, crane)
+        crane = opentisim.core.add_cashflow_data_to_element(self, crane)
 
         # add object to elements
         self.elements.append(crane)
@@ -524,7 +545,7 @@ class System:
         # check the number of cranes
         cranes_planned = 0
         cranes_online = 0
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements = opentisim.core.find_elements(self, Cyclic_Unloader)
         if list_of_elements != []:
             for element in list_of_elements:
                 cranes_planned += 1
@@ -534,7 +555,7 @@ class System:
         # check the number of horizontal transporters
         hor_transport_planned = 0
         hor_transport_online = 0
-        list_of_elements = core.find_elements(self, Horizontal_Transport)
+        list_of_elements = opentisim.core.find_elements(self, Horizontal_Transport)
         if list_of_elements != []:
             for element in list_of_elements:
                 hor_transport_planned += 1
@@ -548,14 +569,14 @@ class System:
             print('     Horizontal transport planned (@ start of year): {}'.format(hor_transport_planned))
 
         # object needs to be instantiated here so that tractor.required may be determined
-        tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+        tractor = Horizontal_Transport(**tractor_trailer_data)
 
         # when the total number of online horizontal transporters < total number of transporters required by the cranes
         while cranes_planned * tractor.required > hor_transport_planned:
             # add a tractor to elements
             if self.debug:
                 print('  *** add tractor trailer to elements')
-            tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+            tractor = Horizontal_Transport(**tractor_trailer_data)
 
             # - capex
             unit_rate = tractor.unit_rate
@@ -567,21 +588,21 @@ class System:
             tractor.maintenance = unit_rate * tractor.maintenance_perc
 
             # - labour
-            labour = Labour(**container_defaults.labour_data)
+            labour = Labour(**labour_data)
             # Todo: check if the number of shifts is calculated properly
             tractor.shift = tractor.crew * labour.daily_shifts
             tractor.labour = tractor.shift * labour.blue_collar_salary
 
             # apply proper timing for the crane to come online (in the same year as the latest Quay_wall)
-            # [element.year_online for element in core.find_elements(self, Quay_wall)]
+            # [element.year_online for element in opentisim.core.find_elements(self, Quay_wall)]
             # years_online = []
-            # for element in core.find_elements(self, Quay_wall):
+            # for element in opentisim.core.find_elements(self, Quay_wall):
             #     years_online.append(element.year_online)
-            years_online = [element.year_online for element in core.find_elements(self, Cyclic_Unloader)]
+            years_online = [element.year_online for element in opentisim.core.find_elements(self, Cyclic_Unloader)]
             tractor.year_online = max([year + tractor.delivery_time, max(years_online)])
 
             # add cash flow information to tractor object in a dataframe
-            tractor = core.add_cashflow_data_to_element(self, tractor)
+            tractor = opentisim.core.add_cashflow_data_to_element(self, tractor)
 
             self.elements.append(tractor)
 
@@ -613,13 +634,13 @@ class System:
                 print('  *** add laden / reefer stack to elements')
 
             if self.laden_stack == 'rtg':  # Rubber Tired Gantry Crane
-                stack = Laden_Stack(**container_defaults.rtg_stack_data)
+                stack = Laden_Stack(**rtg_stack_data)
             elif self.laden_stack == 'rmg':  # Rail Mounted Gantry Crane
-                stack = Laden_Stack(**container_defaults.rmg_stack_data)
+                stack = Laden_Stack(**rmg_stack_data)
             elif self.laden_stack == 'sc':  # Straddle Carrier
-                stack = Laden_Stack(**container_defaults.sc_stack_data)
+                stack = Laden_Stack(**sc_stack_data)
             elif self.laden_stack == 'rs':  # Reach Stacker
-                stack = Laden_Stack(**container_defaults.rs_stack_data)
+                stack = Laden_Stack(**rs_stack_data)
 
             # - per stack that is added determine the land use
             # alternative calculation method (same result):
@@ -642,11 +663,11 @@ class System:
 
             # apply proper timing for the crane to come online
             # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
-            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+            years_online = [element.year_online for element in opentisim.core.find_elements(self, Quay_wall)]
             stack.year_online = max([year + stack.delivery_time, max(years_online)])
 
             # add cash flow information to quay_wall object in a dataframe
-            stack = core.add_cashflow_data_to_element(self, stack)
+            stack = opentisim.core.add_cashflow_data_to_element(self, stack)
 
             self.elements.append(stack)
 
@@ -656,7 +677,7 @@ class System:
         """Calculate the stack capacity for laden and reefer containers"""
 
         # find the total planned and online laden stack capacity
-        list_of_elements = core.find_elements(self, Laden_Stack)
+        list_of_elements = opentisim.core.find_elements(self, Laden_Stack)
         stack_capacity_planned = 0
         stack_capacity_online = 0
         for element in list_of_elements:
@@ -675,18 +696,18 @@ class System:
         reefer_teu = (reefer_teu * ts * 0.5) + (reefer_teu * (1 - ts))
 
         # instantiate laden, reefer and stack objects (needed to get properties)
-        laden = Container(**container_defaults.laden_container_data)
-        reefer = Container(**container_defaults.reefer_container_data)
+        laden = Container(**laden_container_data)
+        reefer = Container(**reefer_container_data)
         if self.laden_stack == 'rtg':  # Rubber Tired Gantry crane
-            stack = Laden_Stack(**container_defaults.rtg_stack_data)
+            stack = Laden_Stack(**rtg_stack_data)
         elif self.laden_stack == 'rmg':  # Rail Mounted Gantry crane
-            stack = Laden_Stack(**container_defaults.rmg_stack_data)
+            stack = Laden_Stack(**rmg_stack_data)
         elif self.laden_stack == 'sc':  # Straddle Carrier
-            stack = Laden_Stack(**container_defaults.sc_stack_data)
+            stack = Laden_Stack(**sc_stack_data)
         elif self.laden_stack == 'rs':  # Reach Stacker
-            stack = Laden_Stack(**container_defaults.rs_stack_data)
+            stack = Laden_Stack(**rs_stack_data)
         else:
-            stack = Laden_Stack(**container_defaults.rtg_stack_data)
+            stack = Laden_Stack(**rtg_stack_data)
 
         # calculate operational days
         operational_days = self.operational_hours / 24
@@ -728,7 +749,7 @@ class System:
             if self.debug:
                 print('  *** add empty stack to elements')
 
-            empty_stack = Empty_Stack(**container_defaults.empty_stack_data)
+            empty_stack = Empty_Stack(**empty_stack_data)
 
             # - land use
             stack_ground_slots = empty_stack.capacity / empty_stack.height
@@ -751,11 +772,11 @@ class System:
 
             # apply proper timing for the crane to come online
             # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
-            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+            years_online = [element.year_online for element in opentisim.core.find_elements(self, Quay_wall)]
             empty_stack.year_online = max([year + empty_stack.delivery_time, max(years_online)])
 
             # add cash flow information to quay_wall object in a dataframe
-            empty_stack = core.add_cashflow_data_to_element(self, empty_stack)
+            empty_stack = opentisim.core.add_cashflow_data_to_element(self, empty_stack)
 
             self.elements.append(empty_stack)
 
@@ -765,7 +786,7 @@ class System:
         """Calculate the stack capacity for empty containers"""
 
         # find the total stack capacity
-        list_of_elements = core.find_elements(self, Empty_Stack)
+        list_of_elements = opentisim.core.find_elements(self, Empty_Stack)
         empty_capacity_planned = 0
         empty_capacity_online = 0
         for element in list_of_elements:
@@ -783,8 +804,8 @@ class System:
         empty_teu = (empty_teu * ts * 0.5) + (empty_teu * (1 - ts))
 
         # instantiate laden, reefer and stack objects
-        empty = Container(**container_defaults.empty_container_data)
-        stack = Empty_Stack(**container_defaults.empty_stack_data)
+        empty = Container(**empty_container_data)
+        stack = Empty_Stack(**empty_stack_data)
 
         # calculate operational days
         operational_days = self.operational_hours / 24
@@ -817,7 +838,7 @@ class System:
             if self.debug:
                 print('  *** add OOG stack to elements')
 
-            oog_stack = OOG_Stack(**container_defaults.oog_stack_data)
+            oog_stack = OOG_Stack(**oog_stack_data)
 
             # - capex
             area = oog_stack.length * oog_stack.width
@@ -839,11 +860,11 @@ class System:
 
             # apply proper timing for the crane to come online
             # stack comes online in year + delivery time, or the same year as the last quay wall (whichever is largest)
-            years_online = [element.year_online for element in core.find_elements(self, Quay_wall)]
+            years_online = [element.year_online for element in opentisim.core.find_elements(self, Quay_wall)]
             oog_stack.year_online = max([year + oog_stack.delivery_time, max(years_online)])
 
             # add cash flow information to quay_wall object in a dataframe
-            oog_stack = core.add_cashflow_data_to_element(self, oog_stack)
+            oog_stack = opentisim.core.add_cashflow_data_to_element(self, oog_stack)
 
             self.elements.append(oog_stack)
 
@@ -853,7 +874,7 @@ class System:
         """Calculate the stack capacity for OOG containers"""
 
         # find the total stack capacity
-        list_of_elements = core.find_elements(self, OOG_Stack)
+        list_of_elements = opentisim.core.find_elements(self, OOG_Stack)
         oog_capacity_planned = 0
         oog_capacity_online = 0
         for element in list_of_elements:
@@ -871,8 +892,8 @@ class System:
         oog_teu = (oog_teu * ts * 0.5) + (oog_teu * (1 - ts))
 
         # instantiate laden, reefer and stack objects
-        oog = Container(**container_defaults.oog_container_data)
-        stack = OOG_Stack(**container_defaults.oog_stack_data)
+        oog = Container(**oog_container_data)
+        stack = OOG_Stack(**oog_stack_data)
 
         # calculate operational days
         operational_days = self.operational_hours / 24
@@ -917,13 +938,13 @@ class System:
                     stacks_online += 1
 
         if self.stack_equipment == 'rtg':
-            stack_equipment = Stack_Equipment(**container_defaults.rtg_data)
+            stack_equipment = Stack_Equipment(**rtg_data)
         elif self.stack_equipment == 'rmg':
-            stack_equipment = Stack_Equipment(**container_defaults.rmg_data)
+            stack_equipment = Stack_Equipment(**rmg_data)
         elif self.stack_equipment == 'sc':
-            stack_equipment = Stack_Equipment(**container_defaults.sc_data)
+            stack_equipment = Stack_Equipment(**sc_data)
         elif self.stack_equipment == 'rs':
-            stack_equipment = Stack_Equipment(**container_defaults.rs_data)
+            stack_equipment = Stack_Equipment(**rs_data)
 
         if self.debug:
             print('     Number of stack equipment online (@ start of year): {}'.format(stack_equipment_online))
@@ -952,20 +973,20 @@ class System:
             stack_equipment.maintenance = unit_rate * stack_equipment.maintenance_perc
 
             #   labour
-            labour = Labour(**container_defaults.labour_data)
+            labour = Labour(**labour_data)
             stack_equipment.shift = stack_equipment.crew * labour.daily_shifts
             stack_equipment.labour = stack_equipment.shift * labour.blue_collar_salary
 
             # apply proper timing for the crane to come online
             # year + delivery time or in the year as the last laden stack
             years_online = []
-            for element in core.find_elements(self, Laden_Stack):
+            for element in opentisim.core.find_elements(self, Laden_Stack):
                 years_online.append(element.year_online)
 
             stack_equipment.year_online = max([year + stack_equipment.delivery_time, max(years_online)])
 
             # add cash flow information to tractor object in a dataframe
-            stack_equipment = core.add_cashflow_data_to_element(self, stack_equipment)
+            stack_equipment = opentisim.core.add_cashflow_data_to_element(self, stack_equipment)
 
             self.elements.append(stack_equipment)
 
@@ -983,7 +1004,7 @@ class System:
         - find out how many empty handlers are needed
         - add empty handlers until service_trigger is no longer exceeded
         """
-        sts_cranes_planned = len(core.find_elements(self, Cyclic_Unloader))
+        sts_cranes_planned = len(opentisim.core.find_elements(self, Cyclic_Unloader))
 
         empty_handlers_planned = 0
         empty_handlers_online = 0
@@ -997,7 +1018,7 @@ class System:
             print('     Empty handlers planned (@ start of year): {}'.format(empty_handlers_planned))
 
         # object needs to be instantiated here so that empty_handler.required may be determined
-        empty_handler = Empty_Handler(**container_defaults.empty_handler_data)
+        empty_handler = Empty_Handler(**empty_handler_data)
         while sts_cranes_planned * empty_handler.required > empty_handlers_planned:
             # add a tractor when not enough to serve number of STS cranes
             if self.debug:
@@ -1012,20 +1033,20 @@ class System:
             empty_handler.maintenance = unit_rate * empty_handler.maintenance_perc
 
             #   labour
-            labour = Labour(**container_defaults.labour_data)
+            labour = Labour(**labour_data)
             empty_handler.shift = empty_handler.crew * labour.daily_shifts
             empty_handler.labour = empty_handler.shift * labour.blue_collar_salary
 
             # apply proper timing for the empty handler to come online
             # year + empty_handler.delivery_time or last Empty_Stack, which ever is largest
             years_online = []
-            for element in core.find_elements(self, Empty_Stack):
+            for element in opentisim.core.find_elements(self, Empty_Stack):
                 years_online.append(element.year_online)
 
             empty_handler.year_online = max([year + empty_handler.delivery_time, max(years_online)])
 
             # add cash flow information to tractor object in a dataframe
-            empty_handler = core.add_cashflow_data_to_element(self, empty_handler)
+            empty_handler = opentisim.core.add_cashflow_data_to_element(self, empty_handler)
 
             self.elements.append(empty_handler)
 
@@ -1057,7 +1078,7 @@ class System:
             if self.debug:
                 print('  *** add gate to elements')
 
-            gate = Gate(**container_defaults.gate_data)
+            gate = Gate(**gate_data)
 
             # - land use
             gate.land_use = gate.area
@@ -1073,7 +1094,7 @@ class System:
             gate.maintenance = unit_rate * gate.maintenance_perc
 
             #   labour
-            labour = Labour(**container_defaults.labour_data)
+            labour = Labour(**labour_data)
             gate.shift = gate.crew * labour.daily_shifts
             gate.labour = gate.shift * labour.blue_collar_salary
 
@@ -1083,7 +1104,7 @@ class System:
                 gate.year_online = year + gate.delivery_time
 
             # add cash flow information to tractor object in a dataframe
-            gate = core.add_cashflow_data_to_element(self, gate)
+            gate = opentisim.core.add_cashflow_data_to_element(self, gate)
 
             self.elements.append(gate)
 
@@ -1098,7 +1119,7 @@ class System:
         """
 
         # find the online and planned Gate capacity
-        list_of_elements = core.find_elements(self, Gate)
+        list_of_elements = opentisim.core.find_elements(self, Gate)
         gate_capacity_planned = 0
         gate_capacity_online = 0
         total_design_gate_minutes = 0
@@ -1122,7 +1143,7 @@ class System:
             weeks_year = 52
 
             # instantiate a Gate object
-            gate = Gate(**container_defaults.gate_data)
+            gate = Gate(**gate_data)
 
             # Todo: this really needs to be checked
             design_exit_gate_minutes = import_box_moves * (gate.truck_moves / weeks_year) * gate.peak_factor * \
@@ -1158,7 +1179,7 @@ class System:
                     general += 1
         sts_cranes = cranes
 
-        general = General_Services(**container_defaults.general_services_data)
+        general = General_Services(**general_services_data)
 
         quay_land_use = 0
         stack_land_use = 0
@@ -1218,7 +1239,7 @@ class System:
                 general.year_online = year + general.delivery_time
 
             # add cash flow information to tractor object in a dataframe
-            general = core.add_cashflow_data_to_element(self, general)
+            general = opentisim.core.add_cashflow_data_to_element(self, general)
 
             self.elements.append(general)
 
@@ -1240,7 +1261,7 @@ class System:
                 if year >= element.year_online:
                     cranes += 1
 
-        for element in core.find_elements(self, Cyclic_Unloader):
+        for element in opentisim.core.find_elements(self, Cyclic_Unloader):
             if year >= element.year_online:
                 sts_moves_per_element = sts_moves / cranes
                 if element.consumption * sts_moves_per_element * energy_price != np.inf:
@@ -1251,7 +1272,7 @@ class System:
 
         # calculate stack equipment energy costs
         if self.stack_equipment == 'rmg':
-            list_of_elements_Stack = core.find_elements(self, Stack_Equipment)
+            list_of_elements_Stack = opentisim.core.find_elements(self, Stack_Equipment)
             equipment = 0
             for element in self.elements:
                 if isinstance(element, Stack_Equipment):
@@ -1277,7 +1298,7 @@ class System:
                 if year >= element.year_online:
                     stacks += 1
 
-        for element in core.find_elements(self, Laden_Stack):
+        for element in opentisim.core.find_elements(self, Laden_Stack):
             if year >= element.year_online:
                 slots_per_stack = reefer_ground_slots / stacks
                 if slots_per_stack * element.reefers_present * energy_price * 24 * 365 != np.inf:
@@ -1287,7 +1308,7 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # Calculate general power use
-        general = General_Services(**container_defaults.general_services_data)
+        general = General_Services(**general_services_data)
 
         # - lighting
         quay_land_use = 0
@@ -1322,7 +1343,7 @@ class System:
 
         # - office, gates, workshops power use
         general_consumption = general.general_consumption * energy_price * self.operational_hours
-        for element in core.find_elements(self, General_Services):
+        for element in opentisim.core.find_elements(self, General_Services):
             if year >= element.year_online:
                 if lighting + general_consumption != np.inf:
                     element.df.loc[element.df['year'] == year, 'energy'] = lighting + general_consumption
@@ -1332,10 +1353,10 @@ class System:
     def calculate_general_labour_cost(self, year):
         """General labour"""
 
-        general = General_Services(**container_defaults.general_services_data)
+        general = General_Services(**general_services_data)
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
         throughput = laden_teu + reefer_teu + oog_teu + empty_teu
-        labour = Labour(**container_defaults.labour_data)
+        labour = Labour(**labour_data)
 
         cranes = 0
         for element in self.elements:
@@ -1359,7 +1380,7 @@ class System:
             shift_labour = white_collar + blue_collar
 
             # total labour
-            list_of_elements_general = core.find_elements(self, General_Services)
+            list_of_elements_general = opentisim.core.find_elements(self, General_Services)
 
             for element in list_of_elements_general:
                 if year >= element.year_online:
@@ -1374,7 +1395,7 @@ class System:
         fuel_price = self.fuel_price
 
         # calculate empty handler fuel costs
-        list_of_elements_ech = core.find_elements(self, Empty_Handler)
+        list_of_elements_ech = opentisim.core.find_elements(self, Empty_Handler)
         equipment = 0
         for element in self.elements:
             if isinstance(element, Empty_Handler):
@@ -1393,7 +1414,7 @@ class System:
 
         # calculate stack equipment fuel costs
         if self.stack_equipment == 'rtg' or self.stack_equipment == 'rs' or self.stack_equipment == 'sc':
-            list_of_elements_Stack = core.find_elements(self, Stack_Equipment)
+            list_of_elements_Stack = opentisim.core.find_elements(self, Stack_Equipment)
             equipment = 0
             for element in self.elements:
                 if isinstance(element, Stack_Equipment):
@@ -1411,7 +1432,7 @@ class System:
                     element.df.loc[element.df['year'] == year, 'fuel'] = 0
 
         # calculate tractor fuel consumption
-        list_of_elements_Tractor = core.find_elements(self, Horizontal_Transport)
+        list_of_elements_Tractor = opentisim.core.find_elements(self, Horizontal_Transport)
 
         transport = 0
         for element in self.elements:
@@ -1439,25 +1460,25 @@ class System:
                                            post_panamax_I_calls, post_panamax_II_calls,
                                            new_panamax_calls, VLCS_calls, ULCS_calls)
 
-        berths = len(core.find_elements(self, Berth))
+        berths = len(opentisim.core.find_elements(self, Berth))
 
         waiting_factor = \
-            core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths)
+            opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_online, nr_of_servers_to_chk=berths, kendall=self.kendall)
 
         waiting_time_hours = waiting_factor * crane_occupancy_online * self.operational_hours / total_calls
         waiting_time_occupancy = waiting_time_hours * total_calls / self.operational_hours
 
         # Find the service_rate per quay_wall to find the average service hours at the quay for a vessel
-        quay_walls = len(core.find_elements(self, Quay_wall))
+        quay_walls = len(opentisim.core.find_elements(self, Quay_wall))
 
         service_rate = 0
-        for element in (core.find_elements(self, Cyclic_Unloader)):
+        for element in (opentisim.core.find_elements(self, Cyclic_Unloader)):
             if year >= element.year_online:
                 service_rate += element.effective_capacity / quay_walls
 
         # Find the demurrage cost per type of vessel
         if service_rate != 0:
-            fully_cellular = Vessel(**container_defaults.fully_cellular_data)
+            fully_cellular = Vessel(**fully_cellular_data)
             service_time_fully_cellular = fully_cellular.call_size / service_rate
             waiting_time_hours_fully_cellular = waiting_factor * service_time_fully_cellular
             port_time_fully_cellular = waiting_time_hours_fully_cellular + service_time_fully_cellular + fully_cellular.mooring_time
@@ -1465,7 +1486,7 @@ class System:
             demurrage_time_fully_cellular = penalty_time_fully_cellular * fully_cellular_calls
             demurrage_cost_fully_cellular = demurrage_time_fully_cellular * fully_cellular.demurrage_rate
 
-            panamax = Vessel(**container_defaults.panamax_data)
+            panamax = Vessel(**panamax_data)
             service_time_panamax = panamax.call_size / service_rate
             waiting_time_hours_panamax = waiting_factor * service_time_panamax
             port_time_panamax = waiting_time_hours_panamax + service_time_panamax + panamax.mooring_time
@@ -1473,7 +1494,7 @@ class System:
             demurrage_time_panamax = penalty_time_panamax * panamax_calls
             demurrage_cost_panamax = demurrage_time_panamax * panamax.demurrage_rate
 
-            panamax_max = Vessel(**container_defaults.panamax_max_data)
+            panamax_max = Vessel(**panamax_max_data)
             service_time_panamax_max = panamax_max.call_size / service_rate
             waiting_time_hours_panamax_max = waiting_factor * service_time_panamax_max
             port_time_panamax_max = waiting_time_hours_panamax_max + service_time_panamax_max + panamax_max.mooring_time
@@ -1481,7 +1502,7 @@ class System:
             demurrage_time_panamax_max = penalty_time_panamax_max * panamax_max_calls
             demurrage_cost_panamax_max = demurrage_time_panamax_max * panamax_max.demurrage_rate
 
-            post_panamax_I = Vessel(**container_defaults.post_panamax_I_data)
+            post_panamax_I = Vessel(**post_panamax_I_data)
             service_time_post_panamax_I = post_panamax_I.call_size / service_rate
             waiting_time_hours_post_panamax_I = waiting_factor * service_time_post_panamax_I
             port_time_post_panamax_I = waiting_time_hours_post_panamax_I + service_time_post_panamax_I + post_panamax_I.mooring_time
@@ -1489,7 +1510,7 @@ class System:
             demurrage_time_post_panamax_I = penalty_time_post_panamax_I * post_panamax_I_calls
             demurrage_cost_post_panamax_I = demurrage_time_post_panamax_I * post_panamax_I.demurrage_rate
 
-            post_panamax_II = Vessel(**container_defaults.post_panamax_II_data)
+            post_panamax_II = Vessel(**post_panamax_II_data)
             service_time_post_panamax_II = post_panamax_II.call_size / service_rate
             waiting_time_hours_post_panamax_II = waiting_factor * service_time_post_panamax_II
             port_time_post_panamax_II = waiting_time_hours_post_panamax_II + service_time_post_panamax_II + post_panamax_II.mooring_time
@@ -1497,7 +1518,7 @@ class System:
             demurrage_time_post_panamax_II = penalty_time_post_panamax_II * post_panamax_II_calls
             demurrage_cost_post_panamax_II = demurrage_time_post_panamax_II * post_panamax_II.demurrage_rate
 
-            new_panamax = Vessel(**container_defaults.new_panamax_data)
+            new_panamax = Vessel(**new_panamax_data)
             service_time_new_panamax = new_panamax.call_size / service_rate
             waiting_time_hours_new_panamax = waiting_factor * service_time_new_panamax
             port_time_new_panamax = waiting_time_hours_new_panamax + service_time_new_panamax + new_panamax.mooring_time
@@ -1505,7 +1526,7 @@ class System:
             demurrage_time_new_panamax = penalty_time_new_panamax * new_panamax_calls
             demurrage_cost_new_panamax = demurrage_time_new_panamax * new_panamax.demurrage_rate
 
-            VLCS = Vessel(**container_defaults.VLCS_data)
+            VLCS = Vessel(**VLCS_data)
             service_time_VLCS = VLCS.call_size / service_rate
             waiting_time_hours_VLCS = waiting_factor * service_time_VLCS
             port_time_VLCS = waiting_time_hours_VLCS + service_time_VLCS + VLCS.mooring_time
@@ -1513,7 +1534,7 @@ class System:
             demurrage_time_VLCS = penalty_time_VLCS * VLCS_calls
             demurrage_cost_VLCS = demurrage_time_VLCS * VLCS.demurrage_rate
 
-            ULCS = Vessel(**container_defaults.ULCS_data)
+            ULCS = Vessel(**ULCS_data)
             service_time_ULCS = ULCS.call_size / service_rate
             waiting_time_hours_ULCS = waiting_factor * service_time_ULCS
             port_time_ULCS = waiting_time_hours_ULCS + service_time_ULCS + ULCS.mooring_time
@@ -1540,10 +1561,10 @@ class System:
     def calculate_indirect_costs(self):
         """Indirect costs are a function of overall CAPEX."""
         # Todo: check why this is not done per year
-        indirect = Indirect_Costs(**container_defaults.indirect_costs_data)
+        indirect = Indirect_Costs(**indirect_costs_data)
 
         # collect CAPEX from terminal elements
-        cash_flows, cash_flows_WACC_real = core.add_cashflow_elements(self, Labour(**container_defaults.labour_data))
+        cash_flows, cash_flows_WACC_real = opentisim.core.add_cashflow_elements(self, Labour(**labour_data))
         capex = cash_flows['capex'].values
 
         # add indirect costs for different stack equipment:
@@ -1577,7 +1598,7 @@ class System:
         total_vol = 0
 
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
-        commodities = core.find_elements(self, Commodity)
+        commodities = opentisim.core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()  # The total amount of annualy transported TEU
@@ -1594,7 +1615,7 @@ class System:
                 pass
 
         # gather vessels and calculate the number of calls each vessel type needs to make
-        vessels = core.find_elements(self, Vessel)
+        vessels = opentisim.core.find_elements(self, Vessel)
         for vessel in vessels:
             if vessel.type == 'Fully_Cellular':
                 fully_cellular_calls = int(np.ceil(fully_cellular_vol / vessel.call_size))
@@ -1635,7 +1656,7 @@ class System:
         total_vol = 0
 
         # gather volumes from each commodity scenario
-        commodities = core.find_elements(self, Commodity)
+        commodities = opentisim.core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -1644,104 +1665,94 @@ class System:
                 pass
 
         # list all crane objects in the system
-        list_of_elements_cranes = core.find_elements(self, Cyclic_Unloader)
-        list_of_elements_berths = core.find_elements(self, Berth)
-        # Todo: check if nr_berths is important to include or nor
+        list_of_elements_cranes = opentisim.core.find_elements(self, Cyclic_Unloader)
+        list_of_elements_berths = opentisim.core.find_elements(self, Berth)
+        # Todo: check if nr_berths is important to include or not
         nr_berths = len(list_of_elements_berths)
 
         # find the total service rate and determine the time at berth (in hours, per vessel type and in total)
+        # Todo: calculation of effective capacity is done in container_mixins (now changed here to cycles*capacity)
         service_rate_planned = 0
         service_rate_online = 0
         if list_of_elements_cranes != []:
             for element in list_of_elements_cranes:
-                service_rate_planned += element.effective_capacity
+                service_rate_planned += element.hourly_cycles * element.lifting_capacity
                 if year >= element.year_online:
-                    service_rate_online += element.effective_capacity
+                    service_rate_online += element.hourly_cycles * element.lifting_capacity
 
+
+            # time at berth per vessel type
             time_mooring_unmooring_fully_cellular = fully_cellular_calls * \
-                container_defaults.fully_cellular_data["mooring_time"]
-            time_at_cranes_planned_fully_cellular = fully_cellular_calls * \
-                (container_defaults.fully_cellular_data["call_size"] / service_rate_planned)
-
+                fully_cellular_data["mooring_time"]
             time_mooring_unmooring_panamax = panamax_calls * \
-                container_defaults.panamax_data["mooring_time"]
-            time_at_cranes_planned_panamax = panamax_calls * \
-                (container_defaults.panamax_data["call_size"] / service_rate_planned)
-
+                panamax_data["mooring_time"]
             time_mooring_unmooring_panamax_max = panamax_max_calls * \
-                container_defaults.panamax_max_data["mooring_time"]
-            time_at_cranes_planned_panamax_max = panamax_max_calls * \
-                (container_defaults.panamax_max_data["call_size"] / service_rate_planned)
-
+                panamax_max_data["mooring_time"]
             time_mooring_unmooring_post_panamax_I = post_panamax_I_calls * \
-                container_defaults.post_panamax_I_data["mooring_time"]
-            time_at_cranes_planned_post_panamax_I = post_panamax_I_calls * \
-                (container_defaults.post_panamax_I_data["call_size"] / service_rate_planned)
-
+                post_panamax_I_data["mooring_time"]
             time_mooring_unmooring_post_panamax_II = post_panamax_II_calls * \
-                container_defaults.post_panamax_II_data["mooring_time"]
-            time_at_cranes_planned_post_panamax_II = post_panamax_II_calls * \
-                (container_defaults.post_panamax_II_data["call_size"] / service_rate_planned)
-
+                post_panamax_II_data["mooring_time"]
             time_mooring_unmooring_new_panamax = new_panamax_calls * \
-                container_defaults.new_panamax_data["mooring_time"]
-            time_at_cranes_planned_new_panamax = new_panamax_calls * \
-                (container_defaults.new_panamax_data["call_size"] / service_rate_planned)
-
+                new_panamax_data["mooring_time"]
             time_mooring_unmooring_VLCS = VLCS_calls * \
-                container_defaults.VLCS_data["mooring_time"]
-            time_at_cranes_planned_VLCS = VLCS_calls * \
-                (container_defaults.VLCS_data["call_size"] / service_rate_planned)
-
+                VLCS_data["mooring_time"]
             time_mooring_unmooring_ULCS = ULCS_calls * \
-                container_defaults.ULCS_data["mooring_time"]
-            time_at_cranes_planned_ULCS = ULCS_calls * \
-                (container_defaults.ULCS_data["call_size"] / service_rate_planned)
+                ULCS_data["mooring_time"]
 
             # total time at berth
-            total_time_at_berth_planned = np.sum(
-                [time_mooring_unmooring_fully_cellular + time_at_cranes_planned_fully_cellular,
-                 time_mooring_unmooring_panamax + time_at_cranes_planned_panamax,
-                 time_mooring_unmooring_panamax_max + time_at_cranes_planned_panamax_max,
-                 time_mooring_unmooring_post_panamax_I + time_at_cranes_planned_post_panamax_I,
-                 time_mooring_unmooring_post_panamax_II + time_at_cranes_planned_post_panamax_II,
-                 time_mooring_unmooring_new_panamax + time_at_cranes_planned_new_panamax,
-                 time_mooring_unmooring_VLCS + time_at_cranes_planned_VLCS,
-                 time_mooring_unmooring_ULCS + time_at_cranes_planned_ULCS])
+            total_time_mooring_unmooring_planned = np.sum(
+                [time_mooring_unmooring_fully_cellular,
+                 time_mooring_unmooring_panamax,
+                 time_mooring_unmooring_panamax_max,
+                 time_mooring_unmooring_post_panamax_I,
+                 time_mooring_unmooring_post_panamax_II,
+                 time_mooring_unmooring_new_panamax,
+                 time_mooring_unmooring_VLCS,
+                 time_mooring_unmooring_ULCS])
+            # print('total_time_mooring_unmooring_planned: {}'.format(total_time_mooring_unmooring_planned))
+
+            # total boxes to move over the quay
+            # total_boxes = np.ceil(total_vol * self.laden_perc / self.laden_teu_factor +\
+            #               total_vol * self.reefer_perc / self.reefer_teu_factor +\
+            #               total_vol * self.empty_perc / self.empty_teu_factor +\
+            #               total_vol * self.oog_perc / self.oog_teu_factor)
+
+            total_boxes = np.ceil(total_vol / self.teu_factor)
 
             # total time at cranes
-            total_time_at_cranes_planned = np.sum(
-                [time_at_cranes_planned_fully_cellular,
-                 time_at_cranes_planned_panamax,
-                 time_at_cranes_planned_panamax_max,
-                 time_at_cranes_planned_post_panamax_I,
-                 time_at_cranes_planned_post_panamax_II,
-                 time_at_cranes_planned_new_panamax,
-                 time_at_cranes_planned_VLCS,
-                 time_at_cranes_planned_ULCS])
+            total_time_at_cranes_planned = (total_boxes * self.peak_factor) / service_rate_planned
+            # print('total_boxes: {}'.format(total_boxes))
+            # print('peak_factor: {}'.format(self.peak_factor))
+            # print('service_rate_planned: {}'.format(service_rate_planned))
+            # print('total_time_at_cranes_planned: {}'.format(total_time_at_cranes_planned))
+
+            # total time at berth
+            total_time_at_berth_planned = total_time_mooring_unmooring_planned + total_time_at_cranes_planned
+            # print('total_time_at_berth_planned: {}'.format(total_time_at_berth_planned))
 
             # occupancy is the total time at berth divided by the operational hours
-            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
             crane_occupancy_planned = total_time_at_cranes_planned / self.operational_hours
+            berth_occupancy_planned = total_time_at_berth_planned / self.operational_hours
 
+            # Todo: update this (now only updated for planned)
             if service_rate_online != 0:  # when some cranes are actually online
 
                 time_at_cranes_online_fully_cellular = fully_cellular_calls * \
-                    (container_defaults.fully_cellular_data["call_size"] / service_rate_online)
+                    (fully_cellular_data["call_size"] / service_rate_online)
                 time_at_cranes_online_panamax = panamax_calls * \
-                    (container_defaults.panamax_data["call_size"] / service_rate_online)
+                    (panamax_data["call_size"] / service_rate_online)
                 time_at_cranes_online_panamax_max = panamax_max_calls * \
-                    (container_defaults.panamax_max_data["call_size"] / service_rate_online)
+                    (panamax_max_data["call_size"] / service_rate_online)
                 time_at_cranes_online_post_panamax_I = post_panamax_I_calls * \
-                    (container_defaults.post_panamax_I_data["call_size"] / service_rate_online)
+                    (post_panamax_I_data["call_size"] / service_rate_online)
                 time_at_cranes_online_post_panamax_II = post_panamax_II_calls * \
-                    (container_defaults.post_panamax_II_data["call_size"] / service_rate_online)
+                    (post_panamax_II_data["call_size"] / service_rate_online)
                 time_at_cranes_online_new_panamax = new_panamax_calls * \
-                    (container_defaults.new_panamax_data["call_size"] / service_rate_online)
+                    (new_panamax_data["call_size"] / service_rate_online)
                 time_at_cranes_online_VLCS = VLCS_calls * \
-                    (container_defaults.VLCS_data["call_size"] / service_rate_online)
+                    (VLCS_data["call_size"] / service_rate_online)
                 time_at_cranes_online_ULCS = ULCS_calls * \
-                    (container_defaults.ULCS_data["call_size"] / service_rate_online)
+                    (ULCS_data["call_size"] / service_rate_online)
 
                 total_time_at_berth_online = np.sum(
                     [time_mooring_unmooring_fully_cellular + time_at_cranes_online_fully_cellular,
@@ -1782,13 +1793,13 @@ class System:
 
     def check_crane_slot_available(self):
         # find number of available crane slots
-        list_of_elements = core.find_elements(self, Berth)
+        list_of_elements = opentisim.core.find_elements(self, Berth)
         slots = 0
         for element in list_of_elements:
             slots += element.max_cranes
 
         # create a list of all quay unloaders
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements = opentisim.core.find_elements(self, Cyclic_Unloader)
 
         # when there are more available slots than installed cranes there are still slots available (True)
         if slots > len(list_of_elements):
@@ -1802,7 +1813,7 @@ class System:
         total_vol = 0
 
         # gather volumes from each commodity scenario
-        commodities = core.find_elements(self, Commodity)
+        commodities = opentisim.core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -1811,7 +1822,7 @@ class System:
                 pass
 
         # find the total service rate and determine the capacity at the quay
-        list_of_elements = core.find_elements(self, Cyclic_Unloader)
+        list_of_elements = opentisim.core.find_elements(self, Cyclic_Unloader)
         quay_capacity_planned = 0
         quay_capacity_online = 0
         if list_of_elements != []:
@@ -1822,7 +1833,7 @@ class System:
                     quay_capacity_online += (
                                 element.effective_capacity * self.operational_hours * self.allowable_berth_occupancy)
 
-        if quay_capacity_online is not 0:
+        if quay_capacity_online != 0:
             throughput_online = min(quay_capacity_online, total_vol)
         else:
             throughput_online = total_vol
@@ -1837,7 +1848,7 @@ class System:
         """
 
         # Calculate the total throughput in TEU per year
-        commodities = core.find_elements(self, Commodity)
+        commodities = opentisim.core.find_elements(self, Commodity)
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
@@ -1862,10 +1873,10 @@ class System:
         laden_teu, reefer_teu, empty_teu, oog_teu = self.throughput_characteristics(year)
 
         # instantiate terminal objexts
-        laden = Container(**container_defaults.laden_container_data)
-        reefer = Container(**container_defaults.reefer_container_data)
-        empty = Container(**container_defaults.empty_container_data)
-        oog = Container(**container_defaults.oog_container_data)
+        laden = Container(**laden_container_data)
+        reefer = Container(**reefer_container_data)
+        empty = Container(**empty_container_data)
+        oog = Container(**oog_container_data)
 
         laden_box = laden_teu / laden.teu_factor
         reefer_box = reefer_teu / reefer.teu_factor
@@ -1885,24 +1896,24 @@ class System:
         sts_moves = throughput_box
 
         # calculate the number of tractor moves
-        tractor = Horizontal_Transport(**container_defaults.tractor_trailer_data)
+        tractor = Horizontal_Transport(**tractor_trailer_data)
         tractor_moves = throughput_box * tractor.non_essential_moves
 
         # calculate the number of empty moves
-        empty = Empty_Stack(**container_defaults.empty_stack_data)
+        empty = Empty_Stack(**empty_stack_data)
         empty_moves = empty_box * empty.household * empty.digout
 
         # Todo: wellicht reefer and laden nog scheiden van elkaar in alles
 
         # calculate laden and reefer stack moves
         if self.laden_stack == 'rtg':  # Rubber Tired Gantry crane
-            stack = Laden_Stack(**container_defaults.rtg_stack_data)
+            stack = Laden_Stack(**rtg_stack_data)
         elif self.laden_stack == 'rmg':  # Rail Mounted Gantry crane
-            stack = Laden_Stack(**container_defaults.rmg_stack_data)
+            stack = Laden_Stack(**rmg_stack_data)
         elif self.laden_stack == 'sc':  # Straddle Carrier
-            stack = Laden_Stack(**container_defaults.sc_stack_data)
+            stack = Laden_Stack(**sc_stack_data)
         elif self.laden_stack == 'rs':  # Reach Stacker
-            stack = Laden_Stack(**container_defaults.rs_stack_data)
+            stack = Laden_Stack(**rs_stack_data)
 
         # The number of moves per laden box moves for transhipment (t/s)
         moves_t_s = 0.5 * ((2 + stack.household) * stack.digout_margin)
@@ -2061,7 +2072,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in core.find_elements(self, Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -2221,7 +2232,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in core.find_elements(self, Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
@@ -2270,7 +2281,7 @@ class System:
         demand = pd.DataFrame()
         demand['year'] = list(range(self.startyear, self.startyear + self.lifecycle))
         demand['demand'] = 0
-        for commodity in core.find_elements(self, Commodity):
+        for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 for column in commodity.scenario_data.columns:
                     if column in commodity.scenario_data.columns and column != "year":
