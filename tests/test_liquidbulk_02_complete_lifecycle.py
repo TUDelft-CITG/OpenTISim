@@ -9,23 +9,24 @@ def test_liquidbulk_02_complete_lifecycle():
 	import opentisim
 
 	# basic inputs
-	startyear = 2019
+	startyear = 2020
 	lifecycle = 10
 	years = list(range(startyear, startyear + lifecycle))
 
 	# define demand scenario
 	demand = []
 	for year in years:
-		if year < 2024:
-			demand.append(1_000_000)
-		else:
+		if year < 2025:
 			demand.append(2_000_000)
+		else:
+			demand.append(4_000_000)
 	scenario_data = {'year': years, 'volume': demand}
 
-	# no historic data
-	opentisim.liquidbulk.commodity_lhydrogen_data['historic_data'] = []
+	# instantiate a commodity objects
+	opentisim.liquidbulk.commodity_lhydrogen_data['smallhydrogen_perc'] = 50
+	opentisim.liquidbulk.commodity_lhydrogen_data['largehydrogen_perc'] = 50
 
-	# instantiate demand
+	# instantiate a commodity objects
 	lhydrogen = opentisim.liquidbulk.Commodity(**opentisim.liquidbulk.commodity_lhydrogen_data)
 	lhydrogen.scenario_data = pd.DataFrame(data=scenario_data)
 
@@ -51,10 +52,12 @@ def test_liquidbulk_02_complete_lifecycle():
 		debug=True,
 		commodity_type_defaults=opentisim.liquidbulk.commodity_ammonia_data,
 		storage_type_defaults=opentisim.liquidbulk.storage_nh3_data,
+		kendall='E2/E2/n',
+		allowable_waiting_service_time_ratio_berth=0.3,
 		h2retrieval_type_defaults=opentisim.liquidbulk.h2retrieval_nh3_data)
 
 	# run simulation
 	Terminal.simulate()
 
 	# we expect a total of 22 elements in Terminal.elements
-	assert len(Terminal.elements) == 22
+	assert len(Terminal.elements) == 33
