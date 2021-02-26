@@ -59,5 +59,5 @@ def test_liquidbulk_02_complete_lifecycle():
 	# run simulation
 	Terminal.simulate()
 
-	# we expect a total of 22 elements in Terminal.elements
+	# we expect a total of 33 elements in Terminal.elements
 	assert len(Terminal.elements) == 33

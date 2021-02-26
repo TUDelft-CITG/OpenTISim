@@ -518,27 +518,35 @@ class System:
                         (storage.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             storage.labour = storage.shift * labour.operational_salary
 
-            jetty = Jetty(**jetty_data)
+            jettys = opentisim.core.find_elements(self, opentisim.liquidbulk.Jetty)
+            jetty_year_online = 0
+            for jetty in jettys:
+                jetty_year_online = np.max([jetty_year_online, jetty.year_online])
 
-            if self.lifecycle > 1:
-                if year == self.startyear:
-                    storage.year_online = year + jetty.delivery_time
-                # elif year == self.startyear + 1:
-                # storage.year_online = year + 1
-                elif year == self.startyear + jetty.delivery_time:
-                    storage.year_online = year
-                else:
-                    storage.year_online = year + storage.delivery_time
-
-            elif self.lifecycle == 1:
-                if self.startyear == self.years[0]:
-                    storage.year_online = year + jetty.delivery_time
-                    # elif self.startyear == self.years[1]:
-                    # storage.year_online = year + 1
-                elif self.startyear == self.years[jetty.delivery_time]:
-                    storage.year_online = year
-                else:
-                    storage.year_online = year + storage.delivery_time
+            storage.year_online = np.max([jetty_year_online, year + storage.delivery_time])
+            # # elif year == self.startyear + 1:
+            # # storage.year_online = year + 1
+            #
+            # # todo: make startyear altijd
+            # if self.lifecycle > 1:
+            #     if year == self.startyear:
+            #         storage.year_online = year + jetty.delivery_time
+            #     # elif year == self.startyear + 1:
+            #     # storage.year_online = year + 1
+            #     elif year == self.startyear + jetty.delivery_time:
+            #         storage.year_online = year
+            #     else:
+            #         storage.year_online = year + storage.delivery_time
+            #
+            # elif self.lifecycle == 1:
+            #     if self.startyear == self.years[0]:
+            #         storage.year_online = year + jetty.delivery_time
+            #         # elif self.startyear == self.years[1]:
+            #         # storage.year_online = year + 1
+            #     elif self.startyear == self.years[jetty.delivery_time]:
+            #         storage.year_online = year
+            #     else:
+            #         storage.year_online = year + storage.delivery_time
 
             # #reinvestment
             # if year == storage.year_online + storage.lifespan:
@@ -1251,6 +1259,7 @@ class System:
             try:
                 Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
             except:
+                print('problem occurs at {}'.format(year))
                 pass
 
         # Find the possible and online throuhgput including all elements

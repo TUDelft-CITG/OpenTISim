@@ -44,7 +44,7 @@ def test_liquidbulk_03_year_by_year_stepping():
 	# define terminal
 	Terminal = opentisim.liquidbulk.System(
 		startyear=startyear,
-		lifecycle=lifecycle,
+		lifecycle=1,
 		elements=[lhydrogen] + vessels,
 		operational_hours=16 * 365,
 		terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage', 'mch_2_h2_retrieval',
@@ -61,5 +61,5 @@ def test_liquidbulk_03_year_by_year_stepping():
 		Terminal.startyear = year
 		Terminal.simulate()
 
-	# we expect a total of 22 elements in Terminal.elements
+	# we expect a total of 33 elements in Terminal.elements
 	assert len(Terminal.elements) == 33
