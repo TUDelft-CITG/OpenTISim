@@ -219,8 +219,7 @@ commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
                   "handysize_perc": 0,
                   "panamax_perc": 0,
                   "vlcc_perc": 0,
-                  "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+                  "historic_data": []}
 
 commodity_ammonia_data = {"name": 'Ammonia',
                 "type": 'Ammonia',
@@ -232,8 +231,8 @@ commodity_ammonia_data = {"name": 'Ammonia',
                 "handysize_perc": 0,
                 "panamax_perc": 0,
                 "vlcc_perc": 0,
-                "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+                "historic_data": []}
+
 commodity_MCH_data = {"name": 'MCH',
             "type": 'MCH',
             "handling_fee": 1000,
@@ -244,8 +243,7 @@ commodity_MCH_data = {"name": 'MCH',
             "handysize_perc": 30,
             "panamax_perc": 40,
             "vlcc_perc": 30,
-            "historic_data": pd.DataFrame(data={'year': [2014, 2015, 2016, 2017, 2018],
-                                                  'volume': [1_000_000, 1_100_000, 1_250_000, 1_400_000, 1_500_000]})}
+            "historic_data": []}
 
 # *** Default inputs: Vessel class ***
 
