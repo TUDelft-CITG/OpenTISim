@@ -8,14 +8,14 @@ from .hydrogen_objects import *
 import opentisim
 
 
+# todo: consider renaming this class to Terminal (seems more appropriate)
 class System:
-    """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2020) for hydrogen terminals.
-    The module allows variation of the commodity type, the storage type and the h2retrieval type. Terminal development
-    is governed by three triggers: the allowable berth occupancy, the allowable dwell time and an h2retrieval
-    trigger."""
+    """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2021) for liquid bulk
+    terminals. The module allows variation of the commodity type, the storage type and the h2retrieval type.
+    Terminal development is governed by three triggers: the allowable waiting time as factor of service time,
+    the allowable dwell time and an h2retrieval trigger."""
 
-    # Todo: add kendall as terminal input
-    def __init__(self, startyear=2019, lifecycle=20, operational_hours=5840, debug=False, elements=[],
+    def __init__(self, startyear=2020, lifecycle=10, operational_hours=5840, debug=False, elements=[],
                  terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage',
                                         'pipeline_terminal_-_hinterland'},
                  commodity_type_defaults=commodity_ammonia_data,
@@ -60,7 +60,7 @@ class System:
         a number of investment triggers.
 
         Generic approaches based on:
-        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2020). Ports and Waterways.
+        - Van Koningsveld, M. (Ed.), Verheij, H., Taneja, P. and De Vriend, H.J. (2021). Ports and Waterways.
           Navigating the changing world. TU Delft, Delft, The Netherlands.
         - Van Koningsveld, M. and J. P. M. Mulder. 2004. Sustainable Coastal Policy Developments in the
           Netherlands. A Systematic Approach Revealed. Journal of Coastal Research 20(2), pp. 375-385
@@ -88,7 +88,7 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             """
             The simulate method is designed according to the following overall objectives for the terminal:
-            - strategic objective: To maintain a profitable enterprise (NPV > 0) over the terminal lifecycle
+            - strategic objective: To achieve a competitive terminal operation over the terminal lifecycle
             - operational objective: Annually invest in infrastructure upgrades when performance criteria are triggered
             """
             self.years.append(year)
@@ -115,7 +115,7 @@ class System:
                 print('--- Cargo volume and vessel calls for {} ---------'.format(year))
                 print('  Total demand volume: {}'.format(volume))
                 print('  Total actual throughput volume: {}'.format(total_vol))
-                print('  Total vessel calls: {}'.format(total_calls))
+                print('  Total actual vessel calls: {}'.format(total_calls))
                 print('     Small Hydrogen calls: {}'.format(smallhydrogen_calls))
                 print('     Large Hydrogen calls: {}'.format(largehydrogen_calls))
                 print('     Small ammonia calls: {}'.format(smallammonia_calls))
@@ -184,16 +184,16 @@ class System:
         Given the overall objectives of the terminal
 
         Decision recipe Berth:
-        QSC: berth_occupancy
-        Problem evaluation: there is a problem if the berth_occupancy > allowable_berth_occupancy
+        QSC: waiting_factor
+        Problem evaluation: there is a problem if the waiting_factor > allowable_waiting_service_time_ratio_berth
             - allowable_berth_occupancy = .50 # 50%
             - a berth needs:
                - a jetty
             - berth occupancy depends on:
                 - total_calls and total_vol
                 - total_service_capacity as delivered by the vessels
-        Investment decisions: invest enough to make the berth_occupancy < allowable_berth_occupancy
-            - adding jettys decreases berth_occupancy_rate
+        Investment decisions: invest enough to make the waiting_factor < allowable_waiting_service_time_ratio_berth
+            - adding jettys decreases waiting_factor
         """
 
         # report on the status of all berth elements
@@ -231,11 +231,13 @@ class System:
                 smallammonia_calls_planned, largeammonia_calls_planned,
                 handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
+        # calculate throughput
         throughput_online, throughput_planned, \
         throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, \
         throughput_planned_h2retrieval, throughput_planned_pipeh = \
             self.throughput_elements(year)
 
+        # calculate waiting_factor
         berths = len(opentisim.core.find_elements(self, Berth))
         if berths != 0:
             waiting_factor = \
@@ -260,30 +262,28 @@ class System:
         opentisim.core.report_element(self, Jetty, year)
         opentisim.core.report_element(self, Pipeline_Jetty, year)
 
-        # Todo: check if we need to replace allowable berth occupancy with allowable wait time as factor of serve time
-        # Todo: use the variable waiting_factor instead
         while waiting_factor > self.allowable_waiting_service_time_ratio_berth:
 
             # while planned berth occupancy is too large add a berth when no crane slots are available
+            # NB: this setup makes sense here since there can be only one jetty per berth (compare containers)
             if self.debug:
                 print('  *** add Berth to elements')
             berth = Berth(**berth_data)
             berth.year_online = year + berth.delivery_time
             self.elements.append(berth)
 
-            berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = \
-                self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
-                                               largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls,
-                                               smallhydrogen_calls_planned, largehydrogen_calls_planned,
-                                               smallammonia_calls_planned, largeammonia_calls_planned,
-                                               handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
+            # commented out: checking occupancy after adding a berth makes no sense in this setup
+            # berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = \
+            #     self.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls,
+            #                                    largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls,
+            #                                    smallhydrogen_calls_planned, largehydrogen_calls_planned,
+            #                                    smallammonia_calls_planned, largeammonia_calls_planned,
+            #                                    handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
             #
             # print(berth_occupancy_planned)
-            # # todo: replace waiting_factor with planned_waiting_service_time_ratio_berth
+            #
             # waiting_factor = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned,
             #                                               nr_of_servers_to_chk=berths, kendall=self.kendall)
-            # print(berth_occupancy_planned)
-            # print(waiting_factor)
 
             if self.debug:
                 # print('     Berth occupancy planned (after adding berth): {:.2f} (trigger level: {:.2f})'.format(
@@ -297,6 +297,8 @@ class System:
             # while planned berth occupancy is too large add a berth if a jetty is needed
             berths = len(opentisim.core.find_elements(self, Berth))
             jettys = len(opentisim.core.find_elements(self, Jetty))
+
+            # todo: check and add reference (check Lanphen (2019)?)
             if berths > jettys:
                 length_max = max(vlcc_data["LOA"], handysize_data["LOA"],
                                  panamax_data["LOA"], smallhydrogen_data["LOA"],
@@ -311,9 +313,10 @@ class System:
                 else:
                     nrofdolphins = 6
 
-                # - depth
+                # activate jetty_invest
                 self.jetty_invest(year, nrofdolphins)
 
+                # recheck occupancies and waiting factors (while loop will exit if condition is met)
                 berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online = self.calculate_berth_occupancy(
                     year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,
                     handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,
@@ -331,14 +334,11 @@ class System:
 
     def jetty_invest(self, year, nrofdolphins):
         """
-        *** Decision recipe jetty: ***
-        QSC: jetty_per_berth
-        problem evaluation: there is a problem if the jetty_per_berth < 1
-        investment decisions: invest enough to make the jetty_per_berth = 1
-            - adding jetty will increase jetty_per_berth
-            - jetty_wall.length must be long enough to accommodate largest expected vessel
-            - jetty_wall.depth must be deep enough to accommodate largest expected vessel
-            - jetty_wall.freeboard must be high enough to accommodate largest expected vessel
+        *** Decision recipe jetty (NB: triggered in berth_invest): ***
+        QSC: jettys, berths
+        problem evaluation: there is a problem if the berths > jettys
+        investment decisions: invest until not(berths > jettys)
+            - adding jetty will increase jettys
         """
 
         if self.debug:
