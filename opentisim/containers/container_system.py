@@ -2096,7 +2096,8 @@ class System:
         quays = []
         cranes = []
         tractor_trailer = []
-        laden_reefer_stack = []
+        laden_stack = []
+        reefer_stack = []
         empty_stack = []
         oog_stack = []
         stack_equipment = []
@@ -2109,7 +2110,8 @@ class System:
             quays.append(0)
             cranes.append(0)
             tractor_trailer.append(0)
-            laden_reefer_stack.append(0)
+            laden_stack.append(0)
+            reefer_stack.append(0)
             empty_stack.append(0)
             oog_stack.append(0)
             stack_equipment.append(0)
@@ -2131,7 +2133,10 @@ class System:
                         tractor_trailer[-1] += 1
                 if isinstance(element, Laden_Stack):
                     if year >= element.year_online:
-                        laden_reefer_stack[-1] += 1
+                        laden_stack[-1] += 1
+                if isinstance(element, Reefer_Stack):
+                    if year >= element.year_online:
+                        reefer_stack[-1] += 1
                 if isinstance(element, Empty_Stack):
                     if year >= element.year_online:
                         empty_stack[-1] += 1
@@ -2148,14 +2153,16 @@ class System:
                     if year >= element.year_online:
                         gates[-1] += 1
 
-        # tractor_trailer = [x / 10 for x in tractor_trailer]
+        tractor_trailer = [x / 10 for x in tractor_trailer]
+        stack_equipment = [x / 10 for x in stack_equipment]
+        empty_handler = [x / 10 for x in empty_handler]
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 12))
         ax1.grid(zorder=0, which='major', axis='both')
 
         colors = ['firebrick', 'darksalmon', 'sandybrown', 'darkkhaki', 'palegreen', 'lightseagreen', 'mediumpurple',
-                  'mediumvioletred', 'lightgreen', 'red']
+                  'mediumvioletred', 'lightgreen', 'red', 'navajowhite']
         offset = 4.5 * width
 
         ax1.bar([x - offset + 0 * width for x in years], berths, zorder=1, width=width, alpha=alpha,
@@ -2165,19 +2172,21 @@ class System:
         ax1.bar([x - offset + 2 * width for x in years], cranes, zorder=1, width=width, alpha=alpha,
                label="STS cranes", color=colors[2], edgecolor='darkgrey')
         ax1.bar([x - offset + 3 * width for x in years], tractor_trailer, zorder=1, width=width, alpha=alpha,
-               label="tractor_trailers", color=colors[3], edgecolor='darkgrey')
-        ax1.bar([x - offset + 4 * width for x in years], laden_reefer_stack, zorder=1, width=width, alpha=alpha,
-               label="laden / reefer stack", color=colors[4], edgecolor='darkgrey')
-        ax1.bar([x - offset + 5 * width for x in years], empty_stack, zorder=1, width=width, alpha=alpha,
-               label="empty stack", color=colors[5], edgecolor='darkgrey')
-        ax1.bar([x - offset + 6 * width for x in years], oog_stack, zorder=1, width=width, alpha=alpha,
-               label="oog stack", color=colors[6], edgecolor='darkgrey')
-        ax1.bar([x - offset + 7 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
-               label="stack equipment", color=colors[7], edgecolor='darkgrey')
-        ax1.bar([x - offset + 8 * width for x in years], empty_handler, zorder=1, width=width, alpha=alpha,
-               label="empty handlers", color=colors[8], edgecolor='darkgrey')
-        ax1.bar([x - offset + 9 * width for x in years], gates, zorder=1, width=width, alpha=alpha,
-               label="gates", color=colors[9], edgecolor='darkgrey')
+               label="tractor_trailers (x 10)", color=colors[3], edgecolor='darkgrey')
+        ax1.bar([x - offset + 4 * width for x in years], laden_stack, zorder=1, width=width, alpha=alpha,
+               label="laden stack", color=colors[4], edgecolor='darkgrey')
+        ax1.bar([x - offset + 5 * width for x in years], reefer_stack, zorder=1, width=width, alpha=alpha,
+               label="reefer stack", color=colors[5], edgecolor='darkgrey')
+        ax1.bar([x - offset + 6 * width for x in years], empty_stack, zorder=1, width=width, alpha=alpha,
+               label="empty stack", color=colors[6], edgecolor='darkgrey')
+        ax1.bar([x - offset + 7 * width for x in years], oog_stack, zorder=1, width=width, alpha=alpha,
+               label="oog stack", color=colors[7], edgecolor='darkgrey')
+        ax1.bar([x - offset + 8 * width for x in years], stack_equipment, zorder=1, width=width, alpha=alpha,
+               label="stack equipment (x 10)", color=colors[8], edgecolor='darkgrey')
+        ax1.bar([x - offset + 9 * width for x in years], empty_handler, zorder=1, width=width, alpha=alpha,
+               label="empty handlers (x 10)", color=colors[9], edgecolor='darkgrey')
+        ax1.bar([x - offset + 10 * width for x in years], gates, zorder=1, width=width, alpha=alpha,
+               label="gates", color=colors[10], edgecolor='darkgrey')
 
         # get demand
         demand = pd.DataFrame()
@@ -2205,7 +2214,7 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
         max_elements = max([max(berths), max(quays), max(cranes),
-                            max(tractor_trailer), max(laden_reefer_stack),
+                            max(tractor_trailer), max(laden_stack), max(reefer_stack),
                             max(empty_stack), max(oog_stack),
                             max(stack_equipment), max(empty_handler), max(gates)])
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 10)])
