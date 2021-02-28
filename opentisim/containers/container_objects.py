@@ -92,12 +92,18 @@ Container = type('Container', (identifiable_properties_mixin,  # Give it a name
                                 container_properties_mixin),
                {})
 
-# The generic laden and reefer stack class
-# - RTG stack
-# - RMG stack
-# - SC stack
-# - RS stack
+# Laden-stack class
 Laden_Stack = type('Laden_Stack', (identifiable_properties_mixin,  # Give it a name
+                               history_properties_mixin,
+                               laden_stack_properties_mixin,
+                               hasopex_properties_mixin,
+                               hascapex_properties_mixin,  # Give it capex info
+                               hastriggers_properties_mixin,  # Give it investment triggers
+                               hasland_properties_mixin),
+                 {})
+
+# Reefer_stack class
+Reefer_Stack = type('Reefer_Stack', (identifiable_properties_mixin,  # Give it a name
                                history_properties_mixin,
                                laden_stack_properties_mixin,
                                hasopex_properties_mixin,
@@ -190,11 +196,6 @@ General_Services = type('General_Services', (identifiable_properties_mixin,
 # The indirect costs class
 Indirect_Costs = type('Indirect Costs', (identifiable_properties_mixin,
                          indirect_costs_mixin),
-              {})  # The dictionary is empty because the site type is generic
-
-# The land costs class
-Land_Price = type('Land Price', (identifiable_properties_mixin,
-                         hascapex_properties_mixin),
               {})  # The dictionary is empty because the site type is generic
 
 # The land costs class

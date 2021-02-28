@@ -73,12 +73,53 @@ def test_containers_02_complete_lifecycle():
 
 	# vessels variable: contains info on vessels (to be added to Terminal.elements)
 	vessels = [fully_cellular, panamax, panamax_max, post_panamax_I, post_panamax_II, new_panamax, ULCS, VLCS]
+
 	# set simulation details
+	# Quay and crane data
 	opentisim.containers.sts_crane_data['hourly_cycles'] = 30
 	opentisim.containers.sts_crane_data['lifting_capacity'] = 2
 	opentisim.containers.berth_data['max_cranes'] = 4
 	opentisim.containers.quay_wall_data['apron_width'] = 82
 
+	# Laden inputs
+	opentisim.containers.laden_container_data['peak_factor'] = 1.2
+	opentisim.containers.laden_container_data['dwell_time'] = 7.5  # days, PIANC (2014b) p 64 (5 - 10)
+	opentisim.containers.laden_container_data['height'] = 4  # TEU
+	opentisim.containers.laden_container_data['width'] = 45  # TEU
+	opentisim.containers.laden_container_data['length'] = 20  # TEU
+	opentisim.containers.laden_container_data['stack_ratio'] = 0.8
+	opentisim.containers.laden_container_data[
+		'stack_occupancy'] = 0.7  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+
+	# Reefer inputs
+	opentisim.containers.reefer_container_data['peak_factor'] = 1.2
+	opentisim.containers.reefer_container_data['dwell_time'] = 6.5  # days, PIANC (2014b) p 64 (5 - 10)
+	opentisim.containers.reefer_container_data['width'] = 4  # TEU
+	opentisim.containers.reefer_container_data['height'] = 22  # TEU
+	opentisim.containers.reefer_container_data['length'] = 4  # TEU
+	opentisim.containers.reefer_container_data['stack_ratio'] = 0.8
+	opentisim.containers.reefer_container_data[
+		'stack_occupancy'] = 0.7  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+
+	# Empties inputs
+	opentisim.containers.empty_container_data['peak_factor'] = 1.2
+	opentisim.containers.empty_container_data['dwell_time'] = 11  # days, PIANC (2014b) p 64 (5 - 10)
+	opentisim.containers.empty_container_data['width'] = 6  # TEU
+	opentisim.containers.empty_container_data['height'] = 35  # TEU
+	opentisim.containers.empty_container_data['length'] = 24  # TEU
+	opentisim.containers.empty_container_data['stack_ratio'] = 1
+	opentisim.containers.empty_container_data[
+		'stack_occupancy'] = 0.8  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+
+	# OOGs inputs
+	opentisim.containers.oog_container_data['peak_factor'] = 1.2
+	opentisim.containers.oog_container_data['dwell_time'] = 7  # days, PIANC (2014b) p 64 (5 - 10)
+	opentisim.containers.oog_container_data['width'] = 1  # TEU
+	opentisim.containers.oog_container_data['height'] = 10  # TEU
+	opentisim.containers.oog_container_data['length'] = 10  # TEU
+	opentisim.containers.oog_container_data['stack_ratio'] = 1
+	opentisim.containers.oog_container_data[
+		'stack_occupancy'] = 0.8  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
 	# define terminal
 	Terminal = opentisim.containers.System(
 		terminal_name='Terminal 01',  # terminal name

@@ -189,28 +189,48 @@ laden_container_data = {"name": 'Laden container',
                         "teu_factor": 1.60,
                         "dwell_time": 3,  # days, PIANC (2014b) p 64 (5 - 10)
                         "peak_factor": 1.2,
-                        "stack_occupancy": 0.8}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                        "stack_ratio": 0.7,
+                        "stack_occupancy": 0.8,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                        "width": 48,  # TEU
+                        "height": 4,  # TEU
+                        "length": 20  # TEU
+                        }
 
-reefer_container_data = {"name": 'Empty container',
-                         "type": 'empty_container',
+reefer_container_data = {"name": 'Reefer container',
+                         "type": 'reefer_container',
                          "teu_factor": 1.75,
                          "dwell_time": 3,  # days, PIANC (2014b) p 64 (5 - 10)
                          "peak_factor": 1.2,
-                         "stack_occupancy": 0.8}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                         "stack_ratio": 0.7,
+                         "stack_occupancy": 0.8,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                         "width": 21,  # TEU
+                         "height": 4,  # TEU
+                         "length": 4  # TEU
+                         }
 
 empty_container_data = {"name": 'Empty container',
                         "type": 'empty_container',
                         "teu_factor": 1.55,
                         "dwell_time": 10,  # days, PIANC (2014b) p 64 (10 - 20)
                         "peak_factor": 1.2,
-                        "stack_occupancy": 0.7}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                        "stack_ratio": 1,  # looking for a good reference for this value
+                        "stack_occupancy": 0.7,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                        "width": 48,  # TEU
+                        "height": 4,  # TEU
+                        "length": 20  # TEU
+                        }
 
 oog_container_data = {"name": 'OOG container',
                       "type": 'oog_container',
                       "teu_factor": 1.55,
                       "dwell_time": 4,  # days, PIANC (2014b) p 64 (5 - 10)
                       "peak_factor": 1.2,
-                      "stack_occupancy": 0.9}  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                      "stack_ratio": 1,  # by definition the H of oog stacks is 1
+                      "stack_occupancy": 0.9,  # acceptable occupancy rate (0.65 to 0.70), Quist and Wijdeven (2014), p 49
+                      "width": 48,  # TEU
+                      "height": 4,  # TEU
+                      "length": 20  # TEU
+                      }
 
 # *** Default inputs: Laden_Stack class within the stacks
 
@@ -220,11 +240,11 @@ rtg_stack_data = {"name": 'RTG Stack',
                   "lifespan": 40,  # years
                   "mobilisation": 25_000,  # USD
                   "maintenance_perc": 0.1,
-                  "width": 6,  # TEU
-                  "height": 5,  # TEU
-                  "length": 30,  # TEU
-                  "capacity": 900,  # TEU
-                  "gross_tgs": 18,  # TEU Ground Slot
+                  # "width": 6,  # TEU
+                  # "height": 5,  # TEU
+                  # "length": 30,  # TEU
+                  # "capacity": 900,  # TEU
+                  "gross_tgs": 18,  # TEU Ground Slot [m2/teu]
                   "area_factor": 2.04,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
@@ -241,11 +261,11 @@ rmg_stack_data = {"name": 'RMG Stack',
                   "lifespan": 40,  # years
                   "mobilisation": 50_000,  # USD
                   "maintenance_perc": 0.1,
-                  "width": 6,  # TEU
-                  "height": 5,  # TEU
-                  "length": 40,  # TEU
-                  "capacity": 1200,  # TEU
-                  "gross_tgs": 18.67,  # TEU Ground Slot
+                  # "width": 6,  # TEU
+                  # "height": 5,  # TEU
+                  # "length": 40,  # TEU
+                  # "capacity": 1200,  # TEU
+                  "gross_tgs": 18.67,  # TEU Ground Slot [m2/teu]
                   "area_factor": 2.79,  # m2/TEU (based on grasshopper layout P. Koster)
                   "pavement": 200,  # m2 DUMMY
                   "drainage": 50,  # m2 DUMMY
@@ -262,11 +282,11 @@ sc_stack_data = {"name": 'SC Stack',
                  "lifespan": 40,  # years
                  "mobilisation": 50_000,  # USD
                  "maintenance_perc": 0.1,
-                 "width": 48,  # TEU
-                 "height": 4,  # TEU
-                 "length": 20,  # TEU
-                 "capacity": 3840,  # TEU
-                 "gross_tgs": 26.46,  # TEU Ground Slot
+                 # "width": 45,  # TEU
+                 # "height": 3,  # TEU
+                 # "length": 22,  # TEU
+                 # "capacity": 1200,  # TEU
+                 "gross_tgs": 27.3,  # TEU Ground Slot [m2/teu]
                  "area_factor": 1.45,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # DUMMY
                  "drainage": 50,  # DUMMY
@@ -283,11 +303,11 @@ rs_stack_data = {"name": 'RS Stack',
                  "lifespan": 40,  # years
                  "mobilisation": 10_000,  # USD
                  "maintenance_perc": 0.1,
-                 "width": 4,  # TEU
-                 "height": 4,  # TEU
-                 "length": 20,  # TEU
-                 "capacity": 320,  # TEU
-                 "gross_tgs": 18,  # TEU Ground Slot
+                 # "width": 4,  # TEU
+                 # "height": 4,  # TEU
+                 # "length": 20,  # TEU
+                 # "capacity": 320,  # TEU
+                 "gross_tgs": 18,  # TEU Ground Slot [m2/teu]
                  "area_factor": 3.23,  # m2/TEU (based on grasshopper layout P. Koster)
                  "pavement": 200,  # m2 DUMMY
                  "drainage": 50,  # m2 DUMMY
@@ -415,13 +435,13 @@ gate_data = {"name": 'Gate',
              "staff_gates": 1,  #
              "service_gates": 1,  #
              "design_capacity": 0.98,  #
-             "exit_inspection_time": 2,  # min #dummy
+             "exit_inspection_time": 3,  # min #dummy
              "entry_inspection_time": 2,  # min #dummy
-             "peak_hour": 0.25,  # dummy
-             "peak_day": 0.1,  # dummy
+             "peak_hour": 0.125,  # dummy
+             "peak_day": 0.25,  # dummy
              "peak_factor": 1.2,
              "truck_moves": 0.75,
-             "operating_days": 6,
+             "operating_days": 7,
              "capacity": 60}
 
 # *** Default inputs: ECH class***
@@ -553,7 +573,7 @@ VLCS_data = {"name": 'VLCS_1',
              "beam": 56.0,  # m
              "max_cranes": 4,  # STS cranes
              "all_turn_time": 31,  # todo source [hr]
-             "mooring_time": 6,  # berthing + deberthing time [hr]
+             "mooring_time": 4,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "transport_costs": 80,  # USD per TEU, RHDHV
              "all_in_transport_costs": 2128  # USD per TEU, Ports and Terminals p.158
@@ -568,7 +588,7 @@ ULCS_data = {"name": 'ULCS_1',
              "beam": 59.0,  # m
              "max_cranes": 4,  # STS cranes
              "all_turn_time": 31,  # todo source [hr]
-             "mooring_time": 6,  # berthing + deberthing time [hr]
+             "mooring_time": 4,  # berthing + deberthing time [hr]
              "demurrage_rate": 730,  # USD todo edit
              "transport_costs": 60,  # USD per TEU, RHDHV
              "all_in_transport_costs": 908  # USD per TEU, Ports and Terminals p.158
