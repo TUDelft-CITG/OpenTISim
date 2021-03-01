@@ -1275,24 +1275,69 @@ class System:
             except:
                 print('problem occurs at {}'.format(year))
                 pass
+            
+        fullarray = [0, 0, 0, 0, 0]
+        for element in self.terminal_supply_chain:
+            if element == 'berth_jetty':
+                fullarray[0] = 1
+            elif element == 'pipeline_jetty_-_terminal':
+                fullarray[1] = 1 
+            elif element == 'storage':
+                fullarray[2] = 1
+            elif element == 'mch_2_h2_retrieval':
+                fullarray[3] = 1
+            elif element == 'pipeline_terminal_-_hinterland':
+                fullarray[4] = 1
 
-        # Find the possible and online throuhgput including all elements
-        throughput_planned = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned,
-                                 h2retrieval_capacity_planned, pipelineh_capacity_planned, Demand)
-        throughput_online = min(h2retrieval_capacity_online, Jetty_cap, pipelineJ_capacity_online,
-                                pipelineh_capacity_online, storage_cap_online, Demand)
+        x = np.array(fullarray)
+        t = np.where(x == 0)[0]
+        t1 = t.tolist()
+        t1.sort(reverse = True)#places where value is zero in array
 
-        # Find from all elements the possible throughput if they were not there
-        throughput_planned_jetty = min(pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned,
-                                       pipelineh_capacity_planned, Demand)
-        throughput_planned_pipej = min(Jetty_cap_planned, storage_cap_planned, h2retrieval_capacity_planned,
-                                       pipelineh_capacity_planned, Demand)
-        throughput_planned_storage = min(Jetty_cap_planned, pipelineJ_capacity_planned, h2retrieval_capacity_planned,
-                                         pipelineh_capacity_planned, Demand)
-        throughput_planned_h2retrieval = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned,
-                                             pipelineh_capacity_planned, Demand)
-        throughput_planned_pipeh = min(Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned,
-                                       h2retrieval_capacity_planned, Demand)
+                
+        array_planned =[Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned , pipelineh_capacity_planned, Demand]
+        array_online = [Jetty_cap ,pipelineJ_capacity_online, storage_cap_online, h2retrieval_capacity_online, pipelineh_capacity_online, Demand]
+        
+
+        for i in t1:
+            array_planned.pop(i)
+            array_online.pop(i)
+            
+            
+        throughput_planned = min(array_planned)
+        throughput_online = min(array_online) 
+                           
+        #print('array of throughput_online =', array_online)
+        #print('Throughput online =', throughput_online)
+        
+        throughput_planned_jetty = 0
+        throughput_planned_pipej= 0
+        throughput_planned_storage = 0 
+        throughput_planned_h2retrieval = 0 
+        throughput_planned_pipeh = 0 
+        
+        pipe_jetty = list.copy(array_planned)
+        jetty = list.copy(array_planned)
+        stor = list.copy(array_planned)
+        h2plant = list.copy(array_planned)
+        pipe_hinter = list.copy(array_planned)
+        
+        if fullarray[0] == 1:
+            jetty.pop(0)
+            throughput_planned_jetty = min(jetty)
+        if fullarray[1] == 1:
+            pipe_jetty.pop(1)
+            throughput_planned_pipej = min(pipe_jetty)
+        if fullarray[2] == 1:
+            stor.pop(2)
+            throughput_planned_storage = min(stor)
+        if fullarray[3] == 1: 
+            h2plant.pop(3)
+            throughput_planned_h2retrieval = min(h2plant)
+        if fullarray[4] == 1:
+            pipe_hinter.pop(4)
+            throughput_planned_pipeh = min(pipe_hinter)
+
 
         return throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh
         self.throughput.append(throughput_online)
