@@ -51,6 +51,13 @@ class System:
 
         # storage variables for revenue
         self.revenues = []
+        
+        # input testing: vessel percentages should add up to 100
+
+        commodities = opentisim.core.find_elements(self, Commodity)
+        for commodity in commodities:
+            np.testing.assert_equal(commodity.smallhydrogen_perc + commodity.largehydrogen_perc + commodity.largeammonia_perc             + commodity.handysize_perc + commodity.panamax_perc + commodity.vlcc_perc, 100, 
+            'error: all vessel percentages should add up to 100')
 
     # *** Overall terminal investment strategy for terminal class.
     def simulate(self):
@@ -609,12 +616,19 @@ class System:
                         (h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
             h2retrieval.labour = h2retrieval.shift * labour.operational_salary
 
-            jetty = Jetty(**jetty_data)
+            #jetty = Jetty(**jetty_data)
+            
+            jettys = opentisim.core.find_elements(self, opentisim.liquidbulk.Jetty)
+            jetty_year_online = 0
+            for jetty in jettys:
+                jetty_year_online = np.max([jetty_year_online, jetty.year_online])
 
-            if year == self.startyear + jetty.delivery_time:
-                h2retrieval.year_online = year
-            else:
-                h2retrieval.year_online = year + h2retrieval.delivery_time
+            h2retrieval.year_online = np.max([jetty_year_online, year + h2retrieval.delivery_time])
+
+#             if year == self.startyear + jetty.delivery_time:
+#                 h2retrieval.year_online = year
+#             else:
+#                 h2retrieval.year_online = year + h2retrieval.delivery_time
 
             # residual
             h2retrieval.assetvalue = h2retrieval.unit_rate * (
@@ -2077,7 +2091,7 @@ class System:
         h2retrieval_cap = []
 
         for year in self.years:
-            years.append(year)
+            #years.append(year)
             pipeline_hinterland.append(0)
             h2retrievals.append(0)
             pipeline_hinterland_cap.append(0)
@@ -2132,9 +2146,6 @@ class System:
             occ = occ if type(occ) != float else 0
             ax1.text(x=years[i] + 0.15, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
 
-        # added vertical lines for mentioning the different phases
-        plt.axvline(x=2025.3, color='k', linestyle='--')
-        plt.axvline(x=2023.3, color='k', linestyle='--')
 
         # Plot second ax
         ax2 = ax1.twinx()
