@@ -160,8 +160,8 @@ h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
                   "type": 'HydrogenTank',
                   "ownership": 'Terminal operator',
                   "delivery_time": 2,
-                  "lifespan": 10,
-                  "unit_rate": 18_000_000,
+                  "lifespan": 20,
+                  "unit_rate": 59_000_000,
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
                   "maintenance_perc": 0.015,
@@ -170,7 +170,8 @@ h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
                   "insurance_perc": 0.01,
                   "h2retrieval_type": 'tank',
                   "consumption": 600, #in kwh/ton
-                  "capacity": 171} #in ton/hr
+                  "capacity": 137} #ton/hr
+                  #"losses": 0 } 
 
 "Ammonia"
 h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
@@ -178,7 +179,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 100_000_000,
+             "unit_rate": 225_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.015,
@@ -187,7 +188,8 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 5889,#in kwh/ton
-             "capacity": 55}  #in ton/hr
+             "capacity": 39}#ton/hr
+             #"losses": 1}  #%
 
 "MCH"
 h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
@@ -195,7 +197,7 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 200_000_000,
+             "unit_rate": 335_000_000,
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.015,
@@ -204,7 +206,8 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 9360,#in kwh/ton
-             "capacity": 57}  #in ton/hr
+             "capacity": 46} #in ton/hr
+             #"losses": 10}  
 
 
 # *** Default inputs: Commodity class ***

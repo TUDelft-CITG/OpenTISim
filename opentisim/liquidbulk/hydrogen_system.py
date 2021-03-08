@@ -484,7 +484,15 @@ class System:
                 storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
         # max_vessel_call_size = max([x.call_size for x in opentisim.core.find_elements(self, Vessel)])
-        max_vessel_call_size = largeammonia_data["call_size"]
+        for commodity in opentisim.core.find_elements(self, Commodity):
+            if commodity.type == 'MCH': 
+                max_vessel_call_size = largeammonia_data["call_size"]
+            elif commodity.type == 'Liquid hydrogen':
+                max_vessel_call_size = largehydrogen_data["call_size"]
+            else:
+                max_vessel_call_size = vlcc_data["call_size"]
+        
+        #max_vessel_call_size = largeammonia_data["call_size"]
 
         Demand = []
         for commodity in opentisim.core.find_elements(self, Commodity):
@@ -1624,10 +1632,10 @@ class System:
                     if year >= element.year_online:
                         berths_occupancy[-1] = berth_occupancy_online
 
-            for element in self.elements:
-                if isinstance(element, Berth):
-                    if year >= element.year_online:
-                        waiting_factor[-1] = factor
+#             for element in self.elements:
+#                 if isinstance(element, Berth):
+#                     if year >= element.year_online:
+#                         waiting_factor[-1] = factor
 
         # get demand
         demand = pd.DataFrame()
@@ -1668,7 +1676,7 @@ class System:
         fig, ax1 = plt.subplots(figsize=(20, 10))
         ax1.bar([x + 0 * width for x in years], berths_occupancy, width=width, alpha=alpha, label="Berth occupancy [-]",
                 color='#aec7e8', edgecolor='darkgrey')
-        # ax1.bar([x + 1 * width for x in years], waiting_factor, width=width, alpha=alpha, label="Berth occupancy [-]", color='grey', edgecolor='darkgrey')
+#         ax1.bar([x + 1 * width for x in years], waiting_factor, width=width, alpha=alpha, label="Berth occupancy waiting factor [-]", color='grey', edgecolor='darkgrey')
 
         # Adding a horizontal line which shows the allowable berth occupancy
         horiz_line_data = np.array([self.allowable_berth_occupancy for i in range(len(years))])
@@ -1677,10 +1685,12 @@ class System:
         for i, occ in enumerate(berths_occupancy):
             occ = occ if type(occ) != float else 0
             ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
+            
 
-        # for i, occ in enumerate(waiting_factor):
-        #     occ = occ if type(occ) != float else 0
-        #     ax1.text(x=years[i] - 0.1, y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
+#         for j, occt in enumerate(waiting_factor):
+#             occt = occt if type(occt) != float else 0
+#             ax1.text(x=years[j] + 1.1, y=occt + 0.01, s="{:04.2f}".format(occt), size=15)
+        #print(waiting_factor, berths_occupancy)
 
         ax2 = ax1.twinx()
 

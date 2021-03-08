@@ -5,29 +5,19 @@
 
 
 
-# coding: utf-8
-
-# In[ ]:
-
-
 """Tests for `opentisim` package."""
 
 def test_liquidbulk_05_Berth_Jetty_Pipe():
 	"""Test to see if for a given demand scenario and vessel mix the expected number of
-	terminal elements are suggested if only a Berth and Jetty are build, check also the berth occupancy, waiting factor, 
-	    throughput and costs - in this testcase the lifecycle is run in year-by-year stepping
+	terminal elements are suggested if a Berth, Jetty and pipeline from the jetty to the terminal are build, check also the 	berth occupancy, waiting factor, throughput and costs - in this testcase the lifecycle is run in year-by-year stepping. 	Checks have been done for years 2023 and 2027.
 	"""
 	import pandas as pd
 	import opentisim
-	#from opentisim.liquidbulk.hydrogen_defaults import *
-	#from opentisim.liquidbulk.hydrogen_objects import *
     
 	# basic inputs
 	startyear = 2020
 	lifecycle = 10
 	years = list(range(startyear, startyear + lifecycle))
-	#Berth = opentisim.liquidbulk.Berth(**opentisim.liquidbulk.berth_data)
-	#Jetty = opentisim.liquidbulk.Jetty(**opentisim.liquidbulk.jetty_data)
 
 	# define demand scenario
 	demand = []
@@ -56,28 +46,80 @@ def test_liquidbulk_05_Berth_Jetty_Pipe():
 	VLCC = opentisim.liquidbulk.Vessel(**opentisim.liquidbulk.vlcc_data)
 
 	vessels = [Smallhydrogen, Largehydrogen, Smallammonia, Largeammonia, Handysize, Panamax, VLCC]
+    
+	# set simulation details
+    
+	# commodity data (liquid hydrogen)
+	opentisim.liquidbulk.commodity_lhydrogen_data['handling_fee'] = 490 
 
+	# vessel data (liquid hydrogen)
+	opentisim.liquidbulk.smallhydrogen_data['call_size'] = 10_000 
+	opentisim.liquidbulk.smallhydrogen_data['LOA'] = 200 
+	opentisim.liquidbulk.smallhydrogen_data['all_turn_time'] = 20 
+	opentisim.liquidbulk.smallhydrogen_data['pump_capacity'] = 1_000
+	opentisim.liquidbulk.smallhydrogen_data['mooring_time'] = 3 
+	opentisim.liquidbulk.smallhydrogen_data['demurrage_rate'] = 600    
+    
+	opentisim.liquidbulk.largehydrogen_data['call_size'] = 30_000 
+	opentisim.liquidbulk.largehydrogen_data['LOA'] = 300  
+	opentisim.liquidbulk.largehydrogen_data['all_turn_time'] = 30 
+	opentisim.liquidbulk.largehydrogen_data['pump_capacity'] = 3_000
+	opentisim.liquidbulk.largehydrogen_data['mooring_time'] = 3 
+	opentisim.liquidbulk.largehydrogen_data['demurrage_rate'] = 700 
+    
+	# jetty data
+	opentisim.liquidbulk.jetty_data['delivery_time'] = 2 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['lifespan'] = 50 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['mobilisation_min'] = 1_000_000 #Dr. ir. De Gijt and Ir. Quist, personal communication,     	[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['mobilisation_perc'] = 0.02 #[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['maintenance_perc'] = 0.01 #1% of CAPEX [Lanphen2019]
+	opentisim.liquidbulk.jetty_data['insurance_perc'] = 0.01 #1% of CAPEX [Lanphen2019]
+	opentisim.liquidbulk.jetty_data['Gijt_constant_jetty'] = 2000 #Dr. ir. De Gijt, personal communication, [Lanphen 2019]
+	opentisim.liquidbulk.jetty_data['jettywidth'] = 16 #Dr. ir. De Gijt, personal communication, [Lanphen 2019]
+	opentisim.liquidbulk.jetty_data['jettylength'] = 30 #Dr. ir. De Gijt, personal communication, [Lanphen 2019]
+	opentisim.liquidbulk.jetty_data['mooring_dolphins'] = 250_000 #Ir. Quist, personal communication, [Lanphen 2019]
+	opentisim.liquidbulk.jetty_data['catwalkwidth'] = 5 #Ir. Quist, personal communication, [Lanphen 2019]
+	opentisim.liquidbulk.jetty_data['catwalklength'] = 100 #Ir. Quist, personal communication, [Lanphen 2019]
+	opentisim.liquidbulk.jetty_data['Catwalk_rate'] = 1000 #Ir. Quist, personal communication, [Lanphen 2019]
+    
+	# berth data   
+	opentisim.liquidbulk.berth_data['delivery_time'] = 1 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
+
+	# pipeline data 
+	opentisim.liquidbulk.jetty_pipeline_data['length'] = 600 #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['delivery_time'] = 1  #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['lifespan'] = 26  #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['unit_rate_factor'] = 193_000  #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['mobilisation'] = 30_000      #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['maintenance_perc'] = 0.01 #[Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['insurance_perc'] = 0.01   #[Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['consumption_coefficient'] = 80  #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['crew'] = 1     #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['utilisation'] = 0.80  #Gasunie & MTBS database [Stephanie2019]
+	opentisim.liquidbulk.jetty_pipeline_data['capacity'] = 4000  #Gasunie & MTBS database [Stephanie2019]
+    
 	# define terminal
 	Terminal = opentisim.liquidbulk.System(
-		startyear=startyear,
-		lifecycle=1,
-		elements=[lhydrogen] + vessels,
-		operational_hours=16 * 365,
-		terminal_supply_chain={'berth_jetty','pipeline_jetty_-_terminal'},# 'storage', 'mch_2_h2_retrieval',
-                           #'pipeline_terminal_-_hinterland'},
-		debug=False,
-		commodity_type_defaults=opentisim.liquidbulk.commodity_lhydrogen_data,
-		storage_type_defaults=opentisim.liquidbulk.storage_lh2_data,
-		kendall='E2/E2/n',
+		startyear=startyear, #startyear of the model
+		lifecycle=1, #lifecycle of the model looped through the years 
+		elements=[lhydrogen] + vessels, #terminal elements at T = 0 
+		operational_hours=16 * 365, #Example Wijnand (5840) 
+		terminal_supply_chain={'berth_jetty','pipeline_jetty_-_terminal'}, #Choose what elements are on the terminal, other 		elements could be: 'storage', 'mch_2_h2_retrieval','pipeline_terminal_-_hinterland'},
+		debug=False, #toggle: intermediate print statements
+		commodity_type_defaults=opentisim.liquidbulk.commodity_lhydrogen_data,  # specify defaults: commodity
+		storage_type_defaults=opentisim.liquidbulk.storage_lh2_data, # specify defaults: commodity storage
+		kendall='E2/E2/n', #Queing theory (common users of the liquid bulk terminal a realistic queue is M/E2/n and for a       		dedicated shipping line is E2/E2/n (Monfort et al., 2011))
 		allowable_waiting_service_time_ratio_berth=0.3,
-		h2retrieval_type_defaults=opentisim.liquidbulk.h2retrieval_lh2_data)
+		h2retrieval_type_defaults=opentisim.liquidbulk.h2retrieval_lh2_data, # specify defaults: commodity h2 retrieval
+		allowable_berth_occupancy=0.5, # 0.5 Reasonable for liquid bulk (Monfort et al., 2011)
+		allowable_dwelltime=14 / 365, 
+		h2retrieval_trigger=1) 
 
 	# run simulation
 	for year in years:
 		Terminal.startyear = year
 		Terminal.simulate()
         
-
 	#Assert number of elements 
 	assert len(Terminal.elements) == 14
 	assert len(opentisim.core.find_elements(Terminal, opentisim.liquidbulk.Pipeline_Jetty)) == 2
