@@ -13,6 +13,7 @@ def test_liquidbulk_04_Berth_Jetty():
 	"""
 	import pandas as pd
 	import opentisim
+	import numpy as np
     
 	# basic inputs
 	startyear = 2020
@@ -53,23 +54,22 @@ def test_liquidbulk_04_Berth_Jetty():
 	opentisim.liquidbulk.commodity_lhydrogen_data['handling_fee'] = 490 
 
 	# vessel data (liquid hydrogen)
-	opentisim.liquidbulk.smallhydrogen_data['call_size'] = 10_000 
-	opentisim.liquidbulk.smallhydrogen_data['LOA'] = 200 
-	opentisim.liquidbulk.smallhydrogen_data['all_turn_time'] = 20 
-	opentisim.liquidbulk.smallhydrogen_data['pump_capacity'] = 1_000
-	opentisim.liquidbulk.smallhydrogen_data['mooring_time'] = 3 
-	opentisim.liquidbulk.smallhydrogen_data['demurrage_rate'] = 600    
+	opentisim.liquidbulk.smallhydrogen_data['call_size'] = 10_345  #[Abrahamse 2021]
+	opentisim.liquidbulk.smallhydrogen_data['LOA'] = 200 #[Lanphen 2019]
+	opentisim.liquidbulk.smallhydrogen_data['all_turn_time'] = 20 #[Lanphen 2019]
+	opentisim.liquidbulk.smallhydrogen_data['pump_capacity'] = 1_034.5 #[Abrahamse 2021]
+	opentisim.liquidbulk.smallhydrogen_data['mooring_time'] = 3 #[Lanphen 2019]
+
+	opentisim.liquidbulk.largehydrogen_data['call_size'] = 18_886 #[Abrahamse 2021]
+	opentisim.liquidbulk.largehydrogen_data['LOA'] = 300  #[Lanphen 2019]
+	opentisim.liquidbulk.largehydrogen_data['all_turn_time'] = 30 #[Lanphen 2019]
+	opentisim.liquidbulk.largehydrogen_data['pump_capacity'] =  1888.6 #[Abrahamse 2021]
+	opentisim.liquidbulk.largehydrogen_data['mooring_time'] = 3 #[Lanphen 2019]
     
-	opentisim.liquidbulk.largehydrogen_data['call_size'] = 30_000 
-	opentisim.liquidbulk.largehydrogen_data['LOA'] = 300  
-	opentisim.liquidbulk.largehydrogen_data['all_turn_time'] = 30 
-	opentisim.liquidbulk.largehydrogen_data['pump_capacity'] = 3_000
-	opentisim.liquidbulk.largehydrogen_data['mooring_time'] = 3 
-	opentisim.liquidbulk.largehydrogen_data['demurrage_rate'] = 700 
     
 	# jetty data
-	opentisim.liquidbulk.jetty_data['delivery_time'] = 2 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
-	opentisim.liquidbulk.jetty_data['lifespan'] = 50 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['delivery_time'] = 1 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['lifespan'] = 30 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
 	opentisim.liquidbulk.jetty_data['mobilisation_min'] = 1_000_000 #Dr. ir. De Gijt and Ir. Quist, personal communication,     	[Lanphen2019]
 	opentisim.liquidbulk.jetty_data['mobilisation_perc'] = 0.02 #[Lanphen2019]
 	opentisim.liquidbulk.jetty_data['maintenance_perc'] = 0.01 #1% of CAPEX [Lanphen2019]
@@ -83,8 +83,8 @@ def test_liquidbulk_04_Berth_Jetty():
 	opentisim.liquidbulk.jetty_data['Catwalk_rate'] = 1000 #Ir. Quist, personal communication, [Lanphen 2019]
     
 	# berth data   
-	opentisim.liquidbulk.berth_data['delivery_time'] = 1 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
-      
+	opentisim.liquidbulk.berth_data['delivery_time'] = 1 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]    
+    
 	# define terminal
 	Terminal = opentisim.liquidbulk.System(
 		startyear=startyear, #startyear of the model
@@ -141,15 +141,35 @@ def test_liquidbulk_04_Berth_Jetty():
 
 		#assert the throughput and demand
 
+		#assert the throughput and demand
 		Jetty_cap_planned = 0
 		Jetty_cap = 0
+        
+		for commodity in opentisim.core.find_elements(Terminal, opentisim.liquidbulk.Commodity):
+			if commodity.type == 'MCH': 
+				pump1 = opentisim.liquidbulk.handysize_data["pump_capacity"]
+				pump2 = opentisim.liquidbulk.panamax_data["pump_capacity"]
+				pump3 = opentisim.liquidbulk.vlcc_data["pump_capacity"]
+				pumpall = np.array([pump1, pump2, pump3])
+				pumpall = pumpall[np.nonzero(pumpall)]
+			elif commodity.type == 'Liquid hydrogen':
+				pump1 = opentisim.liquidbulk.smallhydrogen_data["pump_capacity"]
+				pump2 = opentisim.liquidbulk.largehydrogen_data["pump_capacity"]
+				pump3 = 0
+				pumpall = np.array([pump1, pump2, pump3])
+				pumpall = pumpall[np.nonzero(pumpall)]
+			else:
+				pump1 = sopentisim.liquidbulk.mallammonia_data["pump_capacity"] 
+				pump2 = opentisim.liquidbulk.largeammonia_data["pump_capacity"]
+				pump3 = 0
+				pumpall = np.array([pump1, pump2, pump33])
+				pumpall = pumpall[np.nonzero(pumpall)]
+
 		for element in opentisim.core.find_elements(Terminal, opentisim.liquidbulk.Jetty):
-			Jetty_cap_planned += ((opentisim.liquidbulk.smallhydrogen_data["pump_capacity"]                                     			+opentisim.liquidbulk.largehydrogen_data["pump_capacity"] + opentisim.liquidbulk.smallammonia_data["pump_capacity"] 			+opentisim.liquidbulk.largeammonia_data["pump_capacity"] + opentisim.liquidbulk.handysize_data["pump_capacity"] +   			opentisim.liquidbulk.panamax_data["pump_capacity"] + opentisim.liquidbulk.vlcc_data["pump_capacity"]) / 7 *         			Terminal.operational_hours)
-            
+			Jetty_cap_planned += (sum(pumpall) / len(pumpall) * Terminal.operational_hours)
 			if year >= element.year_online:
-				Jetty_cap += ((opentisim.liquidbulk.smallhydrogen_data["pump_capacity"] +                                   				opentisim.liquidbulk.largehydrogen_data["pump_capacity"] +                                                      				opentisim.liquidbulk.smallammonia_data["pump_capacity"] +                                                   				opentisim.liquidbulk.largeammonia_data["pump_capacity"] + opentisim.liquidbulk.handysize_data["pump_capacity"]  				+ opentisim.liquidbulk.panamax_data["pump_capacity"] + opentisim.liquidbulk.vlcc_data["pump_capacity"]) / 7 *   				Terminal.operational_hours)
-                
-		Jetty_cap = round(Jetty_cap)  
+				Jetty_cap += (sum(pumpall) / len(pumpall) * Terminal.operational_hours)
+		Jetty_cap = round(Jetty_cap) 
         
 		Demand = []
 		Commodity = opentisim.liquidbulk.Commodity(**opentisim.liquidbulk.commodity_lhydrogen_data)
@@ -167,17 +187,16 @@ def test_liquidbulk_04_Berth_Jetty():
 		if index == 0: 
 			assert berths == 1
 			assert jetties == 1
-			assert berth_occupancy_online == 0.298
-			assert WF == 0.038
-			assert Jetty_cap == 34622857 
+			assert berth_occupancy_online == 0.334
+			assert WF == 0.046
+			assert Jetty_cap == 8535452.0
 			assert Demand == 2000000
 			assert throughput_online == 2000000
 		else:
 			assert berths == 2
 			assert jetties == 2 
-			assert berth_occupancy_online == 0.297
-			assert WF == 0.023
-			assert Jetty_cap == 69245714
+			assert berth_occupancy_online == 0.334
+			assert WF == 0.035
+			assert Jetty_cap == 17070904.0
 			assert Demand == 4000000
 			assert throughput_online == 4000000
-

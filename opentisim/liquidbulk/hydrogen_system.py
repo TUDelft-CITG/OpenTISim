@@ -304,17 +304,28 @@ class System:
             # while planned berth occupancy is too large add a berth if a jetty is needed
             berths = len(opentisim.core.find_elements(self, Berth))
             jettys = len(opentisim.core.find_elements(self, Jetty))
+            
+            for commodity in opentisim.core.find_elements(self, Commodity):
+                if commodity.type == 'MCH': 
+                    vessel_size_1 = vlcc_data["LOA"]
+                    vessel_size_2 = handysize_data["LOA"]
+                    vessel_size_3 = panamax_data["LOA"]
+                    a = np.array([vessel_size_1, vessel_size_2, vessel_size_3])
+                elif commodity.type == 'Liquid hydrogen':
+                    vessel_size_1 = smallhydrogen_data["LOA"]
+                    vessel_size_2 = largehydrogen_data["LOA"]
+                    vessel_size_3 = 0
+                    a = np.array([vessel_size_1, vessel_size_2, vessel_size_3])
+                else:
+                    vessel_size_1 = smallammonia_data["LOA"]
+                    vessel_size_2 = largeammonia_data["LOA"]
+                    vessel_size_3 = 0
+                    a = np.array([vessel_size_1, vessel_size_2, vessel_size_3])
 
             # todo: check and add reference (check Lanphen (2019)?)
             if berths > jettys:
-                length_max = max(vlcc_data["LOA"], handysize_data["LOA"],
-                                 panamax_data["LOA"], smallhydrogen_data["LOA"],
-                                 largehydrogen_data["LOA"], smallammonia_data["LOA"],
-                                 largeammonia_data["LOA"])  # maximum of all vessels
-                length_min = min(vlcc_data["LOA"], handysize_data["LOA"],
-                                 panamax_data["LOA"], smallhydrogen_data["LOA"],
-                                 largehydrogen_data["LOA"], smallammonia_data["LOA"],
-                                 largeammonia_data["LOA"])  # maximum of all vessels
+                length_max = max(a[np.nonzero(a)])  # maximum of all vessels
+                length_min = min(a[np.nonzero(a)])  # maximum of all vessels
                 if length_max - length_min > 100:
                     nrofdolphins = 8
                 else:
@@ -381,6 +392,45 @@ class System:
         - find out how much service capacity is needed
         - add service capacity until service_trigger is no longer exceeded
         """
+        
+        # Find jetty capacity
+        Jetty_cap_planned = 0
+        Jetty_cap = 0
+        
+        for commodity in opentisim.core.find_elements(self, Commodity):
+            if commodity.type == 'MCH': 
+                pump1 = handysize_data["pump_capacity"]
+                pump2 = panamax_data["pump_capacity"]
+                pump3 = vlcc_data["pump_capacity"]
+                pumpall = np.array([pump1, pump2, pump3])
+                pumpall = pumpall[np.nonzero(pumpall)]
+            elif commodity.type == 'Liquid hydrogen':
+                pump1 = smallhydrogen_data["pump_capacity"]
+                pump2 = largehydrogen_data["pump_capacity"]
+                pump3 = 0
+                pumpall = np.array([pump1, pump2, pump3])
+                pumpall = pumpall[np.nonzero(pumpall)]
+            else:
+                pump1 = smallammonia_data["pump_capacity"] 
+                pump2 = largeammonia_data["pump_capacity"]
+                pump3 = 0
+                pumpall = np.array([pump1, pump2, pump33])
+                pumpall = pumpall[np.nonzero(pumpall)]
+        
+        for element in opentisim.core.find_elements(self, Jetty):
+            Jetty_cap_planned += (sum(pumpall) / len(pumpall) * self.operational_hours)
+            if year >= element.year_online:
+                Jetty_cap += (sum(pumpall) / len(pumpall) * self.operational_hours)
+
+#         # Find pipeline jetty capacity
+#         pipelineJ_capacity_planned = 0
+#         pipelineJ_capacity_online = 0
+#         list_of_elements = opentisim.core.find_elements(self, Pipeline_Jetty)
+#         if list_of_elements != []:
+#             for element in list_of_elements:
+#                 pipelineJ_capacity_planned += (sum(pumpall) / len(pumpall) * self.operational_hours) #element.capacity * self.operational_hours
+#                 if year >= element.year_online:
+#                     pipelineJ_capacity_online += (sum(pumpall) / len(pumpall) * self.operational_hours)#element.capacity * self.operational_hours
 
         # find the total service rate
         service_capacity = 0
@@ -388,9 +438,9 @@ class System:
         list_of_elements = opentisim.core.find_elements(self, Pipeline_Jetty)
         if list_of_elements != []:
             for element in list_of_elements:
-                service_capacity += element.capacity
+                service_capacity += (sum(pumpall) / len(pumpall) * self.operational_hours)#element.capacity
                 if year >= element.year_online:
-                    service_capacity_online += element.capacity
+                    service_capacity_online += (sum(pumpall) / len(pumpall) * self.operational_hours) #element.capacity
 
         # find the year online,
         years_online = []
@@ -424,7 +474,7 @@ class System:
             service_rate = 0
             years_online = []
             for element in opentisim.core.find_elements(self, Jetty):
-                service_rate += largehydrogen_data["pump_capacity"]
+                service_rate += (sum(pumpall) / len(pumpall) * self.operational_hours)
                 years_online.append(element.year_online)
 
             # there should always be a new jetty in the planning
@@ -539,32 +589,6 @@ class System:
                 jetty_year_online = np.max([jetty_year_online, jetty.year_online])
 
             storage.year_online = np.max([jetty_year_online, year + storage.delivery_time])
-            # # elif year == self.startyear + 1:
-            # # storage.year_online = year + 1
-            #
-            # # todo: make startyear altijd
-            # if self.lifecycle > 1:
-            #     if year == self.startyear:
-            #         storage.year_online = year + jetty.delivery_time
-            #     # elif year == self.startyear + 1:
-            #     # storage.year_online = year + 1
-            #     elif year == self.startyear + jetty.delivery_time:
-            #         storage.year_online = year
-            #     else:
-            #         storage.year_online = year + storage.delivery_time
-            #
-            # elif self.lifecycle == 1:
-            #     if self.startyear == self.years[0]:
-            #         storage.year_online = year + jetty.delivery_time
-            #         # elif self.startyear == self.years[1]:
-            #         # storage.year_online = year + 1
-            #     elif self.startyear == self.years[jetty.delivery_time]:
-            #         storage.year_online = year
-            #     else:
-            #         storage.year_online = year + storage.delivery_time
-
-            # #reinvestment
-            # if year == storage.year_online + storage.lifespan:
 
             # residual
             storage.assetvalue = storage.unit_rate * (
@@ -632,11 +656,6 @@ class System:
                 jetty_year_online = np.max([jetty_year_online, jetty.year_online])
 
             h2retrieval.year_online = np.max([jetty_year_online, year + h2retrieval.delivery_time])
-
-#             if year == self.startyear + jetty.delivery_time:
-#                 h2retrieval.year_online = year
-#             else:
-#                 h2retrieval.year_online = year + h2retrieval.delivery_time
 
             # residual
             h2retrieval.assetvalue = h2retrieval.unit_rate * (
@@ -1215,22 +1234,31 @@ class System:
         # Find jetty capacity
         Jetty_cap_planned = 0
         Jetty_cap = 0
+        
+        for commodity in opentisim.core.find_elements(self, Commodity):
+            if commodity.type == 'MCH': 
+                pump1 = handysize_data["pump_capacity"]
+                pump2 = panamax_data["pump_capacity"]
+                pump3 = vlcc_data["pump_capacity"]
+                pumpall = np.array([pump1, pump2, pump3])
+                pumpall = pumpall[np.nonzero(pumpall)]
+            elif commodity.type == 'Liquid hydrogen':
+                pump1 = smallhydrogen_data["pump_capacity"]
+                pump2 = largehydrogen_data["pump_capacity"]
+                pump3 = 0
+                pumpall = np.array([pump1, pump2, pump3])
+                pumpall = pumpall[np.nonzero(pumpall)]
+            else:
+                pump1 = smallammonia_data["pump_capacity"] 
+                pump2 = largeammonia_data["pump_capacity"]
+                pump3 = 0
+                pumpall = np.array([pump1, pump2, pump33])
+                pumpall = pumpall[np.nonzero(pumpall)]
+        
         for element in opentisim.core.find_elements(self, Jetty):
-            Jetty_cap_planned += ((smallhydrogen_data["pump_capacity"] +
-                                   largehydrogen_data["pump_capacity"] +
-                                   smallammonia_data["pump_capacity"] +
-                                   largeammonia_data["pump_capacity"] +
-                                   handysize_data["pump_capacity"] +
-                                   panamax_data["pump_capacity"] +
-                                   vlcc_data["pump_capacity"]) / 7 * self.operational_hours)
+            Jetty_cap_planned += (sum(pumpall) / len(pumpall) * self.operational_hours)
             if year >= element.year_online:
-                Jetty_cap += ((smallhydrogen_data["pump_capacity"] +
-                               largehydrogen_data["pump_capacity"] +
-                               smallammonia_data["pump_capacity"] +
-                               largeammonia_data["pump_capacity"] +
-                               handysize_data["pump_capacity"] +
-                               panamax_data["pump_capacity"] +
-                               vlcc_data["pump_capacity"]) / 7 * self.operational_hours)
+                Jetty_cap += (sum(pumpall) / len(pumpall) * self.operational_hours)
 
         # Find pipeline jetty capacity
         pipelineJ_capacity_planned = 0
@@ -1238,9 +1266,9 @@ class System:
         list_of_elements = opentisim.core.find_elements(self, Pipeline_Jetty)
         if list_of_elements != []:
             for element in list_of_elements:
-                pipelineJ_capacity_planned += element.capacity * self.operational_hours
+                pipelineJ_capacity_planned += (sum(pumpall) / len(pumpall) * self.operational_hours) #element.capacity * self.operational_hours
                 if year >= element.year_online:
-                    pipelineJ_capacity_online += element.capacity * self.operational_hours
+                    pipelineJ_capacity_online += (sum(pumpall) / len(pumpall) * self.operational_hours)#element.capacity * self.operational_hours
 
         # Find storage capacity
         storage_capacity_planned = 0
@@ -1315,9 +1343,6 @@ class System:
         throughput_planned = min(array_planned)
         throughput_online = min(array_online) 
                            
-        #print('array of throughput_online =', array_online)
-        #print('Throughput online =', throughput_online)
-        
         throughput_planned_jetty = 0
         throughput_planned_pipej= 0
         throughput_planned_storage = 0 
