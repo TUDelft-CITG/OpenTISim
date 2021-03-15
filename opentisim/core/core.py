@@ -40,7 +40,8 @@ def add_cashflow_data_to_element(Terminal, element):
     Elements that take two years to build are assign 60% to year one and 40% to year two."""
 
     # years
-    years = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    years = Terminal.modelframe
+    #years = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
 
     # capex
     capex = element.capex
@@ -87,7 +88,8 @@ def add_cashflow_elements(Terminal, labour):
     cash_flows = pd.DataFrame()
 
     # initialise cash_flows
-    cash_flows['year'] = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    #cash_flows['year'] = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    cash_flows['year'] = Terminal.modelframe
     cash_flows['capex'] = 0
     cash_flows['maintenance'] = 0
     cash_flows['insurance'] = 0
@@ -107,6 +109,7 @@ def add_cashflow_elements(Terminal, labour):
 
     for element in Terminal.elements:
         if hasattr(element, 'df'):
+            element.df = element.df.fillna(0)
             for column in cash_flows.columns:
                 if column in element.df.columns and column != "year":
                     cash_flows[column] += element.df[column]

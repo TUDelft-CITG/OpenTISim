@@ -50,7 +50,7 @@ class System:
         self.h2retrieval_trigger = h2retrieval_trigger
 
         # storage variables for revenue
-        self.revenues = []
+        #self.revenues = []
         
         # input testing: vessel percentages should add up to 100
 
@@ -165,12 +165,14 @@ class System:
             self.calculate_energy_cost(year)
 
         # 4. for each year calculate the demurrage costs (requires insight in realized demands)
-        self.demurrage = []
+        if self.lifecycle > 1:
+            self.demurrage = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_demurrage_cost(year)
 
         # 5.  for each year calculate terminal revenues
-        self.revenues = []
+        if self.lifecycle > 1: 
+            self.revenues = []
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.calculate_revenue(year, self.commodity_type_defaults)
 
@@ -183,7 +185,7 @@ class System:
         # cash_flows, cash_flows_WACC_nominal = self.add_cashflow_elements()
 
         # 8. calculate PV's and aggregate to NPV
-        opentisim.core.NPV(self, Labour(**labour_data))
+        #opentisim.core.NPV(self, Labour(**labour_data))
 
     # *** Individual investment methods for terminal elements
     def berth_invest(self, year):
@@ -504,7 +506,6 @@ class System:
 
             # add cash flow information to pipeline_jetty object in a dataframe
             pipeline_jetty = opentisim.core.add_cashflow_data_to_element(self, pipeline_jetty)
-
             self.elements.append(pipeline_jetty)
 
     def storage_invest(self, year, hydrogen_defaults_storage_data):
@@ -562,8 +563,9 @@ class System:
                                                             throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
         #  or
         # check if sufficient storage capacity is available
-        while storage_capacity < max_vessel_call_size or (
-                storage_capacity < storage_capacity_dwelltime_demand and storage_capacity < storage_capacity_dwelltime_throughput):
+        while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime_demand:
+        #(
+#                 storage_capacity < storage_capacity_dwelltime_demand and storage_capacity < storage_capacity_dwelltime_throughput):
             if self.debug:
                 print('  *** add storage to elements')
 
@@ -592,21 +594,22 @@ class System:
 
             # residual
             storage.assetvalue = storage.unit_rate * (
-                        1 - ((self.lifecycle + self.startyear - storage.year_online) / storage.lifespan))
+                        1 - ((self.years[0] + len(self.years) - storage.year_online) / storage.lifespan))
+                        #1 - ((self.lifecycle + self.startyear - storage.year_online) / storage.lifespan))
             storage.residual = max(storage.assetvalue, 0)
 
             # add cash flow information to storage object in a dataframe
             storage = opentisim.core.add_cashflow_data_to_element(self, storage)
 
             self.elements.append(storage)
-
-            throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
-                year)
-
-            storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1
-
+            
             storage_capacity += storage.capacity
 
+#             throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(
+#                 year)
+
+#             storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1
+            
             if self.debug:
                 print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                     storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
@@ -734,7 +737,7 @@ class System:
             pipeline_hinter.residual = max(pipeline_hinter.assetvalue, 0)
 
             # add cash flow information to pipeline_hinter object in a dataframe
-            pipeline_hinter = opentisim.core.add_cashflow_data_to_element(self, pipeline_hinter)
+            #pipeline_hinter = opentisim.core.add_cashflow_data_to_element(self, pipeline_hinter)
 
             self.elements.append(pipeline_hinter)
 
@@ -1329,7 +1332,6 @@ class System:
         t = np.where(x == 0)[0]
         t1 = t.tolist()
         t1.sort(reverse = True)#places where value is zero in array
-
                 
         array_planned =[Jetty_cap_planned, pipelineJ_capacity_planned, storage_cap_planned, h2retrieval_capacity_planned , pipelineh_capacity_planned, Demand]
         array_online = [Jetty_cap ,pipelineJ_capacity_online, storage_cap_online, h2retrieval_capacity_online, pipelineh_capacity_online, Demand]
@@ -1337,8 +1339,7 @@ class System:
 
         for i in t1:
             array_planned.pop(i)
-            array_online.pop(i)
-            
+            array_online.pop(i)            
             
         throughput_planned = min(array_planned)
         throughput_online = min(array_online) 
@@ -1370,8 +1371,7 @@ class System:
         if fullarray[4] == 1:
             pipe_hinter.pop(4)
             throughput_planned_pipeh = min(pipe_hinter)
-
-
+        
         return throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh
         self.throughput.append(throughput_online)
 

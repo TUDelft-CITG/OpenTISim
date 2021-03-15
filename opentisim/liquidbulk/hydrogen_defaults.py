@@ -43,7 +43,7 @@ import pandas as pd
 
 jetty_data = {"name": 'Jetty_01',
                   "ownership": 'Port authority',
-                  "delivery_time": 1, #[Lanphen 2019, P 84]
+                  "delivery_time": 2, ##[Abrahamse2021]
                   "lifespan": 30, #[Lanphen 2019, P 84]
                   "mobilisation_min": 1_000_000, #equipment (+0 for import terminal and +1_000_000 for export terminal) [Lanphen 2019, P 84]
                   "mobilisation_perc": 0.02, 
@@ -62,7 +62,7 @@ jetty_data = {"name": 'Jetty_01',
 
 berth_data = {"name": 'Berth_01',
               "crane_type": 'Mobile cranes',
-              "delivery_time": 1}  # all values from Ijzermans, 2019, P 92
+              "delivery_time": 2}  # #[Abrahamse2021]
 
 
 # *** Default inputs: Pipeline class ***
@@ -105,7 +105,7 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
 storage_lh2_data = {"name": 'HTank_01',
              "type": 'HydrogenTank',
              "ownership": 'Terminal operator',
-             "delivery_time": 1, #[Lanphen2019, P 86]
+             "delivery_time": 2, #[Abrahamse2021]
              "lifespan": 30,
              "unit_rate": 350_000_000, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019] 
              "mobilisation_min": 200_000,
@@ -126,7 +126,7 @@ storage_lh2_data = {"name": 'HTank_01',
 storage_nh3_data = {"name": 'ATank_01',
                   "type": 'AmmoniaTank',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,
+                  "delivery_time": 2,#[Abrahamse2021]
                   "lifespan": 30,
                   "unit_rate": 55_000_000, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
                   "mobilisation_min": 200_000,
@@ -143,7 +143,7 @@ storage_nh3_data = {"name": 'ATank_01',
 storage_MCH_data = {"name": 'MCHTank_01',
                   "type": 'MCHTank',
                   "ownership": 'Terminal operator',
-                  "delivery_time": 1,
+                  "delivery_time": 2, #[Abrahamse2021]
                   "lifespan": 50,
                   "unit_rate": 32_000_000, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
                   "mobilisation_min": 200_000,
