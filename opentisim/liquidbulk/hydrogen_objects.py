@@ -103,6 +103,15 @@ H2retrieval = type('H2retrieval', (identifiable_properties_mixin,  # Give it a n
                            hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
                {})  # The dictionary is empty because the site type is generic
 
+H2conversion = type('H2conversion', (identifiable_properties_mixin,  # Give it a name
+                           history_properties_mixin,  # Give it procurement history
+                           h2conversion_properties_mixin,
+                           hascapex_properties_mixin,  # Give it capex info
+                           hasopex_properties_mixin,  # Give it opex info
+                           hasrevenue_properties_mixin,  # Give it revenue info
+                           hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+               {})  # The dictionary is empty because the site type is generic
+
 # The generic Commodity class
 # - Liquid hydrogen
 # - Ammonia

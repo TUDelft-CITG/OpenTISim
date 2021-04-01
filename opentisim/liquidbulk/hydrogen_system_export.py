@@ -15,20 +15,20 @@ import opentisim
 
 
 # todo: consider renaming this class to Terminal (seems more appropriate)
-class System:
+class ExportTerminal:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2021) for liquid bulk
-    terminals. The module allows variation of the commodity type, the storage type and the h2retrieval type.
+    terminals. The module allows variation of the commodity type, the storage type and the h2conversion type.
     Terminal development is governed by three triggers: the allowable waiting time as factor of service time,
-    the allowable dwell time and an h2retrieval trigger."""
+    the allowable dwell time and an h2conversion trigger."""
 
     def __init__(self, startyear=2020, lifecycle=10, operational_hours=5840, debug=False, elements=[],
-                 terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage', 'h2_retrieval'},
+                 terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage','h2_conversion'},
                  commodity_type_defaults=commodity_ammonia_data,
                  storage_type_defaults=storage_nh3_data,
                  kendall='E2/E2/n',
                  allowable_waiting_service_time_ratio_berth=0.5,
-                 h2retrieval_type_defaults=h2retrieval_nh3_data,
-                 allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2retrieval_trigger=1):
+                 h2conversion_type_defaults=h2conversion_nh3_data,
+                 allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2conversion_trigger=1):
         # time inputs
         self.years = []
         self.startyear = startyear
@@ -45,14 +45,14 @@ class System:
         # default values to use in selecting which commodity is imported
         self.commodity_type_defaults = commodity_type_defaults
         self.storage_type_defaults = storage_type_defaults
-        self.h2retrieval_type_defaults = h2retrieval_type_defaults
+        self.h2conversion_type_defaults = h2conversion_type_defaults
 
-        # triggers for the various elements (berth, storage and h2retrieval)
+        # triggers for the various elements (berth, storage and h2conversion)
         self.kendall = kendall
         self.allowable_waiting_service_time_ratio_berth = allowable_waiting_service_time_ratio_berth
         self.allowable_berth_occupancy = allowable_berth_occupancy
         self.allowable_dwelltime = allowable_dwelltime
-        self.h2retrieval_trigger = h2retrieval_trigger
+        self.h2conversion_trigger = h2conversion_trigger
 
         # storage variables for revenue
         #self.revenues = []
@@ -111,11 +111,11 @@ class System:
             # 1. for each year estimate the anticipated vessel arrivals based on the expected demand
             smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls,             handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol,             smallhydrogen_calls_planned, largehydrogen_calls_planned,             smallammonia_calls_planned, largeammonia_calls_planned,             handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned,             total_calls_planned, total_vol_planned = self.calculate_vessel_calls(year)
             
-            hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+            hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
             hydrogen_defaults_storage_data = self.storage_type_defaults
             
-            h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-            plantloss = h2retrieval.losses
+            h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+            plantloss = h2conversion.losses
             storage = Storage(**hydrogen_defaults_storage_data)
             storloss = storage.losses
             jettyloss = jetty_pipeline_data["losses"]
@@ -125,13 +125,13 @@ class System:
             for commodity in commodities:
                 try:
                     volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                    volume_vessel_out = (volume*(100+(plantloss+storloss+jettyloss)))/100
+                    volume_vessel_in = volume
                 except:
                     pass
 
             if self.debug:
                 print('--- Cargo volume and vessel calls for {} ---------'.format(year))
-                print('  Total demand volume vessel out: {}'.format(volume_vessel_out))
+                print('  Total demand volume vessel out: {}'.format(volume_vessel_in))
                 print('  Total actual throughput volume: {}'.format(total_vol))
                 print('  Total actual vessel calls: {}'.format(total_calls))
                 print('     Small Hydrogen calls: {}'.format(smallhydrogen_calls))
@@ -159,17 +159,11 @@ class System:
                     print('$$$ Check storage ----------------------------------')
                 self.storage_invest(year, self.storage_type_defaults)
 
-            if 'h2_retrieval' in self.terminal_supply_chain:
+            if 'h2_conversion' in self.terminal_supply_chain:
                 if self.debug:
                     print('')
-                    print('$$$ Check H2 retrieval plants ----------------------')
-                self.h2retrieval_invest(year, self.h2retrieval_type_defaults)
-
-#             if 'pipeline_terminal_-_hinterland' in self.terminal_supply_chain:
-#                 if self.debug:
-#                     print('')
-#                     print('$$$ Check pipeline hinterland ----------------------')
-#                 self.pipeline_hinter_invest(year)
+                    print('$$$ Check H2 conversion plants ----------------------')
+                self.h2conversion_invest(year, self.h2conversion_type_defaults)
 
         # 3. for each year calculate the energy costs (requires insight in realized demands)
         for year in range(self.startyear, self.startyear + self.lifecycle):
@@ -192,20 +186,20 @@ class System:
         for year in range(self.startyear, self.startyear + self.lifecycle):
             self.throughput_elements(year)
             
-            throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in =             self.throughput_elements(year)
+            throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in =             self.throughput_elements(year)
             
-            hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+            hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
             hydrogen_defaults_storage_data = self.storage_type_defaults
             
-            h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-            plantloss = h2retrieval.losses
+            h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+            plantloss = h2conversion.losses
             storage = Storage(**hydrogen_defaults_storage_data)
             storloss = storage.losses
             jettyloss = jetty_pipeline_data["losses"]
             
-            throughput_plant_in = (throughput_online*(100+(plantloss)))/100
-            throughput_storage_in = (throughput_online*(100+(plantloss+storloss)))/100
-            throughput_jetty_in = (throughput_online*(100+(plantloss+storloss+jettyloss)))/100
+            throughput_plant_in = (throughput_online*(100+(plantloss+storloss+jettyloss)))/100
+            throughput_storage_in = (throughput_online*(100+(storloss+jettyloss)))/100
+            throughput_jetty_in = (throughput_online*(100+(jettyloss)))/100
             #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
             
             if self.debug:
@@ -254,8 +248,7 @@ class System:
         opentisim.core.report_element(self, Jetty, year)
         opentisim.core.report_element(self, Pipeline_Jetty, year)
         opentisim.core.report_element(self, Storage, year)
-        opentisim.core.report_element(self, H2retrieval, year)
-#         opentisim.core.report_element(self, Pipeline_Hinter, year)
+        opentisim.core.report_element(self, H2conversion, year)
 
         # calculate vessel calls
         # todo: store output in a class, rather than all these individual items
@@ -272,7 +265,7 @@ class System:
                 handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
 
         # calculate throughput
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in =             self.throughput_elements(year)
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in =             self.throughput_elements(year)
 
         # calculate waiting_factor
         berths = len(opentisim.core.find_elements(self, Berth))
@@ -285,11 +278,11 @@ class System:
             
             
         
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
         hydrogen_defaults_storage_data = self.storage_type_defaults
         
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        plantloss = h2retrieval.losses
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
@@ -300,7 +293,7 @@ class System:
             #     berth_occupancy_planned, self.allowable_berth_occupancy))
             print('     Unloading occupancy planned (@ start of year): {:.2f}'.format(unloading_occupancy_planned))
             print('     waiting time as factor of service time (@ start of year): {:.2f}'.format(waiting_factor))
-            print('     throughput planned berth in{:.2f}'.format((throughput_planned*(100+(plantloss+storloss+jettyloss)))/100))
+            print('     throughput planned berth out {:.2f}'.format(throughput_planned))
 
             print('')
             print('--- Start investment analysis ----------------------')
@@ -417,10 +410,9 @@ class System:
         jetty.insurance = unit_rate * jetty.insurance_perc
         jetty.maintenance = unit_rate * jetty.maintenance_perc
         jetty.year_online = year + jetty.delivery_time
-        
         jetty.capex_material = 0 
         jetty.purchaseH2 = 0 
-        jetty.purchase_material = 0 
+        jetty.purchase_material = 0  
 
         # residual
         jetty.assetvalue = (unit_rate) * (1 - ((self.lifecycle + self.startyear - jetty.year_online) / jetty.lifespan))
@@ -509,10 +501,10 @@ class System:
             # - opex
             pipeline_jetty.insurance = unit_rate * pipeline_jetty.insurance_perc
             pipeline_jetty.maintenance = unit_rate * pipeline_jetty.maintenance_perc
-            
             pipeline_jetty.capex_material = 0 
             pipeline_jetty.purchaseH2 = 0 
-            pipeline_jetty.purchase_material = 0 
+            pipeline_jetty.purchase_material = 0  
+            
 
             #   labour
             labour = Labour(**labour_data)
@@ -594,7 +586,7 @@ class System:
         #max_vessel_call_size = largeammonia_data["call_size"]
 
         # find the total throughput
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
             year)
         
 #         Demand = [] 
@@ -626,10 +618,9 @@ class System:
             # - opex
             storage.insurance = storage.unit_rate * storage.insurance_perc
             storage.maintenance = storage.unit_rate * storage.maintenance_perc
-            
             storage.capex_material = 0 
             storage.purchaseH2 = 0 
-            storage.purchase_material = 0 
+            storage.purchase_material = 0  
 
             #   labour**hydrogen_defaults
             labour = Labour(**labour_data)
@@ -666,46 +657,61 @@ class System:
                 print('     a total of {} ton of {} storage capacity is online; {} ton total planned'.format(
                     storage_capacity_online, hydrogen_defaults_storage_data['type'], storage_capacity))
 
-    def h2retrieval_invest(self, year, hydrogen_defaults_h2retrieval_data):
-        """current strategy is to add h2 retrieval as long as target h2 retrieval is not yet achieved
+    def h2conversion_invest(self, year, hydrogen_defaults_h2conversion_data):
+        """current strategy is to add h2 conversion as long as target h2 conversion is not yet achieved
         - find out how much h2 retrieval is online
         - find out how much h2 retrieval is planned
         - find out how much h2 retrieval is needed
         - add h2 retrieval until target is reached
         """
 
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
-            year, hydrogen_defaults_h2retrieval_data)
+        plant_occupancy_planned, plant_occupancy_online, h2conversion_capacity_planned, h2conversion_capacity_online = self.calculate_h2conversion_occupancy(
+            year, hydrogen_defaults_h2conversion_data)
 
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {:.2f}'.format(plant_occupancy_planned))
             print('     Plant occupancy online (@ start of year): {:.2f}'.format(plant_occupancy_online))
 
         # check if sufficient h2retrieval capacity is available
-        while plant_occupancy_planned > self.h2retrieval_trigger:
+        while plant_occupancy_planned > self.h2conversion_trigger:
 
             if self.debug:
-                print('  *** add h2retrieval to elements')
+                print('  *** add h2conversion to elements')
 
             # add h2retrieval object
-            h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
+            h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
 
             # - capex
-            h2retrieval.capex = h2retrieval.unit_rate + h2retrieval.mobilisation_min
+            h2conversion.capex = h2conversion.unit_rate + h2conversion.mobilisation_min
 
             # - opex
-            h2retrieval.insurance = h2retrieval.unit_rate * h2retrieval.insurance_perc
-            h2retrieval.maintenance = h2retrieval.unit_rate * h2retrieval.maintenance_perc
+            h2conversion.insurance = h2conversion.unit_rate * h2conversion.insurance_perc
+            h2conversion.maintenance = h2conversion.unit_rate * h2conversion.maintenance_perc
             
-            h2retrieval.capex_material = 0 
-            h2retrieval.purchaseH2 = 0 
-            h2retrieval.purchase_material = 0
+            #material and H2 
+            commodities = opentisim.core.find_elements(self, Commodity)
+            for commodity in commodities:
+                Hcontent = commodity.Hcontent
+                price_mat = commodity.material_price #€/ton
+                
+            capacity_plant = h2conversion.capacity * self.operational_hours
+            tonH2 = (Hcontent * capacity_plant)/100
+            tonmat = capacity_plant - tonH2 #xxx
+            
+            #price_mat:
+            price_H2 = (h2conversion.priceH2*1000) #€/ton
+            
+            # - capex material (what is recycled)
+            h2conversion.capex_material = ((h2conversion.recycle_rate * tonmat)/100) * price_mat
+            # - opex purchase 
+            h2conversion.purchaseH2 = tonH2 * price_H2 
+            h2conversion.purchase_material = (tonmat * (100-h2conversion.recycle_rate)/100)*price_mat
 
             #   labour**hydrogen_defaults
             labour = Labour(**labour_data)
-            h2retrieval.shift = (
-                        (h2retrieval.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-            h2retrieval.labour = h2retrieval.shift * labour.operational_salary
+            h2conversion.shift = (
+                        (h2conversion.crew_for5 * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
+            h2conversion.labour = h2conversion.shift * labour.operational_salary
 
             #jetty = Jetty(**jetty_data)
             
@@ -714,100 +720,27 @@ class System:
             for jetty in jettys:
                 jetty_year_online = np.max([jetty_year_online, jetty.year_online])
 
-            h2retrieval.year_online = np.max([jetty_year_online, year + h2retrieval.delivery_time])
+            h2conversion.year_online = np.max([jetty_year_online, year + h2conversion.delivery_time])
 
             # residual
-            h2retrieval.assetvalue = h2retrieval.unit_rate * (
-                    1 - (self.lifecycle + self.startyear - h2retrieval.year_online) / h2retrieval.lifespan)
-            h2retrieval.residual = max(h2retrieval.assetvalue, 0)
+            h2conversion.assetvalue = h2conversion.unit_rate * (
+                    1 - (self.lifecycle + self.startyear - h2conversion.year_online) / h2conversion.lifespan)
+            h2conversion.residual = max(h2conversion.assetvalue, 0)
 
             # add cash flow information to h2retrieval object in a dataframe
-            h2retrieval = opentisim.core.add_cashflow_data_to_element(self, h2retrieval)
+            h2conversion = opentisim.core.add_cashflow_data_to_element(self, h2conversion)
 
-            self.elements.append(h2retrieval)
+            self.elements.append(h2conversion)
 
-            plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
-                year, hydrogen_defaults_h2retrieval_data)
+            plant_occupancy_planned, plant_occupancy_online, h2conversion_capacity_planned, h2conversion_capacity_online = self.calculate_h2conversion_occupancy(
+                year, hydrogen_defaults_h2conversion_data)
 
             if self.debug:
                 print(
-                    '     a total of {} ton of h2retrieval capacity is online; {} ton total planned'.format(
-                        h2retrieval_capacity_online, h2retrieval_capacity_planned))
+                    '     a total of {} ton of h2conversion capacity is online; {} ton total planned'.format(
+                        h2conversion_capacity_online, h2conversion_capacity_planned))
 
-#     def pipeline_hinter_invest(self, year):
-#         """current strategy is to add pipeline as soon as a service trigger is achieved
-#         - find out how much service capacity is online
-#         - find out how much service capacity is planned
-#         - find out how much service capacity is needed
-#         - add service capacity until service_trigger is no longer exceeded
-#         """
-
-#         # find the total service rate
-#         service_capacity = 0
-#         service_capacity_online_hinter = 0
-#         list_of_elements_pipeline = opentisim.core.find_elements(self, Pipeline_Hinter)
-#         if list_of_elements_pipeline != []:
-#             for element in list_of_elements_pipeline:
-#                 service_capacity += element.capacity
-#                 if year >= element.year_online:
-#                     service_capacity_online_hinter += element.capacity
-
-#         # find the total service rate,
-#         service_rate = 0
-#         years_online = []
-#         for element in (opentisim.core.find_elements(self, H2retrieval)):
-#             service_rate += element.capacity
-#             years_online.append(element.year_online)
-
-#         # check if total planned length is smaller than target length, if so add a pipeline
-#         while service_rate > service_capacity:
-#             if self.debug:
-#                 print('  *** add Hinter Pipeline to elements')
-
-#             pipeline_hinter = Pipeline_Hinter(**hinterland_pipeline_data)
-
-#             # - capex
-#             capacity = pipeline_hinter.capacity
-#             unit_rate = pipeline_hinter.unit_rate_factor * pipeline_hinter.length
-#             mobilisation = pipeline_hinter.mobilisation
-#             pipeline_hinter.capex = int(unit_rate + mobilisation)
-
-#             # - opex
-#             pipeline_hinter.insurance = unit_rate * pipeline_hinter.insurance_perc
-#             pipeline_hinter.maintenance = unit_rate * pipeline_hinter.maintenance_perc
-            
-#             pipeline_hinter.capex_material = 0 
-#             pipeline_hinter.purchaseH2 = 0 
-#             pipeline_hinter.purchase_material = 0
-
-#             # - labour
-#             labour = Labour(**labour_data)
-#             pipeline_hinter.shift = (
-#                     (pipeline_hinter.crew * self.operational_hours) / (labour.shift_length * labour.annual_shifts))
-#             pipeline_hinter.labour = pipeline_hinter.shift * labour.operational_salary
-
-#             if year == self.startyear:
-#                 pipeline_hinter.year_online = year + pipeline_hinter.delivery_time + 1
-#             else:
-#                 pipeline_hinter.year_online = year + pipeline_hinter.delivery_time
-
-#             # residual
-#             pipeline_hinter.assetvalue = unit_rate * (
-#                     1 - (self.lifecycle + self.startyear - pipeline_hinter.year_online) / pipeline_hinter.lifespan)
-#             pipeline_hinter.residual = max(pipeline_hinter.assetvalue, 0)
-
-#             # add cash flow information to pipeline_hinter object in a dataframe
-#             #pipeline_hinter = opentisim.core.add_cashflow_data_to_element(self, pipeline_hinter)
-
-#             self.elements.append(pipeline_hinter)
-
-#             service_capacity += pipeline_hinter.capacity
-
-#         if self.debug:
-#             print(
-#                 '     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
-#                     service_capacity_online_hinter, service_capacity))
-
+    
     # *** Energy costs, demurrage costs and revenue calculation methods
     def calculate_energy_cost(self, year):
         """
@@ -817,23 +750,23 @@ class System:
         """
 
         energy = Energy(**energy_data)
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
             year)
 
         # calculate pipeline jetty energy
         list_of_elements_Pipelinejetty = opentisim.core.find_elements(self, Pipeline_Jetty)
         
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
         hydrogen_defaults_storage_data = self.storage_type_defaults
         
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        plantloss = h2retrieval.losses
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
         
-        throughput_online_pipej = (throughput_online*(100+(plantloss+storloss+jettyloss)))/100
+        throughput_online_pipej = (throughput_online*(100+(jettyloss)))/100
 
         pipelinesj = 0
         for element in list_of_elements_Pipelinejetty:
@@ -853,7 +786,7 @@ class System:
         throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
             year)
         
-        throughput_online_storage = (throughput_online*(100+(plantloss+storloss)))/100
+        throughput_online_storage = (throughput_online*(100+(storloss+jettyloss)))/100
         storage_capacity_dwelltime_throughput = (throughput_online_storage * self.allowable_dwelltime) * 1.1
 
         for element in list_of_elements_Storage:
@@ -869,15 +802,15 @@ class System:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
         # calculate H2 retrieval energy
-        list_of_elements_H2retrieval = opentisim.core.find_elements(self, H2retrieval)
+        list_of_elements_H2conversion = opentisim.core.find_elements(self, H2conversion)
 
         # find the total throughput,
         # throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_h2retrieval, throughput_planned_pipeh = self.throughput_elements(year)
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
-        plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
-            year, hydrogen_defaults_h2retrieval_data)
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
+        plant_occupancy_planned, plant_occupancy_online, h2conversion_capacity_planned, h2conversion_capacity_online = self.calculate_h2conversion_occupancy(
+            year, hydrogen_defaults_h2conversion_data)
 
-        for element in list_of_elements_H2retrieval:
+        for element in list_of_elements_H2conversion:
             if year >= element.year_online:
                 consumption = element.consumption
                 capacity = element.capacity * self.operational_hours
@@ -888,23 +821,7 @@ class System:
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
 
-#         # calculate hinterland pipeline energy
-#         list_of_elements_hinter = opentisim.core.find_elements(self, Pipeline_Hinter)
-
-#         plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
-#             year, hydrogen_defaults_h2retrieval_data)
-
-#         pipelines = 0
-#         for element in list_of_elements_hinter:
-#             if year >= element.year_online:
-#                 pipelines += 1
-#                 consumption = element.consumption_coefficient
-
-#                 if consumption * energy.price != np.inf:
-#                     element.df.loc[element.df[
-#                                        'year'] == year, 'energy'] = consumption * throughput_online / pipelines * energy.price
-#             else:
-#                 element.df.loc[element.df['year'] == year, 'energy'] = 0
+       
 
     def calculate_demurrage_cost(self, year):
         """Find the demurrage cost per type of vessel and sum all demurrage cost"""
@@ -988,8 +905,9 @@ class System:
         commodity = Commodity(**hydrogen_defaults_commodity_data)
         fee = commodity.handling_fee
 
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
             year)
+        
         if self.debug:
             print('     Revenues: {}'.format(int(throughput_online * fee)))
 
@@ -1021,14 +939,14 @@ class System:
         total_vol_planned = 0
 
         # gather volumes from each commodity scenario and calculate how much is transported with which vessel
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
             year)
         
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
         hydrogen_defaults_storage_data = self.storage_type_defaults
         
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        plantloss = h2retrieval.losses
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
@@ -1038,7 +956,7 @@ class System:
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                volume_jetty = (volume*(100+(plantloss+storloss+jettyloss)))/100 #Demand_jetty_in?  
+                volume_jetty = (volume*(100+(jettyloss)))/100 #Demand_jetty_in?  
                 throughput_online_jetty = (throughput_online*(100+(plantloss+storloss+jettyloss)))/100
                 smallhydrogen_vol += volume_jetty / volume_jetty * throughput_online_jetty * commodity.smallhydrogen_perc / 100
                 largehydrogen_vol += volume_jetty / volume_jetty * throughput_online_jetty * commodity.largehydrogen_perc / 100
@@ -1075,7 +993,7 @@ class System:
         for commodity in commodities:
             try:
                 volume = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                volume_jetty = (volume*(100+(plantloss+storloss+jettyloss)))/100 #Demand_jetty_in? 
+                volume_jetty = (volume*(100+(jettyloss)))/100 #Demand_jetty_in? 
                 smallhydrogen_vol_planned += volume_jetty * commodity.smallhydrogen_perc / 100
                 largehydrogen_vol_planned += volume_jetty * commodity.largehydrogen_perc / 100
                 smallammonia_vol_planned += volume_jetty * commodity.smallammonia_perc / 100
@@ -1256,13 +1174,13 @@ class System:
 
         return berth_occupancy_planned, berth_occupancy_online,                unloading_occupancy_planned, unloading_occupancy_online
 
-    def calculate_h2retrieval_occupancy(self, year, hydrogen_defaults_h2retrieval_data):
+    def calculate_h2conversion_occupancy(self, year, hydrogen_defaults_h2conversion_data):
         """
         - Divide the throughput by the service rate to get the total hours in a year
         - Occupancy is total_time_at_h2retrieval divided by operational hours
         """
         # Find throughput
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
             year)
 
 #         Demand = []
@@ -1271,39 +1189,39 @@ class System:
 #                 Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
 #             except:
 #                 pass
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
         hydrogen_defaults_storage_data = self.storage_type_defaults
         
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        plantloss = h2retrieval.losses
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #(Demand*(100+(plantloss+storloss+jettyloss)))/100
 
         # find the total service rate and determine the time at h2retrieval
-        h2retrieval_capacity_planned = 0
-        h2retrieval_capacity_online = 0
+        h2conversion_capacity_planned = 0
+        h2conversion_capacity_online = 0
 
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        capacity = h2retrieval.capacity
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        capacity = h2conversion.capacity
 
         yearly_capacity = capacity * self.operational_hours
 
-        list_of_elements = opentisim.core.find_elements(self, H2retrieval)
+        list_of_elements = opentisim.core.find_elements(self, H2conversion)
         if list_of_elements != []:
             for element in list_of_elements:
-                h2retrieval_capacity_planned += yearly_capacity
+                h2conversion_capacity_planned += yearly_capacity
                 if year >= element.year_online:
-                    h2retrieval_capacity_online += yearly_capacity
+                    h2conversion_capacity_online += yearly_capacity
 
             # h2retrieval_occupancy is the total time at h2retrieval divided by the operational hours
             
-            plant_occupancy_planned = Demand_plant_in / h2retrieval_capacity_planned
+            plant_occupancy_planned = Demand_plant_in / h2conversion_capacity_planned
 
-            if h2retrieval_capacity_online != 0:
-                throughput_online_plant_in = (throughput_online * (100+(plantloss)))/100
-                time_at_plant_online = throughput_online_plant_in / h2retrieval_capacity_online  # element.capacity
+            if h2conversion_capacity_online != 0:
+                throughput_online_plant_in = (throughput_online * (100+(plantloss+storloss+jettyloss)))/100
+                time_at_plant_online = throughput_online_plant_in / h2conversion_capacity_online  # element.capacity
 
                 # h2retrieval occupancy is the total time at h2retrieval divided by the operational hours
                 plant_occupancy_online = min([time_at_plant_online, 1])
@@ -1315,7 +1233,7 @@ class System:
             plant_occupancy_planned = float("inf")
             plant_occupancy_online = float("inf")
 
-        return plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online
+        return plant_occupancy_planned, plant_occupancy_online, h2conversion_capacity_planned, h2conversion_capacity_online
 
     def throughput_elements(self, year):
         """
@@ -1379,41 +1297,32 @@ class System:
         # Find H2retrieval capacity
         plant_capacity_planned = 0
         plant_capacity_online = 0
-        list_of_elements = opentisim.core.find_elements(self, H2retrieval)
+        list_of_elements = opentisim.core.find_elements(self, H2conversion)
         if list_of_elements != []:
             for element in list_of_elements:
                 plant_capacity_planned += element.capacity * self.operational_hours
                 if year >= element.year_online:
                     plant_capacity_online += element.capacity * self.operational_hours
 
-#         # Find pipeline hinter capacity
-#         pipelineh_capacity_planned = 0
-#         pipelineh_capacity_online = 0
-#         list_of_elements = opentisim.core.find_elements(self, Pipeline_Hinter)
-#         if list_of_elements != []:
-#             for element in list_of_elements:
-#                 pipelineh_capacity_planned += element.capacity * self.operational_hours
-#                 if year >= element.year_online:
-#                     pipelineh_capacity_online += element.capacity * self.operational_hours
+       
         
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
         hydrogen_defaults_storage_data = self.storage_type_defaults
         
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        plantloss = h2retrieval.losses
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
-
-        
+       
         # Find demand
         Demand = []
         for commodity in opentisim.core.find_elements(self, Commodity):
             try:
                 Demand = commodity.scenario_data.loc[commodity.scenario_data['year'] == year]['volume'].item()
-                Demand_plant_in = (Demand*(100+plantloss))/100
-                Demand_storage_in = (Demand*(100+(plantloss+storloss)))/100
-                Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
+                Demand_plant_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
+                Demand_storage_in = (Demand*(100+(storloss+jettyloss)))/100
+                Demand_jetty_in = (Demand*(100+(jettyloss)))/100
             except:
                 print('problem occurs at {}'.format(year))
                 pass
@@ -1426,31 +1335,26 @@ class System:
                 fullarray[1] = 1 
             elif element == 'storage':
                 fullarray[2] = 1
-            elif element == 'h2_retrieval':
+            elif element == 'h2_conversion':
                 fullarray[3] = 1
-#             elif element == 'pipeline_terminal_-_hinterland':
-#                 fullarray[4] = 1
 
         x = np.array(fullarray)
         t = np.where(x == 0)[0]
         t1 = t.tolist()
         t1.sort(reverse = True)#places where value is zero in array
         
-        Jetty_cap_planned_end = (Jetty_cap_planned * (100 - (plantloss+storloss+jettyloss)))/100
-        pipelineJ_capacity_planned_end = (pipelineJ_capacity_planned * (100 - (plantloss+storloss+jettyloss)))/100
-        storage_cap_planned_end = (storage_cap_planned * (100 - (plantloss+storloss)))/100
-        plant_capacity_planned_end = (plant_capacity_planned * (100 - (plantloss)))/100
-        #pipelineh_capacity_planned_end = pipelineh_capacity_planned
+        Jetty_cap_planned_end = (Jetty_cap_planned * (100 - (jettyloss)))/100
+        pipelineJ_capacity_planned_end = (pipelineJ_capacity_planned * (100 - (jettyloss)))/100
+        storage_cap_planned_end = (storage_cap_planned * (100 - (storloss+jettyloss)))/100
+        plant_capacity_planned_end = (plant_capacity_planned * (100 - (plantloss+storloss+jettyloss)))/100
         
-        Jetty_cap_end = (Jetty_cap * (100 - (plantloss+storloss+jettyloss)))/100
-        pipelineJ_capacity_online_end = (pipelineJ_capacity_online * (100 - (plantloss+storloss+jettyloss)))/100
-        storage_cap_online_end = (storage_cap_online * (100 - (plantloss+storloss)))/100
-        plant_capacity_online_end = (plant_capacity_online * (100 - (plantloss)))/100
-        #pipelineh_capacity_online_end = pipelineh_capacity_online  
+        Jetty_cap_end = (Jetty_cap * (100 - (jettyloss)))/100
+        pipelineJ_capacity_online_end = (pipelineJ_capacity_online * (100 - (jettyloss)))/100
+        storage_cap_online_end = (storage_cap_online * (100 - (storloss+jettyloss)))/100
+        plant_capacity_online_end = (plant_capacity_online * (100 - (plantloss+storloss+jettyloss)))/100
                 
-        array_planned =[Jetty_cap_planned_end, pipelineJ_capacity_planned_end, storage_cap_planned_end, plant_capacity_planned_end , Demand]
-        array_online = [Jetty_cap_end ,pipelineJ_capacity_online_end, storage_cap_online_end, plant_capacity_online_end,
-                        Demand]
+        array_planned =[Jetty_cap_planned_end, pipelineJ_capacity_planned_end, storage_cap_planned_end, plant_capacity_planned_end, Demand]
+        array_online = [Jetty_cap_end ,pipelineJ_capacity_online_end, storage_cap_online_end, plant_capacity_online_end, Demand]
         
 
         for i in t1:
@@ -1464,13 +1368,11 @@ class System:
         throughput_planned_pipej= 0
         throughput_planned_storage = 0 
         throughput_planned_plant = 0 
-        #throughput_planned_pipeh = 0 
         
         pipe_jetty = list.copy(array_planned)
         jetty = list.copy(array_planned)
         stor = list.copy(array_planned)
         h2plant = list.copy(array_planned)
-        #pipe_hinter = list.copy(array_planned)
         
         if fullarray[0] == 1:
             jetty.pop(0)
@@ -1484,13 +1386,10 @@ class System:
         if fullarray[3] == 1: 
             h2plant.pop(3)
             throughput_planned_plant = min(h2plant)
-#         if fullarray[4] == 1:
-#             pipe_hinter.pop(4)
-#             throughput_planned_pipeh = min(pipe_hinter)
-
+            
         throughput_online_jetty = (throughput_online*(100+(plantloss+storloss+jettyloss)))/100
         
-        return throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in
+        return throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in
   
        
         self.throughput.append(throughput_online)
@@ -1501,7 +1400,9 @@ class System:
         for element in list_of_elements:
             capacity += element.capacity
 
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
+        
         storage_capacity_dwelltime_throughput = (
                                                             throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
 
@@ -1521,8 +1422,7 @@ class System:
         jettys = []
         pipelines_jetty = []
         storages = []
-        h2retrievals = []
-#         pipelines_hinterland = []
+        h2conversions = []
         throughputs_online = []
 
         # matplotlib.rcParams.update({'font.size': 18})
@@ -1533,8 +1433,7 @@ class System:
             jettys.append(0)
             pipelines_jetty.append(0)
             storages.append(0)
-            h2retrievals.append(0)
-#             pipelines_hinterland.append(0)
+            h2conversions.append(0)
             throughputs_online.append(0)
 
             for element in self.elements:
@@ -1550,12 +1449,9 @@ class System:
                 if isinstance(element, Storage):
                     if year >= element.year_online:
                         storages[-1] += 1
-                if isinstance(element, H2retrieval):
+                if isinstance(element, H2conversion):
                     if year >= element.year_online:
-                        h2retrievals[-1] += 1
-#                 if isinstance(element, Pipeline_Hinter):
-#                     if year >= element.year_online:
-#                         pipelines_hinterland[-1] += 1
+                        h2conversions[-1] += 1
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
@@ -1568,10 +1464,8 @@ class System:
                 color='#ffbb78', edgecolor='darkgrey')
         ax1.bar([x + 3 * width for x in years], storages, width=width, alpha=alpha, label="Storages", color='#9edae5',
                 edgecolor='darkgrey')
-        ax1.bar([x + 4 * width for x in years], h2retrievals, width=width, alpha=alpha, label="H2 retrievals",
+        ax1.bar([x + 4 * width for x in years], h2conversions, width=width, alpha=alpha, label="H2 conversions",
                 color='#DBDB8D', edgecolor='darkgrey')
-#         ax1.bar([x + 5 * width for x in years], pipelines_hinterland, width=width, alpha=alpha, label="Pipeline hinter",
-#                 color='#c49c94', edgecolor='darkgrey')
 
         # added vertical lines for mentioning the different phases
         # plt.axvline(x=2025.6, color='k', linestyle='--')
@@ -1601,7 +1495,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -1632,7 +1527,7 @@ class System:
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels([int(x) for x in years], rotation='vertical', fontsize=fontsize)
         max_elements = max([max(berths), max(jettys), max(pipelines_jetty),
-                            max(storages), max(h2retrievals)])
+                            max(storages), max(h2conversions)])
 
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
         ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
@@ -1647,13 +1542,13 @@ class System:
         years = self.years
         throughputs_online = []
         storage_capacity_online = []
-        h2retrievals_capacity = []
+        h2conversions_capacity = []
 
         for year in self.years:
             # years.append(year)
             throughputs_online.append(0)
             storage_capacity_online.append(0)
-            h2retrievals_capacity.append(0)
+            h2conversions_capacity.append(0)
 
             # Find storage capacity
             for element in self.elements:
@@ -1662,9 +1557,9 @@ class System:
                         storage_capacity_online[-1] += element.capacity / self.allowable_dwelltime / 1.1
 
             for element in self.elements:
-                if isinstance(element, H2retrieval):
+                if isinstance(element, H2conversion):
                     if year >= element.year_online:
-                        h2retrievals_capacity[-1] += element.capacity * self.operational_hours
+                        h2conversions_capacity[-1] += element.capacity * self.operational_hours
 
             # for element in self.elements:
             #     if isinstance(element, Jetty):
@@ -1696,7 +1591,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
 
-            throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+            throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             for element in self.elements:
                 if isinstance(element, Berth):
                     if year >= element.year_online:
@@ -1707,8 +1603,8 @@ class System:
         fig, ax1 = plt.subplots(figsize=(20, 10))
         ax1.bar([x + 0 * width for x in years], storage_capacity_online, width=width, alpha=alpha,
                 label="Storage capacity", color='#9edae5', edgecolor='darkgrey')
-        ax1.bar([x + 1 * width for x in years], h2retrievals_capacity, width=width, alpha=alpha,
-                label="H2 retrieval capacity", color='#dbdb8d', edgecolor='darkgrey')
+        ax1.bar([x + 1 * width for x in years], h2conversions_capacity, width=width, alpha=alpha,
+                label="H2 conversion capacity", color='#dbdb8d', edgecolor='darkgrey')
 
         ax1.step(years, demand['demand'].values, label="Demand [t/y]", where='mid', color='#ff9896')
         ax1.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
@@ -1801,7 +1697,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -1860,16 +1757,16 @@ class System:
         for year in self.years:
             # years.append(year)
             plants_occupancy.append(0)
-            hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+            hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
             try:
 
-                plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online = self.calculate_h2retrieval_occupancy(
-                    year, hydrogen_defaults_h2retrieval_data)
+                plant_occupancy_planned, plant_occupancy_online, h2conversion_capacity_planned, h2conversion_capacity_online = self.calculate_h2conversion_occupancy(
+                    year, hydrogen_defaults_h2conversion_data)
             except:
                 plant_occupancy = 0
 
             for element in self.elements:
-                if isinstance(element, H2retrieval):
+                if isinstance(element, H2conversion):
                     if year >= element.year_online:
                         plants_occupancy[-1] = plant_occupancy_online
 
@@ -1897,7 +1794,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -1916,7 +1814,7 @@ class System:
             ax1.text(x=years[i], y=occ + 0.01, s="{:04.2f}".format(occ), size=15)
 
         # Adding a horizontal line which shows the allowable plant occupancy
-        horiz_line_data = np.array([self.h2retrieval_trigger for i in range(len(years))])
+        horiz_line_data = np.array([self.h2conversion_trigger for i in range(len(years))])
         plt.plot(years, horiz_line_data, 'r--', color='grey', label="Allowable plant occupancy [-]")
 
         ax2 = ax1.twinx()
@@ -1978,7 +1876,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -2048,7 +1947,7 @@ class System:
             for element in opentisim.core.find_elements(self, Jetty):
                 if isinstance(element, Jetty):
                     if year >= element.year_online:
-                        jettys_cap[-1] += largeammonia_data["pump_capacity"]
+                        jettys_cap[-1] += largeammonia_data["pump_capacity"] #klopt niet 
 
         # get demand
         demand = pd.DataFrame()
@@ -2074,7 +1973,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -2153,7 +2053,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -2196,19 +2097,19 @@ class System:
 
         # collect elements to add to plot
         years = self.years
-        h2retrievals = []
-        h2retrievals_capacity = []
+        h2conversions = []
+        h2conversions_capacity = []
 
         for year in self.years:
             # years.append(year)
-            h2retrievals.append(0)
-            h2retrievals_capacity.append(0)
+            h2conversions.append(0)
+            h2conversions_capacity.append(0)
 
             for element in self.elements:
-                if isinstance(element, H2retrieval):
+                if isinstance(element, H2conversion):
                     if year >= element.year_online:
-                        h2retrievals[-1] += 1
-                        h2retrievals_capacity[-1] += element.capacity * self.operational_hours
+                        h2conversions[-1] += 1
+                        h2conversions_capacity[-1] += element.capacity * self.operational_hours
 
         demand = pd.DataFrame()
         demand['year'] = self.years
@@ -2231,7 +2132,8 @@ class System:
             # years.append(year)
             throughputs_online.append(0)
             try:
-                throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+                throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
             except:
                 throughput_online = 0
                 pass
@@ -2243,16 +2145,16 @@ class System:
 
         # generate plot
         fig, ax1 = plt.subplots(figsize=(20, 10))
-        ax1.bar([x for x in years], h2retrievals, width=width, alpha=alpha, label="H2retrieval [nr]", color='#c7c7c7',
+        ax1.bar([x for x in years], h2conversions, width=width, alpha=alpha, label="H2conversion [nr]", color='#c7c7c7',
                 edgecolor='darkgrey')
 
-        for i, occ in enumerate(h2retrievals):
+        for i, occ in enumerate(h2conversions):
             occ = occ if type(occ) != float else 0
             ax1.text(x=years[i], y=occ + 0.02, s="{:01.0f}".format(occ), size=15)
 
         ax2 = ax1.twinx()
         ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
-        ax2.step(years, h2retrievals_capacity, label="H2 retrieval capacity", where='mid', linestyle='--',
+        ax2.step(years, h2conversions_capacity, label="H2 conversion capacity", where='mid', linestyle='--',
                  color='darkgrey')
 
         dem = demand['year'].values[~np.isnan(demand['year'].values)]
@@ -2264,123 +2166,44 @@ class System:
         ax1.set_xlabel('Years')
         ax1.set_ylabel('Elements on line [nr]')
         ax2.set_ylabel('Demand [t/y]')
-        ax1.set_title('H2retrievals')
+        ax1.set_title('H2conversions')
         ax1.set_xticks([x for x in years])
         ax1.set_xticklabels(years)
         fig.legend(loc=1)
 
-#     def Pipeline2_capacity_plot(self, width=0.2, alpha=0.6):
-#         """Gather data from Terminal and plot which elements come online when"""
-
-#         # collect elements to add to plot
-#         years = self.years
-#         pipeline_hinterland = []
-#         h2retrievals = []
-#         pipeline_hinterland_cap = []
-#         h2retrieval_cap = []
-
-#         for year in self.years:
-#             #years.append(year)
-#             pipeline_hinterland.append(0)
-#             h2retrievals.append(0)
-#             pipeline_hinterland_cap.append(0)
-#             h2retrieval_cap.append(0)
-
-#             for element in self.elements:
-#                 if isinstance(element, Pipeline_Hinter):
-#                     if year >= element.year_online:
-#                         pipeline_hinterland[-1] += 1
-#             for element in self.elements:
-#                 if isinstance(element, H2retrieval):
-#                     if year >= element.year_online:
-#                         h2retrievals[-1] += 1
-
-#             for element in self.elements:
-#                 if isinstance(element, Pipeline_Hinter):
-#                     if year >= element.year_online:
-#                         pipeline_hinterland_cap[-1] += element.capacity
-#             for element in self.elements:
-#                 if isinstance(element, H2retrieval):
-#                     if year >= element.year_online:
-#                         h2retrieval_cap[-1] += element.capacity
-
-#         # get demand
-#         demand = pd.DataFrame()
-#         demand['year'] = self.years
-#         demand['demand'] = 0
-
-#         for commodity in opentisim.core.find_elements(self, Commodity):
-#             try:
-#                 for column in commodity.scenario_data.columns:
-#                     if column in commodity.scenario_data.columns and column != "year":
-#                         demand['demand'] += commodity.scenario_data[column]
-#                     elif column in commodity.scenario_data.columns and column != "volume":
-#                         demand['year'] = commodity.scenario_data[column]
-#             except:
-#                 demand['demand'] += 0
-#                 demand['year'] += 0
-#                 pass
-
-#         # generate plot
-#         fig, ax1 = plt.subplots(figsize=(20, 10))
-#         ax1.bar([x - 0.5 * width for x in years], pipeline_hinterland, width=width, alpha=alpha,
-#                 label="Number of pipeline H2 retrieval - Hinterland", color='#c49c94', edgecolor='darkgrey')
-#         ax1.bar([x + 0.5 * width for x in years], h2retrievals, width=width, alpha=alpha,
-#                 label="Number of H2 retrievals", color='#DBDB8D', edgecolor='darkgrey')
-
-#         for i, occ in enumerate(pipeline_hinterland):
-#             occ = occ if type(occ) != float else 0
-#             ax1.text(x=years[i] - 0.25, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
-#         for i, occ in enumerate(h2retrievals):
-#             occ = occ if type(occ) != float else 0
-#             ax1.text(x=years[i] + 0.15, y=occ + 0.05, s="{:01.0f}".format(occ), size=15)
-
-
-#         # Plot second ax
-#         ax2 = ax1.twinx()
-#         ax2.step(years, pipeline_hinterland_cap, label="Pipeline hinterland capacity", where='mid', linestyle='--',
-#                  color='#c49c94')
-#         ax2.step(years, h2retrieval_cap, label="H2 retrieval capacity", where='mid', linestyle='--', color='darkgrey')
-
-#         ax1.set_xlabel('Years')
-#         ax1.set_ylabel('Nr of elements')
-#         ax2.set_ylabel('Capacity Pipeline & loading capacity H2 retrieval [t/h]')
-#         ax1.set_title('Capacity Pipeline & H2 retrieval')
-#         ax1.set_xticks([x for x in years])
-#         ax1.set_xticklabels(years)
-#         fig.legend(loc=1)
     
     def Throughput_capacity_elementplot(self, year):
-        throughput_online, throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(year)
+        throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = self.throughput_elements(
+            year)
         
-        hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+        hydrogen_defaults_h2conversion_data = self.h2conversion_type_defaults
         hydrogen_defaults_storage_data = self.storage_type_defaults
         
-        h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
-        plantloss = h2retrieval.losses
+        h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
+        plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
-        
-        Throughput_online = throughput_online 
-        Throughput_online_plant_in = (Throughput_online*(100+plantloss))/100
-        Throughput_online_storage_in = (Throughput_online*(100+(plantloss+storloss)))/100
-        Throughput_online_jetty_in = (Throughput_online*(100+(plantloss+storloss+jettyloss)))/100
-
-        Throughput_online_storage_out =  (Throughput_online*(100+(plantloss)))/100
-        Throughput_online_jetty_out = (Throughput_online*(100+(plantloss+storloss)))/100
-
-        lossesplant = Throughput_online_plant_in - Throughput_online 
-        lossesstorage = Throughput_online_storage_in - Throughput_online_storage_out
-        lossesjetty = Throughput_online_jetty_in - Throughput_online_jetty_out
         
         commodities = opentisim.core.find_elements(self, Commodity)
         for commodity in commodities:
             Hcontent = commodity.Hcontent
         
-        Throughput_online_plant_out_H2 =(Hcontent * Throughput_online)/100
-        Throughput_online_plant_out_rest = Throughput_online - Throughput_online_plant_out_H2
+        Throughput_online = throughput_online 
+        Throughput_online_plant_in = (Throughput_online*(100+(plantloss+jettyloss+storloss)))/100
+        Throughput_online_plant_in_H2 = (Hcontent * Throughput_online_plant_in)/100
+        Throughput_online_plant_in_rest = Throughput_online_plant_in - Throughput_online_plant_in_H2
         
+        Throughput_online_storage_in = (Throughput_online*(100+(jettyloss+storloss)))/100
+        Throughput_online_jetty_in = (Throughput_online*(100+(jettyloss)))/100
+
+        Throughput_online_storage_out =  (Throughput_online*(100+(jettyloss)))/100
+        Throughput_online_jetty_out = Throughput_online              
+        Throughput_online_plant_out = (Throughput_online*(100+jettyloss+storloss))/100
+        
+        lossesplant = Throughput_online_plant_in - Throughput_online_plant_out
+        lossesstorage = Throughput_online_storage_in - Throughput_online_storage_out
+        lossesjetty = Throughput_online_jetty_in - Throughput_online_jetty_out
         #online capacities: 
         # Find jetty capacity
         Jetty_cap_planned = 0
@@ -2426,20 +2249,21 @@ class System:
         storage_cap_online = storage_capacity_online / self.allowable_dwelltime / 1.1
 
         # Find H2retrieval capacity
-        h2retrieval_capacity_planned = 0
-        h2retrieval_capacity_online = 0
-        list_of_elements = opentisim.core.find_elements(self, H2retrieval)
+        h2conversion_capacity_planned = 0
+        h2conversion_capacity_online = 0
+        list_of_elements = opentisim.core.find_elements(self, H2conversion)
         if list_of_elements != []:
             for element in list_of_elements:
-                h2retrieval_capacity_planned += element.capacity * self.operational_hours
+                h2conversion_capacity_planned += element.capacity * self.operational_hours
                 if year >= element.year_online:
-                    h2retrieval_capacity_online += element.capacity * self.operational_hours
+                    h2conversion_capacity_online += element.capacity * self.operational_hours
         
         #plot:
-        data_cap = [Jetty_cap, storage_cap_online , h2retrieval_capacity_online]
-        data_in = [Throughput_online_jetty_in, Throughput_online_storage_in, Throughput_online_plant_in]
-        data_out_carrier = [Throughput_online_jetty_out ,Throughput_online_storage_out, Throughput_online_plant_out_rest  ]
-        data_out_H2 = [0,0,Throughput_online_plant_out_H2]
+        data_cap = [Jetty_cap, storage_cap_online , h2conversion_capacity_online]
+        data_in = [Throughput_online_jetty_in, Throughput_online_storage_in, Throughput_online_plant_in_rest]
+        data_in_H2 = [0,0,Throughput_online_plant_in_H2]
+        data_out_carrier = [Throughput_online_jetty_out ,Throughput_online_storage_out, Throughput_online_plant_out]
+
         losses = [lossesjetty,lossesstorage ,lossesplant]
         
         labels = ['Jetty', 'Storage', 'Plant']
@@ -2451,7 +2275,7 @@ class System:
         ax.bar(X - 0.2, data_cap, color = 'b', width = 0.1, label = 'Capacity online')
         ax.bar(X - 0.1, data_in, color = 'g', width = 0.1, label = 'Throughput in')
         ax.bar(X , data_out_carrier, color = 'y', width = 0.1, label = 'Throughput out (carrier)')
-        ax.bar(X + 0.1, data_out_H2, color = 'k', width = 0.1, label = 'Throughput out (H2)')
+        ax.bar(X + 0.1, data_in_H2, color = 'k', width = 0.1, label = 'Throughput in (H2)')
         ax.bar(X + 0.2, losses, color = 'r', width = 0.1, label = 'Losses')
         #ax.bar(X + 0.50, data[2], color = 'r', width = 0.25)
 
@@ -2462,5 +2286,4 @@ class System:
         ax.set_xticks(X)
         ax.set_xticklabels(labels)
         ax.legend()
-        
 

@@ -80,7 +80,8 @@ jetty_pipeline_data = {"name": 'jetty_pipeline_01',
                       "consumption_coefficient": 100, # [Lanphen2019, P 86]
                       "crew": 1,
                       "utilisation": 0.80,
-                      "capacity": 1} # Calculated in the hydrogen_system.py (the same as capacity of 1 jetty) 
+                      "capacity": 1, 
+                      "losses": 0} # Calculated in the hydrogen_system.py (the same as capacity of 1 jetty) 
 
 hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "type": 'hinterland_pipeline',
@@ -95,7 +96,8 @@ hinterland_pipeline_data = {"name": 'hinterland_pipeline_01',
                             "consumption_coefficient": 80, #in kwh/ton
                             "crew": 1,
                             "utilisation": 0.80,
-                            "capacity": 685} #4000 ton/hr
+                            "capacity": 685, #4000 ton/hr
+                             "losses": 0} 
 
 
 # *** Default inputs: Storage class ***
@@ -116,7 +118,8 @@ storage_lh2_data = {"name": 'HTank_01',
              "insurance_perc": 0.01,
              "storage_type": 'tank',
              "consumption": 610, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019] 
-             "capacity": 3_550}  #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019] 
+             "capacity": 3_550, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019] 
+               "losses": 0.06} #%/d 
 
 # [Ishimoto 2020] = Large-scale production and transport of hydrogen from Norway to Europe and Japan: Value chain analysis and comparison of liquid hydrogen and ammonia as energy (Ishimoto, Y., Voldsund, M., Nekså, P., Roussanaly, S., Berstad, D., Gardarsdottir, S. O.)
 
@@ -137,7 +140,8 @@ storage_nh3_data = {"name": 'ATank_01',
                   "insurance_perc": 0.01,
                   "storage_type": 'tank',
                   "consumption": 100, #in kwh/ton #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
-                  "capacity": 34_130} #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
+                  "capacity": 34_130,#[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
+                    "losses": 0.03} #%/d
 
 "MCH"
 storage_MCH_data = {"name": 'MCHTank_01',
@@ -154,10 +158,11 @@ storage_MCH_data = {"name": 'MCHTank_01',
                   "insurance_perc": 0.01,
                   "storage_type": 'tank',
                   "consumption": 10, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
-                  "capacity": 38_500} #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
+                  "capacity": 38_500, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
+                   "losses": 0} 
 
 
-# *** Default inputs: H2Conversion class ***
+# *** Default inputs: H2 Reconversion class ***
 
 "Liquid hydrogen"
 h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
@@ -174,8 +179,8 @@ h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
                   "insurance_perc": 0.01,
                   "h2retrieval_type": 'tank',
                   "consumption": 600, #in kwh/ton #[Abrahamse 2021] 
-                  "capacity": 137} #ton/hr #[Abrahamse 2021] 
-                  #"losses": 0 } 
+                  "capacity": 137, #ton H2/hr #[Abrahamse 2021] 137 ton H2 /hr --> 137 ton LH2 / hr
+                  "losses": 0 } 
 
 "Ammonia"
 h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
@@ -192,8 +197,8 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 5889,#in kwh/ton #[Abrahamse 2021] 
-             "capacity": 39}#ton/hr #[Abrahamse 2021] 
-             #"losses": 1}  #%
+             "capacity": 221, #ton H2/hr #[Abrahamse 2021] 39 ton H2 / hr --> 221 ton NH3 / hr
+             "losses": 1}  #%
 
 "MCH"
 h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
@@ -210,8 +215,72 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 9360,#in kwh/ton #[Abrahamse 2021] 
-             "capacity": 46} #in ton/hr #[Abrahamse 2021] 
-             #"losses": 10}  
+             "capacity": 742, #in ton H2/hr #[Abrahamse 2021] 46 ton H2 / hr --> 742 ton MCH / hr
+             "losses": 10}  
+
+
+# *** Default inputs: H2 Conversion class ***
+
+"Liquid hydrogen"
+h2conversion_lh2_data = {"name": 'H2conversion_LH2_01',
+                  "type": 'LH2Tank',
+                  "ownership": 'Terminal operator',
+                  "delivery_time": 2,
+                  "lifespan": 20,
+                  "unit_rate": 439_000_000, #[Abrahamse 2019] 
+                  "mobilisation_min": 200_000,
+                  "mobilisation_perc": 0.003,
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "h2conversion_type": 'tank',
+                  "consumption": 6400, #in kwh/ton #[Abrahamse 2021] 
+                  "capacity": 30, #ton LH2/hr #[Abrahamse 2021] 
+                  "losses": 0, 
+                   "recycle_rate": 0,
+                    "priceH2": 2.70} #€/kg
+
+"Ammonia"
+h2conversion_nh3_data = {"name": 'H2conversion_NH3_01',
+             "type": 'AmmoniaTank',
+             "ownership": 'Terminal operator',
+             "delivery_time": 2,
+             "lifespan": 20,
+             "unit_rate": 361_500_000, #[Abrahamse 2021] 
+             "mobilisation_min": 200_000,
+             "mobilisation_perc": 0.003,
+             "maintenance_perc": 0.015,
+             "crew_min": 3,
+             "crew_for5": 1,
+             "insurance_perc": 0.01,
+             "h2conversion_type": 'tank',
+             "consumption": 640,#in kwh/ton #[Abrahamse 2021] 
+             "capacity": 130, #ton NH3/hr #[Abrahamse 2021] 
+             "losses": 1,
+              "recycle_rate": 0,
+              "priceH2": 2.70}  #%#€/kg
+
+"MCH"
+h2conversion_MCH_data = {"name": 'H2conversion_MCH_01',
+             "type": 'MCHTank',
+             "ownership": 'Terminal operator',
+             "delivery_time": 2,
+             "lifespan": 20,
+             "unit_rate": 48_000_000, #[Abrahamse 2021] 
+             "mobilisation_min": 200_000,
+             "mobilisation_perc": 0.003,
+             "maintenance_perc": 0.015,
+             "crew_min": 3,
+             "crew_for5": 1,
+             "insurance_perc": 0.01,
+             "h2conversion_type": 'tank',
+             "consumption": 300,#in kwh/ton #[Abrahamse 2021] 
+             "capacity": 45, #in ton MCH/hr #[Abrahamse 2021] 
+             "losses": 1,
+             "recycle_rate": 97,
+              "priceH2": 2.70} #€/kg  
+
 
 
 # *** Default inputs: Commodity class ***
@@ -219,6 +288,8 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
 commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
                             "type": 'Liquid hydrogen',
                   "handling_fee": 490,
+                   "Hcontent": 100, 
+                   "material_price": 0,
                   "smallhydrogen_perc": 30,
                   "largehydrogen_perc": 70,
                   "smallammonia_perc": 0,
@@ -231,6 +302,8 @@ commodity_lhydrogen_data = {"name": 'Liquid hydrogen',
 commodity_ammonia_data = {"name": 'Ammonia',
                 "type": 'Ammonia',
                 "handling_fee": 150,
+                "Hcontent": 17.65,
+                "material_price": 27, #€/ton
                 "smallhydrogen_perc": 0,
                 "largehydrogen_perc": 0,
                 "smallammonia_perc": 40,
@@ -243,6 +316,8 @@ commodity_ammonia_data = {"name": 'Ammonia',
 commodity_MCH_data = {"name": 'MCH',
             "type": 'MCH',
             "handling_fee": 1000,
+            "Hcontent": 5.7,
+            "material_price": 350, #€/ton
             "smallhydrogen_perc": 0,
             "largehydrogen_perc": 0,
             "smallammonia_perc": 0,
