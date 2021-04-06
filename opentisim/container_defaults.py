@@ -24,7 +24,6 @@ Main generic object classes:
 - 15. Energy
 - 16. General
 - 17. Indirect Costs
-- 18. tes123
 """
 
 # package(s) for data handling
