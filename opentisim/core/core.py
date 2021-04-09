@@ -42,14 +42,17 @@ def add_cashflow_data_to_element(Terminal, element):
     # years
     years = Terminal.modelframe
     #years = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
-
+    
     # capex
     capex = element.capex
+    capex_material = element.capex_material
 
     # opex
     maintenance = element.maintenance
     insurance = element.insurance
     labour = element.labour
+    purchaseH2 = element.purchaseH2
+    purchase_material = element.purchase_material     
 
     # year online
     year_online = element.year_online
@@ -66,6 +69,9 @@ def add_cashflow_data_to_element(Terminal, element):
         df.loc[df["year"] == year_online - 1, "capex"] = 0.4 * capex
     else:
         df.loc[df["year"] == year_online - 1, "capex"] = capex
+    
+    if capex_material:
+        df.loc[df["year"] == year_online, "capex_material"] = capex_material
 
     # opex
     if maintenance:
@@ -74,6 +80,11 @@ def add_cashflow_data_to_element(Terminal, element):
         df.loc[df["year"] >= year_online, "insurance"] = insurance
     if labour:
         df.loc[df["year"] >= year_online, "labour"] = labour
+    
+    if purchaseH2:
+        df.loc[df["year"] >= year_online, "purchaseH2"] = purchaseH2
+    if purchase_material:
+        df.loc[df["year"] >= year_online, "purchase_material"] =  purchase_material 
 
     df.fillna(0, inplace=True)
 
@@ -91,16 +102,19 @@ def add_cashflow_elements(Terminal, labour):
     #cash_flows['year'] = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
     cash_flows['year'] = Terminal.modelframe
     cash_flows['capex'] = 0
+    cash_flows['capex_material'] = 0 
     cash_flows['maintenance'] = 0
     cash_flows['insurance'] = 0
     cash_flows['energy'] = 0
     cash_flows['labour'] = 0
     cash_flows['fuel'] = 0
-    cash_flows['demurrage'] = Terminal.demurrage
+    cash_flows['purchaseH2'] = 0
+    cash_flows['purchase_material'] = 0
+    cash_flows['demurrage'] = 0 #Terminal.demurrage
     try:
-       cash_flows['revenues'] = Terminal.revenues
+        cash_flows['revenues'] = Terminal.revenues
     except:
-       cash_flows['revenues'] = 0
+        cash_flows['revenues'] = 0
 
     # add labour component for years were revenues are not zero
     cash_flows.loc[cash_flows['revenues'] != 0, 'labour'] = \

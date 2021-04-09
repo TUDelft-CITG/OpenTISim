@@ -4,6 +4,12 @@
 # In[ ]:
 
 
+
+# coding: utf-8
+
+# In[ ]:
+
+
 # package(s) for data handling
 import pandas as pd
 import numpy as np
@@ -28,7 +34,7 @@ class ExportTerminal:
                  kendall='E2/E2/n',
                  allowable_waiting_service_time_ratio_berth=0.5,
                  h2conversion_type_defaults=h2conversion_nh3_data,
-                 allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2conversion_trigger=1):
+                 allowable_berth_occupancy=0.5, allowable_dwelltime=30 / 365, h2conversion_trigger=1):
         # time inputs
         self.years = []
         self.startyear = startyear
@@ -117,6 +123,7 @@ class ExportTerminal:
             h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
             plantloss = h2conversion.losses
             storage = Storage(**hydrogen_defaults_storage_data)
+            #storloss = (storage.losses) * (self.allowable_dwelltime * 365)
             storloss = storage.losses
             jettyloss = jetty_pipeline_data["losses"]
             #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -194,6 +201,7 @@ class ExportTerminal:
             h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
             plantloss = h2conversion.losses
             storage = Storage(**hydrogen_defaults_storage_data)
+            #storloss = (storage.losses) * (self.allowable_dwelltime * 365)
             storloss = storage.losses
             jettyloss = jetty_pipeline_data["losses"]
             
@@ -284,6 +292,7 @@ class ExportTerminal:
         h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
         plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -762,6 +771,7 @@ class ExportTerminal:
         h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
         plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -948,6 +958,7 @@ class ExportTerminal:
         h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
         plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #(Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -1195,6 +1206,7 @@ class ExportTerminal:
         h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
         plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #(Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -1312,6 +1324,7 @@ class ExportTerminal:
         h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
         plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
        
@@ -1343,15 +1356,15 @@ class ExportTerminal:
         t1 = t.tolist()
         t1.sort(reverse = True)#places where value is zero in array
         
-        Jetty_cap_planned_end = (Jetty_cap_planned * (100 - (jettyloss)))/100
-        pipelineJ_capacity_planned_end = (pipelineJ_capacity_planned * (100 - (jettyloss)))/100
-        storage_cap_planned_end = (storage_cap_planned * (100 - (storloss+jettyloss)))/100
-        plant_capacity_planned_end = (plant_capacity_planned * (100 - (plantloss+storloss+jettyloss)))/100
+        Jetty_cap_planned_end = (Jetty_cap_planned * 100) / (100+jettyloss)
+        pipelineJ_capacity_planned_end = (pipelineJ_capacity_planned* 100) / (100+jettyloss)
+        storage_cap_planned_end = (storage_cap_planned * 100) / (100+(jettyloss+storloss))
+        plant_capacity_planned_end = (plant_capacity_planned * 100) / (100+(jettyloss+storloss+plantloss))
         
-        Jetty_cap_end = (Jetty_cap * (100 - (jettyloss)))/100
-        pipelineJ_capacity_online_end = (pipelineJ_capacity_online * (100 - (jettyloss)))/100
-        storage_cap_online_end = (storage_cap_online * (100 - (storloss+jettyloss)))/100
-        plant_capacity_online_end = (plant_capacity_online * (100 - (plantloss+storloss+jettyloss)))/100
+        Jetty_cap_end = (Jetty_cap * 100) / (100+jettyloss)
+        pipelineJ_capacity_online_end = (pipelineJ_capacity_online * 100) / (100+jettyloss)
+        storage_cap_online_end = (storage_cap_online * 100) / (100+(jettyloss+storloss))
+        plant_capacity_online_end = (plant_capacity_online * 100) / (100+(jettyloss+storloss+plantloss))
                 
         array_planned =[Jetty_cap_planned_end, pipelineJ_capacity_planned_end, storage_cap_planned_end, plant_capacity_planned_end, Demand]
         array_online = [Jetty_cap_end ,pipelineJ_capacity_online_end, storage_cap_online_end, plant_capacity_online_end, Demand]
@@ -1387,7 +1400,7 @@ class ExportTerminal:
             h2plant.pop(3)
             throughput_planned_plant = min(h2plant)
             
-        throughput_online_jetty = (throughput_online*(100+(plantloss+storloss+jettyloss)))/100
+        throughput_online_jetty = throughput_online #(throughput_online*(100+(plantloss+storloss+jettyloss)))/100
         
         return throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in
   
@@ -1521,7 +1534,7 @@ class ExportTerminal:
         ax1.set_title('Terminal elements online', fontsize=fontsize)
         ax1.set_xlabel('Years', fontsize=fontsize)
         ax1.set_ylabel('Elements on line [nr]', fontsize=fontsize)
-        ax2.set_ylabel('Demand/throughput[t/y]', fontsize=fontsize)
+        ax2.set_ylabel('Demand/throughput[t/y]') #, fontsize=fontsize)
 
         # ticks and tick labels
         ax1.set_xticks([x for x in years])
@@ -1530,7 +1543,8 @@ class ExportTerminal:
                             max(storages), max(h2conversions)])
 
         ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
-        ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
+        ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)])
+#, fontsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
@@ -2182,6 +2196,7 @@ class ExportTerminal:
         h2conversion = H2conversion(**hydrogen_defaults_h2conversion_data)
         plantloss = h2conversion.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         
@@ -2286,4 +2301,5 @@ class ExportTerminal:
         ax.set_xticks(X)
         ax.set_xticklabels(labels)
         ax.legend()
+
 

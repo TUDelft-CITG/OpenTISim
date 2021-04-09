@@ -331,6 +331,7 @@ commodity_MCH_data = {"name": 'MCH',
 
 "Liquid hydrogen:"
 
+
 smallhydrogen_data = {"name": 'smallhydrogen_1',
                   "type": 'Smallhydrogen',
                   "call_size": 10_345, #[Abrahamse 2021]
@@ -341,7 +342,24 @@ smallhydrogen_data = {"name": 'smallhydrogen_1',
                   "all_turn_time": 20,
                   "pump_capacity": 1_034.5, #[Abrahamse 2021]
                   "mooring_time": 3,
-                  "demurrage_rate": 600}
+                  "demurrage_rate": 600, 
+                  "delivery_time": 0, 
+                  "lifespan": 20,
+                  "unit_rate": 253_000_000, 
+                  "mobilisation_min": 0, 
+                  "mobilisation_perc":0, 
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "losses": 0.3, 
+                  "utilization":5840, 
+                  "avspeed": 25, 
+                  "consumption": 275, 
+                  "ship_weight": 31501,
+                   "DWT": 84580,
+                   "gamma":0.9, 
+                  "fuelprice": 388}
 
 largehydrogen_data = {"name": 'largehydrogen_1',
                   "type": 'Largehydrogen',
@@ -353,7 +371,24 @@ largehydrogen_data = {"name": 'largehydrogen_1',
                   "all_turn_time": 30,
                   "pump_capacity": 1888.6, #[Abrahamse 2021]
                   "mooring_time": 3,
-                  "demurrage_rate": 700}
+                  "demurrage_rate": 700,
+                  "delivery_time": 0, 
+                  "lifespan": 20,
+                  "unit_rate": 334_000_000, 
+                  "mobilisation_min": 0, 
+                  "mobilisation_perc":0, 
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "losses": 0.3, 
+                  "utilization":5840, 
+                  "avspeed": 25, 
+                  "consumption": 275, 
+                  "ship_weight": 48008,
+                   "DWT": 128900,
+                   "gamma":0.9,  
+                  "fuelprice": 388}
 
 "Ammonia:"
 
@@ -367,7 +402,24 @@ smallammonia_data = {"name": 'smallammonia_1',
                  "all_turn_time": 24,
                  "pump_capacity": 1406.2, #[Abrahamse 2021]
                  "mooring_time": 3,
-                 "demurrage_rate": 750}
+                 "demurrage_rate": 750,
+                 "delivery_time": 0, 
+                  "lifespan": 20,
+                  "unit_rate": 41_000_000, 
+                  "mobilisation_min": 0, 
+                  "mobilisation_perc":0, 
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "losses": 0.08, 
+                  "utilization":5840, 
+                  "avspeed": 25, 
+                  "consumption": 275, 
+                  "ship_weight": 7261,
+                  "DWT": 19182,
+                  "gamma":0.9,  
+                  "fuelprice": 388}
 
 largeammonia_data = {"name": 'largeammonia_1',
                  "type": 'Largeammonia',
@@ -379,8 +431,24 @@ largeammonia_data = {"name": 'largeammonia_1',
                  "all_turn_time": 24,
                  "pump_capacity": 5661, #[Abrahamse 2021]
                  "mooring_time": 3, 
-                 "demurrage_rate": 750}
-
+                 "demurrage_rate": 750,
+                 "delivery_time": 0, 
+                  "lifespan": 20,
+                  "unit_rate": 82_000_000, 
+                  "mobilisation_min": 0, 
+                  "mobilisation_perc":0, 
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "losses": 0.08, 
+                  "utilization":5840, 
+                  "avspeed": 25, 
+                  "consumption": 275, 
+                  "ship_weight": 19128,
+                  "DWT": 50534,
+                  "gamma":0.9,  
+                  "fuelprice": 388}
 "MCH:"
 handysize_data = {"name": 'Handysize_1',
                   "type": 'Handysize',
@@ -392,7 +460,24 @@ handysize_data = {"name": 'Handysize_1',
                   "all_turn_time": 24,
                   "pump_capacity": 3_500, #[Abrahamse 2021]
                   "mooring_time": 3,
-                  "demurrage_rate": 600}
+                  "demurrage_rate": 600,
+                  "delivery_time": 0, 
+                  "lifespan": 20,
+                  "unit_rate": 38_000_000, 
+                  "mobilisation_min": 0, 
+                  "mobilisation_perc":0, 
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "losses": 0, 
+                  "utilization":5840, 
+                  "avspeed": 25, 
+                  "consumption": 275, 
+                  "ship_weight": 11050,
+                  "DWT": 78322,
+                  "gamma":0.9,  
+                  "fuelprice": 388}
 
 panamax_data = {"name": 'Panamax_1',
                 "type": 'Panamax',
@@ -404,7 +489,24 @@ panamax_data = {"name": 'Panamax_1',
                 "all_turn_time": 36,
                 "pump_capacity": 6_500, #[Abrahamse 2021]
                 "mooring_time": 3,
-                "demurrage_rate": 730}
+                "demurrage_rate": 730,
+                "delivery_time": 0, 
+                  "lifespan": 20,
+                  "unit_rate": 59_000_000, 
+                  "mobilisation_min": 0, 
+                  "mobilisation_perc":0, 
+                  "maintenance_perc": 0.015,
+                  "crew_min": 3,
+                  "crew_for5": 1,
+                  "insurance_perc": 0.01,
+                  "losses": 0, 
+                  "utilization":5840, 
+                  "avspeed": 25, 
+                  "consumption": 275, 
+                  "ship_weight": 17044,
+                  "DWT": 120802,
+                  "gamma":0.9,  
+                  "fuelprice": 388}
 
 vlcc_data = {"name": 'VLCC_1',
              "type": 'VLCC',
@@ -416,7 +518,24 @@ vlcc_data = {"name": 'VLCC_1',
              "all_turn_time": 40,
              "pump_capacity": 20_000, #[Abrahamse 2021]
              "mooring_time": 3,
-             "demurrage_rate": 1000}
+             "demurrage_rate": 1000,
+             "delivery_time": 0, 
+              "lifespan": 20,
+              "unit_rate": 127_000_000, 
+              "mobilisation_min": 0, 
+              "mobilisation_perc":0, 
+              "maintenance_perc": 0.015,
+              "crew_min": 3,
+              "crew_for5": 1,
+              "insurance_perc": 0.01,
+              "losses": 0, 
+              "utilization":5840, 
+              "avspeed": 25, 
+              "consumption": 275, 
+              "ship_weight": 37432,
+              "DWT": 265311,
+              "gamma":0.9,  
+              "fuelprice": 388}
 
 
 # *** Default inputs: Labour class ***

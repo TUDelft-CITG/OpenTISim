@@ -236,11 +236,9 @@ class commodity_properties_mixin(object):
         self.panamax_perc = panamax_perc
         self.vlcc_perc = vlcc_perc
 
-
 class vessel_properties_mixin(object):
-    def __init__(self,
-                 type, call_size, LOA, draft, beam, max_cranes, all_turn_time, pump_capacity, mooring_time, demurrage_rate,
-                 *args, **kwargs):
+    def __init__(self, type, call_size, LOA, draft, beam, max_cranes, all_turn_time,
+                 pump_capacity, mooring_time, demurrage_rate, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, maintenance_perc, crew_min, crew_for5,insurance_perc,losses,utilization,avspeed, consumption, ship_weight, DWT, gamma, fuelprice, *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -253,6 +251,53 @@ class vessel_properties_mixin(object):
         self.pump_capacity = pump_capacity
         self.mooring_time = mooring_time
         self.demurrage_rate = demurrage_rate
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
+        self.insurance_perc = insurance_perc
+        self.losses = losses 
+        self.utilization = utilization
+        self.avspeed = avspeed
+        self.consumption = consumption
+        self.ship_weight = ship_weight
+        self.DWT = DWT
+        self.gamma = gamma
+        self.fuelprice = fuelprice 
+             
+    
+# class vessel_properties_mixin(object):
+#     def __init__(self,type, call_size, LOA, draft, beam, max_cranes, all_turn_time, pump_capacity, mooring_time,demurrage_rate,delivery_time, lifespan, unit_rate, mobilisation_min, maintenance_perc, crew_min, crew_for5, insurance_perc,losses, utilization, avspeed, consumption, ship_weight, fuelprice, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         "initialize"
+#         self.type = type
+#         self.call_size = call_size
+#         self.LOA = LOA
+#         self.draft = draft
+#         self.beam = beam
+#         self.max_cranes = max_cranes
+#         self.all_turn_time = all_turn_time
+#         self.pump_capacity = pump_capacity
+#         self.mooring_time = mooring_time
+#         self.demurrage_rate = demurrage_rate
+#         self.delivery_time = delivery_time
+#         self.lifespan = lifespan
+#         self.unit_rate = unit_rate
+#         self.mobilisation_min = mobilisation_min
+#         self.maintenance_perc = maintenance_perc
+#         self.crew_min = crew_min
+#         self.crew_for5 = crew_for5
+#         self.insurance_perc = insurance_perc
+#         self.losses = losses 
+#         self.utilization = utilization
+#         self.avspeed = avspeed
+#         self.consumption = consumption
+#         self.ship_weight = ship_weight
+#         self.fuelprice = fuelprice 
 
 
 class labour_properties_mixin(object):

@@ -129,6 +129,16 @@ Commodity = type('Commodity', (identifiable_properties_mixin,  # Give it a name
 # - Handysize
 # - Panamax
 # - VLCC
+
+# Vessel = type('Vessel', (identifiable_properties_mixin,  # Give it a name
+#                            history_properties_mixin,  # Give it procurement history
+#                            vessel_properties_mixin,
+#                            hascapex_properties_mixin,  # Give it capex info
+#                            hasopex_properties_mixin,  # Give it opex info
+#                            hasrevenue_properties_mixin,  # Give it revenue info
+#                            hastriggers_properties_mixin),  # Give it investment triggers (lambda?)
+#                {})  # The dictionary is empty because the site type is generic
+
 Vessel = type('Vessel', (identifiable_properties_mixin,
                          vessel_properties_mixin),
               {})  # The dictionary is empty because the site type is generic

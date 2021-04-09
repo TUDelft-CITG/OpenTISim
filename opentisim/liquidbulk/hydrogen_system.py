@@ -4,6 +4,11 @@
 # In[ ]:
 
 
+# coding: utf-8
+
+# In[ ]:
+
+
 # package(s) for data handling
 import pandas as pd
 import numpy as np
@@ -28,7 +33,7 @@ class System:
                  kendall='E2/E2/n',
                  allowable_waiting_service_time_ratio_berth=0.5,
                  h2retrieval_type_defaults=h2retrieval_nh3_data,
-                 allowable_berth_occupancy=0.5, allowable_dwelltime=14 / 365, h2retrieval_trigger=1):
+                 allowable_berth_occupancy=0.5, allowable_dwelltime=30 / 365, h2retrieval_trigger=1):
         # time inputs
         self.years = []
         self.startyear = startyear
@@ -117,6 +122,7 @@ class System:
             h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
             plantloss = h2retrieval.losses
             storage = Storage(**hydrogen_defaults_storage_data)
+            #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
             storloss = storage.losses
             jettyloss = jetty_pipeline_data["losses"]
             #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -200,7 +206,8 @@ class System:
             h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
             plantloss = h2retrieval.losses
             storage = Storage(**hydrogen_defaults_storage_data)
-            storloss = storage.losses
+            #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
+            storloss = storage.losses 
             jettyloss = jetty_pipeline_data["losses"]
             
             throughput_plant_in = (throughput_online*(100+(plantloss)))/100
@@ -291,6 +298,7 @@ class System:
         h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
         plantloss = h2retrieval.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -829,6 +837,7 @@ class System:
         h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
         plantloss = h2retrieval.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365)
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #Demand_jetty_in = (Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -1030,6 +1039,7 @@ class System:
         h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
         plantloss = h2retrieval.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #(Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -1277,6 +1287,7 @@ class System:
         h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
         plantloss = h2retrieval.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
         #(Demand*(100+(plantloss+storloss+jettyloss)))/100
@@ -1402,6 +1413,7 @@ class System:
         h2retrieval = H2retrieval(**hydrogen_defaults_h2retrieval_data)
         plantloss = h2retrieval.losses
         storage = Storage(**hydrogen_defaults_storage_data)
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         storloss = storage.losses
         jettyloss = jetty_pipeline_data["losses"]
 
@@ -1450,8 +1462,7 @@ class System:
                 
         array_planned =[Jetty_cap_planned_end, pipelineJ_capacity_planned_end, storage_cap_planned_end, plant_capacity_planned_end , Demand]
         array_online = [Jetty_cap_end ,pipelineJ_capacity_online_end, storage_cap_online_end, plant_capacity_online_end,
-                        Demand]
-        
+                        Demand] 
 
         for i in t1:
             array_planned.pop(i)
@@ -1634,8 +1645,9 @@ class System:
         max_elements = max([max(berths), max(jettys), max(pipelines_jetty),
                             max(storages), max(h2retrievals)])
 
-        ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
-        ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)], fontsize=fontsize)
+        #ax1.set_yticks([x for x in range(0, max_elements + 1 + 2, 2)])
+        #ax1.set_yticklabels([int(x) for x in range(0, max_elements + 1 + 2, 2)])
+#, fontsize=fontsize)
 
         # print legend
         fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
@@ -2360,6 +2372,7 @@ class System:
         plantloss = h2retrieval.losses
         storage = Storage(**hydrogen_defaults_storage_data)
         storloss = storage.losses
+        #storloss = (storage.losses) * (self.allowable_dwelltime * 365) 
         jettyloss = jetty_pipeline_data["losses"]
         
         Throughput_online = throughput_online 
@@ -2463,4 +2476,5 @@ class System:
         ax.set_xticklabels(labels)
         ax.legend()
         
+
 
