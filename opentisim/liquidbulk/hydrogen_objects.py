@@ -157,3 +157,18 @@ Energy = type('Energy', (identifiable_properties_mixin,
 Train = type('Train', (identifiable_properties_mixin,
                        train_properties_mixin),
              {})  # The dictionary is empty because the site type is generic
+
+
+Barge = type('Barge', (identifiable_properties_mixin,
+                         barge_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+Truck = type('Truck', (identifiable_properties_mixin,
+                         truck_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+Pipe = type('Pipe', (identifiable_properties_mixin,
+                         pipe_properties_mixin),
+              {})  # The dictionary is empty because the site type is generic
+
+

@@ -94,10 +94,9 @@ def cashflow_data(terminal, element):  #(Terminal, element):
 
 
 def vessel_objects(terminal, dataframe_vessel, vessel_defaults,durationdays,numberoftrips):
+        
     list_year = dataframe_vessel['year'].tolist()
     list_vessels = dataframe_vessel['vessel count'].tolist()
-    #print(list_year)
-    #print(list_vessels)
     
     new_array = np.zeros(len(list_vessels))
     for i in range(len(list_vessels)):
@@ -135,14 +134,36 @@ def vessel_objects(terminal, dataframe_vessel, vessel_defaults,durationdays,numb
                 fuelconsumption_load = (1/120000)*(displacement)**(2/3)*(avspeedknots)**(3)
                 fuelconsumption_unload = (1/120000)*(vessel.ship_weight + vessel.call_size)**(2/3)*(avspeedknots)**(3)
 
-                average_fuelconsumption = (fuelconsumption_load + fuelconsumption_unload)/2 #t/d 
-                fuelcon_trip = (durationdays*2)*average_fuelconsumption
-                tripsperyear = numberoftrips
-                fuelcon_year = tripsperyear * fuelcon_trip #ton 
-                fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> € 
-
+#                 average_fuelconsumption = (fuelconsumption_load + fuelconsumption_unload)/2 #t/d 
+#                 fuelcon_trip = (durationdays*2)*average_fuelconsumption
+#                 tripsperyear = numberoftrips
+#                 fuelcon_year = tripsperyear * fuelcon_trip #ton 
+#                 fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> € 
+            
+                for commodity in opentisim.core.find_elements(terminal, Commodity):
+                    if commodity.type == 'MCH': 
+                        average_fuelconsumption = fuelconsumption_load
+                        fuelcon_trip = (durationdays*2)*average_fuelconsumption
+                        tripsperyear = numberoftrips
+                        fuelcon_year = tripsperyear * fuelcon_trip #ton 
+                        fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> € 
+                        #loaded and unloaded is the same 
+                    elif commodity.type == 'Liquid hydrogen':
+                        average_fuelconsumption = fuelconsumption_unload 
+                        fuelcon_trip = (durationdays)*average_fuelconsumption
+                        tripsperyear = numberoftrips
+                        fuelcon_year = tripsperyear * fuelcon_trip #ton 
+                        fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> €  
+                        #unloaded back on diesel/hydrogen?  
+                    else:
+                        average_fuelconsumption = fuelconsumption_unload 
+                        fuelcon_trip = (durationdays)*average_fuelconsumption
+                        tripsperyear = numberoftrips
+                        fuelcon_year = tripsperyear * fuelcon_trip #ton 
+                        fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> €  
+                        #unloaded back on diesel/hydrogen?
+                
                 vessel.fuel = fuelcost_year
-
                 #add cashflow to vessel 
                 vessel = cashflow_data(terminal, vessel)
                 #vessel = opentisim.core.add_cashflow_data_to_element(self, jetty)
@@ -151,10 +172,379 @@ def vessel_objects(terminal, dataframe_vessel, vessel_defaults,durationdays,numb
     return seaborne_transport
 
 
+def inland_objects(terminal, dataframe_vessel, transport_defaults, durationdays, numberoftrips,distancekm):
+    list_year = dataframe_vessel['year'].tolist()
+    list_vessels = dataframe_vessel['vessel count'].tolist()
+    #print(list_year)
+    #print(list_vessels)
+    
+    new_array = np.zeros(len(list_vessels))
+    for i in range(len(list_vessels)):
+        new_array[i] = list_vessels[i]-list_vessels[i-1]
+    
+    new_array[0] = list_vessels[1]
+    #print(new_array)
+    
+    inland_transport = []
+    for year_index, vessels_year in enumerate(new_array):
+        new = int(vessels_year)
+        if vessels_year != 0:
+            for i in range(new):
+                if terminal.transport_sc2 == 'barge':
+                    #print('** Add vessel to elements')
+                    transport = Barge(**transport_defaults)
+
+                    # - capex
+                    transport.capex = transport.unit_rate + transport.mobilisation_min
+
+                    # - opex
+                    transport.insurance = transport.unit_rate * transport.insurance_perc
+                    transport.maintenance =transport.unit_rate * transport.maintenance_perc
+
+                    #   labour**hydrogen_defaults
+                    labour = Labour(**labour_data)
+                    transport.shift = (
+                                (transport.crew_for5 * transport.utilization) / (labour.shift_length * labour.annual_shifts))
+                    transport.labour = transport.shift * labour.operational_salary
+                    transport.year_online = list_year[year_index]
+
+                    #Add fuel 
+                    commodity = Commodity(**terminal.commodity_type_defaults)
+                    capacity = transport.call_size
+                    fuelprice = transport.fuelprice
+                    hycontent = commodity.Hcontent
+
+                    weightship = transport.ship_weight 
+                    weightload = transport.call_size + weightship 
+                    weightunload = weightship 
+
+                    hoursperyear = transport.utilization #h/y 
+                    avspeed = transport.avspeed #km/h
+                    capacity = transport.call_size
+                    consumption = transport.consumption
+                    loadingtime = transport.loadingtime #h 
+                    unloadingtime = transport.unloadingtime #h
+
+                    distance = distancekm 
+                    tripsperyear = numberoftrips
+                    traveldist = numberoftrips*distancekm
+
+                    fuelusageload = weightload/consumption #L/km
+                    fuelusageunload = weightunload/consumption #L/km
+
+                    for commodity in opentisim.core.find_elements(terminal, Commodity):
+                        if commodity.type == 'MCH': 
+                            literperyear = fuelusageload * (traveldist * 2)
+                        elif commodity.type == 'Liquid hydrogen':
+                            literperyear = fuelusageunload*traveldist
+                        else:
+                            literload = fuelusageload * traveldist
+                            literunload = fuelusageunload*traveldist
+                            literperyear = literload + literunload 
+
+                    transport.fuel = literperyear * fuelprice
+
+                    #add cashflow to vessel 
+                    transport = cashflow_data(terminal, transport)
+                    #vessel = opentisim.core.add_cashflow_data_to_element(self, jetty)
+
+                    inland_transport.append(transport)
+                
+                if terminal.transport_sc2 == 'train':
+                    #print('** Add vessel to elements')
+                    transport = Train(**transport_defaults)
+
+                    # - capex
+                    transport.capex = transport.unit_rate + transport.mobilisation_min
+
+                    # - opex
+                    transport.insurance = transport.unit_rate * transport.insurance_perc
+                    transport.maintenance =transport.unit_rate * transport.maintenance_perc
+
+                    #   labour**hydrogen_defaults
+                    labour = Labour(**labour_data)
+                    transport.shift = (
+                                (transport.crew_for5 * transport.utilization) / (labour.shift_length * labour.annual_shifts))
+                    transport.labour = transport.shift * labour.operational_salary
+                    transport.year_online = list_year[year_index]
+
+                    #Add fuel 
+                    commodity = Commodity(**terminal.commodity_type_defaults)
+                    capacity = transport.call_size
+                    fuelprice = transport.fuelprice
+                    hycontent = commodity.Hcontent
+
+                    weightship = transport.train_weight 
+                    weightload = transport.call_size + weightship 
+                    weightunload = weightship 
+
+                    hoursperyear = transport.utilization #h/y 
+                    avspeed = transport.avspeed #km/h
+                    capacity = transport.call_size
+                    consumption = transport.consumption
+                    loadingtime = transport.loadingtime #h 
+                    unloadingtime = transport.unloadingtime #h
+
+                    distance = distancekm 
+                    tripsperyear = numberoftrips
+                    traveldist = numberoftrips*distancekm
+
+                    fuelusageload = weightload/consumption
+                    fuelusageunload = weightunload/consumption
+
+                    for commodity in opentisim.core.find_elements(terminal, Commodity):
+                        if commodity.type == 'MCH': 
+                            literperyear = fuelusageload * (traveldist * 2)
+                        elif commodity.type == 'Liquid hydrogen':
+                            literperyear = fuelusageunload*traveldist
+                        else:
+                            literload = fuelusageload * traveldist
+                            literunload = fuelusageunload*traveldist
+                            literperyear = literload + literunload 
+
+                    transport.fuel = literperyear * fuelprice
+
+                    #add cashflow to vessel 
+                    transport = cashflow_data(terminal, transport)
+                    #vessel = opentisim.core.add_cashflow_data_to_element(self, jetty)
+
+                    inland_transport.append(transport)
+                    
+                if terminal.transport_sc2 == 'truck':
+                                        #print('** Add vessel to elements')
+                    transport = Truck(**transport_defaults)
+                    
+                    # - capex
+                    transport.capex = transport.unit_rate + transport.mobilisation_min
+
+                    # - opex
+                    transport.insurance = transport.unit_rate * transport.insurance_perc
+                    transport.maintenance =transport.unit_rate * transport.maintenance_perc
+
+                    #   labour**hydrogen_defaults
+                    labour = Labour(**labour_data)
+                    transport.shift = (
+                                (transport.crew_for5 * transport.utilization) / (labour.shift_length * labour.annual_shifts))
+                    transport.labour = transport.shift * labour.operational_salary
+                    transport.year_online = list_year[year_index]
+
+                    #Add fuel 
+                    
+
+                    capacity = truck.capacity
+                    hoursperyear = truck.utilization #h/y 
+
+                    avspeed = truck.avspeed #km/h
+                    distance = distancekm
+                    loadingtime = truck.loadingtime #h 
+                    unloadingtime = truck.unloadingtime #h 
+                    tripsperyear = numberoftrips
+
+                    travelleddistance = tripsperyear * distance * 2 
+                    fuelprice = truck.fuelprice #€/km
+                    
+                    transport.fuel = travelleddistance * fuelprice
+
+
+                    #add cashflow to vessel 
+                    transport = cashflow_data(terminal, transport)
+                    #vessel = opentisim.core.add_cashflow_data_to_element(self, jetty)
+                    inland_transport.append(transport)
+                    
+    return inland_transport
+
 # In[3]:
 
 
 def transport_elements_plot(terminal, seaborne_transport, numberoftrips, width=0.25, alpha=0.6):
+    
+    vessels = []
+    vessels_capacity = []
+    
+    years = terminal.years
+    
+    for year in years:
+    # years.append(year)
+        vessels.append(0)
+        vessels_capacity.append(0)
+
+        for element in seaborne_transport:
+            if isinstance(element, Vessel):
+                if year >= element.year_online:
+                    vessels[-1] += 1
+                    vessels_capacity[-1] += (element.call_size * numberoftrips)
+
+                
+    demand = pd.DataFrame()
+    demand['year'] = years
+    demand['demand'] = 0
+
+    for commodity in opentisim.core.find_elements(terminal, Commodity):
+        try:
+            for column in commodity.scenario_data.columns:
+                if column in commodity.scenario_data.columns and column != "year":
+                    demand['demand'] += commodity.scenario_data[column]
+                elif column in commodity.scenario_data.columns and column != "volume":
+                    demand['year'] = commodity.scenario_data[column]
+        except:
+            demand['demand'] += 0
+            demand['year'] += 0
+            pass
+    
+    throughputs_online = []
+    for year in terminal.years:
+        # years.append(year)
+        throughputs_online.append(0)
+        try:
+            throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in, throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in  = terminal.throughput_elements(
+                year)
+
+        except:
+            throughput_online = 0
+            pass
+
+        for element in terminal.elements:
+            if isinstance(element, Vessel):
+                if year >= element.year_online:
+                    throughputs_online[-1] = throughput_online
+
+            # generate plot
+    fig, ax1 = plt.subplots(figsize=(20, 10))
+    ax1.bar([x for x in years], vessels, width=width, alpha=alpha, label="Vessels", color='#9edae5',
+            edgecolor='darkgrey')
+
+    for i, occ in enumerate(vessels):
+        occ = occ if type(occ) != float else 0
+        ax1.text(x=years[i] - 0.05, y=occ + 0.2, s="{:01.0f}".format(occ), size=15)
+
+    ax2 = ax1.twinx()
+
+    dem = demand['year'].values[~np.isnan(demand['year'].values)]
+    values = demand['demand'].values[~np.isnan(demand['demand'].values)]
+    # print(dem, values)
+    ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
+
+    #ax2.step(years, demand['demand'].values, label="Demand", where='mid',color='#ff9896')
+    ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
+    ax2.step(years, vessels_capacity, label="vessels capacity", where='mid', linestyle='--', color='steelblue')
+
+    ax1.set_xlabel('Years')
+    ax1.set_ylabel('Vessels [nr]')
+    ax2.set_ylabel('Demand/Capacity [t/y]')
+    ax1.set_title('Vessels')
+    ax1.set_xticks([x for x in years])
+    ax1.set_xticklabels(years)
+    fig.legend(loc=1)
+
+
+def inlandtransport_elements_plot(terminal, inland_transport, numberoftrips, width=0.25, alpha=0.6, fontsize=20):
+    
+    transportmodes = []
+    modes_capacity = []
+    
+    years = terminal.years
+    
+    for year in years:
+    # years.append(year)
+        transportmodes.append(0)
+        modes_capacity.append(0)
+        
+        
+        if terminal.transport_sc2 == 'barge':
+            labelx = 'Barges'
+            for element in inland_transport:
+                if isinstance(element, Barge):
+                    if year >= element.year_online:
+                        transportmodes[-1] += 1
+                        modes_capacity[-1] += (element.call_size * numberoftrips)
+        
+        if terminal.transport_sc2 == 'train':
+            labelx = 'Trains'
+            for element in inland_transport:
+                if isinstance(element, Train):
+                    if year >= element.year_online:
+                        transportmodes[-1] += 1
+                        modes_capacity[-1] += (element.call_size * numberoftrips)    
+                        
+        if terminal.transport_sc2 == 'truck':
+            labelx = 'Trucks'
+            for element in inland_transport:
+                if isinstance(element, Truck):
+                    if year >= element.year_online:
+                        transportmodes[-1] += 1
+                        modes_capacity[-1] += (element.capacity * numberoftrips)                
+                
+    demand = pd.DataFrame()
+    demand['year'] = years
+    demand['demand'] = 0
+
+    for commodity in opentisim.core.find_elements(terminal, Commodity):
+        try:
+            for column in commodity.scenario_data.columns:
+                if column in commodity.scenario_data.columns and column != "year":
+                    demand['demand'] += commodity.scenario_data[column]
+                elif column in commodity.scenario_data.columns and column != "volume":
+                    demand['year'] = commodity.scenario_data[column]
+        except:
+            demand['demand'] += 0
+            demand['year'] += 0
+            pass
+    
+    throughputs_online = []
+    for year in terminal.years:
+        # years.append(year)
+        throughputs_online.append(0)
+        try:
+            throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in, throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in  = terminal.throughput_elements(
+                year)
+
+        except:
+            throughput_online = 0
+            pass
+        
+        throughputs_online[-1] = throughput_online
+        
+#         for element in terminal.elements:
+#             if isinstance(element, Barge):
+#                 if year >= element.year_online:
+#                     throughputs_online[-1] = throughput_online
+
+            # generate plot
+    fig, ax1 = plt.subplots(figsize=(20, 10))
+    ax1.bar([x for x in years], transportmodes, width=width, alpha=alpha, label=labelx, color='#9edae5',
+            edgecolor='darkgrey')
+
+    for i, occ in enumerate(transportmodes):
+        occ = occ if type(occ) != float else 0
+        ax1.text(x=years[i] - 0.05, y=occ + 0.2, s="{:01.0f}".format(occ), size=15)
+
+    ax2 = ax1.twinx()
+
+    dem = demand['year'].values[~np.isnan(demand['year'].values)]
+    values = demand['demand'].values[~np.isnan(demand['demand'].values)]
+    # print(dem, values)
+    ax2.step(dem, values, label="Demand [t/y]", where='mid', color='#ff9896')
+
+    #ax2.step(years, demand['demand'].values, label="Demand", where='mid',color='#ff9896')
+    ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
+    ax2.step(years, modes_capacity, label="element capacity", where='mid', linestyle='--', color='steelblue')
+
+    ax1.set_xlabel('Years', fontsize=fontsize)
+    ax1.set_ylabel('Transport modes [nr]',fontsize=fontsize)
+    ax2.set_ylabel('Demand/Capacity [t/y]',fontsize=fontsize)
+    ax1.set_title('Transport modes',fontsize=fontsize)
+    ax1.set_xticks([x for x in years])
+    ax1.set_xticklabels(years, fontsize = fontsize)
+    
+    fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=4, fontsize=fontsize)
+    fig.subplots_adjust(bottom=0.2)
+    #fig.legend(loc=1)
+
+    
+# In[ ]:
+
+def transport_elements_plot(terminal, seaborne_transport, numberoftrips, width=0.25, alpha=0.6, fontsize = 20):
     
     vessels = []
     vessels_capacity = []
@@ -194,8 +584,9 @@ def transport_elements_plot(terminal, seaborne_transport, numberoftrips, width=0
         # years.append(year)
         throughputs_online.append(0)
         try:
-            throughput_online,throughput_online_jetty, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand, Demand_plant_in, Demand_storage_in, Demand_jetty_in = terminal.throughput_elements(
+            throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in, throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in  = terminal.throughput_elements(
                 year)
+
         except:
             throughput_online = 0
             pass
@@ -225,16 +616,17 @@ def transport_elements_plot(terminal, seaborne_transport, numberoftrips, width=0
     ax2.step(years, throughputs_online, label="Throughput [t/y]", where='mid', color='#aec7e8')
     ax2.step(years, vessels_capacity, label="vessels capacity", where='mid', linestyle='--', color='steelblue')
 
-    ax1.set_xlabel('Years')
-    ax1.set_ylabel('Vessels [nr]')
-    ax2.set_ylabel('Demand/Capacity [t/y]')
-    ax1.set_title('Vessels')
+    ax1.set_xlabel('Years',fontsize=fontsize)
+    ax1.set_ylabel('Vessels [nr]',fontsize=fontsize)
+    ax2.set_ylabel('Demand/Capacity [t/y]',fontsize=fontsize)
+    ax1.set_title('Vessels',fontsize=fontsize)
     ax1.set_xticks([x for x in years])
-    ax1.set_xticklabels(years)
-    fig.legend(loc=1)
-
-
-# In[ ]:
+    ax1.set_xticklabels(years,fontsize=fontsize)
+    
+    fig.legend(loc='lower center', bbox_to_anchor=(0, -.01, .9, 0.7),
+                   fancybox=True, shadow=True, ncol=4, fontsize=fontsize)
+    fig.subplots_adjust(bottom=0.2)
+    #fig.legend(loc=1)
 
 
 def add_cashflow_vessels(terminal, seaborne_transport):

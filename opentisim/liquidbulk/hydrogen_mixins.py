@@ -199,7 +199,7 @@ class h2retrieval_properties_mixin(object):
         
 class h2conversion_properties_mixin(object):
     def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc,
-                 maintenance_perc, crew_min, crew_for5, insurance_perc, h2conversion_type, consumption, capacity, losses, recycle_rate, priceH2,  *args, **kwargs):
+                 maintenance_perc, crew_min, crew_for5, insurance_perc, h2conversion_type, consumption, capacity, losses, recycle_rate, priceH2, sell_mat, sell_rate,  *args, **kwargs):
         super().__init__(*args, **kwargs)
         "initialize"
         self.type = type
@@ -219,6 +219,8 @@ class h2conversion_properties_mixin(object):
         self.losses = losses
         self.recycle_rate = recycle_rate
         self.priceH2 = priceH2
+        self.sell_mat = sell_mat 
+        self.sell_rate = sell_rate
 
 class commodity_properties_mixin(object):
     def __init__(self, type, handling_fee, Hcontent, material_price, smallhydrogen_perc, largehydrogen_perc, smallammonia_perc, largeammonia_perc,handysize_perc, panamax_perc, vlcc_perc, *args, **kwargs):
@@ -268,37 +270,116 @@ class vessel_properties_mixin(object):
         self.DWT = DWT
         self.gamma = gamma
         self.fuelprice = fuelprice 
-             
-    
-# class vessel_properties_mixin(object):
-#     def __init__(self,type, call_size, LOA, draft, beam, max_cranes, all_turn_time, pump_capacity, mooring_time,demurrage_rate,delivery_time, lifespan, unit_rate, mobilisation_min, maintenance_perc, crew_min, crew_for5, insurance_perc,losses, utilization, avspeed, consumption, ship_weight, fuelprice, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         "initialize"
-#         self.type = type
-#         self.call_size = call_size
-#         self.LOA = LOA
-#         self.draft = draft
-#         self.beam = beam
-#         self.max_cranes = max_cranes
-#         self.all_turn_time = all_turn_time
-#         self.pump_capacity = pump_capacity
-#         self.mooring_time = mooring_time
-#         self.demurrage_rate = demurrage_rate
-#         self.delivery_time = delivery_time
-#         self.lifespan = lifespan
-#         self.unit_rate = unit_rate
-#         self.mobilisation_min = mobilisation_min
-#         self.maintenance_perc = maintenance_perc
-#         self.crew_min = crew_min
-#         self.crew_for5 = crew_for5
-#         self.insurance_perc = insurance_perc
-#         self.losses = losses 
-#         self.utilization = utilization
-#         self.avspeed = avspeed
-#         self.consumption = consumption
-#         self.ship_weight = ship_weight
-#         self.fuelprice = fuelprice 
+        
+        
+class barge_properties_mixin(object):
+    def __init__(self, type, call_size, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, maintenance_perc, crew_min, crew_for5,insurance_perc,losses,utilization,avspeed, consumption, ship_weight, loadingtime, unloadingtime, uncertainty  ,fuelprice, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.call_size = call_size
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
+        self.insurance_perc = insurance_perc
+        self.losses = losses 
+        self.utilization = utilization
+        self.avspeed = avspeed
+        self.consumption = consumption
+        self.ship_weight = ship_weight
+        self.loadingtime = loadingtime
+        self.unloadingtime = unloadingtime 
+        self.uncertainty = uncertainty
+        self.fuelprice = fuelprice 
+        
+class train_properties_mixin(object):
+    def __init__(self, type, call_size, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, maintenance_perc, crew_min, crew_for5,insurance_perc,losses,utilization,avspeed, consumption, train_weight, loadingtime, unloadingtime, uncertainty  ,fuelprice, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.call_size = call_size
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
+        self.insurance_perc = insurance_perc
+        self.losses = losses 
+        self.utilization = utilization
+        self.avspeed = avspeed
+        self.consumption = consumption
+        self.train_weight = train_weight
+        self.loadingtime = loadingtime
+        self.unloadingtime = unloadingtime 
+        self.uncertainty = uncertainty
+        self.fuelprice = fuelprice 
+        
 
+class truck_properties_mixin(object):
+    def __init__(self, type, ownership, delivery_time, lifespan, unit_rate, mobilisation_min, mobilisation_perc, maintenance_perc, crew_min, crew_for5, insurance_perc, truck_type, consumption, capacity, utilization, avspeed, loadingtime, unloadingtime, uncertainty, losses, fuelprice , *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.unit_rate = unit_rate
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
+        self.insurance_perc = insurance_perc
+        self.truck_type = truck_type 
+        self.consumption = consumption
+        self.avspeed = avspeed
+        self.consumption = consumption
+        self.capacity = capacity
+        self.utilization = utilization
+        self.avspeed = avspeed
+        self.loadingtime = loadingtime
+        self.unloadingtime = unloadingtime
+        self.uncertainty = uncertainty 
+        self.losses = losses 
+        self.fuelprice = fuelprice 
+        
+        
+class pipe_properties_mixin(object):
+    def __init__(self, type, ownership, delivery_time, lifespan, mobilisation_min, mobilisation_perc, maintenance_perc, crew_min, crew_for5,insurance_perc, pipe_type, utilization, speed, losses, unit_rate_com, delivery_time_com, lifespan_com, crew_min_com, consumption_com, pressure_com, capacity_com, losses_com, rho, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        "initialize"
+        self.type = type
+        self.ownership = ownership
+        self.delivery_time = delivery_time
+        self.lifespan = lifespan
+        self.mobilisation_min = mobilisation_min
+        self.mobilisation_perc = mobilisation_perc
+        self.maintenance_perc = maintenance_perc
+        self.crew_min = crew_min
+        self.crew_for5 = crew_for5
+        self.insurance_perc = insurance_perc
+        self.pipe_type= pipe_type
+        self.utilization = utilization
+        self.speed = speed
+        self.losses = losses 
+        self.unit_rate_com = unit_rate_com 
+        self.delivery_time_com =delivery_time_com
+        self.lifespan_com = lifespan_com
+        self.crew_min_com =crew_min_com
+        self.consumption_com= consumption_com
+        self.pressure_com =pressure_com
+        self.capacity_com =capacity_com
+        self.losses_com =losses_com
+        self.rho = rho 
+                    
 
 class labour_properties_mixin(object):
     def __init__(self, international_salary, international_staff, local_salary, local_staff, operational_salary,
@@ -318,15 +399,6 @@ class energy_properties_mixin(object):
         super().__init__(*args, **kwargs)
         self.price = price
 
-class train_properties_mixin(object):
-    def __init__(self, wagon_payload, number_of_wagons, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        "initialize"
-        self.wagon_payload = wagon_payload
-        self.number_of_wagons = number_of_wagons
-        self.prep_time = 2
-        self.call_size = wagon_payload * number_of_wagons
-        self.call_log = []
 
 class hasscenario_properties_mixin(object):
     """Something has a scenario

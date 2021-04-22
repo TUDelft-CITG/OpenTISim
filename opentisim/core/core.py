@@ -117,8 +117,8 @@ def add_cashflow_elements(Terminal, labour):
         cash_flows['revenues'] = 0
 
     # add labour component for years were revenues are not zero
-    cash_flows.loc[cash_flows['revenues'] != 0, 'labour'] = \
-        labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+#     cash_flows.loc[cash_flows['revenues'] != 0, 'labour'] = \
+#         labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
     # todo: check the labour costs of the container terminals (they are not included now)
 
     for element in Terminal.elements:
@@ -176,15 +176,16 @@ def WACC_nominal(Gearing=60, Re=.10, Rd=.30, Tc=.28):
     to receive and expenses it expects to pay out, including inflation.
     When all cashflows within the model are denoted in real terms and including inflation."""
 
-    Gearing = Gearing
-    Re = Re  # return on equity
-    Rd = Rd  # return on debt
-    Tc = Tc  # income tax
-    E = 100 - Gearing
-    D = Gearing
+#     Gearing = Gearing
+#     Re = Re  # return on equity
+#     Rd = Rd  # return on debt
+#     Tc = Tc  # income tax
+#     E = 100 - Gearing
+#     D = Gearing
 
-    WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
-
+#     WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
+    WACC_nominal = 8/100
+    
     return WACC_nominal
 
 
