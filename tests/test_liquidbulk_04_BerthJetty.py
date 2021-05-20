@@ -99,9 +99,12 @@ def test_liquidbulk_04_Berth_Jetty():
 		allowable_waiting_service_time_ratio_berth=0.3,
 		h2retrieval_type_defaults=opentisim.liquidbulk.h2retrieval_lh2_data, # specify defaults: commodity h2 retrieval
 		allowable_berth_occupancy=0.5, # 0.5 Reasonable for liquid bulk (Monfort et al., 2011)
-		allowable_dwelltime=14 / 365, 
+		allowable_dwelltime=14 / 365,
 		h2retrieval_trigger=1) 
 
+	Terminal.modelframe = list(range(startyear, startyear + lifecycle))
+	Terminal.revenues = []
+	Terminal.demurrage = []
 	# run simulation
 	for year in years:
 		Terminal.startyear = year
@@ -180,7 +183,7 @@ def test_liquidbulk_04_Berth_Jetty():
             #print('problem occurs at {}'.format(year))
 				pass
             
-		throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage,  		throughput_planned_h2retrieval, throughput_planned_pipeh = Terminal.throughput_elements(year)
+		throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in,                   		throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,                  		throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in=   		Terminal.throughput_elements(year)
 
 		#assert the costs 
 
@@ -200,3 +203,5 @@ def test_liquidbulk_04_Berth_Jetty():
 			assert Jetty_cap == 17070904.0
 			assert Demand == 4000000
 			assert throughput_online == 4000000
+            
+

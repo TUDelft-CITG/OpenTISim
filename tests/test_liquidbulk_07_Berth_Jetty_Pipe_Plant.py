@@ -115,7 +115,7 @@ def test_liquidbulk_07_Berth_Jetty_Pipe_Plant():
 		lifecycle=1, # lifecycle of the model looped through the years 
 		elements=[lhydrogen] + vessels, # terminal elements at T = 0 
 		operational_hours=16 * 365, # Example Wijnand (5840) 
-		terminal_supply_chain={'berth_jetty','pipeline_jetty_-_terminal','mch_2_h2_retrieval'}, # Choose what elements are on   		the terminal, other elements could be: 'storage','pipeline_terminal_-_hinterland'},
+		terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal','storage', 'h2_retrieval'}, # Choose what elements are on   		the terminal, other elements could be: 'storage','pipeline_terminal_-_hinterland'},
 		debug=False, # toggle: intermediate print statements
 		commodity_type_defaults=opentisim.liquidbulk.commodity_lhydrogen_data,  # specify defaults: commodity
 		storage_type_defaults=opentisim.liquidbulk.storage_lh2_data, # specify defaults: commodity storage
@@ -126,6 +126,9 @@ def test_liquidbulk_07_Berth_Jetty_Pipe_Plant():
 		allowable_dwelltime=14 / 365, 
 		h2retrieval_trigger=1) 
 
+	Terminal.modelframe = list(range(startyear, startyear + lifecycle))
+	Terminal.revenues = []
+	Terminal.demurrage = []
 	# run simulation
 	for year in years:
 		Terminal.startyear = year
@@ -133,7 +136,7 @@ def test_liquidbulk_07_Berth_Jetty_Pipe_Plant():
         
 
 	#Assert number of elements 
-	assert len(Terminal.elements) == 19
+	assert len(Terminal.elements) == 67
 	assert len(opentisim.core.find_elements(Terminal, opentisim.liquidbulk.H2retrieval)) == 5
 
 	#For different years check various things
@@ -213,7 +216,8 @@ def test_liquidbulk_07_Berth_Jetty_Pipe_Plant():
 
 		plant_occupancy_planned, plant_occupancy_online, h2retrieval_capacity_planned, h2retrieval_capacity_online= Terminal.calculate_h2retrieval_occupancy( year, opentisim.liquidbulk.h2retrieval_lh2_data) 
 		plant_occupancy_online = round(plant_occupancy_online,2)
-		throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage,  		throughput_planned_h2retrieval, throughput_planned_pipeh = Terminal.throughput_elements(year)
+        
+		throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in,                   		throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,                  		throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in=   		Terminal.throughput_elements(year)
 
 		#assert the costs 
 
@@ -233,3 +237,5 @@ def test_liquidbulk_07_Berth_Jetty_Pipe_Plant():
 			assert h2retrieval_capacity_online == 4000400
 			assert throughput_online == 4000000
 			assert plant_occupancy_online == 1.0
+            
+            

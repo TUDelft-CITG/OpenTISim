@@ -115,6 +115,9 @@ def test_liquidbulk_05_Berth_Jetty_Pipe():
 		allowable_dwelltime=14 / 365, 
 		h2retrieval_trigger=1) 
 
+	Terminal.modelframe = list(range(startyear, startyear + lifecycle))
+	Terminal.revenues = []
+	Terminal.demurrage = []
 	# run simulation
 	for year in years:
 		Terminal.startyear = year
@@ -185,7 +188,7 @@ def test_liquidbulk_05_Berth_Jetty_Pipe():
             #print('problem occurs at {}'.format(year))
 				pass
             
-		throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage,  		throughput_planned_h2retrieval, throughput_planned_pipeh = Terminal.throughput_elements(year)
+		throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in,                   		throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,                  		throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in=   		Terminal.throughput_elements(year)
 
 		#assert the costs 
 

@@ -47,19 +47,23 @@ def test_liquidbulk_03_year_by_year_stepping():
 		lifecycle=1,
 		elements=[lhydrogen] + vessels,
 		operational_hours=16 * 365,
-		terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage', 'mch_2_h2_retrieval',
-							   'pipeline_terminal_-_hinterland'},
+		terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage', 'h2_retrieval'},
+							   #'pipeline_terminal_-_hinterland'},
 		debug=True,
 		commodity_type_defaults=opentisim.liquidbulk.commodity_lhydrogen_data,
 		storage_type_defaults=opentisim.liquidbulk.storage_lh2_data,
 		kendall='E2/E2/n',
 		allowable_waiting_service_time_ratio_berth=0.3,
-		h2retrieval_type_defaults=opentisim.liquidbulk.h2retrieval_lh2_data)
+		h2retrieval_type_defaults=opentisim.liquidbulk.h2retrieval_lh2_data,
+		allowable_dwelltime=14 / 365)
 
+	Terminal.modelframe = list(range(startyear, startyear + lifecycle))
+	Terminal.revenues = []
+	Terminal.demurrage = []
 	# run simulation
 	for year in years:
 		Terminal.startyear = year
 		Terminal.simulate()
 
 	# we expect a total of 33 elements in Terminal.elements
-	assert len(Terminal.elements) == 68
+	assert len(Terminal.elements) == 67

@@ -97,13 +97,13 @@ def test_liquidbulk_06_Berth_Jetty_Pipe_Storage():
 	opentisim.liquidbulk.jetty_pipeline_data['utilisation'] = 0.80  #Gasunie & MTBS database [Stephanie2019]  
     
 	# storage data 
-	opentisim.liquidbulk.storage_lh2_data['delivery_time'] = 1 #[Lanphen2019, P 86]
+	opentisim.liquidbulk.storage_lh2_data['delivery_time'] = 2 #[Lanphen2019, P 86]
 	opentisim.liquidbulk.storage_lh2_data['lifespan'] = 30  #[HyChain Import Model Excel]
-	opentisim.liquidbulk.storage_lh2_data['unit_rate'] = 350_000_000 #[Abrahamse 2021]
-	opentisim.liquidbulk.storage_lh2_data['mobilisation_min'] = 200_000  #[Lanphen2019, P 86]
+	opentisim.liquidbulk.storage_lh2_data['unit_rate'] = 250_000_000 #[Abrahamse 2021]
+	opentisim.liquidbulk.storage_lh2_data['mobilisation_min'] = 100_000  #[Lanphen2019, P 86]
 	opentisim.liquidbulk.storage_lh2_data['mobilisation_perc'] = 0.003  #[Lanphen2019, P 86]    
 	opentisim.liquidbulk.storage_lh2_data['maintenance_perc'] = 0.01 #[Lanphen2019, P 86]
-	opentisim.liquidbulk.storage_lh2_data['crew_min'] = 3  #[Lanphen2019, P 86]
+	opentisim.liquidbulk.storage_lh2_data['crew_min'] = 1  #[Lanphen2019, P 86]
 	opentisim.liquidbulk.storage_lh2_data['crew_for5'] = 1    #[Lanphen2019, P 86]
 	opentisim.liquidbulk.storage_lh2_data['insurance_perc'] = 0.01  #[Lanphen2019, P 86]
 	opentisim.liquidbulk.storage_lh2_data['consumption'] = 610    #[Abrahamse 2021]    
@@ -126,6 +126,9 @@ def test_liquidbulk_06_Berth_Jetty_Pipe_Storage():
 		allowable_dwelltime=14 / 365, 
 		h2retrieval_trigger=1) 
 
+	Terminal.modelframe = list(range(startyear, startyear + lifecycle))
+	Terminal.revenues = []
+	Terminal.demurrage = []
 	# run simulation
 	for year in years:
 		Terminal.startyear = year
@@ -210,9 +213,9 @@ def test_liquidbulk_06_Berth_Jetty_Pipe_Storage():
 		storage_cap_planned = round(storage_cap_planned)
 		storage_cap_online = storage_capacity_online / Terminal.allowable_dwelltime / 1.1
 		storage_cap_online = round(storage_cap_online )
+           
+		throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in,                   		throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,                  		throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in=   		Terminal.throughput_elements(year)
 
-            
-		throughput_online, throughput_planned, throughput_planned_jetty, throughput_planned_pipej, throughput_planned_storage,  		throughput_planned_h2retrieval, throughput_planned_pipeh = Terminal.throughput_elements(year)
 
 		#assert the costs 
 
