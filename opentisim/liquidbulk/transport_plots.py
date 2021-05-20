@@ -28,6 +28,66 @@ import opentisim
 
 # In[ ]:
 
+def cashflow_data_pipe(terminal, element):  #(Terminal, element):
+    """Place cashflow data in element dataframe
+    Elements that take two years to build are assign 60% to year one and 40% to year two."""
+
+    # years
+    years = terminal.modelframe
+    #years = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    
+    # capex
+    capex = element.capex
+    #capex_material = element.capex_material
+
+    # opex
+    maintenance = element.maintenance
+    insurance = element.insurance
+    labour = element.labour
+    energy = element.energy
+    #purchaseH2 = element.purchaseH2
+    #purchase_material = element.purchase_material     
+
+    # year online
+    year_online = element.year_online
+    year_delivery = element.delivery_time
+
+    df = pd.DataFrame()
+
+    # years
+    df["year"] = years
+
+    # capex
+    if year_delivery > 1:
+        df.loc[df["year"] == year_online - 2, "capex"] = 0.6 * capex
+        df.loc[df["year"] == year_online - 1, "capex"] = 0.4 * capex
+    else:
+        df.loc[df["year"] == year_online - 1, "capex"] = capex
+    
+    #if capex_material:
+        #df.loc[df["year"] == year_online, "capex_material"] = capex_material
+
+    # opex
+    if maintenance:
+        df.loc[df["year"] >= year_online, "maintenance"] = maintenance
+    if insurance:
+        df.loc[df["year"] >= year_online, "insurance"] = insurance
+    if labour:
+        df.loc[df["year"] >= year_online, "labour"] = labour
+    if energy:
+        df.loc[df["year"] >= year_online, "energy"] = energy
+    
+#     if insurance:
+#         df.loc[df["year"] >= year_online, "purchaseH2"] = purchaseH2
+#     if labour:
+#         df.loc[df["year"] >= year_online, "purchase_material"] =  purchase_material 
+
+    df.fillna(0, inplace=True)
+
+    element.df = df
+
+    return element
+
 
 def cashflow_data(terminal, element):  #(Terminal, element):
     """Place cashflow data in element dataframe
@@ -141,7 +201,7 @@ def vessel_objects(terminal, dataframe_vessel, vessel_defaults,durationdays,numb
 #                 fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> € 
             
                 for commodity in opentisim.core.find_elements(terminal, Commodity):
-                    if commodity.type == 'MCH': 
+                    if commodity.type == 'MCH' or commodity.type == 'DBT': 
                         average_fuelconsumption = fuelconsumption_load
                         fuelcon_trip = (durationdays*2)*average_fuelconsumption
                         tripsperyear = numberoftrips
@@ -155,7 +215,7 @@ def vessel_objects(terminal, dataframe_vessel, vessel_defaults,durationdays,numb
                         fuelcon_year = tripsperyear * fuelcon_trip #ton 
                         fuelcost_year = fuelcon_year * vessel.fuelprice #€/ton --> €  
                         #unloaded back on diesel/hydrogen?  
-                    else:
+                    elif commodity.type == 'Ammonia':
                         average_fuelconsumption = fuelconsumption_unload 
                         fuelcon_trip = (durationdays)*average_fuelconsumption
                         tripsperyear = numberoftrips
@@ -233,11 +293,11 @@ def inland_objects(terminal, dataframe_vessel, transport_defaults, durationdays,
                     fuelusageunload = weightunload/consumption #L/km
 
                     for commodity in opentisim.core.find_elements(terminal, Commodity):
-                        if commodity.type == 'MCH': 
+                        if commodity.type == 'MCH' or commodity.type =='DBT': 
                             literperyear = fuelusageload * (traveldist * 2)
                         elif commodity.type == 'Liquid hydrogen':
                             literperyear = fuelusageunload*traveldist
-                        else:
+                        elif commodity.type == 'Ammonia':
                             literload = fuelusageload * traveldist
                             literunload = fuelusageunload*traveldist
                             literperyear = literload + literunload 
@@ -293,11 +353,11 @@ def inland_objects(terminal, dataframe_vessel, transport_defaults, durationdays,
                     fuelusageunload = weightunload/consumption
 
                     for commodity in opentisim.core.find_elements(terminal, Commodity):
-                        if commodity.type == 'MCH': 
+                        if commodity.type == 'MCH' or commodity.type == 'DBT': 
                             literperyear = fuelusageload * (traveldist * 2)
                         elif commodity.type == 'Liquid hydrogen':
                             literperyear = fuelusageunload*traveldist
-                        else:
+                        elif commodity.type == 'Ammonia':
                             literload = fuelusageload * traveldist
                             literunload = fuelusageunload*traveldist
                             literperyear = literload + literunload 
@@ -354,6 +414,157 @@ def inland_objects(terminal, dataframe_vessel, transport_defaults, durationdays,
     return inland_transport
 
 # In[3]:
+def pipe_objects(importterminal, distancekm,  percentage_new, percentage_existing, pipe_defaults):
+    #hydrogen_defaults_pipe_data = self.pipe_type_defaults
+    #hydrogen_defaults_h2retrieval_data = self.h2retrieval_type_defaults
+    pipe_transport = []
+    pipe = Pipe(**pipe_defaults)
+    
+    hydrogenspeed = pipe.speed
+    rho = pipe.rho
+    
+    years_frame = importterminal.years
+    throughput_years = np.zeros(len(years_frame))
+    for i,year in enumerate(years_frame):
+        #print(i,year)
+        throughput_online_im, throughput_terminal_in_im ,throughput_online_jetty_in_im, throughput_online_stor_in_im, throughput_online_plant_in_im, throughput_planned, throughput_planned_jetty,throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in  = importterminal.throughput_elements(year)
+        throughput_years[i] = throughput_online_im
+
+    maxvolume = max(throughput_years)
+    maxvolumekg = maxvolume * 1000
+
+    for commodity in opentisim.core.find_elements(importterminal, Commodity):
+        Hcontent = commodity.Hcontent
+        
+    maxvolumeCGH2 = (Hcontent*maxvolume)/100
+    maxvolumeCGH2kg = maxvolumeCGH2 * 1000 
+    compressors = math.ceil(distancekm /pipe.capacity_com)
+
+    losscomp = compressors * pipe.losses_com
+    transloss = pipe.losses + losscomp
+
+    rhos = (rho/1000)
+    max_value_in = maxvolumeCGH2
+
+    flowrate = (max_value_in * 1.1) / (rhos*31536000)
+    crosssection = flowrate / hydrogenspeed 
+    diameter = math.ceil(np.sqrt(((crosssection*4)/np.pi))*10)/10
+
+    capacity = (flowrate * 60 * 60 * rhos)  * importterminal.operational_hours #t/h
+
+    # find the total service rate
+    service_capacity = 0
+    service_capacity_online_pipe = 0
+    list_of_elements_pipe = opentisim.core.find_elements(importterminal, Pipe)
+    if list_of_elements_pipe != []:
+        for element in list_of_elements_pipe:
+            service_capacity += capacity
+            if year >= element.year_online:
+                service_capacity_online_pipe += capacity
+
+    # find the total service rate,
+    service_rate = 0
+    years_online = []
+    for element in (opentisim.core.find_elements(importterminal, H2retrieval)):
+        service_rate += element.capacity
+        years_online.append(element.year_online)
+    if importterminal.place == 'none':
+        service_rate = 1 
+    # check if total planned length is smaller than target length, if so add a pipeline
+    #print(years_online)
+    
+    while service_rate > service_capacity:
+        if importterminal.debug:
+            print('  *** add Pipeline to elements')
+
+        pipe = Pipe(**pipe_defaults)
+
+        # - capex
+        price_existing = (0.13/1000) #€/kgH2/km
+
+        years_frame = importterminal.years
+        throughput_years = np.zeros(len(years_frame))
+        for i,year in enumerate(years_frame):
+            #print(i,year)
+            throughput_online_im, throughput_terminal_in_im ,throughput_online_jetty_in_im, throughput_online_stor_in_im, throughput_online_plant_in_im, throughput_planned, throughput_planned_jetty,throughput_planned_pipej, throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in  = importterminal.throughput_elements(year)
+            throughput_years[i] = throughput_online_im
+
+        maxvolume = max(throughput_years)
+        maxvolumekg = maxvolume * 1000
+        
+        maxvolumeCGH2 = (Hcontent*maxvolume)/100
+        maxvolumeCGH2kg = maxvolumeCGH2 * 1000 
+
+        capex_existing = ((percentage_existing/100) * distancekm) * price_existing * maxvolumeCGH2kg 
+
+        #capex pipeline 
+        capacity = capacity #pipe capacity
+        unit_rate = ((diameter**2)*2200+diameter*860+247.5)*1000 #€/km
+        distance_new =  ((percentage_new/100) * distancekm)
+        invest = unit_rate * distance_new  #self.distance #investment of the pipeline 
+
+        #capex compressors 
+        if importterminal.place == 'decentralized':
+            compressors = 0 
+        elif importterminal.place == 'none':
+            compressors = 0 
+        else:  
+            compressors = math.ceil(distance_new  /pipe.capacity_com)
+
+        Ecap = flowrate * rhos * 3600 
+        Etot = (Ecap * 0.2)/1000 #0.2 energy needed to compress 
+        investunit = pipe.unit_rate_com * Etot 
+        investcom = compressors * investunit #investment of compressors #xxx
+
+        investtotal = invest + investcom 
+        capex_new = int(investtotal)
+
+        pipe.capex = capex_existing + capex_new 
+
+        # - opex
+        pipe.insurance = pipe.capex * pipe.insurance_perc #insurance for pipe & compressor 
+        pipe.maintenance = pipe.capex * pipe.maintenance_perc #maintenance for pipe & compressor 
+
+        # - labour
+        #labour for pipe & compressors --> now it is said that 2 people work per compressor station 
+        labour = Labour(**labour_data)
+        pipe.shift = (
+                (pipe.crew_min * importterminal.operational_hours) / (labour.shift_length * labour.annual_shifts))
+
+        pipe_labour = pipe.shift * labour.operational_salary
+        
+        compressors_tot = math.ceil(distancekm  /pipe.capacity_com)
+        
+        comp_shift = (
+                (pipe.crew_min_com * importterminal.operational_hours) / (labour.shift_length * labour.annual_shifts))*compressors_tot
+
+        compressor_labour =comp_shift * labour.operational_salary
+        
+        pipe.labour = pipe_labour + compressor_labour 
+        
+        #pipe.energy 
+          
+        energy = Energy(**energy_data) 
+        Ereq =  maxvolumeCGH2kg * 0.2 
+        Ecost = Ereq * energy.price
+        
+        pipe.energy =  Ecost * compressors_tot
+        
+        #year.online 
+        pipe.year_online = years_online[0]
+        
+        pipe = cashflow_data_pipe(importterminal, pipe)
+
+        pipe_transport.append(pipe)
+        
+
+        service_capacity += capacity
+
+    if importterminal.debug:
+        print(
+            '     a total of {} ton of pipeline hinterland service capacity is online; {} ton total planned'.format(
+                service_capacity_online_pipe, service_capacity)) 
+    return pipe_transport
 
 
 def transport_elements_plot(terminal, seaborne_transport, numberoftrips, width=0.25, alpha=0.6):
@@ -653,7 +864,7 @@ def add_cashflow_vessels(terminal, seaborne_transport):
     for year in terminal.years: #range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle):
         for column in cash_flows.columns:
             if column != "year":
-                cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] =                     cash_flows.loc[cash_flows['year'] == year, column] /                            ((1 + opentisim.core.WACC_real()) ** (year - terminal.startyear))
+                cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] =                     cash_flows.loc[cash_flows['year'] == year, column] /                            ((1 + opentisim.core.WACC_real()) ** (year - terminal.modelframe[0]+1))
 
     cash_flows = cash_flows.fillna(0)
     cash_flows_WACC_real = cash_flows_WACC_real.fillna(0)
@@ -662,6 +873,36 @@ def add_cashflow_vessels(terminal, seaborne_transport):
 
 
 # In[ ]:
+def add_cashflow_pipe(terminal, pipe_transport):
+    cash_flows = pd.DataFrame()
+    
+    cash_flows['year'] = terminal.modelframe
+    cash_flows['capex'] = 0
+    #     cash_flows['capex_material'] = 0 
+    cash_flows['maintenance'] = 0
+    cash_flows['insurance'] = 0
+    cash_flows['energy'] = 0
+    cash_flows['labour'] = 0
+    #cash_flows['fuel'] = 0
+    
+    for element in pipe_transport:
+        if hasattr(element, 'df'):
+            element.df = element.df.fillna(0)
+            for column in cash_flows.columns:
+                if column in element.df.columns and column != "year":
+                    cash_flows[column] += element.df[column]
+
+    cash_flows_WACC_real = pd.DataFrame()
+    cash_flows_WACC_real['year'] = cash_flows['year']
+    for year in terminal.years: #range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle):
+        for column in cash_flows.columns:
+            if column != "year":
+                cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] =                     cash_flows.loc[cash_flows['year'] == year, column] /                            ((1 + opentisim.core.WACC_real()) ** (year - terminal.modelframe[0]+1))
+
+    cash_flows = cash_flows.fillna(0)
+    cash_flows_WACC_real = cash_flows_WACC_real.fillna(0)
+
+    return cash_flows,cash_flows_WACC_real 
 
 
 def cashflow_plot(cash_flows, title='Cash flow plot', width=0.2, alpha=0.6, fontsize=20):

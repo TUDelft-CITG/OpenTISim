@@ -131,12 +131,12 @@ def add_cashflow_elements(Terminal, labour):
     # calculate WACC real cashflows
     cash_flows_WACC_real = pd.DataFrame()
     cash_flows_WACC_real['year'] = cash_flows['year']
-    for year in range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle):
+    for year in Terminal.years:
         for column in cash_flows.columns:
             if column != "year":
                 cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
                     cash_flows.loc[cash_flows['year'] == year, column] /\
-                            ((1 + WACC_real()) ** (year - Terminal.startyear))
+                            ((1 + WACC_real()) ** (year - Terminal.modelframe[0]+1))
 
     cash_flows = cash_flows.fillna(0)
     cash_flows_WACC_real = cash_flows_WACC_real.fillna(0)
@@ -194,8 +194,8 @@ def WACC_real(inflation=0.02):  # old: interest=0.0604
     When all cashflows within the model are denoted in real terms and have been
     adjusted for inflation (no inlfation has been taken into account),
     WACC_real should be used. WACC_real is computed by as follows:"""
-
-    WACC_real = (WACC_nominal() + 1) / (inflation + 1) - 1
+    WACC_real = WACC_nominal()
+    #WACC_real = (WACC_nominal() + 1) / (inflation + 1) - 1
 
     return WACC_real
 
