@@ -139,6 +139,10 @@ def test_containers_02_complete_lifecycle():
 		laden_stack='sc')  # specify defaults: crane type to use
 
 	# run simulation
+	Terminal.modelframe = list(range(startyear, startyear + lifecycle))
+	Terminal.revenues = []
+	Terminal.demurrage = []
+	# run simulation
 	Terminal.simulate()
 
 	# inspect results

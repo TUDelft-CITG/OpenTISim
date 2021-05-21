@@ -45,14 +45,29 @@ def add_cashflow_data_to_element(Terminal, element):
     
     # capex
     capex = element.capex
-    capex_material = element.capex_material
+    
+    if hasattr(element, 'capex_material'):
+        capex_material = element.capex_material
+    else:
+        capex_material = 0 
+    #capex_material = element.capex_material
 
     # opex
     maintenance = element.maintenance
     insurance = element.insurance
     labour = element.labour
-    purchaseH2 = element.purchaseH2
-    purchase_material = element.purchase_material     
+    
+    if hasattr(element, 'purchaseH2'):
+        purchaseH2 = element.purchaseH2
+    else:
+        purchaseH2 = 0 
+        
+    if hasattr(element, 'purchase_material'):
+        purchase_material = element.purchase_material   
+    else:
+        purchase_material = 0 
+#     purchaseH2 = element.purchaseH2
+#     purchase_material = element.purchase_material     
 
     # year online
     year_online = element.year_online
