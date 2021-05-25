@@ -9,102 +9,119 @@ Submodules
 
 The main components are the Model module and the Core module. All of their components are listed below. 
 
-opentisim\.agribulk_defaults module
+opentisim\drybulk\.agribulk_defaults module
 ----------------------------------
 
-.. automodule:: opentisim.agribulk_defaults
+.. automodule:: opentisim.drybulk.agribulk_defaults
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.agribulk_mixins module
+opentisim\drybulk\.agribulk_mixins module
 ----------------------------------
 
-.. automodule:: opentisim.agribulk_mixins
+.. automodule:: opentisim.drybulk.agribulk_mixins
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.agribulk_objects module
+opentisim\drybulk\.agribulk_objects module
 ----------------------------------
 
-.. automodule:: opentisim.agribulk_objects
+.. automodule:: opentisim.drybulk.agribulk_objects
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.agribulk_system module
+opentisim\drybulk\.agribulk_system module
 ---------------------------------
 
-.. automodule:: opentisim.agribulk_system
+.. automodule:: opentisim.drybulk.agribulk_system
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.container_defaults module
+opentisim\containers\.container_defaults module
 ----------------------------------
 
-.. automodule:: opentisim.container_defaults
+.. automodule:: opentisim.containers.container_defaults
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.container_mixins module
+opentisim\containers\.container_mixins module
 ----------------------------------
 
-.. automodule:: opentisim.container_mixins
+.. automodule:: opentisim.containers.container_mixins
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.container_objects module
+opentisim\containers\.container_objects module
 ----------------------------------
 
-.. automodule:: opentisim.container_objects
+.. automodule:: opentisim.containers.container_objects
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.container_system module
+opentisim\containers\.container_system module
 ---------------------------------
 
-.. automodule:: opentisim.container_system
+.. automodule:: opentisim.containers.container_system
    :members:
    :undoc-members:
    :show-inheritance:
 
 
-opentisim\.hydrogen_defaults module
+opentisim\liquidbulk\.hydrogen_defaults module
 ----------------------------------
 
-.. automodule:: opentisim.hydrogen_defaults
+.. automodule:: opentisim.liquidbulk.hydrogen_defaults
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.hydrogen_mixins module
+opentisim\liquidbulk\.hydrogen_mixins module
 ----------------------------------
 
-.. automodule:: opentisim.hydrogen_mixins
+.. automodule:: opentisim.liquidbulk.hydrogen_mixins
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.hydrogen_objects module
+opentisim\liquidbulk\.hydrogen_objects module
 ----------------------------------
 
-.. automodule:: opentisim.hydrogen_objects
+.. automodule:: opentisim.liquidbulk.hydrogen_objects
    :members:
    :undoc-members:
    :show-inheritance:
 
-opentisim\.hydrogen_system module
+opentisim\liquidbulk\.hydrogen_system module
 ---------------------------------
 
-.. automodule:: opentisim.hydrogen_system
+.. automodule:: opentisim.liquidbulk.hydrogen_system
    :members:
    :undoc-members:
    :show-inheritance:
+
+opentisim\core\.mapping_methods
+---------------------------------
+
+.. automodule:: opentisim.core.mapping_methods
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+opentisim\core\.core
+---------------------------------
+
+.. automodule:: opentisim.core.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 
 Module contents
 ---------------
