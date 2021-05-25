@@ -40,15 +40,34 @@ def add_cashflow_data_to_element(Terminal, element):
     Elements that take two years to build are assign 60% to year one and 40% to year two."""
 
     # years
-    years = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
-
+    years = Terminal.modelframe
+    #years = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    
     # capex
     capex = element.capex
+    
+    if hasattr(element, 'capex_material'):
+        capex_material = element.capex_material
+    else:
+        capex_material = 0 
+    #capex_material = element.capex_material
 
     # opex
     maintenance = element.maintenance
     insurance = element.insurance
     labour = element.labour
+    
+    if hasattr(element, 'purchaseH2'):
+        purchaseH2 = element.purchaseH2
+    else:
+        purchaseH2 = 0 
+        
+    if hasattr(element, 'purchase_material'):
+        purchase_material = element.purchase_material   
+    else:
+        purchase_material = 0 
+#     purchaseH2 = element.purchaseH2
+#     purchase_material = element.purchase_material     
 
     # year online
     year_online = element.year_online
@@ -65,6 +84,9 @@ def add_cashflow_data_to_element(Terminal, element):
         df.loc[df["year"] == year_online - 1, "capex"] = 0.4 * capex
     else:
         df.loc[df["year"] == year_online - 1, "capex"] = capex
+    
+    if capex_material:
+        df.loc[df["year"] == year_online, "capex_material"] = capex_material
 
     # opex
     if maintenance:
@@ -73,6 +95,11 @@ def add_cashflow_data_to_element(Terminal, element):
         df.loc[df["year"] >= year_online, "insurance"] = insurance
     if labour:
         df.loc[df["year"] >= year_online, "labour"] = labour
+    
+    if purchaseH2:
+        df.loc[df["year"] >= year_online, "purchaseH2"] = purchaseH2
+    if purchase_material:
+        df.loc[df["year"] >= year_online, "purchase_material"] =  purchase_material 
 
     df.fillna(0, inplace=True)
 
@@ -87,26 +114,31 @@ def add_cashflow_elements(Terminal, labour):
     cash_flows = pd.DataFrame()
 
     # initialise cash_flows
-    cash_flows['year'] = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    #cash_flows['year'] = list(range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle))
+    cash_flows['year'] = Terminal.modelframe
     cash_flows['capex'] = 0
+    cash_flows['capex_material'] = 0 
     cash_flows['maintenance'] = 0
     cash_flows['insurance'] = 0
     cash_flows['energy'] = 0
     cash_flows['labour'] = 0
     cash_flows['fuel'] = 0
-    cash_flows['demurrage'] = Terminal.demurrage
+    cash_flows['purchaseH2'] = 0
+    cash_flows['purchase_material'] = 0
+    cash_flows['demurrage'] = 0 #Terminal.demurrage
     try:
-       cash_flows['revenues'] = Terminal.revenues
+        cash_flows['revenues'] = Terminal.revenues
     except:
-       cash_flows['revenues'] = 0
+        cash_flows['revenues'] = 0
 
     # add labour component for years were revenues are not zero
-    cash_flows.loc[cash_flows['revenues'] != 0, 'labour'] = \
-        labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
+#     cash_flows.loc[cash_flows['revenues'] != 0, 'labour'] = \
+#         labour.international_staff * labour.international_salary + labour.local_staff * labour.local_salary
     # todo: check the labour costs of the container terminals (they are not included now)
 
     for element in Terminal.elements:
         if hasattr(element, 'df'):
+            element.df = element.df.fillna(0)
             for column in cash_flows.columns:
                 if column in element.df.columns and column != "year":
                     cash_flows[column] += element.df[column]
@@ -114,12 +146,12 @@ def add_cashflow_elements(Terminal, labour):
     # calculate WACC real cashflows
     cash_flows_WACC_real = pd.DataFrame()
     cash_flows_WACC_real['year'] = cash_flows['year']
-    for year in range(Terminal.startyear, Terminal.startyear + Terminal.lifecycle):
+    for year in Terminal.years:
         for column in cash_flows.columns:
             if column != "year":
                 cash_flows_WACC_real.loc[cash_flows_WACC_real['year'] == year, column] = \
                     cash_flows.loc[cash_flows['year'] == year, column] /\
-                            ((1 + WACC_real()) ** (year - Terminal.startyear))
+                            ((1 + WACC_real()) ** (year - Terminal.modelframe[0]+1))
 
     cash_flows = cash_flows.fillna(0)
     cash_flows_WACC_real = cash_flows_WACC_real.fillna(0)
@@ -159,15 +191,16 @@ def WACC_nominal(Gearing=60, Re=.10, Rd=.30, Tc=.28):
     to receive and expenses it expects to pay out, including inflation.
     When all cashflows within the model are denoted in real terms and including inflation."""
 
-    Gearing = Gearing
-    Re = Re  # return on equity
-    Rd = Rd  # return on debt
-    Tc = Tc  # income tax
-    E = 100 - Gearing
-    D = Gearing
+#     Gearing = Gearing
+#     Re = Re  # return on equity
+#     Rd = Rd  # return on debt
+#     Tc = Tc  # income tax
+#     E = 100 - Gearing
+#     D = Gearing
 
-    WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
-
+#     WACC_nominal = ((E / (E + D)) * Re + (D / (E + D)) * Rd) * (1 - Tc)
+    WACC_nominal = 8/100
+    
     return WACC_nominal
 
 
@@ -176,8 +209,8 @@ def WACC_real(inflation=0.02):  # old: interest=0.0604
     When all cashflows within the model are denoted in real terms and have been
     adjusted for inflation (no inlfation has been taken into account),
     WACC_real should be used. WACC_real is computed by as follows:"""
-
-    WACC_real = (WACC_nominal() + 1) / (inflation + 1) - 1
+    WACC_real = WACC_nominal()
+    #WACC_real = (WACC_nominal() + 1) / (inflation + 1) - 1
 
     return WACC_real
 
