@@ -9,38 +9,6 @@ Submodules
 
 The main components are the Model module and the Core module. All of their components are listed below. 
 
-opentisim\drybulk\.agribulk_defaults module
-----------------------------------
-
-.. automodule:: opentisim.drybulk.agribulk_defaults
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-opentisim\drybulk\.agribulk_mixins module
-----------------------------------
-
-.. automodule:: opentisim.drybulk.agribulk_mixins
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-opentisim\drybulk\.agribulk_objects module
-----------------------------------
-
-.. automodule:: opentisim.drybulk.agribulk_objects
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-opentisim\drybulk\.agribulk_system module
----------------------------------
-
-.. automodule:: opentisim.drybulk.agribulk_system
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 opentisim\containers\.container_defaults module
 ----------------------------------
 
@@ -118,6 +86,14 @@ opentisim\core\.core
 ---------------------------------
 
 .. automodule:: opentisim.core.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+opentisim\plot\.plot
+---------------------------------
+
+.. automodule:: opentisim.plot.plot
    :members:
    :undoc-members:
    :show-inheritance:
