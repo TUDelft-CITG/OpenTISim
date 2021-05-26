@@ -2,7 +2,7 @@
 OpenTISim
 =========
 
-This page lists all functions and classes available in the OpenTISim.model and OpenTISim.core modules. For examples on how to use these submodules please check out the Examples page, information on installing OpenTISim can be found on the Installation page.
+This page lists all functions and classes available in the OpenTISim modules. For examples on how to use these submodules please check out the OpenTISim-Notebooks page, information on installing OpenTISim can be found on the Installation page.
 
 Submodules
 ----------
