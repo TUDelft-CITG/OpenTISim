@@ -18,6 +18,7 @@ from .hydrogen_defaults import *
 from .hydrogen_objects import *
 import opentisim
 
+#energy_data['price'] = 0.035 #adjust for scenario 
 
 # todo: consider renaming this class to Terminal (seems more appropriate)
 class System:
@@ -860,10 +861,21 @@ class System:
         for element in list_of_elements_Pipelinejetty:
             if year >= element.year_online:
                 pipelinesj += 1
-                consumption = throughput_online_pipej / pipelinesj * element.consumption_coefficient
-
+                
+        
+        if pipelinesj > 0:
+            consumption = throughput_online_pipej / pipelinesj
+        
+        for element in list_of_elements_Pipelinejetty:
+            if year >= element.year_online:
+                consumption_kWh = consumption * element.consumption_coefficient
                 if consumption * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption_kWh * energy.price
+                
+#                 consumption = throughput_online_pipej / pipelinesj * element.consumption_coefficient
+
+#                 if consumption * energy.price != np.inf:
+#                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
 
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
@@ -1439,8 +1451,8 @@ class System:
         
         for commodity in opentisim.core.find_elements(self, Commodity):
             if commodity.type == 'MCH': 
-                pump1 = handysize_data["pump_capacity"]
-                pump2 = panamax_data["pump_capacity"]
+                pump1 = 0
+                pump2 = 0
                 pump3 = vlcc_data["pump_capacity"]
                 pumpall = np.array([pump1, pump2, pump3])
                 pumpall = pumpall[np.nonzero(pumpall)]
@@ -1451,13 +1463,13 @@ class System:
                 pumpall = np.array([pump1, pump2, pump3])
                 pumpall = pumpall[np.nonzero(pumpall)]
             elif commodity.type == 'Liquid hydrogen':
-                pump1 = smallhydrogen_data["pump_capacity"]
+                pump1 = 0
                 pump2 = largehydrogen_data["pump_capacity"]
                 pump3 = 0
                 pumpall = np.array([pump1, pump2, pump3])
                 pumpall = pumpall[np.nonzero(pumpall)]
             else:
-                pump1 = smallammonia_data["pump_capacity"] 
+                pump1 = 0 
                 pump2 = largeammonia_data["pump_capacity"]
                 pump3 = 0
                 pumpall = np.array([pump1, pump2, pump3])

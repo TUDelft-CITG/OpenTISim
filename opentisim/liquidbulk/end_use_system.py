@@ -13,6 +13,8 @@ from .hydrogen_defaults import *
 from .hydrogen_objects import *
 import opentisim
 
+#energy_data['price'] = 0.035 #adjust for scenario 
+
 class EndUseLocation:
     """This class implements the 'complete supply chain' concept (Van Koningsveld et al, 2021) for liquid bulk
     terminals. The module allows variation of the commodity type, the storage type and the h2conversion type.
@@ -215,7 +217,7 @@ class EndUseLocation:
                 max_vessel_call_size = DBT_barge_data["call_size"]
             elif commodity.type == 'Liquid hydrogen':
                 max_vessel_call_size = hydrogen_barge_data["call_size"]
-            else:
+            elif commodity.type == 'Ammonia':
                 max_vessel_call_size = ammonia_barge_data["call_size"]
         
 
@@ -369,7 +371,7 @@ class EndUseLocation:
                 max_vessel_call_size = DBT_barge_data["call_size"]
             elif commodity.type == 'Liquid hydrogen':
                 max_vessel_call_size = hydrogen_barge_data["call_size"]
-            else:
+            elif commodity.type == 'Ammonia':
                 max_vessel_call_size = ammonia_barge_data["call_size"]
         
         

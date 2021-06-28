@@ -119,7 +119,7 @@ storage_lh2_data = {"name": 'HTank_01',
              "storage_type": 'tank',
              "consumption": 610, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019] 
              "capacity": 3_550, #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019] 
-               "losses": 0.06} #%/d 
+               "losses": 0.06} #%/d 0.06
 
 # [Ishimoto 2020] = Large-scale production and transport of hydrogen from Norway to Europe and Japan: Value chain analysis and comparison of liquid hydrogen and ammonia as energy (Ishimoto, Y., Voldsund, M., Nekså, P., Roussanaly, S., Berstad, D., Gardarsdottir, S. O.)
 
@@ -141,7 +141,7 @@ storage_nh3_data = {"name": 'ATank_01',
                   "storage_type": 'tank',
                   "consumption": 100, #in kwh/ton #[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
                   "capacity": 34_130,#[Lanphen2019, P 87], [HyChain Import Model Excel], [Ishimoto 2020], [IEA 2019]
-                    "losses": 0.03} #%/d
+                    "losses": 0.03} #%/d 0.03
 
 "MCH"
 storage_MCH_data = {"name": 'MCHTank_01',
@@ -188,7 +188,7 @@ h2retrieval_lh2_data = {"name": 'H2retrieval_LH2_01',
                   "ownership": 'Terminal operator',
                   "delivery_time": 2,
                   "lifespan": 20,
-                  "unit_rate": 30_000_000, #59_000_000, #[Abrahamse 2021] 
+                  "unit_rate": 30_000_000, #30_000_000, #[Abrahamse 2021] 
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
                   "maintenance_perc": 0.015,
@@ -206,7 +206,7 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 225_000_000, #[Abrahamse 2021] 
+             "unit_rate": 225_000_000, #[Abrahamse 2021] 225
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.015,
@@ -215,8 +215,8 @@ h2retrieval_nh3_data = {"name": 'H2retrieval_NH3_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 5890,#in kwh/ton H2 #[Abrahamse 2021] 
-             "capacity": 221, #ton H2/hr #[Abrahamse 2021] 39 ton H2 / hr --> 221 ton NH3 / hr
-             "losses": 1}  #%
+             "capacity": 221, #[Abrahamse 2021] 39 ton H2 / hr --> 221 ton NH3 / hr
+             "losses": 1}  #% 1
 
 "MCH"
 h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
@@ -224,7 +224,7 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 200_000_000, #335_000_000, #[Abrahamse 2021] 
+             "unit_rate": 200_000_000, #200_000_000, #[Abrahamse 2021] 
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.015,
@@ -233,8 +233,8 @@ h2retrieval_MCH_data = {"name": 'H2retrieval_MCH_01',
              "insurance_perc": 0.01,
              "h2retrieval_type": 'tank',
              "consumption": 9360,#in kwh/ton #[Abrahamse 2021] 
-             "capacity": 742, #in ton H2/hr #[Abrahamse 2021] 46 ton H2 / hr --> 742 ton MCH / hr
-             "losses": 10}  
+             "capacity": 742, #[Abrahamse 2021] 46 ton H2 / hr --> 742 ton MCH / hr
+             "losses": 10} #10  
 
 "DBT"
 h2retrieval_DBT_data = {"name": 'H2retrieval_DBT_01',
@@ -252,7 +252,7 @@ h2retrieval_DBT_data = {"name": 'H2retrieval_DBT_01',
              "h2retrieval_type": 'tank',
              "consumption": 7360,#in kwh/ton #[Abrahamse 2021] 
              "capacity": 742, #in ton H2/hr #[Abrahamse 2021] 46 ton H2 / hr --> 742 ton MCH / hr
-             "losses": 10}  
+             "losses": 10}  #10
 
 
 # *** Default inputs: H2 Conversion class ***
@@ -263,7 +263,7 @@ h2conversion_lh2_data = {"name": 'H2conversion_LH2_01',
                   "ownership": 'Terminal operator',
                   "delivery_time": 2,
                   "lifespan": 20,
-                  "unit_rate": 300_000_000,#439_000_000, #[Abrahamse 2019] 
+                  "unit_rate": 300_000_000,#300_000_000, #[Abrahamse 2019] 
                   "mobilisation_min": 200_000,
                   "mobilisation_perc": 0.003,
                   "maintenance_perc": 0.015,
@@ -275,7 +275,7 @@ h2conversion_lh2_data = {"name": 'H2conversion_LH2_01',
                   "capacity": 30, #ton LH2/hr #[Abrahamse 2021] 
                   "losses": 0, 
                    "recycle_rate": 0,
-                    "priceH2": 2.86, #€/kg
+                    "priceH2": 2.86, #€/kg #2.86
                    "sell_mat":  0, 
                      "sell_rate": 0}
 
@@ -285,7 +285,7 @@ h2conversion_nh3_data = {"name": 'H2conversion_NH3_01',
              "ownership": 'Terminal operator',
              "delivery_time": 2,
              "lifespan": 20,
-             "unit_rate": 362_000_000, #361_500_000, #[Abrahamse 2021] 
+             "unit_rate": 362_000_000, # #[Abrahamse 2021] 
              "mobilisation_min": 200_000,
              "mobilisation_perc": 0.003,
              "maintenance_perc": 0.015,
@@ -321,7 +321,7 @@ h2conversion_MCH_data = {"name": 'H2conversion_MCH_01',
              "losses": 1,
              "recycle_rate": 97,
               "priceH2": 2.86, #€/kg  
-             "sell_mat": 550, #500, #€/ton
+             "sell_mat": 550, #550, #€/ton
              "sell_rate": 95}
 
 "DBT"
@@ -395,7 +395,7 @@ commodity_DBT_data = {"name": 'DBT',
             "type": 'DBT',
             "handling_fee": 1000,
             "Hcontent": 6.0,
-            "material_price": 3320, #€/ton
+            "material_price": 3220, #€/ton
             "smallhydrogen_perc": 0,
             "largehydrogen_perc": 0,
             "smallammonia_perc": 0,
@@ -452,7 +452,7 @@ largehydrogen_data = {"name": 'largehydrogen_1',
                   "demurrage_rate": 700,
                   "delivery_time": 2, 
                   "lifespan": 20,
-                  "unit_rate": 334_000_000, 
+                  "unit_rate": 334_000_000,  
                   "mobilisation_min": 0, 
                   "mobilisation_perc":0, 
                   "maintenance_perc": 0.015,
@@ -490,7 +490,7 @@ smallammonia_data = {"name": 'smallammonia_1',
                   "crew_min": 20,
                   "crew_for5": 20,
                   "insurance_perc": 0.01,
-                  "losses": 0.5, 
+                  "losses": 0.5,#0.5, 
                   "utilization":5840, 
                   "avspeed": 25, 
                   "consumption": 275, 
@@ -519,7 +519,7 @@ largeammonia_data = {"name": 'largeammonia_1',
                   "crew_min": 20,
                   "crew_for5": 20,
                   "insurance_perc": 0.01,
-                  "losses": 0.5, 
+                  "losses": 0.5, #0.5,
                   "utilization":5840, 
                   "avspeed": 25, 
                   "consumption": 275, 
@@ -599,7 +599,7 @@ vlcc_data = {"name": 'VLCC_1',
              "demurrage_rate": 1000,
              "delivery_time": 2, 
               "lifespan": 20,
-              "unit_rate": 127_000_000, 
+              "unit_rate": 127_000_000, # 
               "mobilisation_min": 0, 
               "mobilisation_perc":0, 
               "maintenance_perc": 0.015,
@@ -642,7 +642,7 @@ vlcc_data_DBT = {"name": 'VLCC_DBT',
               "ship_weight": 37432,
               "DWT": 265311,
               "gamma":0.9,  
-              "fuelprice": 556}
+              "fuelprice": 556} 
 
 
 # *** Default inputs: Labour class ***
@@ -652,14 +652,14 @@ labour_data = {"name": 'Labour',
                "international_staff": 4,
                "local_salary": 18_850,
                "local_staff": 10,
-               "operational_salary": 46_000,
+               "operational_salary": 46_000, #46000
                "shift_length": 8,
                "annual_shifts": 200}
 
 # *** Default inputs: Energy class ***
 
 energy_data = {"name": 'Energy',
-               "price": 0.12}
+               "price": 0.06} #0.06
 
 # *** Default inputs: Barge class ***
 
@@ -671,7 +671,7 @@ hydrogen_barge_data = {"name": 'hydrogenbarge_1',
                   "call_size": 710, #[Abrahamse 2021] ton LH2
                   "delivery_time": 1, 
                   "lifespan": 20,
-                  "unit_rate": 40_000_000, 
+                  "unit_rate": 40_000_000, #40
                   "mobilisation_min": 0, 
                   "mobilisation_perc":0.003, 
                   "maintenance_perc": 0.015,
@@ -686,7 +686,7 @@ hydrogen_barge_data = {"name": 'hydrogenbarge_1',
                   "loadingtime": 48, #h
                   "unloadingtime": 48, #h 
                   "uncertainty":1.2, 
-                  "fuelprice": 1.20} #€/liter
+                  "fuelprice": 1.20} #1.20 €/liter
 
 
 "Ammonia:"
@@ -697,14 +697,14 @@ ammonia_barge_data = {"name": 'ammoniabarge_1',
                  "call_size": 6826, #[Abrahamse 2021] ton NH3
                  "delivery_time": 2, 
                   "lifespan": 20,
-                  "unit_rate": 20_000_000, 
+                  "unit_rate": 20_000_000, #20
                   "mobilisation_min": 0, 
                   "mobilisation_perc":0.003, 
                   "maintenance_perc": 0.015,
                   "crew_min": 2,
                   "crew_for5": 2,
                   "insurance_perc": 0.01,
-                  "losses": 0.08, 
+                  "losses": 0.08, #0.08, 
                   "utilization":5840, 
                   "avspeed": 13, 
                   "consumption": 275, 
@@ -721,7 +721,7 @@ MCH_barge_data = {"name": 'MCHbarge_1',
                   "call_size": 7700, #[Abrahamse 2021] ton MCH
                   "delivery_time": 1, 
                   "lifespan": 20,
-                  "unit_rate": 11_000_000, 
+                  "unit_rate": 11_000_000, #11
                   "mobilisation_min": 0, 
                   "mobilisation_perc":0.003, 
                   "maintenance_perc": 0.015,
@@ -744,7 +744,7 @@ DBT_barge_data = {"name": 'DBTbarge_1',
                   "call_size": 10570, #[Abrahamse 2021] ton MCH
                   "delivery_time": 1, 
                   "lifespan": 20,
-                  "unit_rate": 11_000_000, 
+                  "unit_rate": 11_000_000, #11
                   "mobilisation_min": 0, 
                   "mobilisation_perc":0.003, 
                   "maintenance_perc": 0.015,

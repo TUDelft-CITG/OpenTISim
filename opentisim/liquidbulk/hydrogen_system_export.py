@@ -18,6 +18,7 @@ from .hydrogen_defaults import *
 from .hydrogen_objects import *
 import opentisim
 
+#energy_data['price'] = 0.03 #adjust for scenario 
 
 # todo: consider renaming this class to Terminal (seems more appropriate)
 class ExportTerminal:
@@ -26,7 +27,7 @@ class ExportTerminal:
     Terminal development is governed by three triggers: the allowable waiting time as factor of service time,
     the allowable dwell time and an h2conversion trigger."""
 
-    def __init__(self, startyear=2020, lifecycle=10, operational_hours=5840, debug=False, elements=[],
+    def __init__(self, startyear=2020, lifecycle=10, operational_hours=5840, distance = 1000, debug=False, elements=[],
                  terminal_supply_chain={'berth_jetty', 'pipeline_jetty_-_terminal', 'storage','h2_conversion'},
                  commodity_type_defaults=commodity_ammonia_data,
                  storage_type_defaults=storage_nh3_data,
@@ -40,6 +41,7 @@ class ExportTerminal:
         self.lifecycle = lifecycle
         self.operational_hours = operational_hours
         self.terminal_supply_chain = terminal_supply_chain
+        self.distance = distance 
 
         # provide intermediate outputs via print statements if debug = True
         self.debug = debug
@@ -351,7 +353,7 @@ class ExportTerminal:
                     vessel_size_2 = largehydrogen_data["LOA"]
                     vessel_size_3 = 0
                     a = np.array([vessel_size_1, vessel_size_2, vessel_size_3])
-                else:
+                elif commodity.type == 'Ammonia':
                     vessel_size_1 = smallammonia_data["LOA"]
                     vessel_size_2 = largeammonia_data["LOA"]
                     vessel_size_3 = 0
@@ -403,7 +405,7 @@ class ExportTerminal:
         unit_rate = int((nrofdolphins * jetty.mooring_dolphins) + (jetty.Gijt_constant_jetty * jetty.jettywidth *
                                                                    jetty.jettylength) + (jetty.Catwalk_rate *
                                                                                          jetty.catwalklength * jetty.catwalkwidth))
-        mobilisation = int(max((unit_rate * jetty.mobilisation_perc), jetty.mobilisation_min))
+        mobilisation = 1_000_000
         jetty.capex = int(unit_rate + mobilisation)
 
         # - opex
@@ -596,11 +598,11 @@ class ExportTerminal:
         # max_vessel_call_size = max([x.call_size for x in opentisim.core.find_elements(self, Vessel)])
         for commodity in opentisim.core.find_elements(self, Commodity):
             if commodity.type == 'MCH' or commodity.type == 'DBT': 
-                max_vessel_call_size = largeammonia_data["call_size"]
+                max_vessel_call_size = vlcc_data["call_size"]
             elif commodity.type == 'Liquid hydrogen':
                 max_vessel_call_size = largehydrogen_data["call_size"]
-            else:
-                max_vessel_call_size = vlcc_data["call_size"]
+            elif commodity.type == 'Ammonia':
+                max_vessel_call_size = largeammonia_data["call_size"]
         
         #max_vessel_call_size = largeammonia_data["call_size"]
 
@@ -685,11 +687,14 @@ class ExportTerminal:
 
         plant_occupancy_planned, plant_occupancy_online, h2conversion_capacity_planned, h2conversion_capacity_online = self.calculate_h2conversion_occupancy(
             year, hydrogen_defaults_h2conversion_data)
-
+        
         if self.debug:
             print('     Plant occupancy planned (@ start of year): {:.2f}'.format(plant_occupancy_planned))
             print('     Plant occupancy online (@ start of year): {:.2f}'.format(plant_occupancy_online))
-
+        
+        throughput_online, throughput_terminal_in,throughput_online_jetty_in, throughput_online_stor_in, throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,  throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in,Demand_jetty_in  =             self.throughput_elements(year)
+        
+            
         # check if sufficient h2retrieval capacity is available
         while plant_occupancy_planned > self.h2conversion_trigger:
 
@@ -713,29 +718,96 @@ class ExportTerminal:
                 price_mat = commodity.material_price #€/ton
                 
             capacity_plant = h2conversion.capacity * self.operational_hours
-            tonH2 = (Hcontent * capacity_plant)/100
-            tonmat = capacity_plant - tonH2 #xxx
+           
+            number_plants = np.ceil(Demand_plant_in/capacity_plant)
+            Dem_per_plant = Demand_plant_in /number_plants
             
+            #ships 
+            for commodity in opentisim.core.find_elements(self, Commodity):
+                if commodity.type == 'MCH':
+                    capacity_ship = vlcc_data["call_size"]
+                    pump_ship = vlcc_data["pump_capacity"]
+                    loadingtime_ship = ((vlcc_data["call_size"]/vlcc_data["pump_capacity"]) +vlcc_data["mooring_time"])*60*60
+                    unloadingtime_ship = ((vlcc_data["call_size"]/vlcc_data["pump_capacity"]) +vlcc_data["mooring_time"])*60*60
+                    velocity_ship = vlcc_data['avspeed']/3.6 # #25 km/h --> m/s 
+                    losses_ship = vlcc_data['losses']
+                    loading = 2 * loadingtime_ship 
+                    unloading = 2 * unloadingtime_ship
+                elif commodity.type == 'DBT':
+                    capacity_ship = vlcc_data_DBT["call_size"]
+                    pump_ship = vlcc_data_DBT["pump_capacity"]
+                    loadingtime_ship = ((vlcc_data_DBT["call_size"]/vlcc_data_DBT["pump_capacity"]) +vlcc_data_DBT["mooring_time"])*60*60
+                    unloadingtime_ship = ((vlcc_data_DBT["call_size"]/vlcc_data_DBT["pump_capacity"]) +vlcc_data_DBT["mooring_time"])*60*60
+                    velocity_ship = vlcc_data_DBT['avspeed']/3.6 # #25 km/h --> m/s 
+                    losses_ship = vlcc_data_DBT['losses']
+                    loading = 2 * loadingtime_ship 
+                    unloading = 2 * unloadingtime_ship
+                elif commodity.type == 'Ammonia':
+                    capacity_ship = largeammonia_data["call_size"]
+                    pump_ship = largeammonia_data["pump_capacity"]
+                    loadingtime_ship = ((largeammonia_data["call_size"]/largeammonia_data["pump_capacity"]) +largeammonia_data["mooring_time"])*60*60
+                    unloadingtime_ship = ((largeammonia_data["call_size"]/largeammonia_data["pump_capacity"]) +largeammonia_data["mooring_time"])*60*60
+                    velocity_ship = largeammonia_data['avspeed']/3.6 # #25 km/h --> m/s 
+                    losses_ship = largeammonia_data['losses']
+                    loading = loadingtime_ship  #default: ship loading time #in seconds: 
+                    unloading = unloadingtime_ship #default: ship unloading time
+                elif commodity.type == 'Liquid hydrogen':
+                    capacity_ship = largehydrogen_data["call_size"]
+                    pump_ship = largehydrogen_data["pump_capacity"]
+                    loadingtime_ship = ((largehydrogen_data["call_size"]/largehydrogen_data["pump_capacity"]) +largehydrogen_data["mooring_time"])*60*60
+                    unloadingtime_ship = ((largehydrogen_data["call_size"]/largehydrogen_data["pump_capacity"]) +largehydrogen_data["mooring_time"])*60*60
+                    velocity_ship = largehydrogen_data['avspeed']/3.6 # #25 km/h --> m/s 
+                    losses_ship = largehydrogen_data['losses']
+                    loading = loadingtime_ship  #default: ship loading time #in seconds: 
+                    unloading = unloadingtime_ship #default: ship unloading time
+            
+            v = lambda x: velocity_ship #default: ship velocity in m/s 
+            current_speed = v 
+            
+            secyear = 60*60*24*365
+            
+            engine_order = 1 
+            duration = (self.distance*1000)/((current_speed) (engine_order)) 
+            
+            distancekm = self.distance
+            durationdays = duration/60/60/24
+            
+            onetriptime = loading + duration + unloading + duration  #xxx
+            numberoftrips = np.ceil(secyear / onetriptime)#6  #7.48 #math.ceil(secyear / onetriptime)
+            maxtrans1 = numberoftrips * capacity_ship 
+            
+            number_vessels = np.ceil(Demand_jetty_in/maxtrans1)
+            
+            tonH2 = (Hcontent * Dem_per_plant)/100
+            
+            for commodity in opentisim.core.find_elements(self, Commodity):
+                if commodity.type == 'MCH':
+                    carried_mass = vlcc_data["call_size"]
+                    tonmat = number_vessels * carried_mass
+                    h2conversion.capex_material = ((tonmat * price_mat) - ((h2conversion.sell_rate/100) * tonmat * h2conversion.sell_mat))/number_plants
+                    h2conversion.purchase_material = (tonmat * ((100-h2conversion.recycle_rate)/100)*price_mat)/number_plants
+                elif commodity.type == 'DBT':
+                    carried_mass = vlcc_data_DBT["call_size"]
+                    tonmat = number_vessels * carried_mass
+                    tonmat_DBT = ((100-Hcontent)*tonmat)/100
+                    h2conversion.capex_material = ((tonmat_DBT * price_mat) - ((h2conversion.sell_rate/100) * tonmat_DBT * h2conversion.sell_mat))/number_plants
+                    
+                    h2conversion.purchase_material = (tonmat_DBT * ((100-h2conversion.recycle_rate)/100)*price_mat)/number_plants
+                else:
+                    tonmat = Dem_per_plant - tonH2
+                    h2conversion.capex_material = (((h2conversion.recycle_rate * tonmat)/100) * price_mat) - (((h2conversion.sell_rate * tonmat)/100) * h2conversion.sell_mat)
+                    h2conversion.purchase_material = (tonmat * (100-h2conversion.recycle_rate)/100)*price_mat
+                    
             #price_mat:
             price_H2 = (h2conversion.priceH2*1000) #€/ton
-            
-            h2conversion.capex_material = (((h2conversion.recycle_rate * tonmat)/100) * price_mat) - (((h2conversion.sell_rate * tonmat)/100) * h2conversion.sell_mat)
-            
-            # - capex material (what is recycled)
-#             for commodity in opentisim.core.find_elements(self, Commodity):
-#                 if commodity.type == 'MCH': 
-#                     h2conversion.capex_material = (((h2conversion.recycle_rate * tonmat)/100) * price_mat) - (((h2conversion.selling_rate * tonmat)/100) * sell_mat)
-#                 elif commodity.type == 'Liquid hydrogen':
-#                     h2conversion.capex_material = ((h2conversion.recycle_rate * tonmat)/100) * price_mat
-#                 else:
-#                     h2conversion.capex_material = ((h2conversion.recycle_rate * tonmat)/100) * price_mat
             
             
             #h2conversion.capex_material = ((h2conversion.recycle_rate * tonmat)/100) * price_mat
             # - opex purchase 
             h2conversion.purchaseH2 = tonH2 * price_H2 
-            h2conversion.purchase_material = (tonmat * (100-h2conversion.recycle_rate)/100)*price_mat
-
+            
+            #new
+            
             #   labour**hydrogen_defaults
             labour = Labour(**labour_data)
             h2conversion.shift = (
@@ -790,15 +862,26 @@ class ExportTerminal:
         
         
         throughput_online_pipej = throughput_online_jetty_in
-
+        
         pipelinesj = 0
         for element in list_of_elements_Pipelinejetty:
             if year >= element.year_online:
                 pipelinesj += 1
-                consumption = throughput_online_pipej / pipelinesj * element.consumption_coefficient
-
+                
+        
+        if pipelinesj > 0:
+            consumption = throughput_online_pipej / pipelinesj
+        
+        for element in list_of_elements_Pipelinejetty:
+            if year >= element.year_online:
+                consumption_kWh = consumption * element.consumption_coefficient
                 if consumption * energy.price != np.inf:
-                    element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
+                    element.df.loc[element.df['year'] == year, 'energy'] = consumption_kWh * energy.price
+                
+#                 consumption = throughput_online_pipej / pipelinesj * element.consumption_coefficient
+
+#                 if consumption * energy.price != np.inf:
+#                     element.df.loc[element.df['year'] == year, 'energy'] = consumption * energy.price
 
             else:
                 element.df.loc[element.df['year'] == year, 'energy'] = 0
