@@ -480,7 +480,7 @@ def pipe_objects(importterminal, distancekm,  percentage_new, percentage_existin
         pipe = Pipe(**pipe_defaults)
 
         # - capex
-        price_existing = (0.13/1000) #€/kgH2/km
+        price_existing = (0.13/1000) #€/kgH2/km #0.13
 
         years_frame = importterminal.years
         throughput_years = np.zeros(len(years_frame))
