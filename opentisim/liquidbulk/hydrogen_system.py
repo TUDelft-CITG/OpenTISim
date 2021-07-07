@@ -633,11 +633,19 @@ class System:
 #             except:
 #                 pass
 
-        storage_capacity_dwelltime_demand = (Demand_storage_in * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        commodities = opentisim.core.find_elements(self,Commodity)
+        for commodity in commodities:
+            Hcontent = commodity.Hcontent
+
+        Demand_storage_in_carrier = (Demand_storage_in * 100)/ Hcontent
+
+        storage_capacity_dwelltime_demand = (Demand_storage_in_carrier * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        
+        throughput_planned_storage_carrier = (throughput_planned_storage * 100)/ Hcontent
 
         # print('troughput planned storage',throughput_planned_storage, 'in year', year )
         storage_capacity_dwelltime_throughput = (
-                                                            throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+                                                            throughput_planned_storage_carrier* self.allowable_dwelltime) * 1.1  # IJzerman p.26
         #  or
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime_demand:

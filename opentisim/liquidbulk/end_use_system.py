@@ -223,10 +223,16 @@ class EndUseLocation:
 
         # find the total throughput
         throughput_online, throughput_terminal_in,throughput_online_jetty_in, throughput_online_stor_in, throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,  throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in,Demand_jetty_in = self.throughput_elements(year)
+        
+        Demand_storage_in_carrier = (Demand_storage_in * 100)/ Hcontent
 
-        storage_capacity_dwelltime_demand = (Demand_storage_in * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        storage_capacity_dwelltime_demand = (Demand_storage_in_carrier * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        
+        throughput_planned_storage_carrier = (throughput_planned_storage * 100)/ Hcontent
 
-        storage_capacity_dwelltime_throughput = (throughput_planned_storage * self.allowable_dwelltime) * 1.1  # IJzerman p.26
+        # print('troughput planned storage',throughput_planned_storage, 'in year', year )
+        storage_capacity_dwelltime_throughput = (
+                                                            throughput_planned_storage_carrier* self.allowable_dwelltime) * 1.1  # IJzerman p.26
         #  or
         # check if sufficient storage capacity is available
         while storage_capacity < max_vessel_call_size or storage_capacity < storage_capacity_dwelltime_demand:
