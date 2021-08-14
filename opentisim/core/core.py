@@ -108,7 +108,7 @@ def add_cashflow_data_to_element(Terminal, element):
     return element
 
 
-def add_cashflow_elements(Terminal, labour):
+def add_cashflow_elements(Terminal):
     """Cycle through each element and collect all cash flows into a pandas dataframe."""
 
     cash_flows = pd.DataFrame()
@@ -159,11 +159,11 @@ def add_cashflow_elements(Terminal, labour):
     return cash_flows, cash_flows_WACC_real
 
 
-def NPV(Terminal, labour):
+def NPV(Terminal):
     """Gather data from Terminal elements and combine into a cash flow overview"""
 
     # add cash flow information for each of the Terminal elements
-    cash_flows, cash_flows_WACC_real = add_cashflow_elements(Terminal, labour)
+    cash_flows, cash_flows_WACC_real = add_cashflow_elements(Terminal)
 
     # prepare years, revenue, capex and opex for plotting
     years = cash_flows_WACC_real['year'].values

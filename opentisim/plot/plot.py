@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 
 # *** General functions
-def cashflow_plot(Terminal, cash_flows, title='Cash flow plot', width=0.2, alpha=0.6, fontsize=20):
+def cashflow_plot(cash_flows, title='Cash flow plot', width=0.2, alpha=0.6, fontsize=20):
     """Gather data from Terminal elements and combine into a cash flow plot"""
 
     # prepare years, revenue, capex and opex for plotting
