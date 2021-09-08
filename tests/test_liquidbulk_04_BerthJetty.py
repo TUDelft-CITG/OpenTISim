@@ -68,7 +68,7 @@ def test_liquidbulk_04_Berth_Jetty():
     
     
 	# jetty data
-	opentisim.liquidbulk.jetty_data['delivery_time'] = 1 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
+	opentisim.liquidbulk.jetty_data['delivery_time'] = 2 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
 	opentisim.liquidbulk.jetty_data['lifespan'] = 30 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]
 	opentisim.liquidbulk.jetty_data['mobilisation_min'] = 1_000_000 #Dr. ir. De Gijt and Ir. Quist, personal communication,     	[Lanphen2019]
 	opentisim.liquidbulk.jetty_data['mobilisation_perc'] = 0.02 #[Lanphen2019]
@@ -83,7 +83,7 @@ def test_liquidbulk_04_Berth_Jetty():
 	opentisim.liquidbulk.jetty_data['Catwalk_rate'] = 1000 #Ir. Quist, personal communication, [Lanphen 2019]
     
 	# berth data   
-	opentisim.liquidbulk.berth_data['delivery_time'] = 1 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]    
+	opentisim.liquidbulk.berth_data['delivery_time'] = 2 #Dr. ir. De Gijt and Ir. Quist, personal communication,[Lanphen2019]    
     
 	# define terminal
 	Terminal = opentisim.liquidbulk.System(
@@ -133,11 +133,11 @@ def test_liquidbulk_04_Berth_Jetty():
 
 		#assert the berth occupancy and the waiting factor 
 
-		smallhydrogen_calls, largehydrogen_calls,smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls,        		vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned,                           		smallammonia_calls_planned,largeammonia_calls_planned,handysize_calls_planned, panamax_calls_planned,                   		vlcc_calls_planned, total_calls_planned, total_vol_planned = Terminal.calculate_vessel_calls(year)
+		smallhydrogen_calls, largehydrogen_calls,smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, total_calls, total_vol, smallhydrogen_calls_planned, largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned,vlcc_calls_planned, total_calls_planned, total_vol_planned = Terminal.calculate_vessel_calls(year)
 
-		berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online =              		Terminal.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls,                                      		smallammonia_calls,largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls,smallhydrogen_calls_planned,          		largehydrogen_calls_planned, smallammonia_calls_planned,largeammonia_calls_planned, handysize_calls_planned,            		panamax_calls_planned, vlcc_calls_planned)
+		berth_occupancy_planned, berth_occupancy_online, unloading_occupancy_planned, unloading_occupancy_online =            Terminal.calculate_berth_occupancy(year, smallhydrogen_calls, largehydrogen_calls, smallammonia_calls, largeammonia_calls, handysize_calls, panamax_calls, vlcc_calls, smallhydrogen_calls_planned,largehydrogen_calls_planned, smallammonia_calls_planned, largeammonia_calls_planned, handysize_calls_planned, panamax_calls_planned, vlcc_calls_planned)
             
-		WF = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths,    		kendall=Terminal.kendall)
+		WF = opentisim.core.occupancy_to_waitingfactor(utilisation=berth_occupancy_planned, nr_of_servers_to_chk=berths, kendall=Terminal.kendall)
 
 		berth_occupancy_online = round(berth_occupancy_online,3)
 		WF = round(WF,3)
@@ -162,7 +162,7 @@ def test_liquidbulk_04_Berth_Jetty():
 				pumpall = np.array([pump1, pump2, pump3])
 				pumpall = pumpall[np.nonzero(pumpall)]
 			else:
-				pump1 = sopentisim.liquidbulk.mallammonia_data["pump_capacity"] 
+				pump1 = opentisim.liquidbulk.smallammonia_data["pump_capacity"] 
 				pump2 = opentisim.liquidbulk.largeammonia_data["pump_capacity"]
 				pump3 = 0
 				pumpall = np.array([pump1, pump2, pump33])
@@ -183,7 +183,7 @@ def test_liquidbulk_04_Berth_Jetty():
             #print('problem occurs at {}'.format(year))
 				pass
             
-		throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in,                   		throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,                  		throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in=   		Terminal.throughput_elements(year)
+		throughput_online, throughput_terminal_in ,throughput_online_jetty_in, throughput_online_stor_in,                throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,               throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in, Demand_jetty_in=  Terminal.throughput_elements(year)
 
 		#assert the costs 
 

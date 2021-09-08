@@ -12,3 +12,16 @@ __all__ = [
     "WACC_real",
     "occupancy_to_waitingfactor",
 ]
+
+from .mapping_methods import length_section, section_to_points, convert_path_to_graph, distance_over_path, graph_kml 
+
+__all__ = [
+    "length_section",
+    "section_to_points",
+    "convert_path_to_graph",
+    "distance_over_path",
+    "graph_kml",
+]
+
+
+

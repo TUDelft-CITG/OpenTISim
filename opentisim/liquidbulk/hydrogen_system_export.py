@@ -609,6 +609,10 @@ class ExportTerminal:
         # find the total throughput
         throughput_online, throughput_terminal_in,throughput_online_jetty_in, throughput_online_stor_in, throughput_online_plant_in, throughput_planned, throughput_planned_jetty,throughput_planned_pipej,  throughput_planned_storage, throughput_planned_plant, Demand,Demand_plant_in, Demand_storage_in,Demand_jetty_in  =             self.throughput_elements(year)
 
+        commodities = opentisim.core.find_elements(self,Commodity)
+        for commodity in commodities:
+            Hcontent = commodity.Hcontent
+
         Demand_storage_in_carrier = (Demand_storage_in * 100)/ Hcontent
 
         storage_capacity_dwelltime_demand = (Demand_storage_in_carrier * self.allowable_dwelltime) * 1.1  # IJzerman p.26
